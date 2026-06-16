@@ -75,6 +75,6 @@ We may update this privacy policy from time to time. Updated policies will be po
 
 If you have any questions about this privacy policy, please contact us at:
 
-- GitHub Issues: https://github.com/YOUR_GITHUB_USERNAME/dbmaster/issues
-- Email: support@dbmaster.app
+- GitHub Issues: https://github.com/hobbs136/dbmaster/issues
+- Email: hobbs136@hotmail.com
 
