@@ -4,7 +4,7 @@
 // 隔离、草稿 ValueNotifier 桥）、侧边栏能力分组元数据（capabilityId 仅作
 // port 查询键）、渲染器 build 通路。
 //
-// 用例登记：docs/test/unified_test_spec.md 「UI 插件框架（PLG）」。
+// 用例登记：「UI 插件框架（PLG）」。
 import 'package:flutter/material.dart';
 
 import 'package:dbmaster/models/database_models.dart';

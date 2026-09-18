@@ -2,7 +2,7 @@
 //
 // 覆盖：bootstrap 注册完整性（10 技能/徽章唯一/来源 ai）、四分组次序与
 // 计数、AiSkillEnvelope 类型名解析、AiSkillCatalogPanel 渲染与点击回调、
-// 选中态高亮。用例登记：docs/test/unified_test_spec.md 「C23 AI 面板」。
+// 选中态高亮。用例登记：「C23 AI 面板」。
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';

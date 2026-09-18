@@ -1,6 +1,6 @@
 // ============================================================================
 // Redis Wave 2/3 Editors & Workbenches Integration Tests
-// Covers (docs/test/redis_sidebar_e2e_report.md):
+// Covers:
 //   W2.4 Geo editor (member list / GEODIST / GEOADD / remove)
 //   W2.5 Stream editor (XADD / XDEL / XTRIM / consumer groups)
 //   W2.7 CONFIG SET via sidebar Config node

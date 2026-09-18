@@ -130,10 +130,7 @@ def main():
         print("      # 编辑 translation_template.csv")
         print("      python3 scripts/import_translations.py translation_template.csv")
         print()
-        print("   2. 查看未翻译报告:")
-        print("      cat docs/untranslated-messages-report.md")
-        print()
-        print("   3. 手动翻译 ARB 文件:")
+        print("   2. 手动翻译 ARB 文件:")
         print("      编辑 lib/l10n/app_*.arb 文件")
     else:
         print("   ✅ 所有翻译已完成！")

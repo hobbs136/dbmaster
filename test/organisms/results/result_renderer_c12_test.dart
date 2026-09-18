@@ -5,7 +5,7 @@
 // 兼容、shapeForDatabaseType 九类型映射、三渲染器 widget 渲染与交互。
 // 宿主级（ResultsWidget 按形态默认选文档视图）在 results_view_mode_test。
 //
-// 用例登记：docs/test/unified_test_spec.md 「C12 附录」。
+// 用例登记：「C12 附录」。
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

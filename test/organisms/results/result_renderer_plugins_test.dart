@@ -4,7 +4,7 @@
 // build 渲染目标 widget、表格交互桥参数转发、默认注册（bootstrap）。
 // 宿主切换条/切换行为的 widget 级验证在 results_view_mode_test.dart。
 //
-// 用例登记：docs/test/unified_test_spec.md 「C11 渲染器注册化」。
+// 用例登记：「C11 渲染器注册化」。
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

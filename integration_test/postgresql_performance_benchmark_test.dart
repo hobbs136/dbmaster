@@ -1,7 +1,7 @@
 // ============================================================================
 // PostgreSQL Performance Benchmark Tests (P1/P2/P3)
 // Tests: Real PostgreSQL server performance baselines ($APPEAL Performance
-//        维度第二期, docs/task_performance_benchmark_wave2.md)
+//        维度第二期)
 // Target: real PostgreSQL via DBMASTER_PG_* (see config/postgresql_test_config.dart)
 //
 // Benchmark parameters (dart-define overridable):

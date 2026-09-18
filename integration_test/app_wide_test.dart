@@ -2,9 +2,9 @@
 // DbMaster App-Wide Integration Test
 //
 // Tests: Application-level features (theme, i18n, settings, tabs, status bar,
-// welcome screen) derived from docs/test/app_wide_manual_test_cases.md
+// welcome screen)
 //
-// Convention:  Each testWidgets() maps 1:1 to a TC id in the markdown doc.
+// Convention:  Each testWidgets() maps 1:1 to a TC id.
 // `[必须人工]` cases are automated at the widget/state level where feasible;
 // TC ids with no automation here are documented in the test name and skipped
 // intentionally (drag/visual/8h stability).

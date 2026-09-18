@@ -1,7 +1,7 @@
 // C01a · UI 插件注册框架单测：描述符语义 + 注册表行为
 // （注册/查询/冲突/override/封口/多命中）。
 //
-// 用例登记：docs/test/unified_test_spec.md 「UI 插件框架（PLG）」。
+// 用例登记：「UI 插件框架（PLG）」。
 import 'package:dbmaster/models/database_models.dart';
 import 'package:dbmaster/plugins/ai_skill_plugin.dart';
 import 'package:dbmaster/plugins/plugin_descriptor.dart';

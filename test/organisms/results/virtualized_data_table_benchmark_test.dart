@@ -2,7 +2,6 @@
 // VirtualizedDataTable UI 渲染基准 (U1/U2)
 // 对应 $APPEAL 4.1.6 结论：P2 的 UI 渲染层验证（10 万行首帧 < 1s 预算内
 // 渲染部分建议 < 380ms；滚动 30fps → 帧预算 33ms）
-// docs/task_performance_benchmark_wave2.md
 //
 // 说明：widget 测试测量 Debug 环境的 build+layout 成本（不含光栅化），
 // 阈值相应放宽；数值记录为主，回归线防劣化。

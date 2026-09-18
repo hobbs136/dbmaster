@@ -2,7 +2,6 @@
 // MongoDB Performance Benchmark Tests (M1/M2)
 // Tests: Real MongoDB server baselines —— 对应 $APPEAL 4.1.3 薄弱点 1
 //        （NoSQL 大实例元数据/大结果集行为）
-//        docs/task_performance_benchmark_wave2.md
 // Target: real MongoDB via DBMASTER_MONGO_* (see config/mongodb_test_config.dart)
 //
 // Benchmark parameters (dart-define overridable):

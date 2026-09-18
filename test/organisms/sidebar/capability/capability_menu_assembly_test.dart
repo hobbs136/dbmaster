@@ -1,7 +1,7 @@
 // C14 · 能力菜单装配单测：port 门控 / 组合并 / 项覆盖 / 徽章解析 /
 // core 插件内容 × 能力真值表。
 //
-// 用例登记：docs/test/unified_test_spec.md「侧边栏能力菜单（CAP-MENU）」。
+// 用例登记：「侧边栏能力菜单（CAP-MENU）」。
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';

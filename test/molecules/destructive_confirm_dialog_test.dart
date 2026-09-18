@@ -35,7 +35,7 @@ Widget _dialog({
   );
 }
 
-/// 用例登记：docs/test/unified_test_spec.md 10.2 — UM-DEST-001..006
+/// 用例登记：10.2 — UM-DEST-001..006
 void main() {
   group('DestructiveConfirmDialog', () {
     testWidgets(

@@ -2,7 +2,6 @@
 // Redis Performance Benchmark Tests (R1/R2)
 // Tests: Real Redis server baselines —— 对应 $APPEAL 4.1.3 薄弱点 1
 //        （NoSQL 海量 key 场景的懒加载/扫描行为）
-//        docs/task_performance_benchmark_wave2.md
 // Target: real Redis via DBMASTER_REDIS_* (see config/redis_test_config.dart)
 //
 // 使用专用 db15 + FLUSHDB 回收，绝不污染其他 db。

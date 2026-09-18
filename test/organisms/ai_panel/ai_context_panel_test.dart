@@ -1,7 +1,7 @@
 // C23.2 · AI 面板右栏上下文面板单测。
 //
 // 覆盖：无连接空态、连接卡显示、当前库显示、Schema 上下文 toggle 回调。
-// 用例登记：docs/test/unified_test_spec.md 「C23 AI 面板」。
+// 用例登记：「C23 AI 面板」。
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

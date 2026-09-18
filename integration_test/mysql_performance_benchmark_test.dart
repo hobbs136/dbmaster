@@ -1,8 +1,7 @@
 // ============================================================================
 // MySQL Performance Benchmark Tests (P1/P2/P3)
 // Tests: Real MySQL server performance baselines for the $APPEAL Performance
-//        dimension (docs/appeal_product_analysis.md §4.1, task doc:
-//        docs/task_performance_benchmark.md)
+//        dimension
 // Target: real MySQL via DBMASTER_MYSQL_* (see config/mysql_test_config.dart)
 //
 // Benchmark parameters (dart-define overridable):

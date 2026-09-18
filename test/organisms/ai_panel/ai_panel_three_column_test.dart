@@ -2,8 +2,7 @@
 //
 // 覆盖：≥700px 宽面（全屏/大 overlay）渲染左技能目录 + 右上下文栏；
 // <700px 窄面（停靠侧栏 300-400px）隐藏两栏、header 出 sparkles 入口
-// 按钮；点击入口弹 Tab 对话框。用例登记：docs/test/unified_test_spec.md
-// 「C23 AI 面板」。
+// 按钮；点击入口弹 Tab 对话框。用例登记：「C23 AI 面板」。
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
