@@ -1,0 +1,127 @@
+{
+  "success": true,
+  "outcome": "passed",
+  "repairable": true,
+  "terminalViolations": [],
+  "terminalBlockingSummary": null,
+  "skillProvenance": {
+    "name": "solo-design",
+    "version": "2026.07.22.00.00.00",
+    "version_source": "skill-release-manifest.json",
+    "runtime_skill_dir": null,
+    "recorded_at": null,
+    "expected_version": "2026.07.22.00.00.00",
+    "status": "matched",
+    "read_status": "loaded"
+  },
+  "operatingMode": "free-explore",
+  "renderBlockingErrorCount": 0,
+  "softWarningCount": 2,
+  "renderBlockingErrors": [],
+  "errorSignatures": [],
+  "softWarnings": [
+    "[html-quality] index-cool-professional.html: hardcoded colors are forbidden outside <style id=\"theme-vars\">. Use brand CSS variables from the token reference.",
+    "[html-quality] index.html: hardcoded colors are forbidden outside <style id=\"theme-vars\">. Use brand CSS variables from the token reference."
+  ],
+  "repairPlanHints": [
+    {
+      "errorClass": "hardcoded-color-in-body",
+      "owner": "sub-agent",
+      "repairScope": "targeted-token-replace",
+      "strategy": "targeted_token_replace_once",
+      "affectedFiles": [
+        "index-cool-professional.html"
+      ],
+      "repairReportPath": null,
+      "repairAlreadyAttempted": false,
+      "allowSourceRead": "no-full-html-read",
+      "maxValidationRuns": 2
+    },
+    {
+      "errorClass": "hardcoded-color-in-body",
+      "owner": "sub-agent",
+      "repairScope": "targeted-token-replace",
+      "strategy": "targeted_token_replace_once",
+      "affectedFiles": [
+        "index.html"
+      ],
+      "repairReportPath": null,
+      "repairAlreadyAttempted": false,
+      "allowSourceRead": "no-full-html-read",
+      "maxValidationRuns": 2
+    }
+  ],
+  "repairActionTable": [],
+  "errorCount": 0,
+  "warningCount": 2,
+  "errors": [],
+  "warnings": [
+    "[html-quality] index-cool-professional.html: hardcoded colors are forbidden outside <style id=\"theme-vars\">. Use brand CSS variables from the token reference.",
+    "[html-quality] index.html: hardcoded colors are forbidden outside <style id=\"theme-vars\">. Use brand CSS variables from the token reference."
+  ],
+  "validationRunDisciplineStatus": {
+    "declared": true,
+    "restoreMode": false,
+    "maxFullValidationRuns": null,
+    "validationHistoryCount": 0,
+    "repairLedgerCount": 0,
+    "softWarningsTriggerRepair": null,
+    "terminalState": null,
+    "nextAction": null,
+    "violations": [],
+    "success": true
+  },
+  "terminalState": null,
+  "nextCheck": {
+    "type": "finish-readiness",
+    "command": "node \"c:\\Users\\hobbs\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs\" \"c:\\Users\\hobbs\\Projects\\dbmaster\\dbmaster-flutter\\dbmaster-design-audit\" --check=all",
+    "fullValidationAllowed": false,
+    "reason": "workspace validation passed; run complete finish readiness before final delivery"
+  },
+  "repairBatch": [],
+  "repairContextPacket": {
+    "schema_version": "1.0",
+    "purpose": "small-context repair packet; read this before full validation-report.json",
+    "success": true,
+    "terminalState": null,
+    "skillProvenance": {
+      "name": "solo-design",
+      "version": "2026.07.22.00.00.00",
+      "version_source": "skill-release-manifest.json",
+      "runtime_skill_dir": null,
+      "recorded_at": null,
+      "expected_version": "2026.07.22.00.00.00",
+      "status": "matched",
+      "read_status": "loaded"
+    },
+    "renderBlockingErrorCount": 0,
+    "softWarningCount": 2,
+    "renderBlockingErrors": [],
+    "repairActionTable": [],
+    "nextCheck": {
+      "type": "finish-readiness",
+      "command": "node \"c:\\Users\\hobbs\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs\" \"c:\\Users\\hobbs\\Projects\\dbmaster\\dbmaster-flutter\\dbmaster-design-audit\" --check=all",
+      "fullValidationAllowed": false,
+      "reason": "workspace validation passed; run complete finish readiness before final delivery"
+    },
+    "forbidden": [
+      "do not read validator source",
+      "do not rerun full validation when nextCheck.fullValidationAllowed=false",
+      "do not start preview/browser unless user explicitly asks",
+      "do not hand-edit repair ledger fields"
+    ]
+  },
+  "projectFileHashes": {
+    "dbmaster-design-audit.design": "70ac7014e1006710338e0395c543637fef03fdbc4117da210eab99ddaf7e6a5d",
+    "colors_and_type.css": "04b9b6cc43d1ec9807f06fee6033a18d5a12af01368d3e83ac9ee4a1b2d5e3cf",
+    "runtime-orchestration-summary.json": "531050a036a82d4c17927eb313c2b9c501b81eb5feac8ada32d938a197c17abe",
+    "pages/index-components-interactions.html": "892b709f561802b073d652fbcf44a01db3623ff5e94091df0998b6d7bff41b01",
+    "pages/index-cool-professional.html": "5f114b077891a4b9c356a9104dd1deafc1ba1077a920750285ba9685c0effca5",
+    "pages/index-layout-refactor.html": "2feff5b3d030bf7e3987ace894e6a5c8ba4b6add102ee8672b9c7be86ba10687",
+    "pages/index.html": "d06ca2194a0fc26925c94c8dbb4546e1cb5fd4c320056ae80977a8183d87a831"
+  },
+  "designDir": "c:\\Users\\hobbs\\Projects\\dbmaster\\dbmaster-flutter\\dbmaster-design-audit",
+  "expectedPages": 4,
+  "requireInteractions": null,
+  "checkedAt": "2026-08-13T08:45:57.778Z"
+}

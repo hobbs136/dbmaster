@@ -1,0 +1,535 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import '../models/database_models.dart';
+import 'database_service.dart';
+import 'sql_autocomplete_service.dart';
+import '../utils/app_logger.dart';
+
+/// SQL 智能增强服务
+/// 提供 LSP 风格的智能分析、错误检查、代码重构建议
+class SQLIntelligentService {
+  final DatabaseService _dbService;
+  final SQLAutocompleteService _autocompleteService;
+
+  // 缓存
+  final Map<String, TableSchema> _schemaCache = {};
+  final Map<String, List<DbColumn>> _columnsCache = {};
+  DateTime? _lastCacheUpdate;
+
+  // 代码片段
+  static final Map<String, CodeSnippet> _snippets = {
+    'select': CodeSnippet(
+      id: 'select',
+      label: 'SELECT * FROM',
+      description: '基础查询',
+      trigger: 'sel',
+      content: 'SELECT *\nFROM table_name\nWHERE condition\nLIMIT 100;',
+      variables: ['table_name', 'condition'],
+    ),
+    'join': CodeSnippet(
+      id: 'join',
+      label: 'SELECT with JOIN',
+      description: '连接查询',
+      trigger: 'join',
+      content: '''SELECT a.*, b.column_name
+FROM table_a AS a
+JOIN table_b AS b ON a.id = b.a_id
+WHERE a.condition
+LIMIT 100;''',
+      variables: ['table_a', 'table_b', 'column_name', 'condition'],
+    ),
+    'insert': CodeSnippet(
+      id: 'insert',
+      label: 'INSERT with values',
+      description: '插入数据',
+      trigger: 'ins',
+      content: '''INSERT INTO table_name (column1, column2, created_at)
+VALUES (value1, value2, NOW());''',
+      variables: ['table_name', 'column1', 'column2', 'value1', 'value2'],
+    ),
+    'update': CodeSnippet(
+      id: 'update',
+      label: 'UPDATE with WHERE',
+      description: '更新数据',
+      trigger: 'upd',
+      content: '''UPDATE table_name
+SET column1 = value1, column2 = value2
+WHERE id = some_id;''',
+      variables: ['table_name', 'column1', 'column2', 'value1', 'value2', 'some_id'],
+    ),
+    'delete': CodeSnippet(
+      id: 'delete',
+      label: 'DELETE with WHERE',
+      description: '删除数据',
+      trigger: 'del',
+      content: '''DELETE FROM table_name
+WHERE condition;''',
+      variables: ['table_name', 'condition'],
+    ),
+    'create_table': CodeSnippet(
+      id: 'create_table',
+      label: 'CREATE TABLE',
+      description: '创建表',
+      trigger: 'ct',
+      content: '''CREATE TABLE table_name (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;''',
+      variables: ['table_name'],
+    ),
+    'create_index': CodeSnippet(
+      id: 'create_index',
+      label: 'CREATE INDEX',
+      description: '创建索引',
+      trigger: 'ci',
+      content: 'CREATE INDEX idx_name ON table_name (column_name);',
+      variables: ['idx_name', 'table_name', 'column_name'],
+    ),
+    'transaction': CodeSnippet(
+      id: 'transaction',
+      label: 'Transaction',
+      description: '事务处理',
+      trigger: 'txn',
+      content: '''START TRANSACTION;
+
+-- Your statements here
+
+COMMIT;
+-- ROLLBACK;''',
+      variables: [],
+    ),
+    'subquery': CodeSnippet(
+      id: 'subquery',
+      label: 'Subquery in WHERE',
+      description: '子查询',
+      trigger: 'sub',
+      content: '''SELECT *
+FROM table_name
+WHERE id IN (
+    SELECT id
+    FROM other_table
+    WHERE condition
+)
+LIMIT 100;''',
+      variables: ['table_name', 'other_table', 'condition'],
+    ),
+    'case': CodeSnippet(
+      id: 'case',
+      label: 'CASE WHEN',
+      description: '条件表达式',
+      trigger: 'case',
+      content: '''SELECT *,
+    CASE
+        WHEN condition1 THEN result1
+        WHEN condition2 THEN result2
+        ELSE default_result
+    END AS case_result
+FROM table_name;''',
+      variables: ['condition1', 'condition2', 'result1', 'result2', 'default_result', 'table_name'],
+    ),
+    'group_by': CodeSnippet(
+      id: 'group_by',
+      label: 'GROUP BY with HAVING',
+      description: '分组聚合',
+      trigger: 'grp',
+      content: '''SELECT column_name, COUNT(*) AS count, SUM(amount) AS total
+FROM table_name
+WHERE condition
+GROUP BY column_name
+HAVING count > 10
+ORDER BY count DESC
+LIMIT 100;''',
+      variables: ['column_name', 'table_name', 'condition', 'amount'],
+    ),
+    'window_function': CodeSnippet(
+      id: 'window_function',
+      label: 'Window Function',
+      description: '窗口函数',
+      trigger: 'win',
+      content: '''SELECT *,
+    ROW_NUMBER() OVER (PARTITION BY category ORDER BY created_at) AS row_num,
+    RANK() OVER (ORDER BY value DESC) AS rank_value,
+    LAG(value) OVER (PARTITION BY category ORDER BY created_at) AS prev_value,
+    LEAD(value) OVER (PARTITION BY category ORDER BY created_at) AS next_value,
+    SUM(value) OVER (PARTITION BY category ORDER BY created_at) AS running_total
+FROM table_name
+ORDER BY category, created_at
+LIMIT 100;''',
+      variables: ['category', 'created_at', 'value', 'table_name'],
+    ),
+    'cte': CodeSnippet(
+      id: 'cte',
+      label: 'Common Table Expression',
+      description: 'CTE 递归查询',
+      trigger: 'cte',
+      content: '''WITH cte_name AS (
+    SELECT id, name, value
+    FROM table_name
+    WHERE condition
+)
+SELECT *
+FROM cte_name
+WHERE cte_condition
+LIMIT 100;''',
+      variables: ['cte_name', 'table_name', 'condition', 'cte_condition'],
+    ),
+    'pivot': CodeSnippet(
+      id: 'pivot',
+      label: 'PIVOT Table',
+      description: '数据透视',
+      trigger: 'pivot',
+      content: '''SELECT
+    row_column,
+    SUM(CASE WHEN pivot_column = 'value1' THEN measure_column ELSE 0 END) AS value1,
+    SUM(CASE WHEN pivot_column = 'value2' THEN measure_column ELSE 0 END) AS value2,
+    SUM(CASE WHEN pivot_column = 'value3' THEN measure_column ELSE 0 END) AS value3
+FROM table_name
+WHERE condition
+GROUP BY row_column
+ORDER BY row_column
+LIMIT 100;''',
+      variables: ['row_column', 'pivot_column', 'measure_column', 'table_name', 'condition'],
+    ),
+  };
+
+  SQLIntelligentService(this._dbService) : _autocompleteService = SQLAutocompleteService(_dbService);
+
+  /// 分析 SQL 文本
+  Future<SQLAnalysisAnalysisResult> analyzeSQL(String sql) async {
+    final issues = <SQLIssue>[];
+    final suggestions = <RefactoringSuggestion>[];
+
+    // 基础语法检查
+    issues.addAll(_checkBasicSyntax(sql));
+
+    // 性能检查
+    issues.addAll(_checkPerformanceIssues(sql));
+
+    // 最佳实践检查
+    issues.addAll(_checkBestPractices(sql));
+
+    // 安全检查
+    issues.addAll(_checkSecurityIssues(sql));
+
+    // 生成重构建议
+    suggestions.addAll(_generateRefactoringSuggestions(sql));
+
+    return SQLAnalysisResult(
+      issues: issues,
+      suggestions: suggestions,
+      quickFixes: _generateQuickFixes(issues),
+    );
+  }
+
+  /// 基础语法检查
+  List<SQLIssue> _checkBasicSyntax(String sql) {
+    final issues = <SQLIssue>[];
+
+    // 检查括号匹配
+    final openParens = '('.allMatches(sql).length;
+    final closeParens = ')'.allMatches(sql).length;
+    if (openParens != closeParens) {
+      issues.add(SQLIssue(
+        type: IssueType.error,
+        message: '括号不匹配: 期望 ${openParens - closeParens.abs()} 个 ${openParens > closeParens ? ")" : "("}',
+        severity: Severity.error,
+        suggestion: '检查所有括号是否正确配对',
+      ));
+    }
+
+    // 检查引号匹配
+    final singleQuotes = "'".allMatches(sql).length;
+    if (singleQuotes % 2 != 0) {
+      issues.add(SQLIssue(
+        type: IssueType.error,
+        message: '单引号不匹配',
+        severity: Severity.error,
+        suggestion: '检查所有字符串是否正确闭合',
+      ));
+    }
+
+    // 检查 SELECT 是否没有 FROM
+    if (sql.toUpperCase().contains('SELECT') && !sql.toUpperCase().contains('FROM')) {
+      issues.add(SQLIssue(
+        type: IssueType.warning,
+        message: 'SELECT 语句缺少 FROM 子句',
+        severity: Severity.warning,
+        suggestion: '添加 FROM 子句指定数据源',
+      ));
+    }
+
+    return issues;
+  }
+
+  /// 性能问题检查
+  List<SQLIssue> _checkPerformanceIssues(String sql) {
+    final issues = <SQLIssue>[];
+    final upperSql = sql.toUpperCase();
+
+    // 检查 SELECT *
+    if (RegExp(r'SELECT\s+\*').hasMatch(upperSql)) {
+      issues.add(SQLIssue(
+        type: IssueType.performance,
+        message: '使用 SELECT * 可能影响性能',
+        severity: Severity.warning,
+        suggestion: '只查询需要的列，避免不必要的网络传输和内存使用',
+        quickFix: QuickFix(
+          label: '展开列名',
+          action: 'expand_select_star',
+        ),
+      ));
+    }
+
+    // 检查 LIKE 前导通配符
+    if (RegExp(r'LIKE\s+[\'"].*%[^\'"]').hasMatch(upperSql) ||
+        RegExp(r'LIKE\s+[\'"]%').hasMatch(upperSql)) {
+      issues.add(SQLIssue(
+        type: IssueType.performance,
+        message: 'LIKE 以 % 开头无法使用索引',
+        severity: Severity.warning,
+        suggestion: '考虑使用全文索引或修改查询逻辑',
+        quickFix: QuickFix(
+          label: '建议使用后缀匹配或全文索引',
+          action: 'suggest_fulltext_index',
+        ),
+      ));
+    }
+
+    // 检查 WHERE 子句中的函数调用
+    if (RegExp(r'WHERE\s+.*\(\w+\s*[=<>]').hasMatch(upperSql)) {
+      issues.add(SQLIssue(
+        type: IssueType.performance,
+        message: 'WHERE 子句中使用函数可能无法使用索引',
+        severity: Severity.info,
+        suggestion: '考虑将函数应用移到右侧或使用函数索引',
+      ));
+    }
+
+    // 检查缺少 LIMIT
+    if (upperSql.contains('SELECT') && !upperSql.contains('LIMIT')) {
+      issues.add(SQLIssue(
+        type: IssueType.performance,
+        message: '缺少 LIMIT 可能导致返回大量数据',
+        severity: Severity.info,
+        suggestion: '添加 LIMIT 子句限制返回行数',
+        quickFix: QuickFix(
+          label: '添加 LIMIT',
+          action: 'add_limit',
+        ),
+      ));
+    }
+
+    // 检查子查询
+    if (upperSql.contains('(SELECT')) {
+      issues.add(SQLIssue(
+        type: IssueType.performance,
+        message: '子查询可能性能较差',
+        severity: Severity.info,
+        suggestion: '考虑使用 JOIN 替代子查询',
+        quickFix: QuickFix(
+          label: '转换为 JOIN',
+          action: 'convert_to_join',
+        ),
+      ));
+    }
+
+    return issues;
+  }
+
+  /// 最佳实践检查
+  List<SQLIssue> _checkBestPractices(String sql) {
+    final issues = <SQLIssue>[];
+    final upperSql = sql.toUpperCase();
+
+    // 检查隐式类型转换
+    if (RegExp(r'WHERE\s+\w+\s*=\s*\d+').hasMatch(upperSql)) {
+      issues.add(SQLIssue(
+        type: IssueType.best_practice,
+        message: '隐式类型转换可能影响性能',
+        severity: Severity.info,
+        suggestion: '明确指定类型或使用 CAST 函数',
+      ));
+    }
+
+    // 检查使用逗号分隔的 JOIN
+    if (RegExp(r'FROM\s+\w+\s*,\s*\w+').hasMatch(upperSql)) {
+      issues.add(SQLIssue(
+        type: IssueType.best_practice,
+        message: '建议使用显式 JOIN 语法',
+        severity: Severity.info,
+        suggestion: '使用 JOIN ... ON 明确指定连接条件',
+      ));
+    }
+
+    // 检查未使用表别名导致的长表名
+    if (RegExp(r'[a-z_]{20,}\.').hasMatch(upperSql)) {
+      issues.add(SQLIssue(
+        type: IssueType.best_practice,
+        message: '长表名降低可读性',
+        severity: Severity.style,
+        suggestion: '使用表别名简化查询',
+      ));
+    }
+
+    return issues;
+  }
+
+  /// 安全问题检查
+  List<SQLIssue> _checkSecurityIssues(String sql) {
+    final issues = <SQLIssue>[];
+    final upperSql = sql.toUpperCase();
+
+    // 检查可能的注入点（这只是一个基本检查）
+    if (RegExp(r'\$\w+|\{\w+\}').hasMatch(sql)) {
+      issues.add(SQLIssue(
+        type: IssueType.security,
+        message: '检测到变量占位符，确保使用参数化查询',
+        severity: Severity.warning,
+        suggestion: '使用预编译语句或参数绑定',
+      ));
+    }
+
+    // 检查明文密码
+    if (RegExp(r'PASSWORD\s*[=<>]\s*[\'"][^\'"]+[\'"]').hasMatch(upperSql)) {
+      issues.add(SQLIssue(
+        type: IssueType.security,
+        message: '检测到可能的明文密码',
+        severity: Severity.error,
+        suggestion: '使用哈希函数存储密码',
+      ));
+    }
+
+    return issues;
+  }
+
+  /// 生成重构建议
+  List<RefactoringSuggestion> _generateRefactoringSuggestions(String sql) {
+    final suggestions = <RefactoringSuggestion>[];
+    final upperSql = sql.toUpperCase();
+
+    // Suggest parameterization
+    if (RegExp(r'WHERE\s+\w+\s*=\s*[\'"][^\'"]+[\'"]').hasMatch(upperSql)) {
+      suggestions.add(RefactoringSuggestion(
+        id: 'parameterize',
+        title: '参数化查询',
+        description: '将硬编码值替换为参数，提高安全性和重用性',
+        kind: RefactoringKind.refactor,
+        priority: 90,
+      ));
+    }
+
+    // Suggest adding index hints
+    if (upperSql.contains('WHERE')) {
+      suggestions.add(RefactoringSuggestion(
+        id: 'add_index_hint',
+        title: '添加索引提示',
+        description: '为 WHERE 子句中的列添加索引提示',
+        kind: RefactoringKind.optimize,
+        priority: 70,
+      ));
+    }
+
+    // Suggest using EXISTS instead of IN
+    if (upperSql.contains(' IN (SELECT')) {
+      suggestions.add(RefactoringSuggestion(
+        id: 'use_exists',
+        title: '使用 EXISTS 替代 IN',
+        description: 'EXISTS 通常比 IN 更高效，特别是子查询返回大量结果时',
+        kind: RefactoringKind.optimize,
+        priority: 80,
+      ));
+    }
+
+    return suggestions;
+  }
+
+  /// 生成快速修复
+  List<QuickFix> _generateQuickFixes(List<SQLIssue> issues) {
+    final fixes = <QuickFix>[];
+
+    for (final issue in issues) {
+      if (issue.quickFix != null) {
+        fixes.add(issue.quickFix!);
+      }
+    }
+
+    return fixes;
+  }
+
+  /// 获取代码片段
+  List<CodeSnippet> getSnippets(String trigger) {
+    if (trigger.isEmpty) return _snippets.values.toList();
+
+    return _snippets.values
+        .where((s) => s.trigger.toLowerCase().startsWith(trigger.toLowerCase()))
+        .toList();
+  }
+
+  /// 应用代码片段
+  String applySnippet(CodeSnippet snippet, Map<String, String> variables) {
+   ) {
+    String result = snippet.content;
+
+    for (final variable in snippet.variables) {
+      final value = variables[variable] ?? variable;
+      result = result.replaceAll('{$variable}', value);
+    }
+
+    return result;
+  }
+
+  /// 获取函数签名提示
+  FunctionSignature? getFunctionSignature(String functionName) {
+    // 这里可以根据函数名返回详细的签名信息
+    final signatures = {
+      'COUNT': FunctionSignature(
+        name: 'COUNT',
+        parameters: [
+          FunctionParameter(name: 'expression', type: 'any', description: '要计数的表达式'),
+        ],
+        returnType: 'BIGINT',
+        description: '返回行数或非NULL值的数量',
+      ),
+      'SUM': FunctionSignature(
+        name: 'SUM',
+        parameters: [
+          FunctionParameter(name: 'expression', type: 'numeric', description: '要求和的表达式'),
+        ],
+        returnType: 'numeric',
+        description: '返回表达式的总和',
+      ),
+      'AVG': FunctionSignature(
+        name: 'AVG',
+        parameters: [
+          FunctionParameter(name: 'expression', type: 'numeric', description: '要计算平均值的表达式'),
+        ],
+        returnType: 'numeric',
+        description: '返回表达式的平均值',
+      ),
+      'CONCAT': FunctionSignature(
+        name: 'CONCAT',
+        parameters: [
+          FunctionParameter(name: 'str1', type: 'string', description: '第一个字符串'),
+          FunctionParameter(name: 'str2', type: 'string', description: '第二个字符串', optional: true),
+        ],
+        returnType: 'string',
+        description: '连接字符串',
+      ),
+      'CASE': FunctionSignature(
+        name: 'CASE',
+        parameters: [
+          FunctionParameter(name: 'WHEN', type: 'condition', description: '条件表达式'),
+          FunctionParameter(name: 'THEN', type: 'expression', description: '条件满足时的返回值'),
+          FunctionParameter(name: 'ELSE', type: 'expression', description: '默认返回值', optional: true),
+        ],
+        returnType: 'any',
+        description: '条件表达式',
+      ),
+    };
+
+    return signatures[functionName.toUpperCase()];
+  }
+
+  /// 检查缓存是否过期（5

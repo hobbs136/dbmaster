@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# pre-commit: 拦截未清除的 // CHANGE: / # CHANGE: / -- CHANGE: 变更标记。
+# 规则：变更标记仅用于本次提交的人工审查，
+# 不得作为永久注释入库。确需跳过时用 `git commit --no-verify` 并说明理由。
+set -euo pipefail
+
+# 仅检查本次 staged 的代码文件（排除文档/配置/脚本，避免误报）。
+mapfile -t files < <(git diff --cached --name-only --diff-filter=ACM -- \
+  '*.dart' '*.py' '*.ts' '*.tsx' '*.js' '*.jsx' '*.go' '*.java' '*.kt' \
+  '*.sql' '*.html' '*.xml' '*.css')
+
+if [ "${#files[@]}" -eq 0 ]; then
+  exit 0
+fi
+
+# 在 staged 新增行里查找 CHANGE: 标记。
+# DEFENSIVE-NOTE: 用 '^\+.*CHANGE:' 而非全量 grep，只看本次新增，避免历史代码误报。
+hits=$(git diff --cached -- "${files[@]}" | grep -nE '^\+.*CHANGE:' || true)
+
+if [ -n "${hits}" ]; then
+  echo "❌ pre-commit: 检测到未清除的 CHANGE: 变更标记，禁止入库。" >&2
+  echo "   规则：变更标记仅用于人工审查，提交前必须删除。" >&2
+  echo "   ---- 命中 ----" >&2
+  echo "${hits}" >&2
+  echo "   确需保留请用 git commit --no-verify 并在提交说明里写明理由。" >&2
+  exit 1
+fi
+
+exit 0

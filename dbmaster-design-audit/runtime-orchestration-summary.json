@@ -1,0 +1,351 @@
+{
+  "schemaVersion": "1.0",
+  "skillProvenance": {
+    "name": "solo-design",
+    "version": "2026.07.22.00.00.00",
+    "version_source": "skill-release-manifest.json",
+    "read_status": "loaded"
+  },
+  "project": {
+    "name": "dbmaster-design-audit",
+    "path": "c:\\Users\\hobbs\\Projects\\dbmaster\\dbmaster-flutter\\dbmaster-design-audit",
+    "operation": "create",
+    "deviceType": "desktop",
+    "resolvedLane": "existing_edit_add_comparison",
+    "intentProfile": "comparison-page color-direction pivot + layout refactor + components interactions",
+    "selectedIntentWorkflowRead": true,
+    "contextRequirementsLoaded": [
+      {
+        "path": "intent-workflows/intent-project-complex-build/INTENT_WORKFLOW.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "intent-workflows/intent-project-mutation/INTENT_WORKFLOW.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "intent-workflows/intent-project-mutation/edit-existing-project.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "shared-runtime/design-artifact-formats/design-project-file-format.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "shared-runtime/orchestration-summary-contract/orchestration-summary-contract.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "skill-release-manifest.json",
+        "readStatus": "loaded",
+        "bodyRead": true
+      }
+    ],
+    "contextReadScope": [
+      "INTENT_WORKFLOW.md (complex)",
+      "INTENT_WORKFLOW.md (mutation)",
+      "edit-existing-project.md",
+      "design-project-file-format.md",
+      "orchestration-summary-contract.md",
+      "skill-release-manifest.json"
+    ],
+    "readScopeLedger": [],
+    "dispatchPreflightManifest": [
+      {
+        "nodeId": "page-index",
+        "htmlSrc": "pages/index.html",
+        "laneContract": "complex-page-dispatch-contract.md",
+        "sharedTemplate": null,
+        "supplementaryReads": [],
+        "allowedWritePaths": [
+          "pages/index.html"
+        ],
+        "forbiddenWriteRoots": [
+          "dbmaster-design-audit.design",
+          "runtime-orchestration-summary.json"
+        ]
+      },
+      {
+        "nodeId": "page-index-cool-professional",
+        "htmlSrc": "pages/index-cool-professional.html",
+        "laneContract": "existing-edit-dispatch-contract.md",
+        "sharedTemplate": null,
+        "supplementaryReads": [],
+        "allowedWritePaths": [
+          "pages/index-cool-professional.html"
+        ],
+        "forbiddenWriteRoots": [
+          "dbmaster-design-audit.design",
+          "runtime-orchestration-summary.json"
+        ]
+      },
+      {
+        "nodeId": "page-index-layout-refactor",
+        "htmlSrc": "pages/index-layout-refactor.html",
+        "laneContract": "existing-edit-dispatch-contract.md",
+        "sharedTemplate": null,
+        "supplementaryReads": [],
+        "allowedWritePaths": [
+          "pages/index-layout-refactor.html"
+        ],
+        "forbiddenWriteRoots": [
+          "dbmaster-design-audit.design",
+          "runtime-orchestration-summary.json"
+        ]
+      },
+      {
+        "nodeId": "page-index-components-interactions",
+        "htmlSrc": "pages/index-components-interactions.html",
+        "laneContract": "existing-edit-dispatch-contract.md",
+        "sharedTemplate": null,
+        "supplementaryReads": [],
+        "allowedWritePaths": [
+          "pages/index-components-interactions.html"
+        ],
+        "forbiddenWriteRoots": [
+          "dbmaster-design-audit.design",
+          "runtime-orchestration-summary.json"
+        ]
+      }
+    ],
+    "expectedDispatches": [
+      {
+        "nodeId": "page-index",
+        "packetType": "complex-html-page",
+        "status": "completed",
+        "changedFiles": [
+          "pages/index.html"
+        ],
+        "toolCallLedger": {
+          "source": "main-agent-runtime-trace",
+          "traceDigest": "dispatch-page-index-20260813",
+          "todoWriteCalls": 0,
+          "previewCalls": 0,
+          "validationScriptCalls": 0,
+          "helperScriptWrites": 0
+        }
+      },
+      {
+        "nodeId": "page-index-cool-professional",
+        "packetType": "existing-edit-comparison-page",
+        "status": "completed",
+        "changedFiles": [
+          "pages/index-cool-professional.html"
+        ],
+        "toolCallLedger": {
+          "source": "main-agent-runtime-trace",
+          "traceDigest": "dispatch-page-index-cool-professional-20260813",
+          "todoWriteCalls": 0,
+          "previewCalls": 0,
+          "validationScriptCalls": 0,
+          "helperScriptWrites": 0
+        }
+      },
+      {
+        "nodeId": "page-index-layout-refactor",
+        "packetType": "existing-edit-comparison-page",
+        "status": "completed",
+        "changedFiles": [
+          "pages/index-layout-refactor.html"
+        ],
+        "toolCallLedger": {
+          "source": "main-agent-runtime-trace",
+          "traceDigest": "dispatch-page-index-layout-refactor-20260813",
+          "todoWriteCalls": 0,
+          "previewCalls": 0,
+          "validationScriptCalls": 0,
+          "helperScriptWrites": 0
+        }
+      },
+      {
+        "nodeId": "page-index-components-interactions",
+        "packetType": "existing-edit-comparison-page",
+        "status": "completed",
+        "changedFiles": [
+          "pages/index-components-interactions.html"
+        ],
+        "toolCallLedger": {
+          "source": "main-agent-runtime-trace",
+          "traceDigest": "dispatch-page-index-components-interactions-20260813",
+          "todoWriteCalls": 0,
+          "previewCalls": 0,
+          "validationScriptCalls": 0,
+          "helperScriptWrites": 0
+        }
+      }
+    ],
+    "validationRunDiscipline": {
+      "runPreflight": true,
+      "runWorkspaceValidation": true,
+      "runReadinessCheck": true
+    },
+    "validationHistory": [],
+    "validationRepairLedger": [],
+    "validationSnapshot": {},
+    "artifactReadinessEvidence": {},
+    "lowValueCallWatchdog": {
+      "noProgressNextAction": "proceed_to_dispatch"
+    },
+    "visualQualityCheckpoints": [
+      {
+        "checkpoint": "visual-anchor",
+        "target": "报告首页以深色 Hero + 核心结论卡片作为视觉锚点，明确诊断主题"
+      },
+      {
+        "checkpoint": "information-hierarchy",
+        "target": "按“摘要→色彩→布局→建议”四级层级组织，关键问题用 severity 色块区分"
+      },
+      {
+        "checkpoint": "composition-structure",
+        "target": "使用卡片网格、色板对比条、布局示意图三种信息模式，避免长文本堆叠"
+      },
+      {
+        "checkpoint": "implementation-strategy",
+        "target": "HTML 使用 Tailwind CDN + 项目 CSS 变量，单页长文流式布局，适配桌面大屏"
+      },
+      {
+        "checkpoint": "layout-mockup-clarity",
+        "target": "用高保真线框块清晰展示 Header / Sidebar / Workspace / Execution Center / Status Bar 的改进关系"
+      },
+      {
+        "checkpoint": "before-after-contrast",
+        "target": "每个布局改动都配有当前问题与改进方案的并排或上下对比"
+      },
+      {
+        "checkpoint": "component-state-spec",
+        "target": "关键组件展示 default / hover / active / selected / disabled / empty / error 等状态"
+      },
+      {
+        "checkpoint": "interaction-continuity",
+        "target": "用静态示意 + 文字说明表达微交互，避免过度依赖动效"
+      }
+    ],
+    "designRead": "数据库工具设计诊断 / 开发者受众 / 专业冷静 / 中高密度 / 避免过度装饰",
+    "designDials": {
+      "layoutVariance": 2,
+      "motionIntensity": 1,
+      "visualDensity": 4
+    },
+    "cssPreflightEvidence": {
+      "command": "node apply-html-head-contract.mjs",
+      "outputPath": "c:\\Users\\hobbs\\Projects\\dbmaster\\dbmaster-flutter\\dbmaster-design-audit\\.preflight\\preflight.html",
+      "exitCode": 0
+    }
+  },
+  "designSource": {
+    "operatingMode": "free-explore",
+    "cssFilePath": "colors_and_type.css",
+    "brandPrefix": "audit",
+    "styleConstraints": {
+      "radiusMax": 12,
+      "staticShadowAlphaMax": 0.05
+    }
+  },
+  "pages": [
+    {
+      "nodeId": "page-index",
+      "title": "DbMaster 设计诊断报告",
+      "htmlSrc": "pages/index.html",
+      "pageIndex": 1,
+      "visualNorthStar": "专业开发者工具诊断报告：深色沉稳头部 + 卡片化问题矩阵 + 色板/布局对比图",
+      "compositionPattern": "single-page-scrolling-report",
+      "continuityAnchors": [
+        "统一使用项目 CSS 变量与 Slate 中性色",
+        "关键问题卡片采用左侧 severity 边条 + 编号"
+      ],
+      "componentPlan": {
+        "sections": [
+          "hero-summary",
+          "color-audit",
+          "layout-audit",
+          "improvement-roadmap"
+        ]
+      },
+      "imagePlan": [],
+      "chartsRequired": false,
+      "miniProgramStyle": false
+    },
+    {
+      "nodeId": "page-index-cool-professional",
+      "title": "DbMaster 设计诊断报告 — 冷专业方向",
+      "htmlSrc": "pages/index-cool-professional.html",
+      "pageIndex": 2,
+      "visualNorthStar": "在原诊断报告基础上，把建议方向锁定为冷专业风格：Slate 冷中性底 + 靛蓝品牌色 + 收敛语义色",
+      "compositionPattern": "single-page-scrolling-report",
+      "continuityAnchors": [
+        "继承原报告的信息层级与卡片结构",
+        "仅调整色彩叙事：明确冷专业方向，统一亮暗色温"
+      ],
+      "componentPlan": {
+        "sections": [
+          "hero-summary-cool",
+          "color-audit-cool",
+          "layout-audit-cool",
+          "improvement-roadmap-cool"
+        ]
+      },
+      "imagePlan": [],
+      "chartsRequired": false,
+      "miniProgramStyle": false
+    },
+    {
+      "nodeId": "page-index-layout-refactor",
+      "title": "DbMaster 布局重构方案",
+      "htmlSrc": "pages/index-layout-refactor.html",
+      "pageIndex": 3,
+      "visualNorthStar": "高保真 DbMaster 主界面布局重构示意：Header 分组、Sidebar 稳定化、Workspace 分区、Execution Center 抽屉化，统一使用冷专业色板",
+      "compositionPattern": "single-page-scrolling-report-with-mockup",
+      "continuityAnchors": [
+        "继承冷专业方向色板",
+        "用线框/色块展示当前 vs 改进后的布局结构"
+      ],
+      "componentPlan": {
+        "sections": [
+          "hero-layout-refactor",
+          "current-vs-proposed-structure",
+          "header-redesign",
+          "workspace-redesign",
+          "execution-center-redesign",
+          "improvement-checklist"
+        ]
+      },
+      "imagePlan": [],
+      "chartsRequired": false,
+      "miniProgramStyle": false
+    },
+    {
+      "nodeId": "page-index-components-interactions",
+      "title": "DbMaster 组件与交互细节",
+      "htmlSrc": "pages/index-components-interactions.html",
+      "pageIndex": 4,
+      "visualNorthStar": "关键组件状态与交互规范：Header / Sidebar / Workspace / Execution Center 的 default / hover / active / selected / empty / error 状态，以及微交互建议",
+      "compositionPattern": "single-page-component-spec",
+      "continuityAnchors": [
+        "继承冷专业方向色板",
+        "组件示意图使用 CSS 变量，保持与布局重构方案一致"
+      ],
+      "componentPlan": {
+        "sections": [
+          "hero-components",
+          "header-components",
+          "sidebar-components",
+          "workspace-components",
+          "execution-center-components",
+          "interaction-states",
+          "micro-interactions"
+        ]
+      },
+      "imagePlan": [],
+      "chartsRequired": false,
+      "miniProgramStyle": false
+    }
+  ],
+  "assets": [],
+  "wiringPlan": [],
+  "hiddenInteractionPlan": []
+}

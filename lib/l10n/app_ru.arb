@@ -1,0 +1,3119 @@
+{
+  "@@locale": "ru",
+  "filterBarApply": "Применить",
+  "@filterBarApply": {},
+  "filterBarAddCondition": "Добавить условие",
+  "@filterBarAddCondition": {},
+  "filterBarAnd": "И",
+  "@filterBarAnd": {},
+  "filterBarOr": "ИЛИ",
+  "@filterBarOr": {},
+  "filterBarNoColumns": "Нет столбцов",
+  "@filterBarNoColumns": {},
+  "filterBarLoading": "Загрузка…",
+  "@filterBarLoading": {},
+  "mongoAutocompleteTitle": "Автодополнение Mongo",
+  "appTitle": "DbMaster",
+  "settingsTitle": "Настройки",
+  "settingsLanguage": "Язык",
+  "settingsTheme": "Тема",
+  "settingsGeneral": "Общие",
+  "settingsConnection": "Подключение",
+  "settingsEditor": "Редактор",
+  "settingsAbout": "О программе",
+  "connectionNewConnection": "Новое подключение",
+  "connectionEditConnection": "Редактировать подключение",
+  "connectionDeleteConnection": "Удалить подключение",
+  "connectionConnect": "Подключиться",
+  "connectionCreateDatabase": "Создать базу данных",
+  "connectionEnableReadOnly": "Включить только чтение",
+  "connectionDisableReadOnly": "Отключить только чтение",
+  "connectionMoveToGroup": "Переместить в {groupName}",
+  "@connectionMoveToGroup": {"placeholders": {"groupName": {"type": "String"}}},
+  "connectionRemoveFromGroup": "Удалить из группы",
+  "connectionCollapseAll": "Свернуть все",
+  "connectionDisconnect": "Отключиться",
+  "connectionTestConnection": "Проверить подключение",
+  "connectionConnectionName": "Имя подключения",
+  "connectionHost": "Хост",
+  "connectionPort": "Порт",
+  "connectionUsername": "Имя пользователя",
+  "connNameRequired": "Требуется имя подключения",
+  "connHostRequired": "Требуется хост",
+  "connPortRequired": "Требуется порт",
+  "connUsernameRequired": "Требуется имя пользователя",
+  "connectionPassword": "Пароль",
+  "connectionDatabase": "База данных",
+  "connectionEnvironment": "Окружение",
+  "connectionEnvironmentNone": "Не указано",
+  "commonSave": "Сохранить",
+  "commonCancel": "Отмена",
+  "commonDelete": "Удалить",
+  "commonEdit": "Редактировать",
+  "commonAdd": "Добавить",
+  "commonClose": "Закрыть",
+  "commonConfirm": "Подтвердить",
+  "commonSearch": "Поиск",
+  "commonRefresh": "Обновить",
+  "commonLoading": "Загрузка...",
+  "commonNoData": "Нет данных",
+  "commonSuccess": "Успешно",
+  "commonError": "Ошибка",
+  "commonWarning": "Предупреждение",
+  "tableNewTable": "Новая таблица",
+  "tableEditTable": "Редактировать таблицу",
+  "tableDeleteTable": "Удалить таблицу",
+  "tableTableName": "Имя таблицы",
+  "tableColumns": "Столбцы",
+  "tableIndexes": "Индексы",
+  "tablePrimaryKey": "Первичный ключ",
+  "tableForeignKey": "Внешний ключ",
+  "tableRenameTable": "Переименовать таблицу",
+  "tableNewTableName": "Новое имя таблицы",
+  "queryExecute": "Выполнить",
+  "queryExecuteSelected": "Выполнить выбранное",
+  "queryFormat": "Форматировать",
+  "queryClear": "Очистить",
+  "queryHistory": "История",
+  "queryResults": "Результаты",
+  "sidebarConnections": "Подключения",
+  "sidebarDatabases": "Базы данных",
+  "sidebarTables": "Таблицы",
+  "sidebarViews": "Представления",
+  "sidebarSavedQueries": "Сохраненные запросы",
+  "sidebarProcedures": "Хранимые процедуры",
+  "sidebarTriggers": "Триггеры",
+  "sidebarFunctions": "Функции",
+  "sidebarServer": "Сервер",
+  "sidebarProcessList": "Список процессов",
+  "sidebarServerStatus": "Состояние сервера",
+  "sidebarNoUsers": "Нет пользователей",
+  "sidebarNoActiveProcesses": "Нет активных процессов",
+  "sidebarTdColsTags": "{cols} столб., {tags} тегов",
+  "sidebarTdColumnsCount": "Столбцы ({count})",
+  "sidebarTdTagsCount": "Теги ({count})",
+  "sidebarTdDeleteTitle": "Удалить SuperTable",
+  "sidebarTdDeleteConfirm": "Вы действительно хотите удалить SuperTable «{name}»?\n\nЭто также удалит все её SubTable!",
+  "sidebarDeleteGroup": "Удалить группу",
+  "sidebarDeleteGroupPrompt": "Выберите группу для удаления:",
+  "sidebarConnectionSwitch": "Переключить подключение",
+  "sidebarSelectConnectionHint": "Выберите подключение в селекторе выше, чтобы начать",
+  "sidebarConnectionNone": "Нет подключений",
+  "sidebarManageConnections": "Управление подключениями…",
+  "sidebarExtensions": "Extensions",
+  "noExtensionsInstalled": "No extensions installed",
+  "sidebarSchemas": "Схемы",
+  "sidebarMaterializedViews": "Материализованные представления",
+  "sidebarSequences": "Последовательности",
+  "settingsGeneralSettings": "Общие настройки",
+  "settingsAppearanceSettings": "Внешний вид",
+  "settingsEditorSettings": "Настройки редактора",
+  "settingsEnableAutocomplete": "Включить автозаполнение",
+  "settingsAutocompleteDescription": "Автоматически предлагать SQL ключевые слова и имена таблиц",
+  "settingsAiSettings": "Настройки ИИ",
+  "settingsAutoExecuteSql": "Автоматическое выполнение SQL",
+  "settingsAutoExecuteSqlDescription": "Автоматически выполнять SQL при открытии вкладки",
+  "settingsThemeSettings": "Тема",
+  "settingsDarkMode": "Тёмный",
+  "settingsLightMode": "Светлый",
+  "shortcutCategoryFile": "Файл",
+  "shortcutCategoryEdit": "Редактирование",
+  "shortcutCategoryView": "Вид",
+  "shortcutCategoryAi": "ИИ",
+  "shortcutCategoryTab": "Вкладки",
+  "shortcutNewConnection": "Новое подключение",
+  "shortcutNewTab": "Новая вкладка",
+  "shortcutCloseTab": "Закрыть вкладку",
+  "shortcutSaveQuery": "Сохранить запрос",
+  "shortcutExportData": "Экспорт данных",
+  "shortcutExecuteQuery": "Выполнить запрос",
+  "shortcutExecuteQueryNewTab": "Выполнить в новой вкладке",
+  "shortcutFormatSql": "Форматировать SQL",
+  "shortcutFind": "Найти",
+  "shortcutReplace": "Заменить",
+  "shortcutAutocomplete": "Автозаполнение",
+  "shortcutUndo": "Отменить",
+  "shortcutRedo": "Повторить",
+  "shortcutToggleSidebar": "Переключить боковую панель",
+  "shortcutToggleAiPanel": "Переключить панель ИИ",
+  "shortcutCommandPalette": "Палитра команд",
+  "shortcutShortcutHelp": "Справка по ярлыкам",
+  "shortcutGenerateSql": "Генерировать SQL",
+  "shortcutOptimizeSql": "Оптимизировать SQL",
+  "shortcutExplainSql": "Объяснить SQL",
+  "shortcutNextTab": "Следующая вкладка",
+  "shortcutPreviousTab": "Предыдущая вкладка",
+  "shortcutSwitchToTab": "Переключиться на вкладку",
+  "shortcutToggleAiFullscreen": "Панель ИИ на весь экран",
+  "shortcutAuditLog": "Журнал аудита запросов",
+  "shortcutIncreaseOpacity": "Увеличить непрозрачность наложения",
+  "shortcutDecreaseOpacity": "Уменьшить непрозрачность наложения",
+  "tableCreateNewTable": "Создать новую таблицу",
+  "quickActionsTitle": "Быстрые действия",
+  "quickActionsNewTable": "Новая таблица",
+  "quickActionsNewQuery": "Новый запрос",
+  "quickActionsAiAssistant": "ИИ-помощник",
+  "quickActionsSelectDatabaseFirst": "Пожалуйста, сначала выберите базу данных",
+  "resultsTabResults": "Результаты",
+  "resultsTabMessages": "Сообщения",
+  "resultsTabExecutionPlan": "План выполнения",
+  "resultsSearchBtn": "Поиск",
+  "resultsClear": "Очистить",
+  "resultsSubmit": "Отправить",
+  "resultsSearchResults": "Поиск в результатах",
+  "resultsViewTable": "Таблица",
+  "resultsViewCard": "Карточка",
+  "resultsViewChart": "Диаграмма",
+  "resultsViewStatistics": "Статистика",
+  "paginationShowing": "Показано",
+  "paginationRows": "строк",
+  "paginationFirstPage": "Первая страница",
+  "paginationPreviousPage": "Предыдущая страница",
+  "paginationNextPage": "Следующая страница",
+  "paginationLastPage": "Последняя страница",
+  "editModeTitle": "Режим редактирования",
+  "editModeChanges": "изменений",
+  "editModeHint": "Двойной клик для редактирования | Enter для подтверждения | Esc для отмены | Tab для переключения",
+  "resultsNoDataTitle": "Нет результатов",
+  "resultsNoDataMessage": "Результаты появятся после выполнения запроса",
+  "resultsNoDataCardMessage": "Вид карточки появится после выполнения запроса",
+  "resultsNoDataChartMessage": "Диаграмма появится после выполнения запроса",
+  "resultsNoDataStatisticsMessage": "Статистика появится после выполнения запроса",
+  "resultsNoDataExecutionPlanMessage": "Нажмите кнопку 'План выполнения', чтобы просмотреть план выполнения запроса",
+  "statisticsTotalRows": "Всего строк",
+  "statisticsFieldInfo": "Информация о полях",
+  "statisticsNumeric": "Числовое",
+  "statisticsText": "Текст",
+  "statisticsNumericStats": "Числовая статистика",
+  "statisticsCount": "Количество",
+  "statisticsSum": "Сумма",
+  "statisticsAvg": "Среднее",
+  "statisticsMin": "Минимум",
+  "statisticsMax": "Максимум",
+  "chartXAxis": "Ось X: ",
+  "chartYAxis": "Ось Y: ",
+  "chartType": "Тип: ",
+  "chartCannotGenerate": "Невозможно создать диаграмму: Убедитесь, что поле оси Y содержит числовые данные",
+  "messagesQuerySuccess": "Запрос выполнен успешно, возвращено {rows} строк, {cols} столбцов",
+  "messagesExecuteToSeeResults": "Информация о результатах появится после выполнения запроса",
+  "sqlPreviewWillExecute": "Будет выполнено {count} SQL-инструкций в таблице `{table}`:",
+  "saveErrorNoTab": "Невозможно сохранить: Текущая вкладка не существует",
+  "saveErrorCannotExtractTable": "Невозможно сохранить: Невозможно извлечь имя таблицы из запроса",
+  "saveErrorFailed": "Ошибка сохранения: {error}",
+  "exportSelectFormat": "Выберите формат экспорта",
+  "toolbarExecute": "Выполнить",
+  "toolbarStop": "Остановить",
+  "toolbarReadOnlyChip": "Только чтение",
+  "toolbarLimitChipTooltip": "Лимит строк для этого подключения (авто LIMIT)",
+  "toolbarTimeoutChipTooltip": "Тайм-аут запроса для этого подключения",
+  "toolbarChipFollowSettings": "Как в настройках",
+  "toolbarChipOff": "Выкл.",
+  "toolbarChipFollowConnection": "Как в подключении",
+  "gridEditBlockedReadOnly": "Подключение только для чтения — редактирование ячеек отключено.",
+  "gridEditBlockedNoTable": "Не удалось определить целевую таблицу — нужно запросить одну таблицу.",
+  "gridEditsCount": "изменений: {count} в строках: {rows}",
+  "gridCommitButton": "Применить изменения",
+  "gridDiscardButton": "Отменить изменения",
+  "gridCommitSuccess": "Записано строк: {rows}",
+  "gridCommitNoPrimaryKey": "Таблица {table} не имеет первичного ключа — запись невозможна.",
+  "gridCommitFailed": "Ошибка записи: {error}",
+  "statusBarReady": "Готово",
+  "statusBarExecuting": "Выполнение",
+  "statusBarElapsed": "Прошло {duration}",
+  "@statusBarElapsed": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "statusBarLineCol": "Стр {line}, Стб {column}",
+  "@statusBarLineCol": {
+    "placeholders": {
+      "line": {
+        "type": "int"
+      },
+      "column": {
+        "type": "int"
+      }
+    }
+  },
+  "executionStatusBarRows": "строк: {count}",
+  "@executionStatusBarRows": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "executionStatusBarErrorHint": "Нажмите на вкладку результата, чтобы увидеть подробности ошибок",
+  "toolbarExecutionPlan": "План выполнения",
+  "toolbarFormat": "Форматировать",
+  "toolbarSave": "Сохранить",
+  "splitButton": "Разделить",
+  "horizontalSplit": "Горизонтальное разделение",
+  "verticalSplit": "Вертикальное разделение",
+  "refreshData": "Обновить данные",
+  "analyzingDatabasePerformance": "Анализ производительности базы данных...",
+  "loadFailed": "Ошибка загрузки",
+  "fullTableScanDetected": "Обнаружено полное сканирование таблицы",
+  "fullTableScanDesc": "Запрос использует полное сканирование (type=ALL), рекомендуется индекс для WHERE столбцов",
+  "timeThreshold": "Порог времени:",
+  "searchPlaceholder": "Поиск...",
+  "closeBtn": "Закрыть",
+  "apiSettingsSavedMsg": "Настройки API сохранены",
+  "resultsHeaderExport": "Экспорт",
+  "resultsHeaderSearch": "Поиск",
+  "resultsHeaderClear": "Очистить",
+  "resultsHeaderSubmit": "Отправить",
+  "connectionStatusConnected": "Подключено",
+  "connectionStatusNotConnected": "Не подключено",
+  "selectConnection": "Выбрать подключение...",
+  "selectDatabase": "Выбрать базу данных",
+  "aiQuickActionOptimizeSql": "Оптимизировать SQL",
+  "aiQuickActionExplainQuery": "Объяснить запрос",
+  "aiQuickActionGenerateInsert": "Сгенерировать INSERT",
+  "aiQuickActionGenerateUpdate": "Сгенерировать UPDATE",
+  "aiQuickActionGenerateDelete": "Сгенерировать DELETE",
+  "aiQuickActionCreateTable": "Создать таблицу",
+  "aiQuickActionSecurityCheck": "Проверка безопасности",
+  "aiQuickActionIndexSuggestion": "Предложение индекса",
+  "aiQuickActionExecutionPlan": "План выполнения",
+  "aiQuickActionQueryHistory": "История запросов",
+  "confirmExecute": "Подтвердить выполнение",
+  "shortcutCategoryQuery": "Запрос",
+  "queryCancelled": "Запрос отменен",
+  "queryFailed": "Запрос неудался: {error}",
+  "querySuccessWithTime": "Запрос успешен, возвращено {count} строк ({time}мс)",
+  "cancelingQuery": "Отмена запроса...",
+  "cancelQueryFailed": "Не удалось отменить запрос",
+  "confirmCancelTransaction": "Confirm Cancel Transaction",
+  "confirmCancelTransactionMessage": "The current connection has an uncommitted transaction. Canceling the query will disconnect and reconnect, causing the transaction to rollback. Continue?",
+  "cancel": "Cancel",
+  "explainPlanSuccess": "План выполнения успешно получен",
+  "explainPlanFailed": "Не удалось получить план выполнения: {error}",
+  "queryEmptyCannotSave": "Содержимое запроса пусто, невозможно сохранить",
+  "saveQueryTitle": "Сохранить запрос",
+  "queryName": "Название запроса",
+  "enterQueryName": "Введите название запроса",
+  "saveQueryHint": "Будет сохранено в списке сохраненных запросов (макс 20)",
+  "querySaved": "Запрос сохранен: {name}",
+  "saveQueryLimitReached": "Достигнут лимит сохранения (20), сначала удалите некоторые запросы",
+  "savedQueryNameExists": "Имя сохраненного запроса \"{name}\" уже существует для этого подключения",
+  "sqlFormatted": "SQL отформатирован",
+  "pleaseEnterSqlCode": "Пожалуйста, введите SQL код",
+  "noConnectedServer": "Нет подключенного сервера",
+  "split2Hint": "Split 2 - Введите SQL запрос...",
+  "toolbarClose": "Закрыть",
+  "toolbarBackup": "Резервное копирование",
+  "toolbarImport": "Импорт",
+  "toolbarExport": "Экспорт",
+  "sidebarExpand": "Развернуть боковую панель",
+  "sidebarSettings": "Настройки",
+  "sidebarSearchHint": "Поиск подключений, таблиц, представлений...",
+  "sidebarConnectionActive": "{count} активных подключений",
+  "sidebarNoConnections": "Нет сохраненных подключений",
+  "sidebarClickToCreateConnection": "Нажмите кнопку ниже, чтобы создать новое подключение",
+  "sidebarCreateConnection": "Создать подключение",
+  "resultsExport": "Экспорт",
+  "resultsSave": "Сохранить",
+  "resultsDiscard": "Отменить",
+  "resultsNoDataToExport": "Нет данных для экспорта",
+  "resultsCSV": "CSV",
+  "resultsJSON": "JSON",
+  "resultsExcel": "Excel",
+  "resultsConfirmDiscardChanges": "Подтвердить отмену изменений",
+  "resultsDiscardChangesMessage": "Вы уверены, что хотите отменить {count} изменений? Это действие нельзя отменить.",
+  "resultsContinueEditing": "Продолжить редактирование",
+  "resultsDiscardChanges": "Отменить изменения",
+  "resultsConfirmExecuteSQL": "Подтвердить выполнение SQL",
+  "resultsBarChart": "Столбчатая диаграмма",
+  "resultsLineChart": "Линейная диаграмма",
+  "resultsPieChart": "Круговая диаграмма",
+  "resultsSelectAxisFields": "Пожалуйста, выберите поля для осей X и Y",
+  "statusNotConnected": "Не подключено",
+  "statusConnected": "Подключено",
+  "statusTables": "{count} таблиц",
+  "statusNone": "Нет",
+  "statusVersion": "v{version}",
+  "backupManagement": "Управление резервными копиями",
+  "backupList": "Список резервных копий",
+  "createBackup": "Создать резервную копию",
+  "noBackupFiles": "Нет файлов резервных копий",
+  "clickCreateBackupTab": "Нажмите вкладку 'Создать резервную копию', чтобы начать резервное копирование",
+  "importBackup": "Импортировать резервную копию",
+  "previewContent": "Просмотр содержимого",
+  "exportFile": "Экспорт файла",
+  "restoreBackup": "Восстановить резервную копию",
+  "selectBackupToView": "Выберите резервную копию для просмотра деталей",
+  "database": "База данных",
+  "backupType": "Тип",
+  "backupSize": "Размер",
+  "createdAt": "Создано",
+  "tableCount": "Количество таблиц",
+  "description": "Описание",
+  "preview": "Просмотр",
+  "export": "Экспорт",
+  "restore": "Восстановить",
+  "confirmRestore": "Подтвердить восстановление",
+  "confirmRestoreMessage": "Вы уверены, что хотите восстановить резервную копию \"{name}\"?\n\nЭто выполнит все SQL-инструкции из файла резервной копии, что может перезаписать существующие данные.",
+  "confirmDelete": "Подтвердить удаление",
+  "confirmDeleteMessage": "Вы уверены, что хотите удалить резервную копию \"{name}\"?\n\nЭто действие нельзя отменить.",
+  "backupFormat": "Формат резервной копии",
+  "backupContent": "Содержимое резервной копии",
+  "selectTablesHint": "Выберите таблицы (оставьте пустым для резервного копирования всех)",
+  "advancedOptions": "Расширенные параметры",
+  "includeStructure": "Включить структуру таблиц",
+  "includeStructureDesc": "Инструкции CREATE TABLE",
+  "includeData": "Включить данные",
+  "includeDataDesc": "Инструкции INSERT или строки данных",
+  "noTablesAvailable": "Нет доступных таблиц",
+  "selectAll": "Выбрать все",
+  "deselectAll": "Отменить выбор всех",
+  "tablesSelected": "Выбрано {count} таблиц",
+  "addDropTable": "Добавить DROP TABLE",
+  "useExtendedInsert": "Использовать расширенный INSERT",
+  "useExtendedInsertDesc": "Объединить несколько строк значений в один INSERT",
+  "rowLimitPerTable": "Ограничение строк на таблицу (необязательно)",
+  "leaveEmptyForNoLimit": "Оставьте пустым для отсутствия ограничений",
+  "whereCondition": "Условие WHERE (необязательно)",
+  "whereConditionExample": "Например: id > 100",
+  "enterBackupDescription": "Введите описание резервной копии (необязательно)",
+  "startBackup": "Начать резервное копирование",
+  "backupProgress": "Прогресс резервного копирования",
+  "waitingToStartBackup": "Ожидание начала резервного копирования...",
+  "currentTable": "Текущая таблица",
+  "progressPercent": "Прогресс",
+  "backupComplete": "Резервное копирование завершено!",
+  "backupFailed": "Ошибка резервного копирования",
+  "loadBackupListFailed": "Не удалось загрузить список резервных копий",
+  "retry": "Повторить попытку",
+  "previewFailed": "Ошибка предпросмотра",
+  "exportedTo": "Экспортировано в",
+  "exportFailed": "Ошибка экспорта: {error}",
+  "backupRestoreSuccess": "Восстановление из резервной копии успешно выполнено",
+  "restoreFailed": "Ошибка восстановления",
+  "backupDeleted": "Резервная копия удалена",
+  "deleteFailed": "Ошибка удаления: {error}",
+  "selectBackupFile": "Выберите файл резервной копии",
+  "backupImportSuccess": "Файл резервной копии успешно импортирован",
+  "importFailed": "Ошибка импорта: {error}",
+  "selectAtLeastOneOption": "Пожалуйста, выберите хотя бы резервное копирование структуры или данных",
+  "backupFailedError": "Ошибка резервного копирования",
+  "aiAssistant": "ИИ-помощник",
+  "aiAnalyze": "ИИ-анализ",
+  "aiAnalyzeTable": "AI Analyze Table",
+  "aiAnalyzeDatabase": "AI Analyze Database",
+  "aiAnalyzeServer": "AI Analyze Server",
+  "aiAnalyzeErrorResult": "AI Analyze Error",
+  "aiAnalyzeNodeFailed": "AI analysis failed: {error}",
+  "@aiAnalyzeNodeFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "apiSettings": "Настройки API",
+  "clearChat": "Очистить чат",
+  "model": "Модель",
+  "enterModelName": "Введите название модели",
+  "autoExecuteSql": "Автоматическое выполнение SQL",
+  "autoExecuteSqlDesc": "При включении SQL-запросы, сгенерированные ИИ, будут автоматически выполняться",
+  "aiDatabaseAssistant": "ИИ-помощник по базам данных",
+  "aiAssistantDesc": "Поддержка нескольких поставщиков моделей\nПоможет писать SQL, оптимизировать запросы, объяснять структуру базы данных",
+  "enterYourQuestion": "Введите ваш вопрос...",
+  "configureApiKeyFirst": "Пожалуйста, сначала настройте API-ключ {provider} в настройках, чтобы включить функцию ИИ-чата.\n\nНажмите на значок настроек в правом верхнем углу для настройки.",
+  "generationFailed": "Ошибка генерации",
+  "stepAnalyzeNeeds": "Шаг 1: Анализ требований пользователя, определение необходимых таблиц...",
+  "stepGetTableSchema": "Шаг 2: Получение подробных инструкций CREATE TABLE для таблиц...",
+  "stepGenerateSql": "Шаг 3: Генерация SQL-инструкций...",
+  "analysisResultTables": "Результат анализа: Таблицы, которые необходимо запросить",
+  "tableSchemaInfo": "Информация о структуре таблиц",
+  "operationCancelled": "Операция отменена",
+  "executingSql": "Выполнение SQL...",
+  "executeSuccessRows": "Выполнение успешно, возвращено {count} строк данных",
+  "executeFailedError": "Ошибка выполнения",
+  "confirmDangerousOperation": "Подтвердить выполнение опасной операции?",
+  "confirmExecuteSql": "Подтвердить выполнение SQL",
+  "dangerousOperationWarning": "Эта операция может изменить или удалить данные, пожалуйста, действуйте с осторожностью!",
+  "sqlCopied": "SQL скопирован",
+  "sqlGenerationComplete": "Генерация SQL завершена",
+  "dangerousOperation": "Опасная операция",
+  "dangerousOperationDesc": "Это опасная операция, пожалуйста, действуйте с осторожностью",
+  "taskCompleteDesc": "Задача завершена, вы можете выполнить или скопировать SQL",
+  "generatedSql": "Сгенерированный SQL",
+  "dangerous": "Опасно",
+  "requestTimeout": "Таймаут запроса",
+  "seconds": "секунд",
+  "apiSettingsSaved": "Настройки API сохранены",
+  "dataImport": "Импорт данных",
+  "selectFile": "Выбрать файл",
+  "noFileSelected": "Файл не выбран",
+  "importConfig": "Конфигурация импорта",
+  "targetTableName": "Имя целевой таблицы",
+  "enterTableName": "Введите имя таблицы",
+  "includeHeader": "Включить заголовок",
+  "delimiter": "Разделитель",
+  "overwriteTable": "Перезаписать таблицу",
+  "deleteExistingTable": "(Удалить существующую таблицу)",
+  "batchSize": "Размер пакета",
+  "dataPreviewRows": "Предпросмотр данных ({count} строк)",
+  "pleaseSelectFile": "Пожалуйста, выберите файл для предпросмотра данных",
+  "importProgress": "Прогресс импорта",
+  "importPreparing": "Подготовка к импорту...",
+  "totalRecords": "Всего записей",
+  "importedRecords": "Импортировано",
+  "failedRecords": "Ошибок",
+  "readyToImport": "Готов к импорту",
+  "importingData": "Импорт данных...",
+  "importComplete": "Импорт завершен!",
+  "parseFileFailed": "Ошибка разбора файла",
+  "noDataToImport": "Нет данных для импорта",
+  "selectDatabaseFirst": "Пожалуйста, сначала выберите базу данных",
+  "importFailedError": "Ошибка импорта",
+  "startImport": "Начать импорт",
+  "importing": "Импортирование...",
+  "optimizeSql": "Оптимизировать SQL",
+  "explainQuery": "Объяснить запрос",
+  "generateInsert": "Сгенерировать INSERT",
+  "generateUpdate": "Сгенерировать UPDATE",
+  "generateDelete": "Сгенерировать DELETE",
+  "createTableStatement": "Инструкция CREATE TABLE",
+  "securityCheck": "Проверка безопасности",
+  "indexSuggestion": "Предложение индекса",
+  "executionPlan": "План выполнения",
+  "pleaseEnterSql": "Пожалуйста, сначала введите SQL-инструкцию",
+  "pleaseConnectDatabase": "Пожалуйста, сначала подключитесь к базе данных",
+  "analysisFailed": "Ошибка анализа",
+  "loadHistoryFailed": "Ошибка загрузки истории",
+  "noQueryHistory": "Нет записей в истории запросов\n\nПосле выполнения SQL-запросов история будет сохранена здесь.",
+  "queryHistoryRecords": "Записи истории запросов (последние {count})",
+  "databaseType": "Тип базы данных",
+  "server": "Сервер",
+  "currentDatabase": "Текущая база данных",
+  "notConnected": "Не подключено",
+  "notSelected": "Не выбрано",
+  "tableName": "Имя таблицы",
+  "tableStructureInfo": "Информация о структуре таблицы",
+  "createStatement": "Инструкция CREATE",
+  "andMoreTables": "... и еще {count} таблиц",
+  "primaryKey": "Первичный ключ",
+  "executionTime": "Время выполнения",
+  "status": "Статус",
+  "commonFailed": "Не удалось",
+  "format": "Формат",
+  "connectionDefaultDatabase": "База данных по умолчанию",
+  "connectionSavePassword": "Сохранить пароль",
+  "connectionAdvancedOptions": "Расширенные параметры",
+  "connectionMongoMode": "Режим подключения",
+  "connectionMongoModeDirect": "Прямое (один узел)",
+  "connectionMongoModeReplicaSet": "Replica Set",
+  "connectionMongoSeedHosts": "Узлы инициализации",
+  "connectionMongoSeedHostsHint": "Перечислите все узлы replica set (host:port, по одному на строку). Драйвер сам находит primary; этот список — источник истины.",
+  "connectionMongoSeedHostsRequired": "Требуется хотя бы один узел (host:port)",
+  "connectionMongoReplicaSetName": "Имя Replica Set",
+  "connectionMongoReplicaSetNameRequired": "Укажите имя Replica Set",
+  "connectionMongoModeAdvanced": "Расширенный (строка подключения)",
+  "connectionMongoModeSharded": "Шардированный (mongos)",
+  "connectionMongoMongosHosts": "Маршрутизаторы mongos",
+  "connectionMongoMongosHostsHint": "Перечислите все узлы mongos (host:port, по одному на строку). Драйвер подключается через mongos; шардирование прозрачно.",
+  "connectionMongoMongosHostsRequired": "Требуется хотя бы один маршрутизатор mongos (host:port)",
+  "connectionMongoInvalidHostPort": "Некорректная запись (ожидался host или host:port)",
+  "connectionMongoConnectionString": "Строка подключения",
+  "connectionMongoConnectionStringHint": "Вставьте полную строку подключения (mongodb:// или mongodb+srv://, вкл. Atlas). Учётные данные удаляются автоматически; пароль хранится отдельно в зашифрованном виде.",
+  "connectionMongoConnectionStringRequired": "Вставьте строку подключения",
+  "connectionMongoConnectionStringInvalid": "Некорректная строка подключения (должна начинаться с mongodb:// или mongodb+srv://)",
+  "connectionTimeout": "Таймаут (сек)",
+  "connectionUseSSL": "Использовать SSL/TLS",
+  "connectionEnableSecureConnection": "Включить безопасное подключение",
+  "connectionUseTls": "Использовать TLS/SSL",
+  "connectionUseTlsDesc": "Шифрованное соединение по TLS (устанавливается на стороне сервера)",
+  "connectionTlsInsecure": "Пропустить проверку сертификата (небезопасно)",
+  "connectionTlsInsecureDesc": "Не проверять сертификат сервера — только для доверенных/тестовых окружений",
+  "connectionSshSubtitleGateway": "SSH-туннель устанавливается на стороне сервера dbmaster (конфигурация передаётся вместе с подключением)",
+  "connectionAutoReconnect": "Автоматическое переподключение",
+  "connectionAutoReconnectDesc": "Автоматически пытаться переподключиться при разрыве соединения",
+  "connectionCharset": "Кодировка",
+  "connectionTimezone": "Часовой пояс",
+  "connectionTestSuccess": "Подключение успешно!",
+  "connectionTestFailed": "Ошибка подключения",
+  "connectionDatabaseType": "Тип базы данных",
+  "connectionManager": "Управление подключениями",
+  "connectionSavedConnections": "Сохраненные подключения",
+  "connectionNoSavedConnections": "Нет сохраненных подключений",
+  "connectionCurrent": "Текущее",
+  "connectionConnected": "Подключено",
+  "connectionSwitchToConnection": "Переключиться на это подключение",
+  "connectionCloneConnection": "Клонировать подключение",
+  "connectionCloned": "Подключение клонировано",
+  "connectionDeleteConnectionTitle": "Удалить подключение",
+  "connectionDeleteConnectionConfirm": "Вы уверены, что хотите удалить подключение",
+  "connectionDisconnectAll": "Отключить все",
+  "searchDialogTitle": "Поиск",
+  "searchHint": "Поиск таблиц, представлений, хранимых процедур, столбцов...",
+  "searchNoResults": "Объекты не найдены",
+  "searchTryDifferentKeywords": "Попробуйте другие ключевые слова",
+  "searchNavigate": "Навигация",
+  "searchSelect": "Выбрать",
+  "searchClose": "Закрыть",
+  "searchResultsCount": "{count} результатов",
+  "searchTypeConnection": "Подключение",
+  "searchTypeDatabase": "База данных",
+  "searchTypeTable": "Таблица",
+  "searchTypeView": "Представление",
+  "searchTypeProcedure": "Хранимая процедура",
+  "searchTypeColumn": "Столбец",
+  "savedQueriesTitle": "Сохраненные запросы",
+  "savedQueriesNoQueries": "Нет сохраненных запросов",
+  "savedQueriesDeleteTitle": "Удалить запрос",
+  "savedQueriesDeleteConfirm": "Вы уверены, что хотите удалить этот запрос?",
+  "savedQueriesOpen": "Открыть",
+  "viewJson": "Просмотр JSON",
+  "extractFieldAsColumn": "Извлечь поле как столбец",
+  "erDiagramTitle": "ER-диаграмма",
+  "erDiagramSearchTables": "Поиск таблиц...",
+  "erDiagramHierarchicalLayout": "Иерархическое расположение",
+  "erDiagramForceDirectedLayout": "Расположение силами",
+  "erDiagramCircleLayout": "Круговое расположение",
+  "erDiagramResetLayout": "Сбросить расположение",
+  "erDiagramZoomIn": "Увеличить",
+  "erDiagramZoomOut": "Уменьшить",
+  "erDiagramFitToScreen": "По размеру экрана",
+  "erDiagramRelations": "Отношения",
+  "erDiagramZoom": "Масштаб",
+  "erDiagramShowIsolated": "Показать изолированные",
+  "erDiagramExportAsPNG": "Экспортировать как PNG",
+  "erDiagramExportAsJPG": "Экспортировать как JPG",
+  "erDiagramLoading": "Загрузка ER-диаграммы...",
+  "erDiagramErrorLoading": "Ошибка загрузки ER-диаграммы",
+  "erDiagramNoData": "Нет данных для диаграммы",
+  "erDiagramRetry": "Повторить попытку",
+  "erDiagramSelectConnection": "Выбрать подключение",
+  "erDiagramSelectDatabase": "Выбрать базу данных",
+  "performanceAnalyzerTitle": "Инструмент анализа производительности",
+  "performanceAnalyzerSearch": "Поиск...",
+  "performanceAnalyzerRefresh": "Обновить данные",
+  "performanceAnalyzerGenerateReport": "Сгенерировать отчет",
+  "performanceAnalyzerExport": "Экспортировать",
+  "performanceAnalyzerClose": "Закрыть",
+  "performanceAnalyzerNotConnected": "Не подключено к базе данных",
+  "performanceAnalyzerNotConnectedDesc": "Пожалуйста, сначала подключитесь к базе данных, чтобы использовать функцию анализа производительности",
+  "performanceAnalyzerConfirm": "Подтвердить",
+  "performanceAnalyzerSlowQueryAnalysis": "Анализ медленных запросов",
+  "performanceAnalyzerIndexAnalysis": "Анализ индексов",
+  "performanceAnalyzerTableStatistics": "Статистика таблиц",
+  "performanceAnalyzerPerformanceReport": "Отчет о производительности",
+  "performanceAnalyzerLoading": "Анализ производительности базы данных...",
+  "performanceAnalyzerLoadFailed": "Ошибка загрузки",
+  "performanceAnalyzerRetry": "Повторить попытку",
+  "performanceAnalyzerTimeThreshold": "Порог времени:",
+  "performanceAnalyzerNoSlowQueries": "Медленные запросы не найдены",
+  "performanceAnalyzerSelectQuery": "Выберите запрос для просмотра деталей",
+  "performanceAnalyzerQueryInfo": "Информация о запросе",
+  "performanceAnalyzerExecutionTime": "Время выполнения",
+  "performanceAnalyzerDatabase": "База данных",
+  "performanceAnalyzerRowsScaned": "Сканировано строк",
+  "performanceAnalyzerRowsReturned": "Возвращено строк",
+  "performanceAnalyzerTimestamp": "Время выполнения",
+  "performanceAnalyzerSqlStatement": "SQL-инструкция",
+  "performanceAnalyzerExecutionPlan": "План выполнения",
+  "performanceAnalyzerOptimizationSuggestions": "Предложения по оптимизации",
+  "performanceAnalyzerFullTableScan": "Обнаружено полное сканирование таблицы",
+  "performanceAnalyzerFullTableScanDesc": "Запрос использует полное сканирование (type=ALL), рекомендуется добавить индекс для столбцов в WHERE",
+  "performanceAnalyzerFileSort": "Сортировка файлов",
+  "performanceAnalyzerFileSortDesc": "Запрос использует сортировку файлов (Using filesort), рекомендуется добавить индекс для столбцов в ORDER BY",
+  "performanceAnalyzerTempTable": "Использование временных таблиц",
+  "performanceAnalyzerTempTableDesc": "Запрос использует временные таблицы (Using temporary), рассмотрите возможность оптимизации запросов с GROUP BY или DISTINCT",
+  "performanceAnalyzerLowScanEfficiency": "Низкая эффективность сканирования",
+  "performanceAnalyzerNoIssues": "Очевидных проблем не обнаружено",
+  "performanceAnalyzerNoIssuesDesc": "План выполнения запроса выглядит нормально",
+  "performanceAnalyzerIndexTypeDistribution": "Распределение типов индексов",
+  "performanceAnalyzerNoData": "Нет данных",
+  "performanceAnalyzerTotalIndexes": "Всего индексов",
+  "performanceAnalyzerUsedIndexes": "Использовано",
+  "performanceAnalyzerUnusedIndexes": "Не использовано",
+  "performanceAnalyzerIndexes": "индексов",
+  "performanceAnalyzerColumns": "Столбцы:",
+  "performanceAnalyzerCardinality": "Кардинальность:",
+  "performanceAnalyzerTotalTables": "Всего таблиц",
+  "performanceAnalyzerTotalRows": "Всего строк",
+  "performanceAnalyzerDataSize": "Размер данных",
+  "performanceAnalyzerIndexSize": "Размер индексов",
+  "performanceAnalyzerTotalSize": "Общий размер",
+  "performanceAnalyzerTableName": "Имя таблицы",
+  "performanceAnalyzerEngine": "Движок",
+  "performanceAnalyzerRowCount": "Количество строк",
+  "performanceAnalyzerPercentage": "Процент",
+  "performanceAnalyzerTableSizeDistribution": "Распределение размеров таблиц (Топ 10)",
+  "performanceAnalyzerDatabasePerformanceReport": "Отчет о производительности базы данных",
+  "performanceAnalyzerGeneratedAt": "Сгенерировано:",
+  "performanceAnalyzerTableCount": "Количество таблиц",
+  "performanceAnalyzerSlowQueries": "Медленные запросы",
+  "performanceAnalyzerSuggestions": "Предложения",
+  "performanceAnalyzerImpact": "Влияние:",
+  "performanceAnalyzerImpactHigh": "Высокое",
+  "performanceAnalyzerImpactMedium": "Среднее",
+  "performanceAnalyzerImpactLow": "Низкое",
+  "performanceAnalyzerRecommendation": "Рекомендуемое действие:",
+  "performanceAnalyzerSlowQueriesTop": "Топ медленных запросов",
+  "performanceAnalyzerLargeTableStatistics": "Статистика больших таблиц",
+  "performanceAnalyzerClickGenerateReport": "Нажмите кнопку 'Сгенерировать отчет', чтобы начать анализ",
+  "sqlHistoryTitle": "История SQL",
+  "sqlHistoryNoHistory": "Нет истории",
+  "sqlHistoryClose": "Закрыть",
+  "sqlHistoryDelete": "Удалить",
+  "sqlHistoryConfirmDelete": "Подтвердить удаление",
+  "sqlHistoryDeleteConfirm": "Вы уверены, что хотите удалить эту запись истории?",
+  "sqlHistoryJustNow": "Только что",
+  "sqlHistoryMinutesAgo": "{count} минут назад",
+  "sqlHistoryHoursAgo": "{count} часов назад",
+  "sqlHistoryDaysAgo": "{count} дней назад",
+  "aiPanelApiSettings": "Настройки API",
+  "aiPanelApiKey": "API-ключ",
+  "aiPanelEnterApiKey": "Введите API-ключ",
+  "aiPanelApiBaseUrl": "Базовый URL API (необязательно)",
+  "aiPanelCustomApiUrl": "Пользовательский URL API",
+  "aiPanelRequestTimeout": "Таймаут запроса:",
+  "aiPanelSeconds": "секунд",
+  "aiPanelSave": "Сохранить",
+  "aiPanelApiSettingsSaved": "Настройки API сохранены",
+  "aiPanelConfirmDangerousOperation": "Подтвердить выполнение опасной операции?",
+  "aiPanelConfirmExecuteSql": "Подтвердить выполнение SQL",
+  "aiPanelDangerousOperationWarning": "Эта операция может изменить или удалить данные, пожалуйста, действуйте с осторожностью!",
+  "aiPanelCancel": "Отмена",
+  "aiPanelConfirmExecute": "Подтвердить выполнение",
+  "aiPanelOperationCancelled": "Операция отменена",
+  "aiPanelExecutingSql": "Выполнение SQL...",
+  "aiPanelExecuteSuccess": "Выполнение успешно, возвращено {count} строк",
+  "aiPanelExecuteFailed": "Ошибка выполнения",
+  "aiPanelDataPreview": "Предпросмотр данных",
+  "aiPanelAndMoreRows": "и еще {count} строк",
+  "aiPanelSqlExecutionSuccess": "SQL выполнен успешно, возвращено {count} строк",
+  "aiPanelSqlGenerationComplete": "Генерация SQL завершена",
+  "aiPanelSqlGenerationCompleteWarning": "Генерация SQL завершена ⚠️",
+  "aiPanelTaskCompleteDesc": "Задача завершена, вы можете выполнить или скопировать SQL",
+  "aiPanelDangerousOperationDesc": "Это опасная операция, пожалуйста, действуйте с осторожностью",
+  "aiPanelGeneratedSql": "Сгенерированный SQL",
+  "aiPanelDangerous": "Опасно",
+  "aiPanelContinue": "Продолжить",
+  "aiPanelClose": "Закрыть",
+  "aiPanelCopy": "Копировать",
+  "aiPanelExecute": "Выполнить",
+  "aiPanelConfirmExecuteDangerous": "Подтвердить выполнение",
+  "connectedToServer": "Подключено к {serverName}",
+  "openTableDataFailed": "Ошибка открытия данных таблицы: {error}",
+  "queryTable": "Запрос {tableName}",
+  "openViewFailed": "Ошибка открытия представления: {error}",
+  "queryView": "Запрос {viewName}",
+  "openProcedureFailed": "Ошибка открытия хранимой процедуры: {error}",
+  "callProcedure": "Вызов {procName}",
+  "cancelConnection": "Отменить подключение",
+  "deleteConnectionTitle": "Удалить подключение",
+  "deleteConnectionConfirm": "Вы уверены, что хотите удалить подключение \"{serverName}\"?",
+  "refresh": "Обновить",
+  "createNewTable": "Создать новую таблицу",
+  "erDiagram": "ER-диаграмма",
+  "properties": "Свойства",
+  "exportStructure": "Экспорт структуры",
+  "dropDatabase": "Удалить базу данных",
+  "confirmDeleteDatabase": "Удалить базу данных",
+  "confirmDropTable": "Удалить таблицу",
+  "typeNameToConfirm": "Введите \"{name}\" для подтверждения",
+  "dropDatabaseWarning": "База данных \"{name}\" будет удалена безвозвратно.",
+  "objectCountWarning": "{count} {type} будет уничтожено",
+  "allDataWillBeLost": "Все данные будут потеряны",
+  "copiedDbStructureToClipboard": "Структура {dbName} скопирована в буфер обмена",
+  "databaseDeleted": "База данных {dbName} удалена",
+  "browseData": "Просмотр данных",
+  "editTable": "Редактировать таблицу",
+  "copyTableName": "Копировать имя таблицы",
+  "exportData": "Экспорт данных",
+  "dataSync": "Синхронизация данных",
+  "rename": "Переименовать",
+  "truncate": "Очистить данные",
+  "dropTable": "Удалить таблицу",
+  "loadTableStructureFailed": "Ошибка загрузки структуры таблицы: {error}",
+  "tableNameCopied": "Имя таблицы скопировано",
+  "copiedTableDataToClipboard": "Данные таблицы {tableName} скопированы в буфер обмена",
+  "tableRenamedTo": "Таблица переименована в {newName}",
+  "renameFailed": "Ошибка переименования: {error}",
+  "tableTruncated": "Таблица {tableName} очищена",
+  "truncateFailed": "Ошибка очистки: {error}",
+  "tableDeleted": "Таблица {tableName} удалена",
+  "analyzeTable": "Analyze Table",
+  "optimizeTable": "Optimize Table",
+  "checkTable": "Check Table",
+  "confirmAnalyzeTable": "Analyze Table {tableName}",
+  "@confirmAnalyzeTable": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "confirmAnalyzeTableMessage": "This will update index statistics for table \"{tableName}\".",
+  "@confirmAnalyzeTableMessage": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "confirmOptimizeTable": "Optimize Table {tableName}",
+  "@confirmOptimizeTable": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "confirmOptimizeTableMessage": "This will defragment and reclaim unused space for table \"{tableName}\".",
+  "@confirmOptimizeTableMessage": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "confirmCheckTable": "Check Table {tableName}",
+  "@confirmCheckTable": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "confirmCheckTableMessage": "This will check table \"{tableName}\" for errors.",
+  "@confirmCheckTableMessage": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "optimizeTableWarning": "This operation may lock the table and take a long time on large tables.",
+  "analyzeTableResultTitle": "Analyze Result: {tableName}",
+  "@analyzeTableResultTitle": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "optimizeTableResultTitle": "Optimize Result: {tableName}",
+  "@optimizeTableResultTitle": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "checkTableResultTitle": "Check Result: {tableName}",
+  "@checkTableResultTitle": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "maintenanceExecutedSql": "Executed SQL",
+  "maintenanceResult": "Result",
+  "maintenanceFailed": "{operation} failed: {error}",
+  "@maintenanceFailed": {
+    "placeholders": {
+      "operation": {},
+      "error": {}
+    }
+  },
+  "indexTypeNormal": "Обычный",
+  "indexTypeUnique": "Уникальный",
+  "hintIndexColumns": "Например: id, name",
+  "pleaseDefineAtLeastOneColumn": "Пожалуйста, определите хотя бы один столбец",
+  "tableCreated": "Таблица {tableName} успешно создана",
+  "createFailed": "Ошибка создания: {error}",
+  "tableModified": "Таблица успешно изменена",
+  "modifyFailed": "Ошибка изменения: {error}",
+  "noInformation": "Нет информации",
+  "noIndexes": "Нет индексов",
+  "truncateTableData": "Очистить данные таблицы",
+  "menuCut": "Вырезать",
+  "menuCopy": "Копировать",
+  "menuPaste": "Вставить",
+  "menuSelectAll": "Выбрать все",
+  "menuFormatSql": "Форматировать SQL",
+  "menuExecuteQuery": "Выполнить запрос",
+  "commandNewConnection": "Новое подключение",
+  "commandNewTab": "Новая вкладка",
+  "commandExecuteQuery": "Выполнить запрос",
+  "commandFormatSql": "Форматировать SQL",
+  "commandToggleAiPanel": "Переключить панель ИИ",
+  "commandQueryHistory": "История запросов",
+  "commandShortcuts": "Горячие клавиши",
+  "commandSettings": "Настройки",
+  "commandCategoryHistory": "История",
+  "commandCategoryHelp": "Справка",
+  "commandDescNewConnection": "Создать новое подключение к базе данных",
+  "commandDescNewTab": "Создать новую вкладку запроса",
+  "commandDescExecuteQuery": "Выполнить текущий SQL-запрос",
+  "commandDescFormatSql": "Форматировать SQL-код",
+  "commandDescToggleSidebar": "Показать или скрыть боковую панель",
+  "commandDescToggleAiPanel": "Показать или скрыть панель ИИ-ассистента",
+  "commandDescQueryHistory": "Просмотреть историю выполнения",
+  "commandDescShortcuts": "Просмотреть все горячие клавиши",
+  "commandDescSettings": "Открыть настройки приложения",
+  "searchNavigateKeys": "↑↓/Мышь",
+  "menuConnect": "Подключиться",
+  "menuCancelConnection": "Отменить подключение",
+  "menuDisconnect": "Отключиться",
+  "menuRefresh": "Обновить",
+  "menuEditConnection": "Редактировать подключение",
+  "menuCloneConnection": "Клонировать подключение",
+  "menuDeleteConnection": "Удалить подключение",
+  "addColumn": "Добавить столбец",
+  "addIndex": "Добавить индекс",
+  "noIndexesClickToAdd": "Нет индексов, нажмите кнопку выше, чтобы добавить",
+  "formatCSV": "CSV",
+  "formatJSON": "JSON",
+  "formatExcel": "Excel",
+  "formatMarkdown": "Markdown",
+  "formatSqlInsert": "SQL INSERT",
+  "formatCSVDesc": "CSV - универсальный формат электронных таблиц, совместимый с Excel, Numbers, Google Sheets и другими инструментами.",
+  "formatJSONDesc": "JSON - формат структурированных данных, подходящий для чтения программами или вызовов API.",
+  "formatExcelDesc": "Формат Excel сохраняет типы данных и форматирование, подходя для глубокого анализа данных.",
+  "formatMarkdownDesc": "Формат таблиц Markdown подходит для документов, отчетов или использования в проверках кода.",
+  "formatSqlInsertDesc": "Инструкции SQL INSERT можно напрямую импортировать в другие базы данных, подходя для миграции данных.",
+  "copiedToClipboard": "Скопировано в буфер обмена",
+  "hintFormatName": "Например: Мой формат",
+  "hintOptionalDescription": "Описание (необязательно)",
+  "formatterSelectPreset": "Выбрать предустановку",
+  "formatterFormat": "Форматировать",
+  "formatterCopyResult": "Копировать результат",
+  "formatterHintInputSql": "Введите SQL-код здесь...",
+  "formatterSpace": "Пробел",
+  "formatterTab": "Tab",
+  "formatterIndentSize": "Размер отступа",
+  "formatterMaxLineLength": "Максимальная длина строки",
+  "formatterUppercaseKeywords": "Ключевые слова в верхнем регистре",
+  "formatterAlignKeywords": "Выровнять ключевые слова",
+  "formatterPreserveComments": "Сохранить комментарии",
+  "formatterNewlineBeforeParentheses": "Новая строка перед скобками",
+  "formatterCompactMode": "Компактный режим",
+  "formatterPosition": "Позиция",
+  "formatterEnd": "Конец",
+  "formatterStart": "Начало",
+  "timeAgoDays": "{count} дней назад",
+  "timeAgoHours": "{count} часов назад",
+  "timeAgoMinutes": "{count} минут назад",
+  "timeAgoJustNow": "Только что",
+  "optimizationFullTableScan": "Полное сканирование таблицы",
+  "optimizationFullTableScanDesc": "Запрос использует полное сканирование (type=ALL), рекомендуется добавить индекс",
+  "optimizationFilesort": "Сортировка файлов",
+  "optimizationFilesortDesc": "Запрос использует сортировку файлов (Using filesort), рекомендуется оптимизировать",
+  "optimizationTemporary": "Временная таблица",
+  "optimizationTemporaryDesc": "Запрос использует временные таблицы (Using temporary), рекомендуется оптимизировать",
+  "optimizationLowEfficiency": "Низкая эффективность",
+  "optimizationLowEfficiencyDesc": "Низкая эффективность сканирования, рассмотрите возможность добавления индекса",
+  "optimizationNoIssue": "Нет проблем",
+  "optimizationNoIssueDesc": "План выполнения выглядит нормально",
+  "optimizationSuggestions": "Предложения по оптимизации",
+  "indexTypeDistribution": "Распределение типов индексов",
+  "noData": "Нет данных",
+  "indexPrimary": "Первичный",
+  "indexUnique": "Уникальный",
+  "indexNormal": "Обычный",
+  "totalIndexes": "Всего индексов",
+  "indexUsed": "Использовано",
+  "indexUnused": "Не использовано",
+  "indexCount": "Количество индексов",
+  "columnCardinality": "Кардинальность столбца",
+  "columnsLabel": "Столбцы",
+  "totalTables": "Всего таблиц",
+  "totalRows": "Всего строк",
+  "dataSize": "Размер данных",
+  "indexSize": "Размер индексов",
+  "tableSizeDistribution": "Распределение размеров таблиц",
+  "tableNameLabel": "Имя таблицы",
+  "tableEngineLabel": "Движок",
+  "tableRowCountLabel": "Количество строк",
+  "tableDataSizeLabel": "Размер данных",
+  "tableIndexSizeLabel": "Размер индексов",
+  "tableTotalSizeLabel": "Общий размер",
+  "tableRatioLabel": "Процент",
+  "databasePerformanceReport": "Отчет о производительности базы данных",
+  "databaseLabel": "База данных",
+  "generatedAtLabel": "Сгенерировано",
+  "tableCountLabel": "Количество таблиц",
+  "slowQueryCountLabel": "Количество медленных запросов",
+  "suggestionCountLabel": "Количество предложений",
+  "impactLevel": "Уровень влияния",
+  "impactHigh": "Высокий",
+  "impactMedium": "Средний",
+  "impactLow": "Низкий",
+  "recommendedAction": "Рекомендуемое действие",
+  "slowQueryTopN": "Топ медленных запросов",
+  "largeTableStats": "Статистика больших таблиц",
+  "tabRenameTitle": "Переименовать запрос",
+  "tabRenameHint": "Введите имя запроса",
+  "tabRename": "Переименовать",
+  "tabClose": "Закрыть",
+  "tabCloseOthers": "Закрыть другие",
+  "tabCloseToRight": "Закрыть справа",
+  "tabCloseAll": "Закрыть все",
+  "tabDuplicate": "Дублировать вкладку",
+  "tabNewTooltip": "Новый запрос (Ctrl+T)",
+  "tabNewQueryTitle": "Запрос {count}",
+  "confirm": "Подтвердить",
+  "copySuffix": "(Копия)",
+  "triggerTitle": "Триггеры",
+  "triggerFailedToLoad": "Не удалось загрузить триггеры: {error}",
+  "triggerFailedToLoadDefinition": "Не удалось загрузить определение триггера",
+  "triggerDeleteTitle": "Удалить триггер",
+  "triggerDeleteConfirm": "Вы уверены, что хотите удалить триггер \"{name}\"?",
+  "triggerDeleted": "Триггер \"{name}\" удален",
+  "triggerDeleteFailed": "Не удалось удалить триггер: {error}",
+  "triggerCannotDisable": "Триггеры MySQL нельзя отключить напрямую. Используйте Удалить для удаления.",
+  "triggerShowList": "Показать список",
+  "triggerGroupByTable": "Группировать по таблице",
+  "triggerSearchHint": "Поиск триггеров...",
+  "triggerNoTriggers": "Триггеры не найдены",
+  "triggerCreate": "Создать триггер",
+  "triggerViewDefinition": "Посмотреть определение",
+  "triggerCopyName": "Копировать имя",
+  "triggerCopied": "\"{name}\" скопирован в буфер обмена",
+  "triggerNew": "Новый триггер",
+  "triggerDefinition": "Триггер: {name}",
+  "formatterSqlFormat": "Формат SQL",
+  "formatterSavePreset": "Сохранить пресет",
+  "formatterPresetName": "Название пресета",
+  "formatterCustomPreset": "Пользовательский пресет",
+  "formatterBuiltIn": "Встроенный",
+  "formatterSaveAsPreset": "Сохранить текущие настройки как пресет",
+  "formatterDeletePreset": "Удалить пресет",
+  "formatterInput": "Ввод",
+  "formatterOptions": "Параметры форматирования",
+  "formatterIndent": "Отступ",
+  "formatterKeywords": "Ключевые слова",
+  "formatterCommaStyle": "Стиль запятой",
+  "formatterApplyToEditor": "Применить к редактору",
+  "filterTitle": "Фильтр: {columnName}",
+  "@filterTitle": {
+    "placeholders": {
+      "columnName": {
+        "type": "String"
+      }
+    }
+  },
+  "filterEquals": "равно",
+  "filterNotEquals": "не равно",
+  "filterContains": "содержит",
+  "filterNotContains": "не содержит",
+  "filterGreaterThan": "больше",
+  "filterLessThan": "меньше",
+  "filterIsEmpty": "пусто",
+  "filterIsNotEmpty": "не пусто",
+  "filterRegex": "regex",
+  "filterValue": "Значение",
+  "filterEnterValue": "Введите значение фильтра",
+  "filterCaseSensitive": "Учитывать регистр",
+  "filterTimeFilter": "Фильтр по времени",
+  "filterToday": "Сегодня",
+  "filterLast24Hours": "Последние 24 часа",
+  "filterLast7Days": "Последние 7 дней",
+  "filterLast30Days": "Последние 30 дней",
+  "rowCountLabel": "{count} строк",
+  "aiPanelCustomModel": "Пользовательская модель",
+  "aiPanelBookmarks": "Закладки",
+  "aiPanelScrollToMessageDeveloping": "Функция прокрутки к сообщению в разработке",
+  "aiPanelBranchConversationCreated": "Создана ветка разговора",
+  "aiPanelNoConnections": "Нет подключений, создайте в управлении подключениями",
+  "aiPanelConversationList": "Список разговоров",
+  "aiPanelSelectConnection": "Выбрать подключение",
+  "aiPanelNoConnection": "Нет подключения",
+  "aiPanelSelectDatabaseFirst": "Сначала выберите подключение",
+  "aiPanelSelectDatabase": "Выбрать базу данных",
+  "aiPanelAllDatabases": "Все базы данных",
+  "aiPanelConnectionFailed": "Ошибка подключения",
+  "aiPanelUnknownError": "Неизвестная ошибка",
+  "aiPanelLoadDatabasesFailed": "Не удалось загрузить базы данных",
+  "aiPanelDangerousOperation": "Опасная операция",
+  "aiPanelOptimizeSql": "Оптимизировать SQL",
+  "aiPanelSecurityAnalysis": "Анализ безопасности",
+  "aiPanelExecutionPlan": "План выполнения",
+  "aiPanelIndexSuggestions": "Предложения индексов",
+  "aiPanelInputHint": "Введите ваш вопрос о базе данных, например: Как оптимизировать этот запрос?",
+  "aiPanelStop": "Стоп",
+  "aiPanelSend": "Отправить",
+  "aiPanelSelectConnectionFirst": "Пожалуйста, сначала выберите экземпляр подключения в раскрывающемся списке выше.",
+  "aiPanelConnectionNotAvailable": "Экземпляр подключения \"{name}\" не подключен или недоступен, пожалуйста, сначала подключите его.",
+  "aiPanelTable": "Таблица",
+  "aiPanelDangerousOperationBadge": "Опасная операция",
+  "aiPanelThinkingProcess": "Процесс мышления",
+  "aiPanelExpandThinking": "Развернуть процесс мышления",
+  "aiPanelCollapseThinking": "Свернуть процесс мышления",
+  "aiPanelRenameSession": "Переименовать разговор",
+  "aiPanelSessionTitle": "Название разговора",
+  "aiPanelDeleteSession": "Удалить разговор",
+  "aiPanelDeleteSessionConfirm": "Вы уверены, что хотите удалить \"{name}\"?",
+  "aiPanelRename": "Переименовать",
+  "aiPanelUnarchive": "Разархивировать",
+  "aiPanelArchive": "Архивировать",
+  "aiPanelSessions": "Разговоры",
+  "aiPanelSearchSessions": "Поиск разговоров",
+  "aiPanelNoSessions": "Нет разговоров",
+  "aiPanelArchivedSessions": "Архивированные разговоры ({count})",
+  "aiPanelJustNow": "Только что",
+  "aiPanelMinutesAgo": "{count} минут назад",
+  "aiPanelHoursAgo": "{count} часов назад",
+  "aiPanelDaysAgo": "{count} дней назад",
+  "aiPanelSelectProvider": "Выбрать провайдера",
+  "aiPanelSelectModelCurrent": "Выбрать модель (Текущий: {provider})",
+  "aiPanelApiConfigCurrent": "Конфигурация API (Текущий: {provider})",
+  "aiPanelModelProviderMismatch": "Выбранная модель не принадлежит выбранному провайдеру",
+  "aiPanelAllowSession": "Разрешить эту сессию",
+  "aiPanelNoBookmarks": "Нет закладок",
+  "aiPanelClickBookmarkIcon": "Нажмите на значок закладки сообщения, чтобы добавить",
+  "aiCmdOptimizeSql": "Оптимизировать SQL-запрос",
+  "aiCmdExplainQuery": "Объяснить план запроса",
+  "aiCmdGenerateCrud": "Сгенерировать CRUD-операции",
+  "aiCmdAnalyzeTable": "Анализировать структуру таблицы",
+  "aiCmdShowHistory": "Просмотреть историю запросов",
+  "aiCmdShowBookmarks": "Просмотреть закладки",
+  "aiCmdBranchConversation": "Создать ветку разговора",
+  "aiCmdListDatabases": "List all databases",
+  "aiCmdListTables": "List all tables",
+  "settingsThemeMode": "Режим темы",
+  "settingsThemeColor": "Акцентный цвет",
+  "settingsSystem": "Система",
+  "settingsPreview": "Предпросмотр",
+  "settingsPrimaryButton": "Основная кнопка",
+  "settingsSecondaryButton": "Вторичная кнопка",
+  "settingsApply": "Применить",
+  "colorBlue": "Синий",
+  "colorPurple": "Фиолетовый",
+  "colorGreen": "Зелёный",
+  "colorOrange": "Оранжевый",
+  "colorRed": "Красный",
+  "colorCyan": "Бирюзовый",
+  "colorPink": "Розовый",
+  "colorYellow": "Жёлтый",
+  "aiChatPageTitle": "ИИ-помощник",
+  "messageLabelYou": "Вы",
+  "messageLabelAi": "ИИ",
+  "messageStatusSending": "Отправка",
+  "messageStatusGenerating": "Генерация",
+  "messageStatusFailed": "Ошибка",
+  "messageStatusCancelled": "Отменено",
+  "messageStatusError": "Ошибка",
+  "messageStatusThinking": "Размышление",
+  "tokenUsagePrompt": "Вход {count}",
+  "@tokenUsagePrompt": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tokenUsageCompletion": "Выход {count}",
+  "@tokenUsageCompletion": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tokenUsageTotal": "Всего {count}",
+  "@tokenUsageTotal": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionTokenUsage": "Сессия: Вход {promptTokens} · Выход {completionTokens} · Всего {totalTokens}",
+  "@sessionTokenUsage": {
+    "placeholders": {
+      "promptTokens": {
+        "type": "int"
+      },
+      "completionTokens": {
+        "type": "int"
+      },
+      "totalTokens": {
+        "type": "int"
+      }
+    }
+  },
+  "messageActionRegenerate": "Перегенерировать",
+  "tooltipCopyCode": "Копировать код",
+  "tooltipExecuteCode": "Выполнить код",
+  "messageCopied": "Скопировано",
+  "toolCallTitle": "Инструмент: {name}",
+  "@toolCallTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "toolResultTitle": "Результат: {name}",
+  "@toolResultTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "toolCallCompleted": "Вызвано и завершено",
+  "toolParamLabel": "Параметры",
+  "toolResultLabel": "Результат",
+  "toolGroupTitle": "Группа инструментов",
+  "toolGroupSummary": "Выполнено {count} инструментов",
+  "@toolGroupSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "toolGroupItemTitle": "Инструмент {index}: {name}",
+  "@toolGroupItemTitle": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "toolNoParams": "Нет параметров",
+  "aiWelcomeTitle": "ИИ-помощник по базам данных",
+  "aiWelcomeDescription": "Я могу помочь вам писать SQL, оптимизировать запросы, анализировать структуру таблиц, проверять безопасность или отвечать на любые вопросы о базах данных.",
+  "aiConnectedTo": "Подключено: {name}",
+  "@aiConnectedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiExampleSectionTitle": "Попробуйте спросить меня",
+  "aiQuickActionsSectionTitle": "Быстрые действия",
+  "aiTipQuickSend": "Ctrl + Enter для отправки",
+  "aiTipSlashCommands": "Введите / чтобы увидеть все команды",
+  "aiExampleQuestion1": "Оптимизировать производительность этого запроса",
+  "aiExampleQuestion2": "Анализировать текущую структуру таблицы",
+  "aiExampleQuestion3": "Проверить безопасность этого SQL",
+  "errorApiKeyRequired": "Пожалуйста, сначала введите API Key",
+  "errorBaseUrlRequired": "Пожалуйста, сначала введите Base URL",
+  "errorFetchModelsFailed": "Не удалось получить список моделей: {error}",
+  "@errorFetchModelsFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "tooltipRefreshModels": "Обновить список моделей",
+  "labelCustomModelInput": "Ввести название модели вручную",
+  "tooltipAddModel": "Добавить модель",
+  "hintFetchOrInputModel": "Нажмите обновить для получения или введите название модели вручную",
+  "hintFetchModels": "Нажмите обновить для получения списка моделей",
+  "errorSelectModelRequired": "Пожалуйста, выберите или введите модель",
+  "errorSaveFailed": "Ошибка сохранения: {error}",
+  "@errorSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "connectionManageConnection": "Manage Connection",
+  "resultsTabExecutionDetails": "Execution Details",
+  "toolbarCodeSnippets": "Code Snippets (Ctrl+Shift+S)",
+  "toolbarCloseSplit": "Close Split",
+  "editorHintText": "Enter SQL query... (Ctrl+Space for autocomplete, F5/Ctrl+Enter to execute)",
+  "editorHintTextMongodb": "Enter MongoDB query... (F5/Ctrl+Enter to execute)",
+  "editorHintTextRedis": "Enter Redis command... (F5/Ctrl+Enter to execute)",
+  "allStatementsSuccess": "All {count} statements executed successfully ({time}ms)",
+  "@allStatementsSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "time": {
+        "type": "int"
+      }
+    }
+  },
+  "statementsPartialSuccess": "{success}/{total} statements succeeded, {failed} failed ({time}ms)",
+  "@statementsPartialSuccess": {
+    "placeholders": {
+      "success": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      },
+      "time": {
+        "type": "int"
+      }
+    }
+  },
+  "statementsAllSuccess": "{count} statements executed successfully",
+  "@statementsAllSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statementsPartialSuccessShort": "{success}/{total} succeeded, {failed} failed",
+  "@statementsPartialSuccessShort": {
+    "placeholders": {
+      "success": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "connErrorWithMessage": "Error: {error}",
+  "@connErrorWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "connSearchSnippetsHint": "Search snippets...",
+  "connPreview": "Preview",
+  "connInsert": "Insert",
+  "connApply": "Apply",
+  "connClearAll": "Clear All",
+  "connSaveConnectionFailed": "Failed to save connection: {error}",
+  "@connSaveConnectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "connDeleteConnectionFailed": "Failed to delete connection: {error}",
+  "@connDeleteConnectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "connCreateStatement": "Create Statement",
+  "connCreateStatementCopied": "Create statement copied",
+  "connCopyCreateStatement": "Copy Create Statement",
+  "connDeleteDatabase": "Delete Database",
+  "connCopiedToClipboard": "Copied to clipboard",
+  "connCopy": "Copy",
+  "connExportFeatureSetup": "Export feature requires additional setup",
+  "connExportFailed": "Export failed: {error}",
+  "@connExportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "connCopiedTableName": "Copied: {tableName}",
+  "@connCopiedTableName": {
+    "placeholders": {
+      "tableName": {
+        "type": "String"
+      }
+    }
+  },
+  "connRetry": "Retry",
+  "connReportIssue": "Report Issue",
+  "connEnterTableName": "Enter table name",
+  "connParameterName": "Parameter name",
+  "connClear": "Clear",
+  "connCharset": "Charset",
+  "connComment": "Comment",
+  "connName": "Name",
+  "connDefault": "Default",
+  "connIndexName": "Index Name",
+  "connTruncate": "Truncate",
+  "dlgProcedureUpdated": "Stored procedure/function updated successfully",
+  "dlgProcedureCreated": "Stored procedure/function created successfully",
+  "dlgOperationFailed": "Operation failed: {error}",
+  "@dlgOperationFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "dlgType": "Type",
+  "dlgProcedureType": "Procedure (PROCEDURE)",
+  "dlgFunctionType": "Function (FUNCTION)",
+  "dlgReturnType": "Return Type",
+  "dlgEnterSqlHint": "Enter SQL code...",
+  "dlgExecutionFailed": "Execution failed: {error}",
+  "@dlgExecutionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "dlgExecute": "Execute",
+  "dlgEnterValue": "Enter value",
+  "dlgCopied": "Copied",
+  "dlgNoHistory": "No history yet",
+  "dlgConfirmDeleteTitle": "Confirm Delete",
+  "dlgConfirmDeleteHistoryMessage": "Are you sure you want to delete this history record?\n\n{sql}",
+  "@dlgConfirmDeleteHistoryMessage": {
+    "placeholders": {
+      "sql": {
+        "type": "String"
+      }
+    }
+  },
+  "dlgTestSyntax": "Test Syntax",
+  "dlgSyntaxError": "Syntax error: {message}",
+  "@dlgSyntaxError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "dlgSyntaxLooksGood": "Syntax looks good!",
+  "dlgEnterTriggerName": "Enter trigger name",
+  "dlgEnterVariableValue": "Enter {variable}",
+  "@dlgEnterVariableValue": {
+    "placeholders": {
+      "variable": {
+        "type": "String"
+      }
+    }
+  },
+  "molChooseFromGallery": "Choose from Gallery",
+  "molTakePhoto": "Take Photo",
+  "molPickImageFailed": "Failed to pick image: {error}",
+  "@molPickImageFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "molSend": "Send",
+  "svcExportSuccess": "File exported: {result}",
+  "@svcExportSuccess": {
+    "placeholders": {
+      "result": {
+        "type": "String"
+      }
+    }
+  },
+  "svcExportFailed": "Export failed: {error}",
+  "@svcExportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scrInitFailed": "Initialization failed: {error}",
+  "@scrInitFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportTitle": "AI Smart Import",
+  "smartImportSubtitle": "Automatically analyze file structure and import to database",
+  "smartImportClose": "Close",
+  "smartImportTarget": "Import Target",
+  "smartImportSelectedTable": "Selected table: {table}",
+  "@smartImportSelectedTable": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportAutoInfer": "No table selected, AI will auto-infer",
+  "smartImportLoadTables": "Loading table list...",
+  "smartImportTableHint": "Search or enter table name (leave empty for AI inference)",
+  "smartImportStepSelectFile": "Select File",
+  "smartImportStepAnalyze": "Analyze",
+  "smartImportStepImport": "Import",
+  "smartImportStepComplete": "Complete",
+  "smartImportSelectFileTitle": "Select file to import",
+  "smartImportSelectFileHint": "Click to select CSV or JSON file",
+  "smartImportReselectFile": "Click to reselect",
+  "smartImportSupportedFormats": "Supported formats: CSV, TSV, JSON, JSON Lines",
+  "smartImportAnalyzing": "Analyzing file structure...",
+  "smartImportTableNotFound": "Target table does not exist",
+  "smartImportTableNotFoundMessage": "Table \"{table}\" does not exist in the current database.",
+  "@smartImportTableNotFoundMessage": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportCreateTableHint": "Please execute the following CREATE TABLE statement in the SQL editor first, then reopen Smart Import.",
+  "smartImportSuggestedSQL": "Suggested CREATE TABLE statement",
+  "smartImportCopySQL": "Copy SQL",
+  "smartImportSQLCopied": "SQL copied to clipboard",
+  "smartImportImporting": "Importing data...",
+  "smartImportImported": "Imported",
+  "smartImportTotalRecords": "Total",
+  "smartImportFailedRecords": "Failed",
+  "smartImportProgress": "Progress",
+  "smartImportImportComplete": "Import Complete",
+  "smartImportTargetTable": "Target Table",
+  "smartImportSuccessRows": "Successfully imported",
+  "smartImportFailedRows": "Failed to import",
+  "smartImportTotalRows": "Total rows in table",
+  "smartImportImportFailed": "Import Failed",
+  "smartImportFilePreview": "File Preview",
+  "smartImportSampleData": "Sample data (first 3 rows)",
+  "smartImportLogs": "Import Logs",
+  "smartImportClearLogs": "Clear",
+  "smartImportReimport": "Re-import",
+  "smartImportStartAnalysis": "Start Analysis",
+  "smartImportStartImport": "Start Import",
+  "smartImportCancelImport": "Cancel Import",
+  "smartImportUserCancelled": "User cancelled import",
+  "smartImportFileSelected": "File selected: {name}",
+  "@smartImportFileSelected": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportAnalysisComplete": "Analysis complete. Format: {format}, Encoding: {encoding}, Fields: {fields}",
+  "@smartImportAnalysisComplete": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      },
+      "encoding": {
+        "type": "String"
+      },
+      "fields": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportEstimatedRows": "Estimated total rows: ~{rows}",
+  "@smartImportEstimatedRows": {
+    "placeholders": {
+      "rows": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportUsingSelectedTable": "Using selected table: {table}",
+  "@smartImportUsingSelectedTable": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportCheckTableExists": "Checking if target table exists...",
+  "smartImportTableExists": "Table \"{table}\" exists with {count} rows",
+  "@smartImportTableExists": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportTableNotExists": "Table \"{table}\" does not exist. Please create table first.",
+  "@smartImportTableNotExists": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+
+  "smartImportAiInferringTable": "ИИ определяет имя таблицы...",
+
+  "smartImportAiSuggestedTable": "ИИ предлагает имя таблицы: {name}",
+  "@smartImportAiSuggestedTable": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+
+  "smartImportDoNotImport": "Не импортировать",
+
+  "smartImportTaskDescription": "Импорт {count} в {table}",
+  "@smartImportTaskDescription": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "table": {"type": "String"}
+    }
+  },
+
+  "smartImportStartImporting": "Starting data import to table \"{table}\"...",
+  "@smartImportStartImporting": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportImportResult": "Import complete! Success: {imported} rows, Failed: {failed} rows",
+  "@smartImportImportResult": {
+    "placeholders": {
+      "imported": {
+        "type": "String"
+      },
+      "failed": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportQueryRowCount": "Querying total row count...",
+  "smartImportTableTotalRows": "Table \"{table}\" now has {count} rows",
+  "@smartImportTableTotalRows": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportQueryCountFailed": "Failed to query row count: {error}",
+  "@smartImportQueryCountFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportImportError": "Import failed: {error}",
+  "@smartImportImportError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportCopySuccess": "SQL copied to clipboard",
+  "smartImportRows": "{count} rows",
+  "@smartImportRows": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportAiModel": "AI Модель",
+  "aiPanelFullscreen": "Полноэкранный режим",
+  "aiPanelExitFullscreen": "Выйти из полноэкранного режима",
+  "aiPanelOpenInNewQuery": "Открыто в новом запросе",
+  "aiPanelInsertStatementsGenerated": "ИИ сгенерировал {count} INSERT-выражений, готовых к вставке в таблицу [{tableName}].",
+  "@aiPanelInsertStatementsGenerated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "tableName": {
+        "type": "String"
+      }
+    }
+  },
+  "aiPanelSqlPreviewTitle": "Предпросмотр SQL (первые 3):",
+  "aiPanelMoreStatements": "... и еще {count} выражений",
+  "@aiPanelMoreStatements": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiAgentToolCallLimitReached": "ИИ-ассистент достиг лимита вызовов инструментов ({count} раз). Пожалуйста, упростите ваш вопрос или действуйте пошагово.",
+  "@aiAgentToolCallLimitReached": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiAgentMaxIterationsReached": "Агент достиг максимального количества итераций и не смог завершить разговор.",
+  "aiAgentDuplicateQuery": "Этот запрос уже был выполнен. Пожалуйста, ответьте напрямую на основе существующих результатов, не повторяя запрос.",
+  "aiAgentToolExecutionFailed": "Ошибка выполнения инструмента: {error}",
+  "@aiAgentToolExecutionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "aiAgentUnknownTool": "Неизвестный инструмент: {name}",
+  "@aiAgentUnknownTool": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiContextCurrentDatabase": "Текущая база данных: {name}",
+  "@aiContextCurrentDatabase": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiContextCurrentTable": "Текущая таблица: {name}",
+  "@aiContextCurrentTable": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiContextRecentQueries": "Недавние запросы: {queries}",
+  "@aiContextRecentQueries": {
+    "placeholders": {
+      "queries": {
+        "type": "String"
+      }
+    }
+  },
+  "aiContextGoalSummary": "Краткое описание цели текущей сессии: {summary}",
+  "@aiContextGoalSummary": {
+    "placeholders": {
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
+  "taskPanelTitle": "Задачи",
+  "taskPanelEmpty": "Нет задач",
+  "taskPanelEmptyDesc": "Операции импорта или экспорта будут отображаться здесь",
+  "taskPanelClearCompleted": "Очистить завершенные",
+  "taskPanelStatusPending": "В ожидании",
+  "taskPanelStatusRunning": "Выполняется",
+  "taskPanelStatusPaused": "Приостановлено",
+  "taskPanelStatusCompleted": "Завершено",
+  "taskPanelStatusFailed": "Ошибка",
+  "taskPanelStatusCancelled": "Отменено",
+  "taskTypeImport": "Импорт",
+  "taskTypeExport": "Экспорт",
+  "taskTypeQuery": "Запрос",
+  "taskActionCancel": "Отменить",
+  "taskActionRetry": "Повторить",
+  "taskActionRemove": "Удалить",
+  "taskActionOpenFolder": "Открыть папку",
+  "taskCreateExportTitle": "Создать задачу экспорта",
+  "taskCreateExportFormat": "Формат экспорта",
+  "taskCreateExportPath": "Путь вывода",
+  "taskCreateExportPathPlaceholder": "Нажмите кнопку справа, чтобы выбрать место сохранения",
+  "taskCreateExportPathSelect": "Выбрать место сохранения",
+  "taskCreateExportStart": "Создать задачу",
+  "taskValidationPathRequired": "Пожалуйста, выберите путь вывода",
+  "taskValidationPathNotWritable": "Каталог недоступен для записи, выберите другое место",
+  "taskValidationPathExists": "Файл уже существует и будет перезаписан",
+  "taskStatusBarTasks": "{count} задач",
+  "@taskStatusBarTasks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "taskStatusBarRunning": "{count} выполняется",
+  "@taskStatusBarRunning": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "taskLogInfo": "Информация",
+  "taskLogWarning": "Предупреждение",
+  "taskLogError": "Ошибка",
+  "taskLogSuccess": "Успех",
+  "taskDetailTitle": "Детали задачи",
+  "taskDetailBasicInfo": "Основная информация",
+  "taskDetailStatistics": "Статистика выполнения",
+  "taskDetailError": "Сообщение об ошибке",
+  "taskDetailOutputFile": "Выходной файл",
+  "taskDetailLogs": "Журналы выполнения",
+  "taskDetailCopied": "Путь скопирован в буфер обмена",
+  "taskPhaseAnalyzing": "Анализируется...",
+  "taskPhaseQuerying": "Запрос данных...",
+  "taskPhaseFormatting": "Форматирование данных...",
+  "taskPhaseWriting": "Запись файла...",
+  "taskPhaseCompleted": "Завершено",
+  "aiExportButtonCreate": "Создать задачу экспорта",
+  "aiExportButtonAnalyzing": "Анализируется...",
+  "aiMessageExportAction": "Экспортировать эти данные",
+  "smartImportCreateTask": "Создать задачу импорта в фоновом режиме",
+  "schemaDiffTitle": "Сравнение и синхронизация схемы",
+  "schemaDiffMenuItem": "Сравнение и синхронизация схемы",
+  "schemaDiffSource": "Источник",
+  "schemaDiffTarget": "Цель",
+  "schemaDiffCompareButton": "Сравнить",
+  "schemaDiffSelectDatabases": "Выберите исходную и целевую базы данных для сравнения",
+  "schemaDiffTabOverview": "Обзор",
+  "schemaDiffTabDetails": "Детали",
+  "schemaDiffTabSync": "Синхронизация",
+  "columnDropped": "Столбец \"{column}\" удалён",
+  "confirmDropColumn": "Удалить столбец \"{column}\" из таблицы \"{table}\"?",
+  "confirmDropIndex": "Удалить индекс \"{index}\"?",
+  "copyColumnName": "Копировать имя столбца",
+  "copyIndexName": "Копировать имя индекса",
+  "dropColumn": "Удалить столбец",
+  "dropColumnFailed": "Ошибка удаления столбца: {error}",
+  "dropIndex": "Удалить индекс",
+  "dropIndexFailed": "Ошибка удаления индекса: {error}",
+  "editIndex": "Изменить индекс",
+  "indexDropped": "Индекс \"{index}\" удалён",
+  "loadingSchema": "Загрузка...",
+  "noColumns": "Нет столбцов",
+  "noProgrammableObjects": "Этот тип базы данных не поддерживает программируемые объекты",
+  "noSearchResults": "Совпадений не найдено",
+  "page": "Страница",
+  "selectDatabaseHint": "Дважды щёлкните по базе данных, чтобы просмотреть её объекты",
+  "workspaceEmptyTitle": "Нет открытых запросов",
+  "workspaceEmptyHint": "Создайте новую вкладку запроса, чтобы начать работу",
+  "sidebarCollections": "Коллекции",
+  "sidebarColumns": "Столбцы",
+  "sidebarEvents": "События",
+  "sidebarEnableEvent": "Enable Event",
+  "sidebarDisableEvent": "Disable Event",
+  "sidebarDropEvent": "Drop Event",
+  "sidebarEventProperties": "Properties",
+  "sidebarEventNoDefinition": "No definition",
+  "sidebarEventOperationFailed": "Operation failed: {error}",
+  "@sidebarEventOperationFailed": {
+    "description": "Error when MySQL event operation fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sidebarDropEventConfirm": "Are you sure you want to drop event \"{name}\"?\n\nThis action cannot be undone.",
+  "@sidebarDropEventConfirm": {
+    "description": "Confirmation dialog for dropping a MySQL event",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sidebarSynonyms": "Synonyms",
+  "sidebarBrowseSynonym": "Browse Synonym",
+  "sidebarScriptSynonymAsSelect": "Script as SELECT",
+  "sidebarDropSynonym": "Drop Synonym",
+  "sidebarDropSynonymConfirm": "Are you sure you want to drop synonym \"{name}\"?\n\nThis action cannot be undone.",
+  "@sidebarDropSynonymConfirm": {
+    "description": "Confirmation dialog for dropping a SQL Server synonym",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sidebarSynonymOperationFailed": "Operation failed: {error}",
+  "@sidebarSynonymOperationFailed": {
+    "description": "Error when SQL Server synonym operation fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sidebarIndexes": "Индексы",
+  "sidebarInsertIntoEditor": "Вставить в редактор",
+  "sidebarForeignKeys": "Внешние ключи",
+  "sidebarCopyIndexName": "Копировать имя индекса",
+  "sidebarCopyForeignKeyName": "Копировать имя внешнего ключа",
+  "sidebarCopyName": "Копировать имя",
+  "sidebarBrowseData": "Просмотр данных",
+  "sidebarDropViewConfirm": "Удалить представление \"{viewName}\"?\n\nДействие необратимо.",
+  "sidebarDropViewFailed": "Не удалось удалить представление: {error}",
+  "sidebarDeleteFailed": "Не удалось удалить: {error}",
+  "sidebarReadOnlyConnection": "Подключение только для чтения",
+  "sidebarCopyColumnName": "Копировать имя столбца",
+  "sidebarCopyColumnType": "Копировать тип столбца",
+  "sidebarCopyAllColumnNames": "Копировать все имена столбцов",
+  "sidebarOpenEditorFirst": "Сначала откройте вкладку запроса",
+  "sidebarKeys": "Ключи",
+  "sidebarProgrammableObjects": "Программируемые объекты",
+  "sidebarSuperTables": "Супертаблицы",
+  "settingsSubscriptionSettings": "Подписка",
+  "settingsFreePlan": "Бесплатно",
+  "settingsFreePlanDesc": "Вы используете бесплатный тариф",
+  "settingsProActivated": "Pro активирован",
+  "settingsProActivatedDesc": "Все функции Pro разблокированы",
+  "settingsUpgradeToPro": "Обновить до Pro",
+  "settingsRestorePurchases": "Восстановить покупки",
+  "purchaseDialogTitle": "Обновить до Pro",
+  "purchaseDialogDesc": "Разблокируйте все премиум-функции с подпиской Pro",
+  "purchaseDialogNoProducts": "Нет доступных продуктов",
+  "freeAiQuotaExceeded": "You have used all {count} free AI messages this month. Upgrade to Pro for unlimited AI usage.",
+  "@freeAiQuotaExceeded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "freeConnectionLimitReached": "Free plan supports up to {count} saved connections. Upgrade to Pro for unlimited connections.",
+  "@freeConnectionLimitReached": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "freeTabLimitReached": "Free plan supports up to {count} open query tabs. Upgrade to Pro for unlimited tabs.",
+  "@freeTabLimitReached": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "schemaDiffSyncProFeature": "Schema Diff sync is a Pro feature. Start a free trial or upgrade to Pro to execute synchronization.",
+  "tableMetadataComment": "Comment",
+  "tableMetadataRowCount": "Rows",
+  "tableMetadataDataSize": "Size",
+  "tableMetadataEngine": "Engine",
+  "tableMetadataUpdateTime": "Updated",
+  "resultsTruncatedMessage": "Results limited to first {count} rows. More data may be available.",
+  "settingsQueryLimit": "Query Limit",
+  "settingsAutoLimitEnabled": "Auto LIMIT",
+  "settingsAutoLimitValue": "Limit Value",
+  "sidebarFavorites": "Favorites",
+  "recentTables": "Недавние",
+  "dataSyncTitle": "Data Sync",
+  "dataSyncCancel": "Cancel",
+  "dataSyncClose": "Close",
+  "dataSyncRestart": "Resync",
+  "dataSyncStart": "Start Sync",
+  "dataSyncSourceConfig": "Source",
+  "dataSyncSourceConnection": "Source Connection",
+  "dataSyncSourceDatabase": "Source Database",
+  "dataSyncSourceTable": "Source Table",
+  "dataSyncTargetConfig": "Target",
+  "dataSyncTargetConnection": "Target Connection",
+  "dataSyncTargetDatabase": "Target Database",
+  "dataSyncTargetTable": "Target Table",
+  "dataSyncSegmentConfig": "Segment",
+  "dataSyncSegmentStrategy": "Strategy",
+  "dataSyncSegmentTypeNumeric": "Numeric",
+  "dataSyncSegmentTypeTime": "Time",
+  "dataSyncSegmentField": "Field",
+  "dataSyncTimeUnit": "Unit",
+  "dataSyncTimeUnitMinute": "Minute",
+  "dataSyncTimeUnitHour": "Hour",
+  "dataSyncTimeUnitDay": "Day",
+  "dataSyncIntervalValue": "Interval",
+  "dataSyncSegmentSize": "Segment Size",
+  "dataSyncAdvancedOptions": "Advanced",
+  "dataSyncPageSize": "Page Size",
+  "dataSyncTargetStrategy": "Target Strategy",
+  "dataSyncStrategyTruncate": "Truncate then sync",
+  "dataSyncStrategyAppend": "Append (ignore conflicts)",
+  "dataSyncStrategyReplace": "Replace",
+  "dataSyncStrategyUpsert": "Upsert",
+  "dataSyncSegmentIntervalMs": "Segment Interval (ms)",
+  "dataSyncPageIntervalMs": "Page Interval (ms)",
+  "dataSyncPleaseCompleteConfig": "Please complete all fields",
+  "dataSyncConnectionNotFound": "Connection not found",
+  "dataSyncFailed": "Sync failed: {error}",
+  "@dataSyncFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "dataSyncCancelledByUser": "Cancelled by user",
+  "dataSyncCompleted": "Sync completed",
+  "dataSyncStatusSuccess": "Sync Successful",
+  "dataSyncStatusCancelled": "Sync Cancelled",
+  "dataSyncStatusFailed": "Sync Failed",
+  "dataSyncResultSourceTable": "Source",
+  "dataSyncResultTargetTable": "Target",
+  "dataSyncResultSyncedRows": "Synced Rows",
+  "dataSyncResultFailedRows": "Failed Rows",
+  "dataSyncResultDuration": "Duration",
+  "dataSyncPleaseSelect": "Please select {label}",
+  "@dataSyncPleaseSelect": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "dataSyncProgressDetectingSchema": "Detecting table schema...",
+  "dataSyncProgressCountingRows": "Counting total rows...",
+  "dataSyncProgressCalculatingSegments": "Calculating segments...",
+  "dataSyncProgressEmptyTable": "Source table is empty, sync completed",
+  "dataSyncProgressTruncatingTarget": "Truncating target table...",
+  "dataSyncProgressCancelled": "Sync cancelled",
+  "dataSyncProgressSyncingSegment": "Syncing segment {current}/{total}...",
+  "@dataSyncProgressSyncingSegment": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "dataSyncProgressPageStatus": "Segment {current}/{total}, synced {synced} / {totalRows} rows",
+  "@dataSyncProgressPageStatus": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "synced": {
+        "type": "int"
+      },
+      "totalRows": {
+        "type": "int"
+      }
+    }
+  },
+  "dataSyncProgressCompleted": "Sync completed! Success: {synced} rows, Failed: {failed} rows, Skipped: {skipped} rows",
+  "@dataSyncProgressCompleted": {
+    "placeholders": {
+      "synced": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "dataSyncErrorDateTimeParse": "Field `{field}` cannot be parsed as datetime: min={min}, max={max}",
+  "@dataSyncErrorDateTimeParse": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      },
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "dataSyncErrorNumericParse": "Field `{field}` cannot be parsed as number: min={min}, max={max}",
+  "@dataSyncErrorNumericParse": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      },
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "statsToggle": "Stats",
+  "statsChooseColumns": "Choose columns",
+  "statsApproximateTooltip": "Values prefixed with ~ are approximate",
+  "statsApproximateValue": "Approximate (~{value})",
+  "@statsApproximateValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "statsExactValue": "Exact",
+  "statsForeignKeys": "Foreign Keys",
+  "statsNoForeignKeys": "No foreign keys",
+  "dataSyncProgressSynced": "Synced {count} rows",
+  "dataSyncProgressTotal": "{count} rows",
+  "dataSyncProgressFailed": "Failed {count} rows",
+  "@dataSyncProgressSynced": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@dataSyncProgressTotal": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@dataSyncProgressFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unsavedChangesTitle": "Несохранённые изменения",
+  "unsavedChangesMessage": "Эта вкладка содержит несохранённые изменения. Закрыть без сохранения?",
+  "discardChanges": "Не сохранять",
+  "tabCloseConfirmMessage": "Сохранить изменения в «{title}» перед закрытием?",
+  "@tabCloseConfirmMessage": {"placeholders": {"title": {"type": "String"}}},
+  "aiPanelOverlayClickMask": "Click mask",
+  "aiPanelOverlayCloseOverlay": "Close overlay",
+  "aiPanelOverlayDragEdges": "Drag edges / corners",
+  "aiPanelOverlayDragToolbar": "Drag toolbar",
+  "aiPanelOverlayMoveOverlay": "Move overlay",
+  "aiPanelOverlayResizeOverlay": "Resize overlay",
+  "aiPanelOverlaySwitchToSidebar": "Switch to sidebar mode",
+  "aiPanelOverlayToggleMode": "Toggle overlay/sidebar mode",
+  "aiPanelOverlay_aiPanelShortcuts": "AI panel shortcuts",
+  "aiSettingsDisclosureTitle": "About AI Features",
+  "aiSettingsDisclosureBody": "AI features require your own API Key. All AI requests are sent directly from your device to the AI service provider you choose. DbMaster does not collect your data or relay requests through our servers.",
+  "exportConnectionsTitle": "Экспорт подключений",
+  "@exportConnectionsTitle": {
+    "description": "Title for export connections dialog"
+  },
+  "importConnectionsTitle": "Импорт подключений",
+  "@importConnectionsTitle": {
+    "description": "Title for import connections dialog"
+  },
+  "exportConnectionsCount": "Подключений для экспорта",
+  "@exportConnectionsCount": {
+    "description": "Label showing number of connections to export"
+  },
+  "exportPasswordHint": "Пароль резервной копии",
+  "@exportPasswordHint": {
+    "description": "Hint for export password field"
+  },
+  "confirmExportPasswordHint": "Подтвердите пароль резервной копии",
+  "@confirmExportPasswordHint": {
+    "description": "Hint for confirm export password field"
+  },
+  "passwordsDoNotMatch": "Пароли не совпадают",
+  "@passwordsDoNotMatch": {
+    "description": "Error shown when export password confirmation does not match"
+  },
+  "importPasswordHint": "Пароль резервной копии",
+  "@importPasswordHint": {
+    "description": "Hint for import password field"
+  },
+  "selectExportFile": "Сохранить в файл",
+  "@selectExportFile": {
+    "description": "Button to select export file location"
+  },
+  "selectImportFile": "Выбрать файл резервной копии",
+  "@selectImportFile": {
+    "description": "Button to select import file"
+  },
+  "selectImportFileFailed": "Не удалось выбрать файл: {error}",
+  "@selectImportFileFailed": {
+    "description": "Error shown when import file picker fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "conflictStrategyLabel": "Если имя подключения уже существует",
+  "@conflictStrategyLabel": {
+    "description": "Label for conflict strategy dropdown"
+  },
+  "conflictStrategySkip": "Пропустить",
+  "@conflictStrategySkip": {
+    "description": "Skip duplicate connections"
+  },
+  "conflictStrategyRename": "Переименовать",
+  "@conflictStrategyRename": {
+    "description": "Rename imported duplicate connections"
+  },
+  "conflictStrategyOverwrite": "Перезаписать",
+  "@conflictStrategyOverwrite": {
+    "description": "Overwrite existing duplicate connections"
+  },
+  "exportSuccess": "Подключения успешно экспортированы",
+  "@exportSuccess": {
+    "description": "Snackbar message after successful export"
+  },
+  "importSuccess": "Подключения успешно импортированы",
+  "@importSuccess": {
+    "description": "Snackbar message after successful import"
+  },
+  "invalidPassword": "Неверный пароль",
+  "@invalidPassword": {
+    "description": "Error when import password is wrong"
+  },
+  "invalidFile": "Недействительный или поврежденный файл резервной копии",
+  "@invalidFile": {
+    "description": "Error when import file is invalid"
+  },
+  "noConnectionsToExport": "Нет подключений для экспорта",
+  "@noConnectionsToExport": {
+    "description": "Message when no connections are available to export"
+  },
+  "exportThisConnection": "Экспортировать это подключение",
+  "@exportThisConnection": {
+    "description": "Context menu item to export single connection"
+  },
+  "commandCategoryTools": "Инструменты",
+  "@commandCategoryTools": {
+    "description": "Command palette category for tools"
+  },
+  "passwordRequiredTitle": "Требуется пароль",
+  "@passwordRequiredTitle": {
+    "description": "Dialog title when password is required to connect"
+  },
+  "passwordRequiredMessage": "Введите пароль для {serverName}, чтобы подключиться",
+  "@passwordRequiredMessage": {
+    "description": "Dialog message when password is required, {serverName} is the connection name",
+    "placeholders": {
+      "serverName": {
+        "type": "String"
+      }
+    }
+  },
+  "connectionConnectNoPassword": "Подключиться без пароля",
+  "embeddedRequiresRemoteServer": "Только удалённый сервер",
+  "serverSessionExpiredTitle": "Сессия истекла",
+  "serverSessionExpiredMessage": "Сессия сервера истекла или была отозвана. Войдите снова, чтобы продолжить.",
+  "serverSessionRelogin": "Войти снова",
+  "serverReconnectLastSession": "Подключиться к последнему серверу",
+  "serverReconnectFailed": "Сохранённая сессия больше недействительна. Войдите снова.",
+  "viewMenuTitle": "View",
+  "viewMenuToggleSidebar": "Sidebar",
+  "viewMenuToggleAiPanel": "AI Panel",
+  "viewMenuToggleBottomPanel": "Bottom Panel",
+  "viewMenuExpandWorkspace": "Expand Workspace",
+  "viewMenuLayoutPresets": "Layout Presets",
+  "viewMenuLayoutPresetDefault": "Default",
+  "viewMenuLayoutPresetExpand": "Expand Workspace",
+  "expandWorkspaceEnabled": "Expand Workspace",
+  "expandWorkspaceDisabled": "Exit Expand Workspace",
+  "bottomPanelTabResults": "Results",
+  "bottomPanelTabLogs": "Logs",
+  "bottomPanelTabHistory": "История",
+  "bottomPanelTabTasks": "Задачи",
+  "dmlCriticalTitle": "Критическая операция",
+  "dmlHighWarningTitle": "Операция высокого риска",
+  "dmlHighWarningBody": "Эта операция затронет все подходящие строки. Рекомендуется добавить LIMIT.",
+  "dmlAddLimit": "Добавить LIMIT",
+  "dmlConfirmExecute": "Подтвердить выполнение",
+  "dmlRiskSummary": "Сводка рисков",
+  "dmlStatementsToExecute": "Операторы для выполнения:",
+  "dmlEstimatedAffectedRows": "Ожидаемое число затронутых строк: {count}",
+  "dmlSqlInjectionDetail": "SQL-инъекция: {details}",
+  "dmlTriggerDeleteWithoutWhere": "DELETE без предложения WHERE",
+  "dmlTriggerUpdateWithoutWhere": "UPDATE без предложения WHERE",
+  "dmlTriggerDropTable": "Операция DROP TABLE",
+  "dmlTriggerDropDatabase": "Операция DROP DATABASE",
+  "dmlTriggerTruncateTable": "Операция TRUNCATE TABLE",
+  "dmlTriggerDmlWithoutLimit": "DML без предложения LIMIT",
+  "dmlTriggerAlterDropColumn": "ALTER TABLE DROP COLUMN",
+  "dmlTriggerSqlInjection": "Обнаружен шаблон SQL-инъекции",
+  "dropTableDeleteConfirmBody": "Вы уверены, что хотите удалить таблицу \"{tableName}\"?",
+  "dropTableDeleteImpact": "Эта операция необратима. Все данные в таблице будут удалены безвозвратно.",
+  "dropTableCheckingDependencies": "Проверка зависимостей...",
+  "dropTableDependencyWarning": "Предупреждение о зависимостях",
+  "connectionReadOnlyMode": "Режим только чтения",
+  "connectionReadOnlyModeDesc": "Запретить операции INSERT/UPDATE/DELETE/DDL",
+  "connectionSshHost": "SSH-хост",
+  "connectionSshUsername": "Имя пользователя SSH",
+  "connectionSshPassword": "Пароль SSH",
+  "connSshHostRequired": "Укажите SSH-хост",
+  "commonNavigate": "Навигация",
+  "resultsSqlStatementLabel": "Оператор SQL:",
+  "resultsExecutionSuccess": "Выполнено успешно",
+  "resultsAffectedRows": "Затронуто строк: {count}",
+  "resultsElapsedMs": "Время: {ms} мс",
+  "resultsFilterConditions": "Активных фильтров: {count}",
+  "resultsShowingRows": "Показано {filtered} из {total} строк",
+  "resultsClearFilter": "Сбросить фильтры",
+  "resultsNoDataGuidance": "Напишите запрос в редакторе и нажмите Ctrl+Enter (или F5), чтобы выполнить его",
+  "queryHistoryEmptyHint": "Выполните запрос с помощью Ctrl+Enter или F5 — он автоматически появится здесь",
+  "safetyExplainWarning": "Предупреждение о производительности",
+  "safetyExplainFullScan": "Обнаружено полное сканирование таблицы. Ожидается {rows} строк.",
+  "safetyExecuteAnyway": "Всё равно выполнить",
+  "safetyCancelAndOptimize": "Отмена и просмотр плана выполнения",
+  "safetyPreflightTimeout": "Время предварительной проверки истекло. Анализ производительности пропущен.",
+  "dmlAuditBlocked": "Операция DML заблокирована",
+  "processListKillQuery": "Kill Query",
+  "processListKillConfirmTitle": "Kill Process",
+  "processListKillConfirm": "Kill connection {id} ({user}@{host})?",
+  "@processListKillConfirm": {
+    "placeholders": {
+      "id": {"type": "String"},
+      "user": {"type": "String"},
+      "host": {"type": "String"}
+    }
+  },
+  "processListCopyQuery": "Copy Query",
+  "processListAutoRefresh": "Auto-refresh",
+  "processListRefreshInterval": "Refresh interval",
+  "processManagerTitle": "Диспетчер процессов",
+  "@processManagerTitle": {"description": "C15 process manager dialog title (Kill Query entry)"},
+  "processListNoProcesses": "No active processes",
+  "processListNoQueryText": "Нет текста запроса",
+  "engineStatusTitle": "Engine Status",
+  "engineInnodbStatus": "InnoDB Status",
+  "engineRowFormat": "Row Format",
+  "engineCompression": "Compression",
+  "engineTablespace": "Tablespace",
+  "replicationRunning": "Replication: Running",
+  "replicationStopped": "Replication: Stopped",
+  "replicationLag": "Lag: {seconds}s",
+  "@replicationLag": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "replicationNotConfigured": "Replication not configured",
+  "replicationDetailTitle": "Replication Status",
+  "replicationIoThread": "IO Thread",
+  "replicationSqlThread": "SQL Thread",
+  "mongoNodeReplication": "Репликация",
+  "mongoNodeSharding": "Шардирование",
+  "mongoValidationRules": "Правила валидации",
+  "mongoReplicationStandalone": "Автономный - не часть набора реплик",
+  "mongoShardingNotSharded": "Не шардированный кластер",
+  "mongoValidationNoRules": "Нет правил валидации",
+  "resultColumnTruncated": "Значение может быть усечено (тип больших объектов)",
+  "dorisUpdateGuardMessage": "Таблицы Doris с моделью Duplicate/Aggregate не поддерживают UPDATE; только модели Unique/Primary Key.",
+  "dorisTableModelLabel": "Модель таблицы",
+  "dorisModelDuplicate": "Duplicate",
+  "dorisModelUnique": "Unique",
+  "dorisModelPrimaryKey": "Primary Key",
+  "dorisHashColumnLabel": "Хэш-столбец",
+  "dorisBucketsLabel": "Buckets",
+  "dorisModelNeedsKeyColumn": "Эта модель требует хотя бы один ключевой столбец (отметьте Primary Key у столбца)",
+  "dorisAggregateFunctionLabel": "Функция агрегации",
+  "dorisModelAggregate": "Aggregate",
+  "dorisPartitionColumn": "Столбец раздела",
+  "dorisPartitionName": "Имя раздела",
+  "dorisPartitionLessThan": "Значения меньше",
+  "dorisAddPartition": "Добавить раздел",
+  "offlineLicenseTitle": "Офлайн-лицензия",
+  "offlineLicensePurchaseHint": "Для обновления: отсканируйте платёжный код на странице GitHub/Gitee, затем отправьте код машины и скриншот оплаты автору. Вы получите лицензию для импорта ниже.",
+  "machineCodeLabel": "Код машины",
+  "machineCodeUnavailable": "Не удалось прочитать код машины на этом устройстве",
+  "importLicense": "Импортировать лицензию",
+  "importLicenseHint": "Вставьте строку лицензии или выберите файл .dbmlicense",
+  "buyLicense": "Купить лицензию",
+  "machineCodeCopied": "Код устройства скопирован в буфер обмена",
+  "licenseFilePick": "Выбрать файл",
+  "licenseTypeYearly": "Годовая подписка",
+  "licenseTypeLifetime": "Бессрочная",
+  "licenseExpiresAt": "Истекает: {date}",
+  "removeLicense": "Удалить лицензию",
+  "licenseImportSuccess": "Лицензия активирована — Pro-функции разблокированы",
+  "licenseErrorInvalid": "Неверный формат лицензии",
+  "licenseErrorSignature": "Ошибка проверки подписи лицензии",
+  "licenseErrorMachine": "Эта лицензия привязана к другой машине",
+  "licenseErrorExpired": "Срок действия лицензии истёк",
+  "licenseErrorNoMachine": "Не удалось прочитать код машины; офлайн-лицензия недоступна",
+  "licenseActiveInfo": "Лицензия для {email}",
+  "errorCopy": "Копировать",
+  "errorCopied": "Скопировано",
+  "errorAnalyzeWithAi": "Анализ с ИИ",
+  "trialRemaining": "Осталось {count} пробных использований для {feature}",
+  "trialUsedUp": "Проба {feature} исчерпана",
+  "centerTitle": "Центр выполнения",
+  "centerTabTasks": "Задачи",
+  "centerTabErrors": "Ошибки",
+  "centerClearErrors": "Очистить ошибки",
+  "centerDismissError": "Скрыть",
+  "aiPromptErrorHeader": "Диагностируйте эту ошибку базы данных: объясните причину и предложите исправление.",
+  "commonUndo": "Отменить",
+  "commonDeleteWithCount": "Удалить ({count})",
+  "aiPanelSessionsDeletedCount": "Удалено {count} бесед",
+  "aiPanelSessionDeleted": "Удалено «{title}»",
+  "aiPanelSelectDatabaseRequired": "Сначала выберите базу данных из выпадающего списка выше.",
+  "aiPanelMongoExecutionPlan": "🔍 План выполнения Mongo",
+  "aiPanelSelectSessions": "Выбрать беседы",
+  "aiPanelExportTaskCreated": "Задача экспорта успешно создана",
+  "aiPanelDdlOperationCancelled": "Операция DDL отменена пользователем.",
+  "aiAssistantOpenTooltip": "Открыть AI-ассистент",
+  "schemaImpactRiskLow": "Низкий риск",
+  "schemaImpactRiskMedium": "Средний риск",
+  "schemaImpactRiskHigh": "Высокий риск",
+  "schemaImpactRiskCritical": "Критический риск",
+  "schemaImpactTitle": "Анализ влияния на схему",
+  "schemaImpactSubtitle": "{type} для `{table}`",
+  "schemaImpactDataLossWarning": "Риск потери данных: эта операция безвозвратно удалит данные.",
+  "schemaImpactAffectedObjects": "Затронутые объекты ({count})",
+  "schemaImpactWarnings": "Предупреждения ({count})",
+  "schemaImpactRecommendations": "Рекомендации",
+  "schemaImpactHideRollbackScript": "Скрыть скрипт отката",
+  "schemaImpactShowRollbackScript": "Показать скрипт отката",
+  "schemaImpactNoRollbackAvailable": "Откат недоступен",
+  "schemaImpactRollbackCaveat": "Авто-сгенерированный откат — черновик best-effort: типы колонок и ограничения могут быть неверными. Проверьте перед выполнением; данные автоматически не восстанавливаются.",
+  "schemaImpactBackupRequired": "Перед откатом необходимо создать резервную копию данных",
+  "schemaImpactConfirmationRequired": "Эта операция требует вашего явного подтверждения перед выполнением.",
+  "ddlConfirmDialogTitle": "Требуется подтверждение DDL",
+  "ddlAffectedObjectsCount": "Затронутые объекты ({count})",
+  "ddlExecuteButton": "Выполнить DDL",
+  "ddlSqlStatementLabel": "SQL-инструкция:",
+  "ddlRiskLevelLabel": "Уровень риска: {level}",
+  "ddlDataLossRiskDetected": "Обнаружен риск потери данных",
+  "ddlWarningsCount": "Предупреждения ({count})",
+  "ddlTypeConfirmationToProceed": "Введите подтверждение, чтобы продолжить",
+  "ddlTypeToConfirmDestructive": "Введите «{token}», чтобы подтвердить эту разрушительную операцию:",
+  "commonUnknown": "Неизвестно",
+  "commonDismiss": "Закрыть",
+  "readOnlyModeBlocked": "Это подключение в режиме «только чтение»; операции записи отключены.",
+  "dlgFillVariables": "Заполните переменные",
+  "dlgVariableRequired": "Введите {variable}",
+  "dlgEditTrigger": "Редактировать триггер",
+  "dlgCreateTrigger": "Создать триггер",
+  "triggerLoadTablesFailed": "Не удалось загрузить таблицы: {error}",
+  "triggerSelectTableRequired": "Выберите таблицу",
+  "triggerSelectEventRequired": "Выберите хотя бы одно событие",
+  "triggerUpdated": "Триггер успешно обновлён",
+  "triggerCreated": "Триггер успешно создан",
+  "triggerSaveFailed": "Не удалось сохранить триггер: {error}",
+  "triggerNameLabel": "Имя триггера",
+  "triggerNameRequired": "Имя триггера обязательно",
+  "triggerNameInvalid": "Недопустимый формат имени триггера",
+  "triggerTimingLabel": "Время срабатывания",
+  "triggerEventLabel": "Событие",
+  "triggerTableLabel": "Таблица",
+  "triggerSelectTableHint": "Выберите таблицу",
+  "triggerBodyLabel": "Тело триггера",
+  "triggerBodyHint": "Введите тело триггера (SQL-операторы)\nПример:\nSET NEW.updated_at = NOW();",
+  "triggerCount": "Триггеров: {count}",
+  "dlgExecutionResult": "Результат выполнения",
+  "dlgExecuteRoutine": "Выполнить {type}",
+  "dlgRoutineName": "Имя: {name}",
+  "dlgRoutineType": "Тип: {type}",
+  "dlgRoutineReturnType": "Тип возвращаемого значения: {type}",
+  "dlgParameters": "Параметры",
+  "dlgRoutineNoParams": "Эта процедура/функция не требует параметров",
+  "dlgOutputParam": "Выходной параметр",
+  "dlgReturnValueLabel": "Возвращаемое значение:",
+  "dlgRowsAffected": "Затронуто строк: {count}",
+  "dlgEditRoutine": "Редактировать {type}",
+  "routineParameterCount": "{count, plural, =0{Нет параметров} =1{1 параметр} few{{count} параметра} other{{count} параметров}}",
+  "@routineParameterCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "routineDeleteConfirmation": "Удалить {type} \"{name}\"?",
+  "routineListTitle": "Процедуры и функции",
+  "routineDefinitionTitle": "Определение {type}",
+  "queryExecutionPlan": "План выполнения запроса",
+  "dlgCreateRoutine": "Создать {type}",
+  "dlgNameRequired": "Имя обязательно",
+  "dlgRoutineNameInvalid": "Имя может содержать только буквы, цифры и подчёркивания и не может начинаться с цифры",
+  "dlgReturnTypeRequired": "Выберите тип возвращаемого значения",
+  "dlgSqlCode": "SQL-код",
+  "dlgRoutineProcedure": "Хранимая процедура",
+  "dlgRoutineFunction": "Функция",
+  "commonUpdate": "Обновить",
+  "commonCreate": "Создать",
+  "auditLogTitle": "Журнал аудита запросов",
+  "auditLogAllStatus": "Все статусы",
+  "auditLogAll": "Все",
+  "auditLogTime": "Время",
+  "auditLogDuration": "Длительность",
+  "auditLogRows": "Строки",
+  "auditLogStatus": "Статус",
+  "auditLogEmpty": "Журналов аудита пока нет",
+  "auditLogEmptyHint": "Выполняйте запросы, чтобы начать запись журналов",
+  "auditLogTotal": "Всего",
+  "auditLogWrite": "Запись",
+  "auditLogAvgTime": "Среднее время",
+  "auditLogClearTitle": "Очистить журналы аудита",
+  "auditLogClearConfirm": "Вы уверены, что хотите очистить все журналы аудита? Это действие нельзя отменить.",
+  "auditLogClear": "Очистить",
+  "piiMaskingTitle": "Маскирование персональных данных",
+  "piiMaskingEnable": "Включить маскирование PII",
+  "piiMaskingEnableDesc": "Автоматически маскировать конфиденциальные данные в результатах запросов",
+  "piiMaskingTypes": "Типы конфиденциальных данных",
+  "piiTypeEmail": "Адреса электронной почты",
+  "piiTypePhone": "Номера телефонов",
+  "piiTypeIdCard": "Удостоверения личности",
+  "piiTypeCreditCard": "Кредитные карты",
+  "piiTypeBankCard": "Банковские счета",
+  "piiTypePassword": "Пароли",
+  "piiTypeIpAddress": "IP-адреса",
+  "shortcutNoMatching": "Подходящих сочетаний клавиш нет",
+  "shortcutPressEscToClose": "Нажмите ESC для закрытия",
+  "indexTypePrimary": "Первичный",
+  "performanceAnalyzerWeeklyReportTitle": "Еженедельные отчёты о медленных запросах",
+  "performanceAnalyzerWeeklyReportDesc": "Получайте топ-10 медленных запросов с анализом EXPLAIN каждый понедельник",
+  "performanceAnalyzerLearnMore": "Подробнее",
+  "backupListLoading": "Загрузка списка резервных копий...",
+  "dbPropertiesTitle": "Свойства базы данных - {name}",
+  "dbPropertyName": "Имя",
+  "dbPropertyCharset": "Кодировка",
+  "dbPropertyCollation": "Правило сортировки",
+  "dbPropertySize": "Размер",
+  "dbPropertyTableCount": "Таблицы",
+  "dbPropertyViewCount": "Представления",
+  "dbPropertyRoutineCount": "Процедуры/Функции",
+  "exportFormatLabel": "Формат экспорта",
+  "exportRowCount": "Всего строк: {count}",
+  "taskCreateExportFilter": "Фильтр",
+  "taskCreateExportEstRows": "Примерное число строк",
+  "taskCreateExportValidating": "Проверка...",
+  "taskCreateExportSaveDialogTitle": "Выберите место сохранения файла экспорта",
+  "taskValidationPathNotExists": "Каталог не существует: {path}",
+  "taskCreateExportDesc": "Экспорт {table}",
+  "taskCreateExportDescFiltered": "Экспорт {table} (с фильтром)",
+  "sqliteConnectionEditTitle": "Редактировать подключение SQLite",
+  "sqliteConnectionNewTitle": "Новое подключение SQLite",
+  "createSuperTableTitle": "Создать супертаблицу",
+    "importWizardTitle": "Мастер импорта данных",
+  "dbCreateSuccess": "База данных «{name}» успешно создана",
+  "dbCreateFailed": "Не удалось создать базу данных",
+  "dbCreateError": "Ошибка: {error}",
+  "dbOperationCannotBeUndone": "Это действие нельзя отменить!",
+  "dropTablePermanentWarning": "Таблица «{table}» и все её данные будут безвозвратно удалены.",
+  "dropTableDataLossWarning": "Это действие нельзя отменить! Все данные в этой таблице будут безвозвратно потеряны.",
+  "objectTypeTable": "таблица",
+  "objectTypeView": "представление",
+  "commonRemove": "Удалить",
+  "commonRequired": "Обязательно",
+  "commonInvalidIdentifier": "Недопустимый идентификатор",
+  "mongoValidationJsonObject": "JSON должен быть объектом",
+  "mongoValidationInvalidJson": "Недопустимый JSON: {error}",
+  "settingsAutoLimitEnabledDesc": "Автоматически добавлять LIMIT к запросам SELECT",
+  "sqliteConnectionInfo": "Информация о подключении",
+  "sqliteNameHint": "Моя база SQLite",
+  "connectionDirNotExists": "Каталог не существует",
+  "indexSelectColumnRequired": "Выберите хотя бы один столбец",
+  "indexCreateFailed": "Не удалось создать индекс: {error}",
+  "indexUpdateFailed": "Не удалось обновить индекс: {error}",
+  "indexNameRequired": "Имя индекса обязательно",
+  "superTableTags": "Теги",
+  "superTableCreated": "Супертаблица успешно создана",
+  "redisLibNameCodeRequired": "Имя библиотеки и код обязательны",
+  "redisAdapterNotAvailable": "Адаптер Redis недоступен",
+  "redisLibraryCreated": "Библиотека функций успешно создана",
+  "redisLibraryCreateFailed": "Не удалось создать библиотеку: {error}",
+  "redisLibraryUsageHint": "Используется в #!lua name=<library>",
+  "redisInsertExample": "Вставить пример",
+  "redisCreateLibrary": "Создать библиотеку",
+  "redisKeyLoadFailed": "Не удалось загрузить данные ключа: {error}",
+  "redisKeyUpdated": "Ключ успешно обновлён",
+  "redisKeySaveFailed": "Не удалось сохранить ключ: {error}",
+  "redisKeySaveChanges": "Сохранить изменения",
+  "serverConnectTitle": "Подключиться к серверу",
+  "serverConnectUrl": "URL сервера",
+  "serverUrlRequired": "URL сервера обязателен",
+  "serverUrlInvalid": "Недопустимый URL (напр. https://myserver:3000)",
+  "serverConnectEmail": "Эл. почта",
+  "serverEmailRequired": "Эл. почта обязательна",
+  "serverEmailInvalid": "Недопустимый адрес эл. почты",
+  "serverPasswordRequired": "Пароль обязателен",
+  "mongoValidationFixErrors": "Исправьте ошибки JSON перед применением",
+  "mongoValidationApplied": "Правила проверки успешно применены",
+  "mongoValidationRemoved": "Правила проверки удалены",
+  "mongoValidationLevel": "Уровень проверки",
+  "mongoValidationAction": "Действие проверки",
+  "mongoValidationApplyFailed": "Не удалось применить правила проверки: {error}",
+  "indexSelectColumns": "Выбор столбцов",
+  "redisLibraryTitle": "Создать библиотеку функций",
+  "redisLibraryNameLabel": "Имя библиотеки",
+  "redisLibraryCreateFailedSyntax": "Не удалось создать библиотеку (требуется Redis 7.0+, проверьте синтаксис)",
+  "redisLuaCodeLabel": "Код Lua",
+  "redisReplaceExisting": "Заменить существующую библиотеку с тем же именем (FUNCTION LOAD REPLACE)",
+  "redisLibraryInfoText": "Имя библиотеки автоматически записывается в shebang #!lua. Код Lua должен содержать вызовы redis.register_function(). Не пишите shebang самостоятельно.",
+  "superTableCreateFailed": "Не удалось создать супертаблицу",
+  "superTableColumns": "Столбцы",
+
+  "errorTitle": "Произошла ошибка",
+  "errorDescriptionLabel": "Сведения об ошибке:",
+  "errorStackLabel": "Трассировка стека:",
+
+  "columnFilterTypeNumeric": "Числовой",
+  "columnFilterTypeDateTime": "Дата/Время",
+  "columnFilterTypeText": "Текст",
+  "columnFilterPlaceholderNumeric": "Введите число",
+  "columnFilterPlaceholderDateTime": "Введите дату (напр. 2024-01-01)",
+  "columnFilterPlaceholderText": "Введите текст",
+  "columnFilterFor": "Фильтр: {columnName}",
+
+  "columnFilterActive": "Применено условий фильтра: {count}",
+
+  "columnFilterRowCount": "{filtered} / {total} строк",
+
+  "filterOpEquals": "равно",
+  "filterOpNotEquals": "не равно",
+  "filterOpContains": "содержит",
+  "filterOpNotContains": "не содержит",
+  "filterOpStartsWith": "начинается с",
+  "filterOpEndsWith": "заканчивается на",
+  "filterOpGreaterThan": "больше",
+  "filterOpGreaterThanOrEqual": "больше или равно",
+  "filterOpLessThan": "меньше",
+  "filterOpLessThanOrEqual": "меньше или равно",
+  "filterOpBetween": "между",
+  "filterOpIsNull": "равно null",
+  "filterOpIsNotNull": "не равно null",
+  "filterOpIsEmpty": "пусто",
+  "filterOpIsNotEmpty": "не пусто",
+
+  "tableNoData": "Нет данных",
+  "tableRowCountTotal": "Всего строк: {count}",
+
+  "tableLargeDatasetHint": "(Большой набор данных, прокрутите для загрузки)",
+
+  "tableRowRange": "{start}-{end} / {total} строк",
+
+  "importWizStepSelectFile": "Выбор файла",
+  "importWizStepAnalyzeFile": "Анализ файла",
+  "importWizStepColumnMapping": "Сопоставление столбцов",
+  "importWizStepPreviewPII": "Предпросмотр и PII",
+  "importWizStepConfirmImport": "Подтверждение импорта",
+  "importWizStepOf": "Шаг {current} из {total}: {title}",
+  "importWizTargetDatabase": "Целевая база данных",
+  "importWizSelectDatabase": "Выберите базу данных",
+  "importWizTargetTableOptional": "Целевая таблица (необязательно)",
+  "importWizLetAiInfer": "-- Позволить ИИ определить имя таблицы --",
+  "importWizChooseFile": "Нажмите для выбора или перетащите файл",
+  "importWizChangeFile": "Сменить файл",
+  "importWizSupportedFormats": "Поддерживаются форматы CSV, JSON, Excel, TSV",
+  "importWizFileUnknown": "Неизвестно",
+  "importWizAiAnalyzing": "ИИ анализирует файл...",
+  "importWizDetectingFormat": "Определение формата, кодировки, типов полей...",
+  "importWizFileAnalysisResult": "Результат анализа файла",
+  "importWizFormat": "Формат",
+  "importWizEncoding": "Кодировка",
+  "importWizFieldCount": "Полей",
+  "importWizEstimatedRows": "Примерно строк",
+  "importWizFileSize": "Размер файла",
+  "importWizDelimiter": "Разделитель",
+  "importWizDetectedFields": "Обнаруженные поля",
+  "importWizAiSuggestion": "Предложение ИИ",
+  "importWizTargetTableName": "Целевая таблица: {tableName}",
+  "importWizNoAnalysisResult": "Нет результатов анализа",
+  "importWizSelectFileFirst": "Сначала выберите файл",
+  "importWizNoColumnMapping": "Нет сопоставления столбцов",
+  "importWizGeneratingMapping": "Генерация сопоставления...",
+  "importWizColumnMappingConfig": "Настройка сопоставления столбцов",
+  "importWizColumnsMapped": "Сопоставлено {mapped}/{total} столбцов",
+  "importWizMappingDescription": "Сопоставьте столбцы файла со столбцами таблицы. Выберите «Пропустить», чтобы пропустить столбец.",
+  "importWizFileColumn": "Столбец файла",
+  "importWizDatabaseColumn": "Столбец БД",
+  "importWizType": "Тип",
+  "importWizPiiDetection": "Обнаружение конфиденциальных данных (PII)",
+  "importWizPiiDetectionMessage": "Обнаружены следующие конфиденциальные поля. Подтвердите продолжение импорта:",
+  "importWizPiiAcknowledge": "Я понимаю, продолжить импорт",
+  "importWizDataPreview": "Предпросмотр данных",
+  "importWizWarnings": "{count} предупреждений",
+  "importWizFirstRows": "Первые {count} строк",
+  "importWizSensitiveField": "Конфиденциальное поле",
+  "importWizDataValidationWarnings": "Предупреждения проверки данных",
+  "importWizValidationRowFormat": "Строка {row}, Столбец {col}: {msg}",
+  "importWizImportSummary": "Сводка конфигурации импорта",
+  "importWizSummaryTargetDatabase": "Целевая база данных",
+  "importWizSummaryTargetTable": "Целевая таблица",
+  "importWizSummaryFile": "Файл",
+  "importWizSummaryMappedColumns": "Сопоставлено столбцов",
+  "importWizSummaryDataRows": "Строк данных",
+  "importWizConflictStrategy": "Стратегия разрешения конфликтов",
+  "importWizConflictSkip": "Пропускать дубликаты",
+  "importWizConflictSkipDesc": "При обнаружении дублирующего ключа пропустить строку и продолжить импорт",
+  "importWizConflictUpdate": "Обновлять существующие строки",
+  "importWizConflictUpdateDesc": "При обнаружении дублирующего ключа обновить существующие данные",
+  "importWizConflictAbort": "Прервать импорт",
+  "importWizConflictAbortDesc": "При обнаружении дублирующего ключа немедленно остановить импорт",
+  "importWizImporting": "Импорт...",
+  "importWizRowsProgress": "{imported}/{total} строк",
+  "importWizFailedRows": "Ошибок: {count} строк",
+  "importWizImportComplete": "Импорт завершён!",
+  "importWizImportFailed": "Ошибка импорта",
+  "importWizImportSuccessMsg": "Успешно импортировано {count} строк",
+  "importWizImportErrorMsg": "При импорте произошла ошибка",
+  "importWizPreviousStep": "Назад",
+  "importWizClose": "Закрыть",
+  "importWizStartImport": "Начать импорт",
+  "importWizNextStep": "Далее",
+  "importWizReimport": "Импортировать заново",
+  "importWizLoadDatabasesFailed": "Не удалось загрузить список баз данных: {error}",
+  "importWizLoadTablesFailed": "Не удалось загрузить список таблиц: {error}",
+  "importWizPickFileFailed": "Не удалось выбрать файл: {error}",
+  "importWizAnalysisFailed": "Ошибка анализа: {error}",
+  "importWizMappingFailed": "Не удалось создать сопоставление: {error}",
+  "importWizImportFailed": "Ошибка импорта: {error}",
+  "importWizFileAnalysisFailed": "Ошибка анализа файла",
+  "importWizImportFailedGeneric": "Ошибка импорта",
+  "importWizNotSelected": "Не выбрано",
+  "importWizNotSet": "Не задано",
+  "importWizUnknown": "Неизвестно",
+  "importWizPiiDetectionSummary": "Обнаружение PII",
+  "importWizSensitiveFieldCount": "{count} конфиденциальных полей",
+
+  "smartImportAnalyzingDetail": "ИИ определяет типы полей и генерирует инструкцию CREATE TABLE",
+  "smartImportColumnMapping": "Сопоставление столбцов",
+  "smartImportColumnsMapped": "Сопоставлено {mapped}/{total} столбцов",
+  "smartImportFileColumn": "Столбец файла",
+  "smartImportTableColumn": "Столбец таблицы",
+  "smartImportConflictResolution": "Разрешение конфликтов",
+  "smartImportDataPreview": "Предпросмотр данных",
+  "smartImportFirstRows": "Первые {count} строк",
+  "smartImportBack": "Назад",
+  "smartImportBackgroundTask": "Фоновый импорт",
+  "smartImportFailedToGenerateSql": "-- Не удалось сгенерировать инструкцию CREATE TABLE",
+  "smartImportFileSelected": "Выбран файл: {name}",
+  "smartImportTargetTableSelected": "Выбрана целевая таблица: {table}",
+  "smartImportTargetTableEntered": "Введена целевая таблица: {table}",
+  "smartImportAnalysisFailed": "Ошибка анализа файла: {error}",
+  "smartImportColumnMappingsComplete": "Сопоставление завершено: {mapped}/{total} столбцов сопоставлено автоматически",
+  "smartImportPiiDetected": "Обнаружение PII: Найдены конфиденциальные поля - {types}",
+  "smartImportPiiNone": "Обнаружение PII: Конфиденциальных полей не найдено",
+  "smartImportPiiFailed": "Ошибка обнаружения PII: {error}",
+  "smartImportPreviewGenerated": "Предпросмотр данных создан ({count} строк)",
+  "smartImportPreviewFailed": "Ошибка создания предпросмотра: {error}",
+  "smartImportMappingFailed": "Ошибка создания сопоставления: {error}",
+
+  "importServiceStartImport": "Начало импорта в таблицу \"{table}\"...",
+  "importServiceColumnMapping": "Сопоставление: {mapped}/{total} столбцов",
+  "importServiceConflictStrategy": "Стратегия конфликтов: {strategy}",
+  "importServiceImporting": "Начало импорта данных...",
+  "importServiceBatchSuccess": "Пакет {batch}: успешно импортировано {count} строк",
+  "importServiceBatchInsertFailed": "Ошибка пакетной вставки ({count} строк), попытка построчной вставки...",
+  "importServiceUpdateFailed": "Ошибка обновления: {error}",
+  "importServiceDataTooLong": "Строка {row}: данные слишком длинные, пропущена",
+  "importServiceRowInsertFailed": "Строка {row}: ошибка вставки: {error}",
+  "importServiceBatchSkipped": "Пакет пропущен: {count} строк (дубликаты)",
+  "importServiceBatchUpdated": "Пакет обновлён: {count} строк",
+  "importServiceBatchFailed": "Пакет не удался: {count} строк",
+  "importServicePhaseProgress": "Импортировано {imported}, пропущено {skipped}, обновлено {updated}...",
+  "importServiceImportCancelled": "Импорт отменён",
+  "importServiceFileReadFailed": "Ошибка чтения файла: {error}",
+  "importServiceImportComplete": "Импорт завершён! Успешно: {imported}, Ошибок: {failed}",
+
+  "taskExecutorAnalyzeFile": "Анализ файла: {path}",
+  "taskExecutorFileFormat": "Формат: {format}, Кодировка: {encoding}, Примерно строк: {rows}",
+  "taskExecutorTableNotExists": "Таблица не существует, создаётся...",
+  "taskExecutorTableCreated": "Таблица успешно создана",
+  "taskExecutorTableCreateFailed": "Не удалось создать таблицу",
+  "taskExecutorTableNotExistsError": "Целевая таблица \"{table}\" не существует. Сначала создайте таблицу.",
+  "taskExecutorNoColumnMapping": "Нет пригодного сопоставления столбцов. Проверьте соответствие полей файла и таблицы.",
+  "taskExecutorColumnMapping": "Сопоставление: {mapped}/{total} столбцов",
+  "taskExecutorStartImport": "Начало импорта данных...",
+  "taskExecutorImportComplete": "Импорт завершён! Успешно: {imported}, Ошибок: {failed}",
+  "taskExecutorImportFinished": "Импорт завершён",
+  "serverConnectNoServerLearnMore": "Don't have a server? Learn more",
+  "touchpointLiteLearnMore": "See how",
+  "touchpointLiteSlowQueryTitle": "Recurring slow queries?",
+  "touchpointLiteSlowQueryDesc": "DbMaster Server can track these automatically and alert you on schedule.",
+  "touchpointLiteSchemaDiffTitle": "Repeat schema comparisons?",
+  "touchpointLiteSchemaDiffDesc": "DbMaster Server can run this on a schedule, retry on failure, and send Feishu/DingTalk alerts.",
+  "touchpointLiteDataSyncTitle": "Tired of running this manually?",
+  "touchpointLiteDataSyncDesc": "DbMaster Server can automate this sync with retries and team notifications.",
+  "viewModeTable": "Таблица",
+  "viewModeChart": "График",
+  "viewModeCard": "Карта",
+  "viewModeDocument": "Документы",
+  "viewModeJsonTree": "JSON-дерево",
+  "viewModeKeyValue": "Ключ-значение",
+  "documentExpand": "Развернуть",
+  "documentCollapse": "Свернуть",
+  "documentExpandMore": "Развернуть ещё {count} полей",
+  "jsonTreeItemCount": "{count} элементов",
+  "keyValueField": "Поле",
+  "keyValueValue": "Значение",
+  "keyValueFieldLabel": "Поле: {field}",
+  "keyValueLengthLabel": "Длина: {length} символов",
+  "chartViewComingSoon": "График (скоро)",
+  "chartExportSuccess": "График сохранён в {path}",
+  "@chartExportSuccess": {"placeholders": {"path": {"type": "String"}}},
+  "chartExportFailed": "Ошибка экспорта графика: {error}",
+  "@chartExportFailed": {"placeholders": {"error": {"type": "String"}}},
+  "chartSamplingNotice": "Большой набор данных: выбрано {count} точек",
+  "@chartSamplingNotice": {"placeholders": {"count": {"type": "int"}}},
+  "chartAiTrend": "AI анализ тренда",
+  "chartTypeLine": "Линия",
+  "chartTypeBar": "Столбец",
+  "chartTypePie": "Круг",
+  "chartTypeScatter": "Точечный",
+  "chartXAxis": "Ось X",
+  "chartYAxis": "Ось Y",
+  "statisticsPanelTitle": "Статистика",
+  "exportStepBack": "Назад",
+  "exportStepNext": "Далее",
+  "noJsonDataToSample": "Нет данных для выборки",
+  "noLeafNodes": "Нет извлекаемых полей",
+  "fieldNotInAllRows": "не во всех строках",
+  "commonRetry": "Повторить",
+  "extensionNoAdapter": "Нет адаптера",
+  "extensionNotPostgres": "Не подключение PostgreSQL",
+  "extensionLoadFailed": "Не удалось загрузить члены",
+  "extensionTypes": "Типы",
+  "extensionFunctions": "Функции",
+  "extensionOperators": "Операторы",
+  "extensionSchema": "Схема",
+  "extensionDescription": "Описание",
+  "vectorLoadFailed": "Не удалось загрузить векторные индексы",
+  "vectorNoAdapter": "Нет адаптера",
+  "vectorNoIndexes": "Векторные индексы не определены",
+  "jsonInvalidJson": "Неверный JSON",
+  "jsonNoMatches": "Нет совпадений",
+  "jsonSearchHint": "Поиск ключей или значений…"
+,
+  "mcpTokensMenuLabel": "Токены MCP",
+  "@mcpTokensMenuLabel": {"type": "text"},
+  "mcpTokensTitle": "Токены MCP",
+  "@mcpTokensTitle": {"type": "text"},
+  "mcpTokensIntro": "Долгоживущие токены для ИИ-клиентов (Claude Code, Cursor). Вставьте токен как Bearer token в MCP-конфигурацию клиента; можно отозвать в любой момент.",
+  "@mcpTokensIntro": {"type": "text"},
+  "mcpTokensNotConnected": "Подключитесь к серверу DbMaster, чтобы управлять токенами MCP.",
+  "@mcpTokensNotConnected": {"type": "text"},
+  "mcpTokensEmpty": "Токенов пока нет. Создайте один для своего ИИ-клиента.",
+  "@mcpTokensEmpty": {"type": "text"},
+  "mcpTokensNameHint": "Имя токена (напр. claude-code-mac)",
+  "@mcpTokensNameHint": {"type": "text"},
+  "mcpTokensCreate": "Создать",
+  "@mcpTokensCreate": {"type": "text"},
+  "mcpTokensOnceTitle": "Токен «{name}» создан",
+  "@mcpTokensOnceTitle": {"placeholders": {"name": {"type": "String"}}},
+  "mcpTokensOnceWarning": "Скопируйте его сейчас — из соображений безопасности он больше не будет показан. Используйте его как Bearer token в конфигурации MCP-клиента (напр. mcp.json).",
+  "@mcpTokensOnceWarning": {"type": "text"},
+  "mcpTokensCopy": "Копировать",
+  "@mcpTokensCopy": {"type": "text"},
+  "mcpTokensCopied": "Токен скопирован в буфер обмена",
+  "@mcpTokensCopied": {"type": "text"},
+  "mcpTokensDone": "Готово",
+  "@mcpTokensDone": {"type": "text"},
+  "mcpTokensLastUsed": "Последнее использование: {value}",
+  "@mcpTokensLastUsed": {"placeholders": {"value": {"type": "String"}}},
+  "mcpTokensNeverUsed": "никогда",
+  "@mcpTokensNeverUsed": {"type": "text"},
+  "mcpTokensRevoke": "Отозвать",
+  "@mcpTokensRevoke": {"type": "text"},
+  "mcpTokensRevokeTitle": "Отозвать этот токен?",
+  "@mcpTokensRevokeTitle": {"type": "text"},
+  "mcpTokensRevokeBody": "Клиенты, использующие «{name}» ({prefix}…), сразу перестанут работать. Это действие необратимо.",
+  "@mcpTokensRevokeBody": {"placeholders": {"name": {"type": "String"}, "prefix": {"type": "String"}}},
+
+  "serverConnectionsMenuLabel": "Подключения сервера",
+  "@serverConnectionsMenuLabel": {"type": "text"},
+  "serverConnectionsTitle": "Подключения сервера",
+  "@serverConnectionsTitle": {"type": "text"},
+  "serverConnectionsIntro": "Подключения к базам данных, зарегистрированные на сервере. Синхронизация данных, проверки здоровья и согласования DDL выполняются по ним; список подключений в боковой панели — отдельный.",
+  "@serverConnectionsIntro": {"type": "text"},
+  "serverConnectionsNotConnected": "Нет подключения к серверу.",
+  "@serverConnectionsNotConnected": {"type": "text"},
+  "serverConnectionsEmpty": "Пока нет подключений сервера. Добавьте одно, чтобы задачи синхронизации / проверки здоровья / согласования имели базу данных.",
+  "@serverConnectionsEmpty": {"type": "text"},
+  "serverConnectionsAdd": "Добавить",
+  "@serverConnectionsAdd": {"type": "text"},
+  "serverConnectionsEdit": "Изменить",
+  "@serverConnectionsEdit": {"type": "text"},
+  "serverConnectionsDelete": "Удалить",
+  "@serverConnectionsDelete": {"type": "text"},
+  "serverConnectionsKindCollab": "совместное",
+  "@serverConnectionsKindCollab": {"type": "text"},
+  "serverConnectionsKindSourceDrift": "источник drift (только чтение)",
+  "@serverConnectionsKindSourceDrift": {"type": "text"},
+  "serverConnectionsDeleteTitle": "Удалить подключение",
+  "@serverConnectionsDeleteTitle": {"type": "text"},
+  "serverConnectionsDeleteBody": "Удалить подключение сервера «{name}»?",
+  "@serverConnectionsDeleteBody": {"placeholders": {"name": {"type": "String"}}},
+  "serverConnectionsDeleteTaskWarning": "{count} задача(задач) ссылаются на это подключение и будут удалены (как источник) или отвязаны (как цель).",
+  "@serverConnectionsDeleteTaskWarning": {"placeholders": {"count": {"type": "num"}}},
+  "serverConnFormCreateTitle": "Добавить подключение сервера",
+  "@serverConnFormCreateTitle": {"type": "text"},
+  "serverConnFormEditTitle": "Изменить подключение сервера",
+  "@serverConnFormEditTitle": {"type": "text"},
+  "serverConnFormName": "Название",
+  "@serverConnFormName": {"type": "text"},
+  "serverConnFormType": "Тип",
+  "@serverConnFormType": {"type": "text"},
+  "serverConnFormHost": "Хост",
+  "@serverConnFormHost": {"type": "text"},
+  "serverConnFormPort": "Порт",
+  "@serverConnFormPort": {"type": "text"},
+  "serverConnFormUsername": "Имя пользователя",
+  "@serverConnFormUsername": {"type": "text"},
+  "serverConnFormPassword": "Пароль",
+  "@serverConnFormPassword": {"type": "text"},
+  "serverConnFormPasswordKeepHint": "Оставьте пустым, чтобы сохранить сохранённый пароль",
+  "@serverConnFormPasswordKeepHint": {"type": "text"},
+  "serverConnFormDatabase": "База данных по умолчанию (необязательно)",
+  "@serverConnFormDatabase": {"type": "text"},
+  "serverConnFormSqlitePath": "Путь к файлу базы данных",
+  "@serverConnFormSqlitePath": {"type": "text"},
+  "serverConnFormSave": "Сохранить",
+  "@serverConnFormSave": {"type": "text"},
+  "serverConnFormRequired": "Обязательно",
+  "@serverConnFormRequired": {"type": "text"},
+  "serverConnFormInvalidPort": "Порт должен быть числом",
+  "@serverConnFormInvalidPort": {"type": "text"},
+  "dataSyncConnectionNotOnServer": "Выбранное подключение не зарегистрировано на сервере. Сначала добавьте его в «Подключения сервера», затем повторите.",
+  "@dataSyncConnectionNotOnServer": {"type": "text"}
+,
+  "connectionFormProvidedBy": "Предоставляется {plugin}",
+  "@connectionFormProvidedBy": {
+    "description": "Connection form footer: which plugin provides the current form",
+    "placeholders": {
+      "plugin": {
+        "type": "String"
+      }
+    }
+  },
+  "connectionDbIndex": "Индекс базы данных",
+  "@connectionDbIndex": {"description": "Redis database index field label"},
+  "connectionAuthDatabase": "База данных аутентификации",
+  "@connectionAuthDatabase": {"description": "MongoDB authentication database field label"},
+  "connectionRedisAuthNone": "Без аутентификации",
+  "@connectionRedisAuthNone": {"description": "Redis auth mode: no authentication"},
+  "connectionRedisAuthNoneDesc": "Аутентификация не требуется",
+  "@connectionRedisAuthNoneDesc": {"description": "Redis auth mode description: no authentication required"},
+  "connectionRedisAuthPasswordOnly": "Только пароль",
+  "@connectionRedisAuthPasswordOnly": {"description": "Redis auth mode: password only"},
+  "connectionRedisAuthPasswordOnlyDesc": "Пароль AUTH (Redis < 6.0)",
+  "@connectionRedisAuthPasswordOnlyDesc": {"description": "Redis auth mode description: AUTH password (pre-6.0)"},
+  "connectionRedisAuthUsernamePassword": "Имя пользователя + пароль (ACL)",
+  "@connectionRedisAuthUsernamePassword": {"description": "Redis auth mode: username + password (ACL)"},
+  "connectionRedisAuthUsernamePasswordDesc": "AUTH имя пользователя пароль (Redis 6.0+ ACL)",
+  "@connectionRedisAuthUsernamePasswordDesc": {"description": "Redis auth mode description: AUTH username password (Redis 6.0+ ACL)"},
+  "connectionSshAuthPassword": "Пароль",
+  "@connectionSshAuthPassword": {"description": "SSH auth mode: password"},
+  "connectionSshAuthPrivateKey": "Приватный ключ",
+  "@connectionSshAuthPrivateKey": {"description": "SSH auth mode: private key"},
+  "sidebarCapabilityTitle": "Возможности",
+  "@sidebarCapabilityTitle": {"description": "C14 sidebar capability menu section title"},
+  "sidebarCapGroupDatabaseObjects": "Объекты базы данных",
+  "@sidebarCapGroupDatabaseObjects": {"description": "C14 capability menu group: database objects"},
+  "sidebarCapGroupAdvanced": "Дополнительно",
+  "@sidebarCapGroupAdvanced": {"description": "C14 capability menu group: advanced"},
+  "redisCapGroupKeyspace": "Ключевое пространство",
+  "@redisCapGroupKeyspace": {"description": "C17 redis capability menu group: keyspace"},
+  "redisCapWorkbench": "Консоль (Workbench)",
+  "@redisCapWorkbench": {"description": "C17 redis capability item: CLI workbench panel"},
+  "redisCapPubsub": "Pub/Sub",
+  "@redisCapPubsub": {"description": "C17 redis capability item: pub/sub panel"},
+  "redisCapLua": "Скрипты Lua",
+  "@redisCapLua": {"description": "C17 redis capability item: lua scripts panel"},
+  "redisCapPipeline": "Конвейер (Pipeline)",
+  "@redisCapPipeline": {"description": "C17 redis capability item: pipeline panel"},
+  "redisCapTransaction": "Транзакция",
+  "@redisCapTransaction": {"description": "C17 redis capability item: MULTI-EXEC transaction panel"},
+  "redisCapMemoryAnalysis": "Анализ памяти",
+  "@redisCapMemoryAnalysis": {"description": "C17 redis capability item: memory analysis panel"},
+  "redisCapKeyspaceNotifications": "Уведомления keyspace",
+  "@redisCapKeyspaceNotifications": {"description": "C17 redis capability item: keyspace notifications panel"},
+  "redisCapAcl": "Управление ACL",
+  "@redisCapAcl": {"description": "C17 redis capability item: ACL management panel"},
+  "redisCapConfig": "Изменить конфигурацию",
+  "@redisCapConfig": {"description": "C17 redis capability item: CONFIG SET edit dialog"},
+  "mongoValidationTitle": "Правила валидации",
+  "@mongoValidationTitle": {"description": "C17 mongo collection validation rules viewer title"},
+  "mongoValidationNoValidator": "У этой коллекции не настроены правила валидации (добавьте через collMod или оболочку MongoDB).",
+  "@mongoValidationNoValidator": {"description": "C17 mongo validation viewer: no validator state"},
+  "mongoValidationLevel": "Уровень валидации",
+  "@mongoValidationLevel": {"description": "C17 mongo validation viewer row: validationLevel"},
+  "mongoValidationAction": "Действие валидации",
+  "@mongoValidationAction": {"description": "C17 mongo validation viewer row: validationAction"},
+  "mongoValidationLoadFailed": "Не удалось загрузить правила валидации: {error}",
+  "@mongoValidationLoadFailed": {"description": "C17 mongo validation viewer load failure", "placeholders": {"error": {"type": "String"}}},
+  "sidebarDocumentInserted": "Документ вставлен в {collection}",
+  "@sidebarDocumentInserted": {"description": "C17 snackbar after mongo document insert", "placeholders": {"collection": {"type": "String"}}},
+
+  "aiSkillCatalogTitle": "Навыки",
+  "@aiSkillCatalogTitle": {"description":"C23 skill catalog panel title"},
+  "aiSkillGroupSql": "SQL",
+  "@aiSkillGroupSql": {"description":"C23 skill catalog group: SQL"},
+  "aiSkillGroupData": "Данные",
+  "@aiSkillGroupData": {"description":"C23 skill catalog group: data"},
+  "aiSkillGroupSchema": "Схема",
+  "@aiSkillGroupSchema": {"description":"C23 skill catalog group: schema"},
+  "aiSkillGroupOps": "Эксплуатация",
+  "@aiSkillGroupOps": {"description":"C23 skill catalog group: ops"},
+  "aiSkillNl2sqlName": "Естественный язык в SQL",
+  "@aiSkillNl2sqlName": {"description":"C23 skill: nl2sql display name"},
+  "aiSkillNl2sqlDesc": "Опишите задачу словами — получите SQL",
+  "@aiSkillNl2sqlDesc": {"description":"C23 skill: nl2sql description"},
+  "aiSkillSqlExplainName": "Разбор SQL",
+  "@aiSkillSqlExplainName": {"description":"C23 skill: sql explain display name"},
+  "aiSkillSqlExplainDesc": "Объяснение работы SQL-запроса",
+  "@aiSkillSqlExplainDesc": {"description":"C23 skill: sql explain description"},
+  "aiSkillSqlExplainPrompt": "Объясни по шагам, что делает этот SQL-запрос:\n```\n\n```",
+  "@aiSkillSqlExplainPrompt": {"description":"C23 skill: sql explain prompt template"},
+  "aiSkillQueryOptimizerName": "Оптимизация запросов",
+  "@aiSkillQueryOptimizerName": {"description":"C23 skill: query optimizer display name"},
+  "aiSkillQueryOptimizerDesc": "Анализ медленного запроса и рекомендации",
+  "@aiSkillQueryOptimizerDesc": {"description":"C23 skill: query optimizer description"},
+  "aiSkillQueryOptimizerPrompt": "Проанализируй этот запрос на проблемы производительности и предложи оптимизации:\n```\n\n```",
+  "@aiSkillQueryOptimizerPrompt": {"description":"C23 skill: query optimizer prompt template"},
+  "aiSkillDataCleaningName": "Очистка данных",
+  "@aiSkillDataCleaningName": {"description":"C23 skill: data cleaning display name"},
+  "aiSkillDataCleaningDesc": "Рекомендации по очистке «грязных» данных",
+  "@aiSkillDataCleaningDesc": {"description":"C23 skill: data cleaning description"},
+  "aiSkillDataCleaningPrompt": "Предложи шаги очистки «грязных» данных в моей таблице. Известные проблемы:",
+  "@aiSkillDataCleaningPrompt": {"description":"C23 skill: data cleaning prompt template"},
+  "aiSkillImportMappingName": "Сопоставление импорта",
+  "@aiSkillImportMappingName": {"description":"C23 skill: import mapping display name"},
+  "aiSkillImportMappingDesc": "Сформируй сопоставление колонок для импорта данных",
+  "@aiSkillImportMappingDesc": {"description":"C23 skill: import mapping description"},
+  "aiSkillImportMappingPrompt": "Сформируй сопоставление колонок (JSON) для импорта файла в таблицу.\nКолонки источника:\nКолонки цели:",
+  "@aiSkillImportMappingPrompt": {"description":"C23 skill: import mapping prompt template"},
+  "aiSkillSchemaAnalysisName": "Анализ схемы",
+  "@aiSkillSchemaAnalysisName": {"description":"C23 skill: schema analysis display name"},
+  "aiSkillSchemaAnalysisDesc": "Ревизия текущей схемы и риски",
+  "@aiSkillSchemaAnalysisDesc": {"description":"C23 skill: schema analysis description"},
+  "aiSkillSchemaAnalysisPrompt": "Проведи ревизию схемы текущей базы и укажи проектные риски и улучшения.",
+  "@aiSkillSchemaAnalysisPrompt": {"description":"C23 skill: schema analysis prompt template"},
+  "aiSkillSchemaDiffName": "Помощник сравнения схем",
+  "@aiSkillSchemaDiffName": {"description":"C23 skill: schema diff display name"},
+  "aiSkillSchemaDiffDesc": "Сравни два определения схемы и выдай diff",
+  "@aiSkillSchemaDiffDesc": {"description":"C23 skill: schema diff description"},
+  "aiSkillSchemaDiffPrompt": "Сравни следующие два определения схемы и выдай unified diff:\n<schema-a>\n\n</schema-a>\n<schema-b>\n\n</schema-b>",
+  "@aiSkillSchemaDiffPrompt": {"description":"C23 skill: schema diff prompt template"},
+  "aiSkillIndexSuggestName": "Рекомендации по индексам",
+  "@aiSkillIndexSuggestName": {"description":"C23 skill: index advice display name"},
+  "aiSkillIndexSuggestDesc": "Индексы для запроса или таблицы",
+  "@aiSkillIndexSuggestDesc": {"description":"C23 skill: index advice description"},
+  "aiSkillIndexSuggestPrompt": "Предложи индексы для этого запроса и обоснуй:\n```\n\n```",
+  "@aiSkillIndexSuggestPrompt": {"description":"C23 skill: index advice prompt template"},
+  "aiSkillErrorDiagnosisName": "Диагностика ошибок",
+  "@aiSkillErrorDiagnosisName": {"description":"C23 skill: error diagnosis display name"},
+  "aiSkillErrorDiagnosisDesc": "Диагностика ошибки базы данных",
+  "@aiSkillErrorDiagnosisDesc": {"description":"C23 skill: error diagnosis description"},
+  "aiSkillErrorDiagnosisPrompt": "Диагностируй эту ошибку базы данных и предложи исправления:\n```\n\n```",
+  "@aiSkillErrorDiagnosisPrompt": {"description":"C23 skill: error diagnosis prompt template"},
+  "aiSkillSlowQueryName": "Анализ медленных запросов",
+  "@aiSkillSlowQueryName": {"description":"C23 skill: slow query display name"},
+  "aiSkillSlowQueryDesc": "Анализ записей журнала медленных запросов",
+  "@aiSkillSlowQueryDesc": {"description":"C23 skill: slow query description"},
+  "aiSkillSlowQueryPrompt": "Проанализируй эту запись журнала медленных запросов и найди узкое место:\n```\n\n```",
+  "@aiSkillSlowQueryPrompt": {"description":"C23 skill: slow query prompt template"},
+  "aiContextPanelTitle": "Контекст",
+  "@aiContextPanelTitle": {"description":"C23 context panel title"},
+  "aiContextConnectionSection": "Текущее подключение",
+  "@aiContextConnectionSection": {"description":"C23 context panel section: current connection"},
+  "aiContextDatabaseSection": "Текущая база",
+  "@aiContextDatabaseSection": {"description":"C23 context panel section: current database"},
+  "aiContextNoConnection": "Подключение не выбрано",
+  "@aiContextNoConnection": {"description":"C23 context panel empty state"},
+  "aiContextSchemaContext": "Прикладывать контекст схемы",
+  "@aiContextSchemaContext": {"description":"C23 context panel toggle label"},
+  "aiContextSchemaContextDesc": "При отправке прикладывать схемы таблиц текущей базы",
+  "@aiContextSchemaContextDesc": {"description":"C23 context panel toggle description"},
+  "aiPanelOpenSkillCatalog": "Каталог навыков",
+  "@aiPanelOpenSkillCatalog": {"description":"C23 narrow-mode toolbar button: open skill catalog"},
+  "aiPanelOpenContextPanel": "Панель контекста",
+  "@aiPanelOpenContextPanel": {"description":"C23 narrow-mode toolbar button: open context panel"},
+  "safetyBannerAddLimit": "Добавить LIMIT",
+  "safetyBannerCooldown": "Подтвердить ({seconds}s)",
+  "safetyDmlAllRowsWarning": "Эта операция затронет все совпадающие строки. Рекомендуется добавить предложение LIMIT.",
+  "safetySeverityHigh": "Критично",
+  "safetySeverityMedium": "Предупреждение",
+  "safetySeverityLow": "Инфо",
+  "safetySeverityPolicy": "Политика",
+  "gateTitleSingle": "Подтверждение выполнения: в этом SQL {count} риск(ов)",
+  "gateTitleMulti": "Подтверждение выполнения: {count} риск(ов) в {total} инструкциях",
+  "gateDdlImpactTitle": "Анализ влияния DDL",
+  "gateStatementLabel": "Инструкция {n}",
+  "gateSuggestionLabel": "Предлагаемое исправление",
+  "gateOverview": "{total} инструкций · Критично {high} · Предупреждение {medium} · Инфо {low} · Чисто {ok}",
+  "gateSkipHighRisk": "Пропустить {skip} критичных, выполнить {exec}",
+  "gateAllHighDisabled": "Все критичные — нечего выполнять",
+  "gateApplySuggestions": "Применить рекомендации",
+  "gateProceed": "Всё равно выполнить",
+  "gateProceedAll": "Всё равно выполнить все",
+  "gateCancelAll": "Отменить все",
+  "settingsNavAppearance": "Оформление",
+  "settingsNavAi": "ИИ",
+  "settingsNavQuery": "Запросы",
+  "settingsNavLanguage": "Язык",
+  "settingsNavSecurity": "Безопасность",
+  "settingsNavAbout": "О программе",
+  "piiExportStepFormat": "Формат",
+  "piiExportStepScan": "Проверка PII",
+  "piiExportStepConfirm": "Подтверждение",
+  "piiExportNoPiiTitle": "Данные PII не обнаружены",
+  "piiExportNoPiiSubtitle": "Все столбцы будут экспортированы без изменений",
+  "piiExportDetectedCount": "Обнаружено столбцов с PII: {count}",
+  "piiExportHighSensitivity": "(высокая чувствительность)",
+  "piiExportKeep": "Оставить",
+  "piiExportMask": "Маскировать",
+  "piiExportHash": "Хешировать",
+  "piiExportDrop": "Удалить столбец",
+  "piiExportReadyTitle": "Готово к экспорту",
+  "piiExportSummaryFormat": "Формат",
+  "piiExportSummaryRows": "Строки",
+  "piiExportSummaryPiiColumns": "Обработано PII-столбцов",
+  "piiExportFootnote": "Столбцы с PII будут обработаны согласно выбору; остальные экспортируются без изменений",
+  "serverBarNotConnected": "Не подключено",
+  "serverBarConnecting": "Подключение…",
+  "serverBarLocal": "Локально",
+  "serverBarConnected": "Подключено",
+  "serverBarReconnecting": "Переподключение…",
+  "serverBarReconnectingIn": "Повтор через {seconds} с…",
+  "serverBarServerUrl": "Сервер: {url}",
+  "serverBarDisconnect": "Отключиться",
+  "serverBarUnknownUser": "Неизвестно",
+  "serverConnectUnexpectedError": "Произошла непредвиденная ошибка.",
+  "cellViewerCopy": "Копировать",
+  "cellViewerChars": "{count} символов",
+  "slowQueryMenuLabel": "Статистика медленных запросов",
+  "slowQueryDialogTitle": "Статистика медленных запросов",
+  "slowQueryScopeBanner": "Записываются запросы через dbmaster/server медленнее {thresholdMs} мс; при включённом собственном сборе slow log на экземпляре добавляются и медленные запросы самой базы (различаются по source).",
+  "slowQueryWindow1h": "Последний час",
+  "slowQueryWindow24h": "Последние 24 часа",
+  "slowQueryWindow7d": "Последние 7 дней",
+  "slowQuerySortTotalMs": "Общее время",
+  "slowQuerySortCount": "Количество",
+  "slowQuerySortAvgMs": "Среднее время",
+  "slowQuerySortMaxMs": "Макс. время",
+  "slowQueryAllConnections": "Все соединения",
+  "slowQueryDigestStats": "{count} вызовов · всего {total} · ср. {avg} · макс {max}",
+  "slowQueryLastSeen": "последний {time}",
+  "slowQueryEmptyTitle": "Нет медленных запросов",
+  "slowQueryEmptyBody": "За этот период нет запросов выше порога выборки. Выполните что-то медленное через dbmaster и вернитесь.",
+  "slowQueryLoadFailed": "Не удалось загрузить статистику.",
+  "slowQueryRetry": "Повторить",
+  "slowQueryLoadMore": "Показать ещё ({shown} из {total})",
+  "slowQueryStatusOk": "ок",
+  "slowQueryStatusError": "ошибка",
+  "slowQueryStatusCancelled": "отменён",
+  "slowQueryDatabaseLabel": "База данных",
+  "slowQueryNoPlaintext": "Открытый SQL отключён на этом экземпляре (только digest).",
+  "slowQueryCopySql": "Копировать SQL",
+  "slowQueryCopied": "Скопировано",
+  "reportsMenuLabel": "Отчёты",
+  "reportsDialogTitle": "Отчёты",
+  "reportsGenerateButton": "Создать недельный отчёт",
+  "reportsGeneratedToast": "Недельный отчёт создан.",
+  "reportsExistingToast": "Отчёт за эту неделю уже существует.",
+  "reportsEmptyTitle": "Нет отчётов",
+  "reportsEmptyBody": "Создайте недельный отчёт по медленным запросам вручную или дождитесь расписания.",
+  "reportsLoadFailed": "Не удалось загрузить отчёты.",
+  "reportsRetry": "Повторить",
+  "reportsLoadMore": "Показать ещё ({shown} из {total})",
+  "reportsWindowLabel": "Период",
+  "reportsTruncatedHint": "Неполный период: более старые выборки уже удалены retention.",
+  "reportsSamplesLabel": "Выборки",
+  "reportsDistinctLabel": "Различных запросов",
+  "reportsTotalTimeLabel": "Общее время",
+  "reportsErrorsLabel": "Ошибки",
+  "reportsWowLabel": "к прош. неделе",
+  "reportsTopSection": "Топ запросов",
+  "reportsByDaySection": "По дням",
+  "reportsByConnectionSection": "По соединениям",
+  "reportsUnknownType": "Неизвестный тип отчёта — исходное содержимое:"
+,
+  "reportsAnalyzeWithAi": "Анализировать с ИИ"
+}

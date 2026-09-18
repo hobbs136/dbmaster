@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DbMaster 组件与交互细节</title>
+    <style id="theme-vars">
+/* DbMaster 设计诊断报告 — 项目级设计令牌 */
+
+:root {
+  /* Brand primary: 专业靛蓝 */
+  --color-primary-50: #eef4ff;
+  --color-primary-100: #d9e6ff;
+  --color-primary-200: #bcd5ff;
+  --color-primary-300: #8fb8ff;
+  --color-primary-400: #5b91f8;
+  --color-primary-500: #3574f0;
+  --color-primary-600: #2158d4;
+  --color-primary-700: #1d45ab;
+  --color-primary-800: #1e3b8a;
+  --color-primary-900: #1e3671;
+
+  /* Neutral: Slate */
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+
+  /* State colors */
+  --state-success: #16a34a;
+  --state-warning: #d97706;
+  --state-error: #dc2626;
+  --state-info: #0891b2;
+
+  /* Semantic aliases (light default) */
+  --audit-background: #f8fafc;
+  --audit-foreground: #0f172a;
+  --audit-card: #ffffff;
+  --audit-card-foreground: #0f172a;
+  --audit-muted: #f1f5f9;
+  --audit-muted-foreground: #64748b;
+  --audit-border: #e2e8f0;
+  --audit-input: #e2e8f0;
+  --audit-ring: #3574f0;
+  --audit-primary: #3574f0;
+  --audit-primary-foreground: #ffffff;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+}
+
+.dark {
+  --audit-background: #0b0f19;
+  --audit-foreground: #f1f5f9;
+  --audit-card: #141b2a;
+  --audit-card-foreground: #f1f5f9;
+  --audit-muted: #1e293b;
+  --audit-muted-foreground: #94a3b8;
+  --audit-border: #27354f;
+  --audit-input: #27354f;
+  --audit-ring: #5b91f8;
+  --audit-primary: #5b91f8;
+  --audit-primary-foreground: #ffffff;
+}
+
+@theme inline {
+  --color-background: var(--audit-background);
+  --color-foreground: var(--audit-foreground);
+  --color-card: var(--audit-card);
+  --color-card-foreground: var(--audit-card-foreground);
+  --color-muted: var(--audit-muted);
+  --color-muted-foreground: var(--audit-muted-foreground);
+  --color-border: var(--audit-border);
+  --color-input: var(--audit-input);
+  --color-ring: var(--audit-ring);
+  --color-primary: var(--audit-primary);
+  --color-primary-foreground: var(--audit-primary-foreground);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-full: var(--radius-full);
+}
+
+/* Typography */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--audit-background);
+  color: var(--audit-foreground);
+}
+
+.font-mono {
+  font-family: "JetBrains Mono", "Fira Code", Consolas, Monaco, "Courier New", monospace;
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--audit-background);
+    --color-foreground: var(--audit-foreground);
+    --color-card: var(--audit-card);
+    --color-card-foreground: var(--audit-card-foreground);
+    --color-muted: var(--audit-muted);
+    --color-muted-foreground: var(--audit-muted-foreground);
+    --color-border: var(--audit-border);
+    --color-input: var(--audit-input);
+    --color-ring: var(--audit-ring);
+    --color-primary: var(--audit-primary);
+    --color-primary-foreground: var(--audit-primary-foreground);
+    --radius-sm: var(--radius-sm);
+    --radius-md: var(--radius-md);
+    --radius-lg: var(--radius-lg);
+    --radius-full: var(--radius-full);
+  }
+  @layer base {
+    body { background: var(--audit-background); color: var(--audit-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--audit-background); }
+      .text-background { color: var(--audit-background); }
+      .border-background { border-color: var(--audit-background); }
+      .ring-background { --tw-ring-color: var(--audit-background); }
+      .bg-foreground { background-color: var(--audit-foreground); }
+      .text-foreground { color: var(--audit-foreground); }
+      .border-foreground { border-color: var(--audit-foreground); }
+      .ring-foreground { --tw-ring-color: var(--audit-foreground); }
+      .bg-card { background-color: var(--audit-card); }
+      .text-card { color: var(--audit-card); }
+      .border-card { border-color: var(--audit-card); }
+      .ring-card { --tw-ring-color: var(--audit-card); }
+      .bg-card-foreground { background-color: var(--audit-card-foreground); }
+      .text-card-foreground { color: var(--audit-card-foreground); }
+      .border-card-foreground { border-color: var(--audit-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--audit-card-foreground); }
+      .bg-muted { background-color: var(--audit-muted); }
+      .text-muted { color: var(--audit-muted); }
+      .border-muted { border-color: var(--audit-muted); }
+      .ring-muted { --tw-ring-color: var(--audit-muted); }
+      .bg-muted-foreground { background-color: var(--audit-muted-foreground); }
+      .text-muted-foreground { color: var(--audit-muted-foreground); }
+      .border-muted-foreground { border-color: var(--audit-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--audit-muted-foreground); }
+      .bg-border { background-color: var(--audit-border); }
+      .text-border { color: var(--audit-border); }
+      .border-border { border-color: var(--audit-border); }
+      .ring-border { --tw-ring-color: var(--audit-border); }
+      .bg-input { background-color: var(--audit-input); }
+      .text-input { color: var(--audit-input); }
+      .border-input { border-color: var(--audit-input); }
+      .ring-input { --tw-ring-color: var(--audit-input); }
+      .bg-ring { background-color: var(--audit-ring); }
+      .text-ring { color: var(--audit-ring); }
+      .border-ring { border-color: var(--audit-ring); }
+      .ring-ring { --tw-ring-color: var(--audit-ring); }
+      .bg-primary { background-color: var(--audit-primary); }
+      .text-primary { color: var(--audit-primary); }
+      .border-primary { border-color: var(--audit-primary); }
+      .ring-primary { --tw-ring-color: var(--audit-primary); }
+      .bg-primary-foreground { background-color: var(--audit-primary-foreground); }
+      .text-primary-foreground { color: var(--audit-primary-foreground); }
+      .border-primary-foreground { border-color: var(--audit-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--audit-primary-foreground); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen" style="background-color: var(--audit-background); color: var(--audit-foreground);">
+  <div class="max-w-[1200px] mx-auto px-6 py-12 md:px-8 md:py-16">
+
+    <!-- Hero -->
+    <header class="mb-16">
+      <div class="mb-4 flex items-center gap-2 text-sm font-medium" style="color: var(--audit-primary);">
+        <i data-lucide="component" class="w-4 h-4"></i>
+        <span>Components & Interactions</span>
+      </div>
+      <h1 class="text-4xl md:text-5xl font-semibold tracking-tight mb-3">DbMaster 组件与交互细节</h1>
+      <p class="text-lg md:text-xl mb-10" style="color: var(--audit-muted-foreground);">关键组件状态 + 微交互规范</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="audit-card p-6 border-l-4 severity-bar-info">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-8 h-8 rounded-md flex items-center justify-center" style="background-color: var(--state-info); color: white;">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </div>
+            <h3 class="font-semibold text-lg">状态可见</h3>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">每个可交互元素都有 default / hover / active / selected / disabled 的明确视觉反馈，避免用户猜测当前状态。</p>
+        </div>
+
+        <div class="audit-card p-6 border-l-4 severity-bar-success">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-8 h-8 rounded-md flex items-center justify-center" style="background-color: var(--state-success); color: white;">
+              <i data-lucide="activity" class="w-4 h-4"></i>
+            </div>
+            <h3 class="font-semibold text-lg">反馈有度</h3>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">成功轻反馈、失败重反馈、加载有进度但不过度打扰，让状态信息层次分明。</p>
+        </div>
+
+        <div class="audit-card p-6 border-l-4 severity-bar-warning">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-8 h-8 rounded-md flex items-center justify-center" style="background-color: var(--state-warning); color: white;">
+              <i data-lucide="anchor" class="w-4 h-4"></i>
+            </div>
+            <h3 class="font-semibold text-lg">减少跳变</h3>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">用过渡动画替代突然出现，保持空间锚点，防止布局抖动打断用户心流。</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- Header Components -->
+    <section class="mb-16">
+      <div class="mb-4">
+        <h2 class="text-2xl md:text-3xl font-semibold mb-2">Header 组件</h2>
+        <p class="text-base" style="color: var(--audit-muted-foreground);">Header 承载最高频操作，状态变化需要快速、清晰、不抢眼。</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <!-- Connection Dropdown -->
+        <div class="audit-card p-6 border-l-4 severity-bar-info">
+          <h3 class="font-semibold mb-4">连接下拉按钮</h3>
+          <div class="flex flex-wrap gap-3 mb-4">
+            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border" style="background-color: var(--audit-card); border-color: var(--audit-border); color: var(--audit-foreground);">
+              <i data-lucide="database" class="w-3.5 h-3.5"></i>
+              <span>localhost</span>
+              <i data-lucide="chevron-down" class="w-3 h-3" style="color: var(--audit-muted-foreground);"></i>
+            </div>
+            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border" style="background-color: var(--audit-muted); border-color: var(--audit-border); color: var(--audit-foreground);">
+              <i data-lucide="database" class="w-3.5 h-3.5"></i>
+              <span>localhost</span>
+              <i data-lucide="chevron-down" class="w-3 h-3" style="color: var(--audit-muted-foreground);"></i>
+            </div>
+            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border" style="background-color: var(--audit-muted); border-color: var(--audit-primary); color: var(--audit-primary);">
+              <i data-lucide="database" class="w-3.5 h-3.5"></i>
+              <span>localhost</span>
+              <i data-lucide="chevron-up" class="w-3 h-3"></i>
+            </div>
+            <div class="rounded-md border shadow-sm p-1.5 flex flex-col gap-1" style="background-color: var(--audit-card); border-color: var(--audit-border);">
+              <div class="px-2 py-1 rounded text-[10px]" style="background-color: var(--audit-primary); color: white;">MySQL @ localhost</div>
+              <div class="px-2 py-1 rounded text-[10px]" style="color: var(--audit-muted-foreground);">PostgreSQL @ staging</div>
+            </div>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">default 为纯白底；hover 切换 muted 背景；active / 展开时外框变品牌蓝，图标同步旋转。下拉菜单使用 150ms 淡入 + 8px 下移。</p>
+        </div>
+
+        <!-- Command Palette Search -->
+        <div class="audit-card p-6 border-l-4 severity-bar-info">
+          <h3 class="font-semibold mb-4">命令面板搜索条</h3>
+          <div class="flex flex-wrap gap-3 mb-4">
+            <div class="flex items-center gap-2 flex-1 min-w-[140px] px-2.5 py-1.5 rounded-md border text-xs" style="background-color: var(--audit-muted); border-color: var(--audit-border); color: var(--audit-muted-foreground);">
+              <i data-lucide="search" class="w-3.5 h-3.5"></i>
+              <span>搜索命令、表、连接…</span>
+              <span class="ml-auto px-1 rounded text-[9px]" style="background-color: var(--audit-border);">⌘K</span>
+            </div>
+            <div class="flex items-center gap-2 flex-1 min-w-[140px] px-2.5 py-1.5 rounded-md border text-xs" style="background-color: var(--audit-card); border-color: var(--audit-primary); color: var(--audit-foreground); box-shadow: 0 0 0 1px var(--audit-primary);">
+              <i data-lucide="search" class="w-3.5 h-3.5" style="color: var(--audit-primary);"></i>
+              <span>|</span>
+              <span class="ml-auto px-1 rounded text-[9px]" style="background-color: var(--audit-border);">⌘K</span>
+            </div>
+            <div class="flex items-center gap-2 flex-1 min-w-[140px] px-2.5 py-1.5 rounded-md border text-xs" style="background-color: var(--audit-card); border-color: var(--audit-border); color: var(--audit-foreground);">
+              <i data-lucide="search" class="w-3.5 h-3.5" style="color: var(--audit-primary);"></i>
+              <span>users</span>
+              <i data-lucide="x" class="w-3 h-3 ml-auto" style="color: var(--audit-muted-foreground);"></i>
+            </div>
+            <div class="flex items-center gap-2 flex-1 min-w-[140px] px-2.5 py-1.5 rounded-md border text-xs" style="background-color: var(--audit-card); border-color: var(--audit-border); color: var(--audit-muted-foreground);">
+              <i data-lucide="search" class="w-3.5 h-3.5"></i>
+              <span>xxxxx</span>
+              <span class="ml-auto text-[9px]" style="color: var(--state-error);">无结果</span>
+            </div>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">placeholder 用 muted-foreground；focus 时边框变品牌蓝并加 1px ring；有输入时显示清除按钮；无结果展示错误色提示，不弹出 alert。</p>
+        </div>
+
+        <!-- Tool Menu -->
+        <div class="audit-card p-6 border-l-4 severity-bar-info">
+          <h3 class="font-semibold mb-4">工具菜单按钮</h3>
+          <div class="flex flex-wrap items-center gap-3 mb-4">
+            <div class="w-8 h-8 rounded-md flex items-center justify-center border" style="background-color: var(--audit-card); border-color: var(--audit-border);">
+              <i data-lucide="wrench" class="w-4 h-4" style="color: var(--audit-muted-foreground);"></i>
+            </div>
+            <div class="w-8 h-8 rounded-md flex items-center justify-center border" style="background-color: var(--audit-muted); border-color: var(--audit-border);">
+              <i data-lucide="wrench" class="w-4 h-4" style="color: var(--audit-foreground);"></i>
+            </div>
+            <div class="w-8 h-8 rounded-md flex items-center justify-center border" style="background-color: var(--audit-muted); border-color: var(--audit-primary); color: var(--audit-primary);">
+              <i data-lucide="wrench" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">图标按钮 32px 触控区；hover 背景升高一级；active 或菜单展开时边框与图标同时变品牌蓝，提供明确的「已打开」反馈。</p>
+        </div>
+
+        <!-- Server Status Badge -->
+        <div class="audit-card p-6 border-l-4 severity-bar-info">
+          <h3 class="font-semibold mb-4">服务器状态徽章</h3>
+          <div class="flex flex-wrap items-center gap-4 mb-4">
+            <div class="flex items-center gap-1.5 px-2 py-1 rounded-full text-xs" style="background-color: var(--audit-muted); color: var(--audit-foreground);">
+              <span class="w-2 h-2 rounded-full" style="background-color: var(--state-success);"></span>
+              <span>在线</span>
+            </div>
+            <div class="flex items-center gap-1.5 px-2 py-1 rounded-full text-xs" style="background-color: var(--audit-muted); color: var(--audit-muted-foreground);">
+              <span class="w-2 h-2 rounded-full" style="background-color: var(--audit-border);"></span>
+              <span>离线</span>
+            </div>
+            <div class="flex items-center gap-1.5 px-2 py-1 rounded-full text-xs" style="background-color: color-mix(in srgb, var(--audit-primary) 10%, transparent); color: var(--audit-primary);">
+              <span class="w-2 h-2 rounded-full status-pulse" style="background-color: var(--audit-primary);"></span>
+              <span>同步中</span>
+            </div>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">在线用纯绿色点，离线用 border 色点并置灰文字，同步中使用品牌蓝点加脉冲动画。状态变更时 200ms 过渡色值，避免闪烁。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sidebar Components -->
+    <section class="mb-16">
+      <div class="mb-4">
+        <h2 class="text-2xl md:text-3xl font-semibold mb-2">Sidebar 组件</h2>
+        <p class="text-base" style="color: var(--audit-muted-foreground);">Sidebar 是高频导航区，树节点状态需要一目了然，交互反馈要轻。</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <!-- Tree Item -->
+        <div class="audit-card p-6 border-l-4 severity-bar-success">
+          <h3 class="font-semibold mb-4">Tree item</h3>
+          <div class="rounded-md border p-2 mb-4" style="background-color: var(--audit-background); border-color: var(--audit-border);">
+            <div class="flex items-center gap-1.5 px-2 py-1 rounded text-xs" style="color: var(--audit-foreground);">
+              <i data-lucide="chevron-right" class="w-3 h-3" style="color: var(--audit-muted-foreground);"></i>
+              <i data-lucide="table" class="w-3.5 h-3.5" style="color: var(--audit-muted-foreground);"></i>
+              <span>users</span>
+            </div>
+            <div class="flex items-center gap-1.5 px-2 py-1 rounded text-xs" style="background-color: var(--audit-muted); color: var(--audit-foreground);">
+              <i data-lucide="chevron-right" class="w-3 h-3" style="color: var(--audit-muted-foreground);"></i>
+              <i data-lucide="table" class="w-3.5 h-3.5" style="color: var(--audit-muted-foreground);"></i>
+              <span>orders</span>
+            </div>
+            <div class="flex items-center gap-1.5 px-2 py-1 rounded text-xs" style="background-color: var(--audit-primary); color: white;">
+              <i data-lucide="chevron-down" class="w-3 h-3"></i>
+              <i data-lucide="table" class="w-3.5 h-3.5"></i>
+              <span>products</span>
+            </div>
+            <div class="pl-6 space-y-0.5 mt-0.5">
+              <div class="flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px]" style="color: var(--audit-muted-foreground);">
+                <i data-lucide="columns" class="w-3 h-3"></i>
+                <span>id</span>
+              </div>
+              <div class="flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px]" style="color: var(--audit-muted-foreground);">
+                <i data-lucide="columns" class="w-3 h-3"></i>
+                <span>name</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 px-2 py-1 rounded text-xs opacity-60" style="color: var(--audit-muted-foreground);">
+              <i data-lucide="chevron-right" class="w-3 h-3"></i>
+              <i data-lucide="table" class="w-3.5 h-3.5"></i>
+              <span>logs</span>
+            </div>
+            <div class="flex items-center gap-1.5 px-2 py-1 rounded text-xs border border-dashed" style="background-color: color-mix(in srgb, var(--audit-primary) 8%, transparent); border-color: var(--audit-primary); color: var(--audit-primary);">
+              <i data-lucide="grip-vertical" class="w-3 h-3"></i>
+              <i data-lucide="table" class="w-3.5 h-3.5"></i>
+              <span>items</span>
+            </div>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">default 透明底；hover 用 muted 背景；selected 用品牌蓝底白字；expanded 显示子项并旋转 chevron；disabled 降低透明度；dragging 用虚线边框 + 品牌蓝浅色背景。</p>
+        </div>
+
+        <!-- Sidebar Search -->
+        <div class="audit-card p-6 border-l-4 severity-bar-success">
+          <h3 class="font-semibold mb-4">搜索框</h3>
+          <div class="flex flex-wrap gap-3 mb-4">
+            <div class="flex items-center gap-2 w-full max-w-[180px] px-2 py-1.5 rounded border text-xs" style="background-color: var(--audit-card); border-color: var(--audit-border); color: var(--audit-muted-foreground);">
+              <i data-lucide="search" class="w-3 h-3"></i>
+              <span>过滤表…</span>
+            </div>
+            <div class="flex items-center gap-2 w-full max-w-[180px] px-2 py-1.5 rounded border text-xs" style="background-color: var(--audit-card); border-color: var(--audit-primary); color: var(--audit-foreground);">
+              <i data-lucide="search" class="w-3 h-3" style="color: var(--audit-primary);"></i>
+              <span>|</span>
+            </div>
+            <div class="flex items-center gap-2 w-full max-w-[180px] px-2 py-1.5 rounded border text-xs" style="background-color: var(--audit-card); border-color: var(--audit-border); color: var(--audit-foreground);">
+              <i data-lucide="search" class="w-3 h-3" style="color: var(--audit-primary);"></i>
+              <span>user</span>
+              <span class="ml-auto text-[9px] px-1 rounded" style="background-color: var(--audit-muted);">3</span>
+            </div>
+            <div class="flex items-center gap-2 w-full max-w-[180px] px-2 py-1.5 rounded border text-xs" style="background-color: var(--audit-card); border-color: var(--audit-border); color: var(--audit-muted-foreground);">
+              <i data-lucide="search" class="w-3 h-3"></i>
+              <span>xxxx</span>
+              <span class="ml-auto text-[9px]" style="color: var(--state-error);">0</span>
+            </div>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">empty 显示 placeholder；focus 边框变蓝；with results 在右侧显示命中数量；no results 显示 0 并标红，树区域保持空状态提示。</p>
+        </div>
+
+        <!-- Collapsed Toggle & Bottom Tabs -->
+        <div class="audit-card p-6 border-l-4 severity-bar-success">
+          <h3 class="font-semibold mb-4">折叠态图标按钮 & 底部面板 tabs</h3>
+          <div class="flex flex-wrap gap-4 mb-4">
+            <div class="w-10 h-10 rounded-md flex items-center justify-center border" style="background-color: var(--audit-card); border-color: var(--audit-border);">
+              <i data-lucide="panel-left-close" class="w-4 h-4" style="color: var(--audit-muted-foreground);"></i>
+            </div>
+            <div class="w-10 h-10 rounded-md flex items-center justify-center border" style="background-color: var(--audit-muted); border-color: var(--audit-border);">
+              <i data-lucide="panel-left-close" class="w-4 h-4" style="color: var(--audit-foreground);"></i>
+            </div>
+            <div class="w-10 h-10 rounded-md flex items-center justify-center border" style="background-color: var(--audit-muted); border-color: var(--audit-primary); color: var(--audit-primary);">
+              <i data-lucide="panel-left-open" class="w-4 h-4"></i>
+            </div>
+            <div class="flex items-center gap-1 px-2 py-1 rounded-md" style="background-color: var(--audit-muted);">
+              <div class="px-2 py-0.5 rounded text-[10px]" style="background-color: var(--audit-card); color: var(--audit-foreground);">Process</div>
+              <div class="px-2 py-0.5 rounded text-[10px]" style="color: var(--audit-muted-foreground);">Recent</div>
+              <div class="px-2 py-0.5 rounded text-[10px]" style="color: var(--audit-muted-foreground);">Favorites</div>
+            </div>
+            <div class="flex items-center gap-1 px-2 py-1 rounded-md" style="background-color: var(--audit-muted);">
+              <div class="px-2 py-0.5 rounded text-[10px]" style="color: var(--audit-muted-foreground);">Process</div>
+              <div class="px-2 py-0.5 rounded text-[10px]" style="background-color: var(--audit-card); color: var(--audit-foreground);">Recent</div>
+              <div class="px-2 py-0.5 rounded text-[10px]" style="color: var(--audit-muted-foreground);">Favorites</div>
+            </div>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">折叠按钮 hover 背景升高，active 图标切换为展开态并加品牌蓝边框。Bottom tabs 选中项用 card 背景浮起，未选项 hover 文字变 foreground。</p>
+        </div>
+
+        <!-- Sidebar Empty States -->
+        <div class="audit-card p-6 border-l-4 severity-bar-success">
+          <h3 class="font-semibold mb-4">空状态</h3>
+          <div class="flex flex-wrap gap-4 mb-4">
+            <div class="flex flex-col items-center justify-center gap-2 p-4 rounded-md border w-[160px] h-[120px]" style="background-color: var(--audit-background); border-color: var(--audit-border);">
+              <i data-lucide="plug" class="w-6 h-6" style="color: var(--audit-muted-foreground);"></i>
+              <span class="text-xs" style="color: var(--audit-muted-foreground);">No connections</span>
+              <div class="px-2 py-0.5 rounded text-[10px]" style="background-color: var(--audit-primary); color: white;">新建连接</div>
+            </div>
+            <div class="flex flex-col items-center justify-center gap-2 p-4 rounded-md border w-[160px] h-[120px]" style="background-color: var(--audit-background); border-color: var(--audit-border);">
+              <i data-lucide="layout-grid" class="w-6 h-6" style="color: var(--audit-muted-foreground);"></i>
+              <span class="text-xs" style="color: var(--audit-muted-foreground);">No tables</span>
+              <span class="text-[10px]" style="color: var(--audit-muted-foreground);">选择数据库</span>
+            </div>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">No connections 提供主按钮引导新建；No tables 用柔和提示，避免红色错误暗示。空状态居中，图标与文字保持 muted 层级。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Workspace Components -->
+    <section class="mb-16">
+      <div class="mb-4">
+        <h2 class="text-2xl md:text-3xl font-semibold mb-2">Workspace 组件</h2>
+        <p class="text-base" style="color: var(--audit-muted-foreground);">Workspace 是核心操作区，tabs、表格、resizer 的状态需要精确反馈。</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <!-- Editor Tabs -->
+        <div class="audit-card p-6 border-l-4 severity-bar-warning">
+          <h3 class="font-semibold mb-4">Editor tabs</h3>
+          <div class="flex items-end gap-1 mb-4 border-b" style="border-color: var(--audit-border);">
+            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-t text-xs border-t border-x" style="background-color: var(--audit-card); border-color: var(--audit-border); color: var(--audit-foreground);">
+              <span class="w-1.5 h-1.5 rounded-full" style="background-color: var(--state-warning);"></span>
+              <span>query_1.sql</span>
+              <i data-lucide="x" class="w-3 h-3" style="color: var(--audit-muted-foreground);"></i>
+            </div>
+            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-t text-xs border-t border-x" style="background-color: var(--audit-muted); border-color: var(--audit-border); color: var(--audit-muted-foreground);">
+              <span>query_2.sql</span>
+              <i data-lucide="x" class="w-3 h-3"></i>
+            </div>
+            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-t text-xs border-t border-x" style="background-color: var(--audit-muted); border-color: var(--audit-border); color: var(--audit-foreground);">
+              <span>results</span>
+              <i data-lucide="x" class="w-3 h-3" style="color: var(--audit-muted-foreground);"></i>
+            </div>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">active tab 用 card 背景 + 前景色；inactive 用 muted 背景与 muted-foreground；hover 文字升一级；close icon hover 变 error 色；unsaved 用左侧 4px 橙色点。</p>
+        </div>
+
+        <!-- Results Table Header -->
+        <div class="audit-card p-6 border-l-4 severity-bar-warning">
+          <h3 class="font-semibold mb-4">Results table header</h3>
+          <div class="rounded-md border overflow-hidden mb-4" style="border-color: var(--audit-border);">
+            <div class="flex text-xs border-b" style="background-color: var(--audit-muted); border-color: var(--audit-border);">
+              <div class="flex-1 px-2 py-1.5 border-r" style="border-color: var(--audit-border); color: var(--audit-foreground);">id</div>
+              <div class="flex-1 px-2 py-1.5 border-r flex items-center gap-1" style="border-color: var(--audit-border); background-color: var(--audit-card); color: var(--audit-foreground);">
+                <span>name</span>
+                <i data-lucide="arrow-up-down" class="w-3 h-3" style="color: var(--audit-muted-foreground);"></i>
+              </div>
+              <div class="flex-1 px-2 py-1.5 border-r flex items-center gap-1" style="border-color: var(--audit-border); color: var(--audit-primary);">
+                <span>created_at</span>
+                <i data-lucide="arrow-up" class="w-3 h-3"></i>
+              </div>
+              <div class="flex-1 px-2 py-1.5 flex items-center gap-1" style="color: var(--audit-foreground);">
+                <span>status</span>
+                <i data-lucide="arrow-down" class="w-3 h-3" style="color: var(--audit-primary);"></i>
+              </div>
+            </div>
+            <div class="flex text-xs" style="background-color: var(--audit-card);">
+              <div class="flex-1 px-2 py-1.5 border-r" style="border-color: var(--audit-border); color: var(--audit-foreground);">1</div>
+              <div class="flex-1 px-2 py-1.5 border-r" style="border-color: var(--audit-border); color: var(--audit-foreground);">Alice</div>
+              <div class="flex-1 px-2 py-1.5 border-r" style="border-color: var(--audit-border); color: var(--audit-foreground);">2024-01</div>
+              <div class="flex-1 px-2 py-1.5" style="color: var(--audit-foreground);">active</div>
+            </div>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">default header 用 muted 背景；sortable hover 变 card 背景并显示箭头；sorted asc 箭头向上且列文字变品牌蓝；sorted desc 箭头向下。整列背景保持轻度高亮。</p>
+        </div>
+
+        <!-- Results Row -->
+        <div class="audit-card p-6 border-l-4 severity-bar-warning">
+          <h3 class="font-semibold mb-4">Results row</h3>
+          <div class="rounded-md border overflow-hidden mb-4" style="border-color: var(--audit-border);">
+            <div class="flex text-xs" style="background-color: var(--audit-card);">
+              <div class="flex-1 px-2 py-1.5 border-r" style="border-color: var(--audit-border);">1</div>
+              <div class="flex-1 px-2 py-1.5 border-r" style="border-color: var(--audit-border);">Alice</div>
+              <div class="flex-1 px-2 py-1.5 border-r" style="border-color: var(--audit-border);">active</div>
+            </div>
+            <div class="flex text-xs" style="background-color: var(--audit-muted);">
+              <div class="flex-1 px-2 py-1.5 border-r" style="border-color: var(--audit-border);">2</div>
+              <div class="flex-1 px-2 py-1.5 border-r" style="border-color: var(--audit-border);">Bob</div>
+              <div class="flex-1 px-2 py-1.5 border-r" style="border-color: var(--audit-border);">active</div>
+            </div>
+            <div class="flex text-xs" style="background-color: var(--audit-primary); color: white;">
+              <div class="flex-1 px-2 py-1.5 border-r" style="border-color: color-mix(in srgb, white 20%, transparent);">3</div>
+              <div class="flex-1 px-2 py-1.5 border-r" style="border-color: color-mix(in srgb, white 20%, transparent);">Carol</div>
+              <div class="flex-1 px-2 py-1.5 border-r" style="border-color: color-mix(in srgb, white 20%, transparent);">inactive</div>
+            </div>
+            <div class="flex text-xs shimmer-row">
+              <div class="flex-1 px-2 py-1.5 border-r" style="border-color: var(--audit-border);"><div class="h-3 rounded w-3/4" style="background-color: var(--audit-muted);"></div></div>
+              <div class="flex-1 px-2 py-1.5 border-r" style="border-color: var(--audit-border);"><div class="h-3 rounded w-1/2" style="background-color: var(--audit-muted);"></div></div>
+              <div class="flex-1 px-2 py-1.5 border-r" style="border-color: var(--audit-border);"><div class="h-3 rounded w-2/3" style="background-color: var(--audit-muted);"></div></div>
+            </div>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">default 纯白；hover 用 muted 背景；selected 用品牌蓝底白字；loading shimmer 用 muted 色条动画，避免整块空白导致跳变。</p>
+        </div>
+
+        <!-- Resizer -->
+        <div class="audit-card p-6 border-l-4 severity-bar-warning">
+          <h3 class="font-semibold mb-4">Resizer</h3>
+          <div class="flex items-center gap-4 mb-4 h-[80px]">
+            <div class="flex-1 h-full rounded p-2" style="background-color: var(--audit-card);">
+              <span class="text-[10px]">Panel A</span>
+            </div>
+            <div class="h-full w-3 rounded" style="background-color: var(--audit-border);"></div>
+            <div class="flex-1 h-full rounded p-2" style="background-color: var(--audit-card);">
+              <span class="text-[10px]">Panel B</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-4 mb-4 h-[80px]">
+            <div class="flex-1 h-full rounded p-2" style="background-color: var(--audit-card);">
+              <span class="text-[10px]">Panel A</span>
+            </div>
+            <div class="h-full w-3 rounded flex items-center justify-center" style="background-color: var(--audit-primary);">
+              <div class="w-0.5 h-4 rounded-full" style="background-color: white;"></div>
+            </div>
+            <div class="flex-1 h-full rounded p-2" style="background-color: var(--audit-card);">
+              <span class="text-[10px]">Panel B</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-4 h-[80px]">
+            <div class="flex-1 h-full rounded p-2" style="background-color: var(--audit-card);">
+              <span class="text-[10px]">Panel A</span>
+            </div>
+            <div class="h-full w-1 rounded" style="background-color: var(--audit-primary);"></div>
+            <div class="flex-1 h-full rounded p-2" style="background-color: var(--audit-card);">
+              <span class="text-[10px]">Panel B</span>
+            </div>
+          </div>
+          <p class="text-sm leading-relaxed mt-4" style="color: var(--audit-muted-foreground);">default 为 12px muted 条；hover 变品牌蓝并加宽；active dragging 显示 2px 品牌色指示线，释放后 100ms 复位。</p>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="audit-card p-6 border-l-4 severity-bar-warning">
+          <h3 class="font-semibold mb-4">Status bar</h3>
+          <div class="space-y-2 mb-4">
+            <div class="flex items-center justify-between px-3 py-1 rounded text-[10px]" style="background-color: var(--audit-card); color: var(--audit-muted-foreground);">
+              <div class="flex items-center gap-1.5">
+                <i data-lucide="clock" class="w-3 h-3"></i>
+                <span>就绪</span>
+              </div>
+              <span>24px</span>
+            </div>
+            <div class="flex items-center justify-between px-3 py-1 rounded text-[10px]" style="background-color: var(--audit-muted); color: var(--state-success);">
+              <div class="flex items-center gap-1.5">
+                <i data-lucide="check-circle-2" class="w-3 h-3"></i>
+                <span>执行成功 · 12 行</span>
+              </div>
+              <span>24px</span>
+            </div>
+            <div class="flex items-center justify-between px-3 py-1 rounded text-[10px]" style="background-color: color-mix(in srgb, var(--state-error) 12%, var(--audit-card)); color: var(--state-error);">
+              <div class="flex items-center gap-1.5">
+                <i data-lucide="alert-circle" class="w-3 h-3"></i>
+                <span>语法错误 near SELECT</span>
+              </div>
+              <span>24px</span>
+            </div>
+            <div class="flex items-center justify-between px-3 py-1 rounded text-[10px]" style="background-color: var(--audit-card); color: var(--audit-muted-foreground);">
+              <div class="flex items-center gap-1.5">
+                <i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i>
+                <span>正在执行…</span>
+              </div>
+              <div class="w-16 h-1 rounded-full overflow-hidden" style="background-color: var(--audit-border);">
+                <div class="h-full rounded-full" style="width: 60%; background-color: var(--audit-primary);"></div>
+              </div>
+            </div>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">idle 用 card 背景 + muted 文字；success 仅图标与文字变绿，背景保持 muted；error 使用 error 浅底 + error 文字；loading 显示旋转图标与进度条。</p>
+        </div>
+
+        <!-- Workspace Empty States -->
+        <div class="audit-card p-6 border-l-4 severity-bar-warning">
+          <h3 class="font-semibold mb-4">Empty state</h3>
+          <div class="flex flex-wrap gap-4 mb-4">
+            <div class="flex flex-col items-center justify-center gap-2 p-4 rounded-md border w-[160px] h-[120px]" style="background-color: var(--audit-background); border-color: var(--audit-border);">
+              <i data-lucide="mouse-pointer-click" class="w-6 h-6" style="color: var(--audit-muted-foreground);"></i>
+              <span class="text-xs text-center" style="color: var(--audit-muted-foreground);">No results<br>运行查询查看数据</span>
+            </div>
+            <div class="flex flex-col items-center justify-center gap-2 p-4 rounded-md border w-[160px] h-[120px]" style="background-color: var(--audit-background); border-color: var(--audit-border);">
+              <i data-lucide="loader-2" class="w-6 h-6 animate-spin" style="color: var(--audit-primary);"></i>
+              <span class="text-xs" style="color: var(--audit-muted-foreground);">Query running</span>
+            </div>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">No results 提示用户主动执行查询；Query running 使用品牌蓝旋转动画，占据结果区中心，避免编辑器区域被遮挡。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Execution Center Components -->
+    <section class="mb-16">
+      <div class="mb-4">
+        <h2 class="text-2xl md:text-3xl font-semibold mb-2">Execution Center 组件</h2>
+        <p class="text-base" style="color: var(--audit-muted-foreground);">Execution Center 作为右侧抽屉，需要清晰的任务状态与可展开详情。</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <!-- Drawer Header -->
+        <div class="audit-card p-6 border-l-4 severity-bar-success">
+          <h3 class="font-semibold mb-4">抽屉 header</h3>
+          <div class="space-y-2 mb-4">
+            <div class="flex items-center justify-between px-3 py-2 rounded-t border-b" style="background-color: var(--audit-muted); border-color: var(--audit-border);">
+              <span class="text-xs font-medium">Execution Center</span>
+              <div class="flex items-center gap-1">
+                <div class="w-6 h-6 rounded flex items-center justify-center hover:bg-primary/10" style="color: var(--audit-muted-foreground);">
+                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </div>
+                <div class="w-6 h-6 rounded flex items-center justify-center" style="color: var(--audit-muted-foreground);">
+                  <i data-lucide="pin" class="w-3.5 h-3.5"></i>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between px-3 py-2 rounded-t border-b" style="background-color: var(--audit-muted); border-color: var(--audit-border);">
+              <span class="text-xs font-medium">Execution Center</span>
+              <div class="flex items-center gap-1">
+                <div class="w-6 h-6 rounded flex items-center justify-center" style="background-color: color-mix(in srgb, var(--state-error) 12%, transparent); color: var(--state-error);">
+                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </div>
+                <div class="w-6 h-6 rounded flex items-center justify-center" style="background-color: color-mix(in srgb, var(--audit-primary) 12%, transparent); color: var(--audit-primary);">
+                  <i data-lucide="pin" class="w-3.5 h-3.5"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">标题左对齐；关闭按钮 hover 变 error 浅色底；钉住按钮 default 为 muted-foreground，pinned 后变品牌蓝底与图标，抽屉常驻不自动关闭。</p>
+        </div>
+
+        <!-- Task Items -->
+        <div class="audit-card p-6 border-l-4 severity-bar-success">
+          <h3 class="font-semibold mb-4">任务项</h3>
+          <div class="space-y-2 mb-4">
+            <div class="p-2.5 rounded-md border" style="background-color: var(--audit-card); border-color: var(--audit-border);">
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center gap-1.5">
+                  <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin" style="color: var(--audit-primary);"></i>
+                  <span class="text-xs font-medium">备份 MySQL</span>
+                </div>
+                <div class="w-6 h-6 rounded flex items-center justify-center" style="color: var(--audit-muted-foreground);">
+                  <i data-lucide="pause" class="w-3 h-3"></i>
+                </div>
+              </div>
+              <div class="w-full h-1 rounded-full overflow-hidden" style="background-color: var(--audit-border);">
+                <div class="h-full rounded-full" style="width: 45%; background-color: var(--audit-primary);"></div>
+              </div>
+            </div>
+            <div class="p-2.5 rounded-md border flex items-center justify-between" style="background-color: var(--audit-card); border-color: var(--audit-border);">
+              <div class="flex items-center gap-1.5">
+                <i data-lucide="check-circle-2" class="w-3.5 h-3.5" style="color: var(--state-success);"></i>
+                <span class="text-xs font-medium">导出 orders</span>
+              </div>
+              <span class="text-[10px]" style="color: var(--audit-muted-foreground);">2s</span>
+            </div>
+            <div class="p-2.5 rounded-md border flex items-center justify-between" style="background-color: color-mix(in srgb, var(--state-error) 8%, var(--audit-card)); border-color: color-mix(in srgb, var(--state-error) 30%, transparent);">
+              <div class="flex items-center gap-1.5">
+                <i data-lucide="alert-circle" class="w-3.5 h-3.5" style="color: var(--state-error);"></i>
+                <span class="text-xs font-medium">同步 schema</span>
+              </div>
+              <span class="text-[10px]" style="color: var(--state-error);">超时</span>
+            </div>
+            <div class="p-2.5 rounded-md border flex items-center justify-between opacity-70" style="background-color: var(--audit-muted); border-color: var(--audit-border);">
+              <div class="flex items-center gap-1.5">
+                <i data-lucide="pause-circle" class="w-3.5 h-3.5" style="color: var(--audit-muted-foreground);"></i>
+                <span class="text-xs font-medium">数据导入</span>
+              </div>
+              <span class="text-[10px]" style="color: var(--audit-muted-foreground);">已暂停</span>
+            </div>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">running 显示品牌蓝旋转图标 + 进度条 + 暂停按钮；success 用绿色对勾 + 耗时；failed 用 error 浅底 + 错误原因；paused 降低透明度并用 pause-circle 图标。</p>
+        </div>
+
+        <!-- Task Detail Expand -->
+        <div class="audit-card p-6 border-l-4 severity-bar-success">
+          <h3 class="font-semibold mb-4">任务详情展开</h3>
+          <div class="space-y-2 mb-4">
+            <div class="p-2.5 rounded-md border" style="background-color: var(--audit-card); border-color: var(--audit-border);">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5" style="color: var(--state-success);"></i>
+                  <span class="text-xs font-medium">导出 orders</span>
+                </div>
+                <i data-lucide="chevron-right" class="w-3.5 h-3.5" style="color: var(--audit-muted-foreground);"></i>
+              </div>
+            </div>
+            <div class="rounded-md border" style="background-color: var(--audit-card); border-color: var(--audit-border);">
+              <div class="flex items-center justify-between p-2.5 border-b" style="border-color: var(--audit-border);">
+                <div class="flex items-center gap-1.5">
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5" style="color: var(--state-success);"></i>
+                  <span class="text-xs font-medium">导出 orders</span>
+                </div>
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5" style="color: var(--audit-muted-foreground);"></i>
+              </div>
+              <div class="p-2.5 text-[10px] space-y-1" style="color: var(--audit-muted-foreground);">
+                <div class="flex justify-between"><span>开始时间</span><span>14:32:01</span></div>
+                <div class="flex justify-between"><span>耗时</span><span>2.4s</span></div>
+                <div class="flex justify-between"><span>输出</span><span>orders_20240801.sql</span></div>
+              </div>
+            </div>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">collapsed 显示标题与右向 chevron；expanded 展开详情列表，chevron 旋转向下，高度动画 250ms ease-in-out，保持相邻任务不跳动。</p>
+        </div>
+
+        <!-- Empty State -->
+        <div class="audit-card p-6 border-l-4 severity-bar-success">
+          <h3 class="font-semibold mb-4">空状态</h3>
+          <div class="flex flex-col items-center justify-center gap-2 p-6 rounded-md border" style="background-color: var(--audit-background); border-color: var(--audit-border);">
+            <i data-lucide="check-check" class="w-8 h-8" style="color: var(--audit-muted-foreground);"></i>
+            <span class="text-sm" style="color: var(--audit-muted-foreground);">No running tasks</span>
+            <span class="text-[10px]" style="color: var(--audit-muted-foreground);">所有任务已完成</span>
+          </div>
+          <p class="text-sm leading-relaxed mt-4" style="color: var(--audit-muted-foreground);">无运行任务时展示温和图标与说明，使用 muted 层级，不显示红色错误暗示。抽屉可保持打开或自动收起（取决于 pinned 状态）。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interaction State Spec Table -->
+    <section class="mb-16">
+      <div class="mb-4">
+        <h2 class="text-2xl md:text-3xl font-semibold mb-2">交互状态规范表</h2>
+        <p class="text-base" style="color: var(--audit-muted-foreground);">统一各组件在不同状态下的视觉表现与过渡时长。</p>
+      </div>
+
+      <div class="audit-card p-6 overflow-x-auto">
+        <table class="w-full text-sm" style="border-color: var(--audit-border);">
+          <thead>
+            <tr class="border-b" style="border-color: var(--audit-border);">
+              <th class="text-left py-2 px-3 font-semibold">状态</th>
+              <th class="text-left py-2 px-3 font-semibold">视觉表现</th>
+              <th class="text-left py-2 px-3 font-semibold">适用组件</th>
+              <th class="text-left py-2 px-3 font-semibold">过渡时长</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b" style="border-color: var(--audit-border);">
+              <td class="py-2 px-3"><span class="state-dot" style="background-color: var(--audit-border);"></span>default</td>
+              <td class="py-2 px-3" style="color: var(--audit-muted-foreground);">card 背景，无额外强调</td>
+              <td class="py-2 px-3">按钮、tab、tree item</td>
+              <td class="py-2 px-3 font-mono text-xs">—</td>
+            </tr>
+            <tr class="border-b" style="border-color: var(--audit-border);">
+              <td class="py-2 px-3"><span class="state-dot" style="background-color: var(--audit-muted);"></span>hover</td>
+              <td class="py-2 px-3" style="color: var(--audit-muted-foreground);">背景升至 muted 层级</td>
+              <td class="py-2 px-3">按钮、tree item、row、resizer</td>
+              <td class="py-2 px-3 font-mono text-xs">150ms</td>
+            </tr>
+            <tr class="border-b" style="border-color: var(--audit-border);">
+              <td class="py-2 px-3"><span class="state-dot" style="background-color: var(--audit-primary);"></span>active</td>
+              <td class="py-2 px-3" style="color: var(--audit-muted-foreground);">品牌蓝边框 / 图标变品牌蓝</td>
+              <td class="py-2 px-3">下拉按钮、工具菜单、搜索框</td>
+              <td class="py-2 px-3 font-mono text-xs">100ms</td>
+            </tr>
+            <tr class="border-b" style="border-color: var(--audit-border);">
+              <td class="py-2 px-3"><span class="state-dot" style="background-color: var(--audit-primary);"></span>selected</td>
+              <td class="py-2 px-3" style="color: var(--audit-muted-foreground);">品牌蓝底 + 白字</td>
+              <td class="py-2 px-3">tree item、tab、row</td>
+              <td class="py-2 px-3 font-mono text-xs">150ms</td>
+            </tr>
+            <tr class="border-b" style="border-color: var(--audit-border);">
+              <td class="py-2 px-3"><span class="state-dot" style="background-color: var(--audit-muted-foreground);"></span>disabled</td>
+              <td class="py-2 px-3" style="color: var(--audit-muted-foreground);">透明度 50%，无 hover 反馈</td>
+              <td class="py-2 px-3">按钮、menu item、tree item</td>
+              <td class="py-2 px-3 font-mono text-xs">—</td>
+            </tr>
+            <tr class="border-b" style="border-color: var(--audit-border);">
+              <td class="py-2 px-3"><span class="state-dot" style="background-color: var(--audit-ring); box-shadow: 0 0 0 2px var(--audit-primary);"></span>focus</td>
+              <td class="py-2 px-3" style="color: var(--audit-muted-foreground);">品牌蓝 ring / 边框</td>
+              <td class="py-2 px-3">搜索框、按钮、输入框</td>
+              <td class="py-2 px-3 font-mono text-xs">100ms</td>
+            </tr>
+            <tr class="border-b" style="border-color: var(--audit-border);">
+              <td class="py-2 px-3"><span class="state-dot" style="background-color: var(--audit-primary);"></span>loading</td>
+              <td class="py-2 px-3" style="color: var(--audit-muted-foreground);">shimmer 骨架 / 旋转图标 / 进度条</td>
+              <td class="py-2 px-3">表格行、状态栏、任务项</td>
+              <td class="py-2 px-3 font-mono text-xs">800ms loop</td>
+            </tr>
+            <tr class="border-b" style="border-color: var(--audit-border);">
+              <td class="py-2 px-3"><span class="state-dot" style="background-color: var(--state-success);"></span>success</td>
+              <td class="py-2 px-3" style="color: var(--audit-muted-foreground);">绿色图标 + 文字，轻背景或保持原底</td>
+              <td class="py-2 px-3">状态栏、任务项、toast</td>
+              <td class="py-2 px-3 font-mono text-xs">200ms</td>
+            </tr>
+            <tr class="border-b" style="border-color: var(--audit-border);">
+              <td class="py-2 px-3"><span class="state-dot" style="background-color: var(--state-error);"></span>error</td>
+              <td class="py-2 px-3" style="color: var(--audit-muted-foreground);">error 色文字 + error 浅底</td>
+              <td class="py-2 px-3">状态栏、任务项、表单</td>
+              <td class="py-2 px-3 font-mono text-xs">200ms</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-3"><span class="state-dot" style="background-color: var(--audit-muted);"></span>empty</td>
+              <td class="py-2 px-3" style="color: var(--audit-muted-foreground);">muted 图标 + 说明文字，必要时提供主按钮</td>
+              <td class="py-2 px-3">sidebar、workspace、任务抽屉</td>
+              <td class="py-2 px-3 font-mono text-xs">150ms</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Micro-interaction Recommendations -->
+    <section class="mb-16">
+      <div class="mb-4">
+        <h2 class="text-2xl md:text-3xl font-semibold mb-2">微交互建议</h2>
+        <p class="text-base" style="color: var(--audit-muted-foreground);">为减少跳变与提升手感，关键过渡建议如下。</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div class="audit-card p-6 border-l-4 severity-bar-info">
+          <div class="flex items-center gap-2 mb-3">
+            <i data-lucide="mouse-pointer-2" class="w-4 h-4" style="color: var(--state-info);"></i>
+            <h3 class="font-semibold">按钮反馈</h3>
+          </div>
+          <p class="text-sm leading-relaxed mb-3" style="color: var(--audit-muted-foreground);">150ms ease-out 背景色变化</p>
+          <div class="h-8 rounded-md flex items-center justify-center text-xs transition-demo-150" style="background-color: var(--audit-muted); color: var(--audit-foreground);">
+            Hover 我
+          </div>
+        </div>
+
+        <div class="audit-card p-6 border-l-4 severity-bar-info">
+          <div class="flex items-center gap-2 mb-3">
+            <i data-lucide="panel-right-open" class="w-4 h-4" style="color: var(--state-info);"></i>
+            <h3 class="font-semibold">抽屉滑入</h3>
+          </div>
+          <p class="text-sm leading-relaxed mb-3" style="color: var(--audit-muted-foreground);">200ms ease-in-out translateX，带阴影渐变</p>
+          <div class="h-8 rounded-md flex items-center px-2 overflow-hidden" style="background-color: var(--audit-muted);">
+            <div class="h-6 w-1/2 rounded shadow-lg transition-demo-200" style="background-color: var(--audit-card);"></div>
+          </div>
+        </div>
+
+        <div class="audit-card p-6 border-l-4 severity-bar-info">
+          <div class="flex items-center gap-2 mb-3">
+            <i data-lucide="chevrons-up-down" class="w-4 h-4" style="color: var(--state-info);"></i>
+            <h3 class="font-semibold">面板展开</h3>
+          </div>
+          <p class="text-sm leading-relaxed mb-3" style="color: var(--audit-muted-foreground);">250ms height 动画，保持相邻元素不跳动</p>
+          <div class="h-8 rounded-md overflow-hidden" style="background-color: var(--audit-muted);">
+            <div class="h-4 w-full transition-demo-250" style="background-color: var(--audit-card);"></div>
+          </div>
+        </div>
+
+        <div class="audit-card p-6 border-l-4 severity-bar-success">
+          <div class="flex items-center gap-2 mb-3">
+            <i data-lucide="toggle-left" class="w-4 h-4" style="color: var(--state-success);"></i>
+            <h3 class="font-semibold">状态切换</h3>
+          </div>
+          <p class="text-sm leading-relaxed mb-3" style="color: var(--audit-muted-foreground);">成功 2s 后自动淡出，错误持续显示直到用户操作</p>
+          <div class="flex gap-2">
+            <div class="h-8 flex-1 rounded-md flex items-center justify-center text-xs" style="background-color: color-mix(in srgb, var(--state-success) 12%, transparent); color: var(--state-success);">成功 · 2s 淡出</div>
+            <div class="h-8 flex-1 rounded-md flex items-center justify-center text-xs" style="background-color: color-mix(in srgb, var(--state-error) 12%, transparent); color: var(--state-error);">错误 · 持续</div>
+          </div>
+        </div>
+
+        <div class="audit-card p-6 border-l-4 severity-bar-success">
+          <div class="flex items-center gap-2 mb-3">
+            <i data-lucide="move-horizontal" class="w-4 h-4" style="color: var(--state-success);"></i>
+            <h3 class="font-semibold">拖拽调整</h3>
+          </div>
+          <p class="text-sm leading-relaxed mb-3" style="color: var(--audit-muted-foreground);">resizer 在 drag 时显示 2px 品牌色线，释放后 100ms 复位</p>
+          <div class="h-8 flex items-center justify-center">
+            <div class="h-6 w-0.5 rounded-full" style="background-color: var(--audit-primary);"></div>
+          </div>
+        </div>
+
+        <div class="audit-card p-6 border-l-4 severity-bar-success">
+          <div class="flex items-center gap-2 mb-3">
+            <i data-lucide="rows-3" class="w-4 h-4" style="color: var(--state-success);"></i>
+            <h3 class="font-semibold">加载占位</h3>
+          </div>
+          <p class="text-sm leading-relaxed mb-3" style="color: var(--audit-muted-foreground);">表格行用 shimmer 骨架屏，避免整块空白</p>
+          <div class="flex gap-1">
+            <div class="flex-1 h-3 rounded shimmer-bar"></div>
+            <div class="flex-1 h-3 rounded shimmer-bar"></div>
+            <div class="flex-1 h-3 rounded shimmer-bar"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="pt-8 border-t text-center text-sm" style="border-color: var(--audit-border); color: var(--audit-muted-foreground);">
+      组件与交互规范已明确：下一步可进入代码实现。
+    </footer>
+
+  </div>
+
+  <script>
+    lucide.createIcons();
+  </script>
+
+  <style>
+    .severity-bar-error { border-left-color: var(--state-error); }
+    .severity-bar-warning { border-left-color: var(--state-warning); }
+    .severity-bar-info { border-left-color: var(--state-info); }
+    .severity-bar-success { border-left-color: var(--state-success); }
+    .audit-card {
+      background-color: var(--audit-card);
+      border: 1px solid var(--audit-border);
+      border-radius: var(--radius-lg);
+    }
+    .status-pulse {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .animate-spin {
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .shimmer-row {
+      background: linear-gradient(90deg, var(--audit-card) 0%, var(--audit-muted) 50%, var(--audit-card) 100%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+    .shimmer-bar {
+      background: linear-gradient(90deg, var(--audit-muted) 0%, var(--audit-border) 50%, var(--audit-muted) 100%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .state-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .transition-demo-150 {
+      transition: background-color 150ms ease-out;
+    }
+    .transition-demo-150:hover {
+      background-color: var(--audit-primary) !important;
+      color: white !important;
+    }
+    .transition-demo-200 {
+      transition: transform 200ms ease-in-out;
+    }
+    .transition-demo-200:hover {
+      transform: translateX(10px);
+    }
+    .transition-demo-250 {
+      transition: height 250ms ease-in-out;
+    }
+    .transition-demo-250:hover {
+      height: 100%;
+    }
+  </style>
+</body>
+</html>

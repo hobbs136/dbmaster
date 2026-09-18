@@ -1,0 +1,3119 @@
+{
+  "@@locale": "fr",
+  "filterBarApply": "Appliquer",
+  "@filterBarApply": {},
+  "filterBarAddCondition": "Ajouter une condition",
+  "@filterBarAddCondition": {},
+  "filterBarAnd": "ET",
+  "@filterBarAnd": {},
+  "filterBarOr": "OU",
+  "@filterBarOr": {},
+  "filterBarNoColumns": "Aucune colonne",
+  "@filterBarNoColumns": {},
+  "filterBarLoading": "Chargement…",
+  "@filterBarLoading": {},
+  "mongoAutocompleteTitle": "Auto-complétion Mongo",
+  "appTitle": "DbMaster",
+  "settingsTitle": "Paramètres",
+  "settingsLanguage": "Langue",
+  "settingsTheme": "Thème",
+  "settingsGeneral": "Général",
+  "settingsConnection": "Connexion",
+  "settingsEditor": "Éditeur",
+  "settingsAbout": "À propos",
+  "connectionNewConnection": "Nouvelle connexion",
+  "connectionEditConnection": "Modifier la connexion",
+  "connectionManageConnection": "Gérer les connexions",
+  "connectionDeleteConnection": "Supprimer la connexion",
+  "connectionConnect": "Connecter",
+  "connectionCreateDatabase": "Créer une base de données",
+  "connectionEnableReadOnly": "Activer lecture seule",
+  "connectionDisableReadOnly": "Désactiver lecture seule",
+  "connectionMoveToGroup": "Déplacer vers {groupName}",
+  "@connectionMoveToGroup": {"placeholders": {"groupName": {"type": "String"}}},
+  "connectionRemoveFromGroup": "Retirer du groupe",
+  "connectionCollapseAll": "Tout réduire",
+  "connectionDisconnect": "Déconnecter",
+  "connectionTestConnection": "Tester la connexion",
+  "connectionConnectionName": "Nom de la connexion",
+  "connectionHost": "Hôte",
+  "connectionPort": "Port",
+  "connectionUsername": "Nom d'utilisateur",
+  "connNameRequired": "Le nom de la connexion est requis",
+  "connHostRequired": "L'hôte est requis",
+  "connPortRequired": "Le port est requis",
+  "connUsernameRequired": "Le nom d'utilisateur est requis",
+  "connectionPassword": "Mot de passe",
+  "connectionDatabase": "Base de données",
+  "connectionEnvironment": "Environnement",
+  "connectionEnvironmentNone": "Aucun",
+  "commonSave": "Enregistrer",
+  "commonCancel": "Annuler",
+  "commonDelete": "Supprimer",
+  "commonEdit": "Modifier",
+  "commonAdd": "Ajouter",
+  "commonClose": "Fermer",
+  "commonConfirm": "Confirmer",
+  "commonSearch": "Rechercher",
+  "commonRefresh": "Actualiser",
+  "commonLoading": "Chargement...",
+  "commonNoData": "Aucune donnée",
+  "commonSuccess": "Succès",
+  "commonError": "Erreur",
+  "commonWarning": "Avertissement",
+  "tableNewTable": "Nouvelle table",
+  "tableEditTable": "Modifier la table",
+  "tableDeleteTable": "Supprimer la table",
+  "tableTableName": "Nom de la table",
+  "tableColumns": "Colonnes",
+  "tableIndexes": "Index",
+  "tablePrimaryKey": "Clé primaire",
+  "tableForeignKey": "Clé étrangère",
+  "tableRenameTable": "Renommer la table",
+  "tableNewTableName": "Nouveau nom de table",
+  "queryExecute": "Exécuter",
+  "queryExecuteSelected": "Exécuter la sélection",
+  "queryFormat": "Formater",
+  "queryClear": "Effacer",
+  "queryHistory": "Historique",
+  "queryResults": "Résultats",
+  "sidebarConnections": "Connexions",
+  "sidebarDatabases": "Bases de données",
+  "sidebarTables": "Tables",
+  "sidebarViews": "Vues",
+  "sidebarSavedQueries": "Requêtes enregistrées",
+  "sidebarProcedures": "Procédures stockées",
+  "sidebarTriggers": "Déclencheurs",
+  "sidebarFunctions": "Fonctions",
+  "sidebarServer": "Serveur",
+  "sidebarProcessList": "Liste des processus",
+  "sidebarServerStatus": "État du serveur",
+  "sidebarNoUsers": "Aucun utilisateur",
+  "sidebarNoActiveProcesses": "Aucun processus actif",
+  "sidebarTdColsTags": "{cols} col., {tags} étiquettes",
+  "sidebarTdColumnsCount": "Colonnes ({count})",
+  "sidebarTdTagsCount": "Étiquettes ({count})",
+  "sidebarTdDeleteTitle": "Supprimer la SuperTable",
+  "sidebarTdDeleteConfirm": "Voulez-vous vraiment supprimer la SuperTable « {name} » ?\n\nToutes ses SubTables seront également supprimées !",
+  "sidebarDeleteGroup": "Supprimer le groupe",
+  "sidebarDeleteGroupPrompt": "Sélectionner un groupe à supprimer :",
+  "sidebarConnectionSwitch": "Changer de connexion",
+  "sidebarSelectConnectionHint": "Sélectionnez une connexion dans le sélecteur ci-dessus pour commencer",
+  "sidebarConnectionNone": "Aucune connexion",
+  "sidebarManageConnections": "Gérer les connexions…",
+  "sidebarExtensions": "Extensions",
+  "noExtensionsInstalled": "No extensions installed",
+  "sidebarSchemas": "Schémas",
+  "sidebarMaterializedViews": "Vues matérialisées",
+  "sidebarSequences": "Séquences",
+  "settingsGeneralSettings": "Paramètres généraux",
+  "settingsAppearanceSettings": "Apparence",
+  "settingsEditorSettings": "Paramètres de l'éditeur",
+  "settingsEnableAutocomplete": "Activer l'autocomplétion",
+  "settingsAutocompleteDescription": "Suggérer automatiquement les mots-clés SQL et les noms de tables",
+  "settingsAiSettings": "Paramètres IA",
+  "settingsAutoExecuteSql": "Exécuter SQL automatiquement",
+  "settingsAutoExecuteSqlDescription": "Exécuter automatiquement SQL lorsqu'un onglet est ouvert",
+  "settingsThemeSettings": "Thème",
+  "settingsDarkMode": "Sombre",
+  "settingsLightMode": "Clair",
+  "shortcutCategoryFile": "Fichier",
+  "shortcutCategoryEdit": "Édition",
+  "shortcutCategoryView": "Affichage",
+  "shortcutCategoryAi": "IA",
+  "shortcutCategoryTab": "Onglets",
+  "shortcutNewConnection": "Nouvelle connexion",
+  "shortcutNewTab": "Nouvel onglet",
+  "shortcutCloseTab": "Fermer l'onglet",
+  "shortcutSaveQuery": "Enregistrer la requête",
+  "shortcutExportData": "Exporter les données",
+  "shortcutExecuteQuery": "Exécuter la requête",
+  "shortcutExecuteQueryNewTab": "Exécuter dans un nouvel onglet",
+  "shortcutFormatSql": "Formater SQL",
+  "shortcutFind": "Rechercher",
+  "shortcutReplace": "Remplacer",
+  "shortcutAutocomplete": "Autocomplétion",
+  "shortcutUndo": "Annuler",
+  "shortcutRedo": "Rétablir",
+  "shortcutToggleSidebar": "Basculer la barre latérale",
+  "shortcutToggleAiPanel": "Basculer le panneau IA",
+  "shortcutCommandPalette": "Palette de commandes",
+  "shortcutShortcutHelp": "Aide sur les raccourcis",
+  "shortcutGenerateSql": "Générer SQL",
+  "shortcutOptimizeSql": "Optimiser SQL",
+  "shortcutExplainSql": "Expliquer SQL",
+  "shortcutNextTab": "Onglet suivant",
+  "shortcutPreviousTab": "Onglet précédent",
+  "shortcutSwitchToTab": "Basculer vers l'onglet",
+  "shortcutToggleAiFullscreen": "Panneau IA en plein écran",
+  "shortcutAuditLog": "Journal d'audit des requêtes",
+  "shortcutIncreaseOpacity": "Augmenter l'opacité du panneau",
+  "shortcutDecreaseOpacity": "Diminuer l'opacité du panneau",
+  "tableCreateNewTable": "Créer un nouveau tableau",
+  "quickActionsTitle": "Actions rapides",
+  "quickActionsNewTable": "Nouvelle table",
+  "quickActionsNewQuery": "Nouvelle requête",
+  "quickActionsAiAssistant": "Assistant IA",
+  "quickActionsSelectDatabaseFirst": "Veuillez d'abord sélectionner une base de données",
+  "resultsTabResults": "Résultats",
+  "resultsTabMessages": "Messages",
+  "resultsTabExecutionPlan": "Plan d'exécution",
+  "resultsSearchBtn": "Rechercher",
+  "resultsClear": "Effacer",
+  "resultsSubmit": "Soumettre",
+  "resultsSearchResults": "Rechercher dans les résultats",
+  "resultsViewTable": "Tableau",
+  "resultsViewCard": "Carte",
+  "resultsViewChart": "Graphique",
+  "resultsViewStatistics": "Statistiques",
+  "paginationShowing": "Affichage",
+  "paginationRows": "lignes",
+  "paginationFirstPage": "Première page",
+  "paginationPreviousPage": "Page précédente",
+  "paginationNextPage": "Page suivante",
+  "paginationLastPage": "Dernière page",
+  "editModeTitle": "Mode édition",
+  "editModeChanges": "modifications",
+  "editModeHint": "Double-cliquer pour modifier | Entrée pour confirmer | Échap pour annuler | Tab pour basculer",
+  "resultsNoDataTitle": "Aucun résultat",
+  "resultsNoDataMessage": "Les résultats apparaîtront après l'exécution d'une requête",
+  "resultsNoDataCardMessage": "La vue carte apparaîtra après l'exécution d'une requête",
+  "resultsNoDataChartMessage": "Le graphique apparaîtra après l'exécution d'une requête",
+  "resultsNoDataStatisticsMessage": "Les statistiques apparaîtront après l'exécution d'une requête",
+  "resultsNoDataExecutionPlanMessage": "Cliquez sur le bouton 'Plan d'exécution' pour voir le plan d'exécution de la requête",
+  "statisticsTotalRows": "Nombre total de lignes",
+  "statisticsFieldInfo": "Informations sur les champs",
+  "statisticsNumeric": "Numérique",
+  "statisticsText": "Texte",
+  "statisticsNumericStats": "Statistiques numériques",
+  "statisticsCount": "Nombre",
+  "statisticsSum": "Somme",
+  "statisticsAvg": "Moyenne",
+  "statisticsMin": "Minimum",
+  "statisticsMax": "Maximum",
+  "chartXAxis": "Axe X : ",
+  "chartYAxis": "Axe Y : ",
+  "chartType": "Type : ",
+  "chartCannotGenerate": "Impossible de générer le graphique : Veuillez vous assurer que le champ de l'axe Y contient des données numériques",
+  "messagesQuerySuccess": "Requête réussie, {rows} lignes, {cols} colonnes retournées",
+  "messagesExecuteToSeeResults": "Les informations sur les résultats apparaîtront après l'exécution d'une requête",
+  "sqlPreviewWillExecute": "{count} instructions SQL seront exécutées sur la table `{table}` :",
+  "saveErrorNoTab": "Impossible d'enregistrer : L'onglet actuel n'existe pas",
+  "saveErrorCannotExtractTable": "Impossible d'enregistrer : Impossible d'extraire le nom de la table de la requête",
+  "saveErrorFailed": "Échec de l'enregistrement : {error}",
+  "exportSelectFormat": "Sélectionner le format d'exportation",
+  "toolbarExecute": "Exécuter",
+  "toolbarStop": "Arrêter",
+  "toolbarReadOnlyChip": "Lecture seule",
+  "toolbarLimitChipTooltip": "Limite de lignes pour cette connexion (LIMIT auto)",
+  "toolbarTimeoutChipTooltip": "Délai de requête pour cette connexion",
+  "toolbarChipFollowSettings": "Selon les paramètres",
+  "toolbarChipOff": "Désactivé",
+  "toolbarChipFollowConnection": "Selon la connexion",
+  "gridEditBlockedReadOnly": "Connexion en lecture seule — édition des cellules désactivée.",
+  "gridEditBlockedNoTable": "Impossible de déduire la table cible — l'édition nécessite une requête mono-table.",
+  "gridEditsCount": "{count} modification(s) sur {rows} ligne(s)",
+  "gridCommitButton": "Valider les modifications",
+  "gridDiscardButton": "Abandonner",
+  "gridCommitSuccess": "{rows} ligne(s) écrite(s)",
+  "gridCommitNoPrimaryKey": "La table {table} n'a pas de clé primaire — écriture impossible.",
+  "gridCommitFailed": "Échec de l'écriture : {error}",
+  "statusBarReady": "Prêt",
+  "statusBarExecuting": "Exécution",
+  "statusBarElapsed": "Temps écoulé {duration}",
+  "@statusBarElapsed": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "statusBarLineCol": "Ligne {line}, Colonne {column}",
+  "@statusBarLineCol": {
+    "placeholders": {
+      "line": {
+        "type": "int"
+      },
+      "column": {
+        "type": "int"
+      }
+    }
+  },
+  "executionStatusBarRows": "{count} lignes",
+  "@executionStatusBarRows": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "executionStatusBarErrorHint": "Cliquez sur un onglet de résultat pour voir les détails des erreurs",
+  "toolbarExecutionPlan": "Plan d'exécution",
+  "toolbarFormat": "Formater",
+  "toolbarSave": "Enregistrer",
+  "splitButton": "Diviser",
+  "horizontalSplit": "Division horizontale",
+  "verticalSplit": "Division verticale",
+  "refreshData": "Actualiser les données",
+  "analyzingDatabasePerformance": "Analyse des performances de la base de données...",
+  "loadFailed": "Échec du chargement",
+  "fullTableScanDetected": "Analyse complète de table détectée",
+  "fullTableScanDesc": "La requête utilise une analyse complète (type=ALL), index recommandé sur les colonnes WHERE",
+  "timeThreshold": "Seuil de temps :",
+  "searchPlaceholder": "Rechercher...",
+  "closeBtn": "Fermer",
+  "apiSettingsSavedMsg": "Paramètres API enregistrés",
+  "resultsHeaderExport": "Exporter",
+  "resultsHeaderSearch": "Rechercher",
+  "resultsHeaderClear": "Effacer",
+  "resultsHeaderSubmit": "Soumettre",
+  "connectionStatusConnected": "Connecté",
+  "connectionStatusNotConnected": "Non connecté",
+  "selectConnection": "Sélectionner une connexion...",
+  "selectDatabase": "Sélectionner une base de données",
+  "aiQuickActionOptimizeSql": "Optimiser SQL",
+  "aiQuickActionExplainQuery": "Expliquer la requête",
+  "aiQuickActionGenerateInsert": "Générer INSERT",
+  "aiQuickActionGenerateUpdate": "Générer UPDATE",
+  "aiQuickActionGenerateDelete": "Générer DELETE",
+  "aiQuickActionCreateTable": "Créer une table",
+  "aiQuickActionSecurityCheck": "Vérification de sécurité",
+  "aiQuickActionIndexSuggestion": "Suggestion d'index",
+  "aiQuickActionExecutionPlan": "Plan d'exécution",
+  "aiQuickActionQueryHistory": "Historique des requêtes",
+  "confirmExecute": "Confirmer l'exécution",
+  "shortcutCategoryQuery": "Requête",
+  "queryCancelled": "Requête annulée",
+  "queryFailed": "Requête échouée: {error}",
+  "querySuccessWithTime": "Requête réussie, {count} lignes retournées ({time}ms)",
+  "cancelingQuery": "Annulation de la requête...",
+  "cancelQueryFailed": "Échec de l'annulation de la requête",
+  "confirmCancelTransaction": "Confirm Cancel Transaction",
+  "confirmCancelTransactionMessage": "The current connection has an uncommitted transaction. Canceling the query will disconnect and reconnect, causing the transaction to rollback. Continue?",
+  "cancel": "Cancel",
+  "explainPlanSuccess": "Plan d'exécution obtenu avec succès",
+  "explainPlanFailed": "Échec de l'obtention du plan d'exécution: {error}",
+  "queryEmptyCannotSave": "Le contenu de la requête est vide, impossible de sauvegarder",
+  "saveQueryTitle": "Enregistrer la requête",
+  "queryName": "Nom de la requête",
+  "enterQueryName": "Entrer le nom de la requête",
+  "saveQueryHint": "Sera enregistré dans la liste des requêtes sauvegardées (max 20)",
+  "querySaved": "Requête enregistrée: {name}",
+  "saveQueryLimitReached": "Limite d'enregistrement atteinte (20), veuillez d'abord supprimer quelques requêtes",
+  "savedQueryNameExists": "Le nom de requête enregistrée \"{name}\" existe déjà pour cette connexion",
+  "sqlFormatted": "SQL formaté",
+  "pleaseEnterSqlCode": "Veuillez entrer le code SQL",
+  "noConnectedServer": "Aucun serveur connecté",
+  "split2Hint": "Split 2 - Entrer une requête SQL...",
+  "toolbarClose": "Fermer",
+  "toolbarBackup": "Sauvegarde",
+  "toolbarImport": "Importer",
+  "toolbarExport": "Exporter",
+  "sidebarExpand": "Développer la barre latérale",
+  "sidebarSettings": "Paramètres",
+  "sidebarSearchHint": "Rechercher des connexions, tables, vues...",
+  "sidebarConnectionActive": "{count} connexions actives",
+  "sidebarNoConnections": "Aucune connexion enregistrée",
+  "sidebarClickToCreateConnection": "Cliquez sur le bouton ci-dessous pour créer une nouvelle connexion",
+  "sidebarCreateConnection": "Nouvelle connexion",
+  "resultsExport": "Exporter",
+  "resultsSave": "Enregistrer",
+  "resultsDiscard": "Abandonner",
+  "resultsNoDataToExport": "Aucune donnée à exporter",
+  "resultsCSV": "CSV",
+  "resultsJSON": "JSON",
+  "resultsExcel": "Excel",
+  "resultsConfirmDiscardChanges": "Confirmer l'abandon des modifications",
+  "resultsDiscardChangesMessage": "Êtes-vous sûr de vouloir abandonner {count} modifications ? Cette action est irréversible.",
+  "resultsContinueEditing": "Continuer l'édition",
+  "resultsDiscardChanges": "Abandonner les modifications",
+  "resultsConfirmExecuteSQL": "Confirmer l'exécution SQL",
+  "resultsBarChart": "Graphique à barres",
+  "resultsLineChart": "Graphique linéaire",
+  "resultsPieChart": "Graphique circulaire",
+  "resultsSelectAxisFields": "Veuillez sélectionner les champs des axes X et Y",
+  "statusNotConnected": "Non connecté",
+  "statusConnected": "Connecté",
+  "statusTables": "{count} tables",
+  "statusNone": "Aucun",
+  "statusVersion": "v{version}",
+  "backupManagement": "Gestion des sauvegardes",
+  "backupList": "Liste des sauvegardes",
+  "createBackup": "Créer une sauvegarde",
+  "noBackupFiles": "Aucun fichier de sauvegarde",
+  "clickCreateBackupTab": "Cliquez sur l'onglet 'Créer une sauvegarde' pour commencer",
+  "importBackup": "Importer une sauvegarde",
+  "previewContent": "Aperçu du contenu",
+  "exportFile": "Exporter le fichier",
+  "restoreBackup": "Restaurer la sauvegarde",
+  "selectBackupToView": "Sélectionnez une sauvegarde pour voir les détails",
+  "database": "Base de données",
+  "backupType": "Type",
+  "backupSize": "Taille",
+  "createdAt": "Date de création",
+  "tableCount": "Nombre de tables",
+  "description": "Description",
+  "preview": "Aperçu",
+  "export": "Exporter",
+  "restore": "Restaurer",
+  "confirmRestore": "Confirmer la restauration",
+  "confirmRestoreMessage": "Êtes-vous sûr de vouloir restaurer la sauvegarde \"{name}\" ?\n\nCela exécutera toutes les instructions SQL du fichier de sauvegarde et pourrait écraser les données existantes.",
+  "confirmDelete": "Confirmer la suppression",
+  "confirmDeleteMessage": "Êtes-vous sûr de vouloir supprimer la sauvegarde \"{name}\" ?\n\nCette action est irréversible.",
+  "backupFormat": "Format de sauvegarde",
+  "backupContent": "Contenu de la sauvegarde",
+  "selectTablesHint": "Sélectionner les tables (laisser vide pour tout sauvegarder)",
+  "advancedOptions": "Options avancées",
+  "includeStructure": "Inclure la structure",
+  "includeStructureDesc": "Instructions CREATE TABLE",
+  "includeData": "Inclure les données",
+  "includeDataDesc": "Instructions INSERT ou lignes de données",
+  "noTablesAvailable": "Aucune table disponible",
+  "selectAll": "Tout sélectionner",
+  "deselectAll": "Tout désélectionner",
+  "tablesSelected": "{count} tables sélectionnées",
+  "addDropTable": "Ajouter DROP TABLE",
+  "useExtendedInsert": "Utiliser INSERT étendu",
+  "useExtendedInsertDesc": "Fusionner plusieurs lignes en une seule instruction INSERT",
+  "rowLimitPerTable": "Limite de lignes par table (optionnel)",
+  "leaveEmptyForNoLimit": "Laisser vide pour aucune limite",
+  "whereCondition": "Condition WHERE (optionnel)",
+  "whereConditionExample": "Exemple : id > 100",
+  "enterBackupDescription": "Entrer une description de sauvegarde (optionnel)",
+  "startBackup": "Démarrer la sauvegarde",
+  "backupProgress": "Progression de la sauvegarde",
+  "waitingToStartBackup": "En attente du démarrage de la sauvegarde...",
+  "currentTable": "Table actuelle",
+  "progressPercent": "Progression",
+  "backupComplete": "Sauvegarde terminée !",
+  "backupFailed": "Échec de la sauvegarde",
+  "loadBackupListFailed": "Échec du chargement de la liste des sauvegardes",
+  "retry": "Réessayer",
+  "previewFailed": "Échec de l'aperçu",
+  "exportedTo": "Exporté vers",
+  "exportFailed": "Échec de l'exportation : {error}",
+  "backupRestoreSuccess": "Sauvegarde restaurée avec succès",
+  "restoreFailed": "Échec de la restauration",
+  "backupDeleted": "Sauvegarde supprimée",
+  "deleteFailed": "Échec de la suppression : {error}",
+  "selectBackupFile": "Sélectionner un fichier de sauvegarde",
+  "backupImportSuccess": "Fichier de sauvegarde importé avec succès",
+  "importFailed": "Échec de l'importation : {error}",
+  "selectAtLeastOneOption": "Veuillez sélectionner au moins la structure ou les données de sauvegarde",
+  "backupFailedError": "Échec de la sauvegarde",
+  "aiAssistant": "Assistant IA",
+  "aiAnalyze": "Analyse IA",
+  "aiAnalyzeTable": "AI Analyze Table",
+  "aiAnalyzeDatabase": "AI Analyze Database",
+  "aiAnalyzeServer": "AI Analyze Server",
+  "aiAnalyzeErrorResult": "AI Analyze Error",
+  "aiAnalyzeNodeFailed": "AI analysis failed: {error}",
+  "@aiAnalyzeNodeFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "apiSettings": "Paramètres API",
+  "clearChat": "Effacer la conversation",
+  "model": "Modèle",
+  "enterModelName": "Entrer le nom du modèle",
+  "autoExecuteSql": "Exécuter SQL automatiquement",
+  "autoExecuteSqlDesc": "Lorsqu'activé, les requêtes générées par l'IA seront exécutées automatiquement",
+  "aiDatabaseAssistant": "Assistant de base de données IA",
+  "aiAssistantDesc": "Supporte plusieurs fournisseurs de modèles d'IA\nVous aide à écrire SQL, optimiser les requêtes, expliquer la structure de la base de données",
+  "enterYourQuestion": "Entrez votre question...",
+  "configureApiKeyFirst": "Veuillez d'abord configurer la clé API {provider} dans les paramètres pour activer la fonction de chat IA.\n\nCliquez sur l'icône des paramètres en haut à droite pour configurer.",
+  "generationFailed": "Échec de la génération",
+  "stepAnalyzeNeeds": "Étape 1 : Analyse des besoins de l'utilisateur, détermination des tables à interroger...",
+  "stepGetTableSchema": "Étape 2 : Récupération des instructions CREATE TABLE détaillées...",
+  "stepGenerateSql": "Étape 3 : Génération de l'instruction SQL...",
+  "analysisResultTables": "Résultat de l'analyse : Tables à interroger",
+  "tableSchemaInfo": "Informations sur la structure de la table",
+  "operationCancelled": "Opération annulée",
+  "executingSql": "Exécution du SQL en cours...",
+  "executeSuccessRows": "Exécution réussie, {count} lignes de données retournées",
+  "executeFailedError": "Échec de l'exécution",
+  "confirmDangerousOperation": "Confirmer l'exécution d'une opération dangereuse ?",
+  "confirmExecuteSql": "Confirmer l'exécution SQL",
+  "dangerousOperationWarning": "Cette opération pourrait modifier ou supprimer des données, veuillez procéder avec prudence !",
+  "sqlCopied": "SQL copié",
+  "sqlGenerationComplete": "Génération SQL terminée",
+  "dangerousOperation": "Opération dangereuse",
+  "dangerousOperationDesc": "Ceci est une opération dangereuse, veuillez la traiter avec prudence",
+  "taskCompleteDesc": "Tâche terminée, vous pouvez choisir d'exécuter ou de copier le SQL",
+  "generatedSql": "SQL généré",
+  "dangerous": "Dangereux",
+  "requestTimeout": "Délai d'expiration de la requête",
+  "seconds": "secondes",
+  "apiSettingsSaved": "Paramètres API enregistrés",
+  "dataImport": "Importation de données",
+  "selectFile": "Sélectionner un fichier",
+  "noFileSelected": "Aucun fichier sélectionné",
+  "importConfig": "Configuration de l'importation",
+  "targetTableName": "Nom de la table cible",
+  "enterTableName": "Entrer le nom de la table",
+  "includeHeader": "Inclure l'en-tête",
+  "delimiter": "Délimiteur",
+  "overwriteTable": "Écraser la table",
+  "deleteExistingTable": "(Supprimer la table existante)",
+  "batchSize": "Taille du lot",
+  "dataPreviewRows": "Aperçu des données ({count} lignes)",
+  "pleaseSelectFile": "Veuillez sélectionner un fichier pour prévisualiser les données",
+  "importProgress": "Progression de l'importation",
+  "importPreparing": "Préparation de l'importation...",
+  "totalRecords": "Total",
+  "importedRecords": "Importé",
+  "failedRecords": "Échoué",
+  "readyToImport": "Prêt à importer",
+  "importingData": "Importation des données en cours...",
+  "importComplete": "Importation terminée !",
+  "parseFileFailed": "Échec de l'analyse du fichier",
+  "noDataToImport": "Aucune donnée à importer",
+  "selectDatabaseFirst": "Veuillez d'abord sélectionner une base de données",
+  "importFailedError": "Échec de l'importation",
+  "startImport": "Démarrer l'importation",
+  "importing": "Importation en cours...",
+  "optimizeSql": "Optimiser SQL",
+  "explainQuery": "Expliquer la requête",
+  "generateInsert": "Générer INSERT",
+  "generateUpdate": "Générer UPDATE",
+  "generateDelete": "Générer DELETE",
+  "createTableStatement": "Instruction CREATE TABLE",
+  "securityCheck": "Vérification de sécurité",
+  "indexSuggestion": "Suggestion d'index",
+  "executionPlan": "Plan d'exécution",
+  "pleaseEnterSql": "Veuillez d'abord entrer une instruction SQL",
+  "pleaseConnectDatabase": "Veuillez d'abord connecter une base de données",
+  "analysisFailed": "Échec de l'analyse",
+  "loadHistoryFailed": "Échec du chargement de l'historique",
+  "noQueryHistory": "Aucun historique de requêtes\n\nAprès avoir exécuté des requêtes SQL, l'historique sera sauvegardé ici.",
+  "queryHistoryRecords": "Historique des requêtes ({count} les plus récentes)",
+  "databaseType": "Type de base de données",
+  "server": "Serveur",
+  "currentDatabase": "Base de données actuelle",
+  "notConnected": "Non connecté",
+  "notSelected": "Non sélectionné",
+  "tableName": "Nom de la table",
+  "tableStructureInfo": "Informations sur la structure de la table",
+  "createStatement": "Instruction CREATE",
+  "andMoreTables": "... et {count} tables supplémentaires",
+  "primaryKey": "Clé primaire",
+  "executionTime": "Temps d'exécution",
+  "status": "Statut",
+  "commonFailed": "Échec",
+  "format": "Format",
+  "connectionDefaultDatabase": "Base de données par défaut",
+  "connectionSavePassword": "Sauvegarder le mot de passe",
+  "connectionAdvancedOptions": "Options avancées",
+  "connectionMongoMode": "Mode de connexion",
+  "connectionMongoModeDirect": "Direct (hôte unique)",
+  "connectionMongoModeReplicaSet": "Replica Set",
+  "connectionMongoSeedHosts": "Hôtes d'amorçage",
+  "connectionMongoSeedHostsHint": "Listez tous les membres du replica set (host:port, un par ligne). Le pilote détecte le primary automatiquement ; cette liste fait foi.",
+  "connectionMongoSeedHostsRequired": "Au moins un hôte d'amorçage (host:port) est requis",
+  "connectionMongoReplicaSetName": "Nom du Replica Set",
+  "connectionMongoReplicaSetNameRequired": "Le nom du Replica Set est requis",
+  "connectionMongoModeAdvanced": "Avancé (chaîne de connexion)",
+  "connectionMongoModeSharded": "Shardé (mongos)",
+  "connectionMongoMongosHosts": "Routeurs mongos",
+  "connectionMongoMongosHostsHint": "Listez tous les routeurs mongos (host:port, un par ligne). Le pilote se connecte via mongos ; le sharding est transparent.",
+  "connectionMongoMongosHostsRequired": "Au moins un routeur mongos (host:port) est requis",
+  "connectionMongoInvalidHostPort": "Entrée invalide (host ou host:port attendu)",
+  "connectionMongoConnectionString": "Chaîne de connexion",
+  "connectionMongoConnectionStringHint": "Collez une chaîne de connexion complète (mongodb:// ou mongodb+srv://, incl. Atlas). Les identifiants sont automatiquement retirés ; le mot de passe est chiffré séparément.",
+  "connectionMongoConnectionStringRequired": "Veuillez coller une chaîne de connexion",
+  "connectionMongoConnectionStringInvalid": "Chaîne de connexion invalide (doit commencer par mongodb:// ou mongodb+srv://)",
+  "connectionTimeout": "Délai d'expiration (secondes)",
+  "connectionUseSSL": "Utiliser SSL/TLS",
+  "connectionEnableSecureConnection": "Activer la connexion sécurisée",
+  "connectionUseTls": "Utiliser TLS/SSL",
+  "connectionUseTlsDesc": "Connexion chiffrée via TLS (établie côté serveur)",
+  "connectionTlsInsecure": "Ignorer la vérification du certificat (non sécurisé)",
+  "connectionTlsInsecureDesc": "Ne pas vérifier le certificat du serveur — environnements de confiance/test uniquement",
+  "connectionSshSubtitleGateway": "Le tunnel SSH est établi côté serveur dbmaster (configuration transmise avec la connexion)",
+  "connectionAutoReconnect": "Reconnexion automatique",
+  "connectionAutoReconnectDesc": "Tenter de se reconnecter automatiquement lorsque la connexion est perdue",
+  "connectionCharset": "Jeu de caractères",
+  "connectionTimezone": "Fuseau horaire",
+  "connectionTestSuccess": "Connexion réussie !",
+  "connectionTestFailed": "Échec de la connexion",
+  "connectionDatabaseType": "Type de base de données",
+  "connectionManager": "Gestionnaire de connexions",
+  "connectionSavedConnections": "Connexions enregistrées",
+  "connectionNoSavedConnections": "Aucune connexion enregistrée",
+  "connectionCurrent": "Actuel",
+  "connectionConnected": "Connecté",
+  "connectionSwitchToConnection": "Basculer vers cette connexion",
+  "connectionCloneConnection": "Cloner la connexion",
+  "connectionCloned": "Connexion clonée",
+  "connectionDeleteConnectionTitle": "Supprimer la connexion",
+  "connectionDeleteConnectionConfirm": "Êtes-vous sûr de vouloir supprimer la connexion",
+  "connectionDisconnectAll": "Déconnecter tout",
+  "searchDialogTitle": "Recherche",
+  "searchHint": "Rechercher des tables, vues, procédures stockées, colonnes...",
+  "searchNoResults": "Aucun objet trouvé",
+  "searchTryDifferentKeywords": "Essayez des mots-clés différents",
+  "searchNavigate": "Naviguer",
+  "searchSelect": "Sélectionner",
+  "searchClose": "Fermer",
+  "searchResultsCount": "{count} résultats",
+  "searchTypeConnection": "Connexion",
+  "searchTypeDatabase": "Base de données",
+  "searchTypeTable": "Table",
+  "searchTypeView": "Vue",
+  "searchTypeProcedure": "Procédure stockée",
+  "searchTypeColumn": "Colonne",
+  "savedQueriesTitle": "Requêtes enregistrées",
+  "savedQueriesNoQueries": "Aucune requête enregistrée",
+  "savedQueriesDeleteTitle": "Supprimer la requête",
+  "savedQueriesDeleteConfirm": "Êtes-vous sûr de vouloir supprimer cette requête ?",
+  "savedQueriesOpen": "Ouvrir",
+  "viewJson": "Voir le JSON",
+  "extractFieldAsColumn": "Extraire champ comme colonne",
+  "erDiagramTitle": "Diagramme ER",
+  "erDiagramSearchTables": "Rechercher des tables...",
+  "erDiagramHierarchicalLayout": "Disposition hiérarchique",
+  "erDiagramForceDirectedLayout": "Disposition par force",
+  "erDiagramCircleLayout": "Disposition circulaire",
+  "erDiagramResetLayout": "Réinitialiser la disposition",
+  "erDiagramZoomIn": "Zoom avant",
+  "erDiagramZoomOut": "Zoom arrière",
+  "erDiagramFitToScreen": "Ajuster à l'écran",
+  "erDiagramRelations": "Relations",
+  "erDiagramZoom": "Zoom",
+  "erDiagramShowIsolated": "Afficher isolés",
+  "erDiagramExportAsPNG": "Exporter en PNG",
+  "erDiagramExportAsJPG": "Exporter en JPG",
+  "erDiagramLoading": "Chargement du diagramme ER...",
+  "erDiagramErrorLoading": "Erreur lors du chargement du diagramme ER",
+  "erDiagramNoData": "Aucune donnée de diagramme disponible",
+  "erDiagramRetry": "Réessayer",
+  "erDiagramSelectConnection": "Sélectionner une connexion",
+  "erDiagramSelectDatabase": "Sélectionner une base de données",
+  "performanceAnalyzerTitle": "Outil d'analyse des performances",
+  "performanceAnalyzerSearch": "Rechercher...",
+  "performanceAnalyzerRefresh": "Actualiser les données",
+  "performanceAnalyzerGenerateReport": "Générer le rapport",
+  "performanceAnalyzerExport": "Exporter",
+  "performanceAnalyzerClose": "Fermer",
+  "performanceAnalyzerNotConnected": "Non connecté à une base de données",
+  "performanceAnalyzerNotConnectedDesc": "Veuillez d'abord vous connecter à une base de données pour utiliser les fonctionnalités d'analyse des performances",
+  "performanceAnalyzerConfirm": "Confirmer",
+  "performanceAnalyzerSlowQueryAnalysis": "Analyse des requêtes lentes",
+  "performanceAnalyzerIndexAnalysis": "Analyse des index",
+  "performanceAnalyzerTableStatistics": "Statistiques des tables",
+  "performanceAnalyzerPerformanceReport": "Rapport de performance",
+  "performanceAnalyzerLoading": "Analyse des performances de la base de données en cours...",
+  "performanceAnalyzerLoadFailed": "Échec du chargement",
+  "performanceAnalyzerRetry": "Réessayer",
+  "performanceAnalyzerTimeThreshold": "Seuil de temps :",
+  "performanceAnalyzerNoSlowQueries": "Aucune requête lente trouvée",
+  "performanceAnalyzerSelectQuery": "Sélectionnez une requête pour voir les détails",
+  "performanceAnalyzerQueryInfo": "Informations sur la requête",
+  "performanceAnalyzerExecutionTime": "Temps d'exécution",
+  "performanceAnalyzerDatabase": "Base de données",
+  "performanceAnalyzerRowsScaned": "Lignes analysées",
+  "performanceAnalyzerRowsReturned": "Lignes retournées",
+  "performanceAnalyzerTimestamp": "Horodatage",
+  "performanceAnalyzerSqlStatement": "Instruction SQL",
+  "performanceAnalyzerExecutionPlan": "Plan d'exécution",
+  "performanceAnalyzerOptimizationSuggestions": "Suggestions d'optimisation",
+  "performanceAnalyzerFullTableScan": "Analyse complète de table détectée",
+  "performanceAnalyzerFullTableScanDesc": "La requête utilise une analyse complète de table (type=ALL), un index est recommandé sur les colonnes WHERE",
+  "performanceAnalyzerFileSort": "Tri de fichiers",
+  "performanceAnalyzerFileSortDesc": "La requête utilise un tri de fichiers (Using filesort), un index est recommandé sur la colonne ORDER BY",
+  "performanceAnalyzerTempTable": "Utilisation de table temporaire",
+  "performanceAnalyzerTempTableDesc": "La requête utilise une table temporaire (Using temporary), envisagez d'optimiser les requêtes GROUP BY ou DISTINCT",
+  "performanceAnalyzerLowScanEfficiency": "Faible efficacité d'analyse",
+  "performanceAnalyzerNoIssues": "Aucun problème évident trouvé",
+  "performanceAnalyzerNoIssuesDesc": "Le plan d'exécution de la requête semble normal",
+  "performanceAnalyzerIndexTypeDistribution": "Distribution des types d'index",
+  "performanceAnalyzerNoData": "Aucune donnée",
+  "performanceAnalyzerTotalIndexes": "Total des index",
+  "performanceAnalyzerUsedIndexes": "Utilisés",
+  "performanceAnalyzerUnusedIndexes": "Non utilisés",
+  "performanceAnalyzerIndexes": "index",
+  "performanceAnalyzerColumns": "Colonnes :",
+  "performanceAnalyzerCardinality": "Cardinalité :",
+  "performanceAnalyzerTotalTables": "Total des tables",
+  "performanceAnalyzerTotalRows": "Total des lignes",
+  "performanceAnalyzerDataSize": "Taille des données",
+  "performanceAnalyzerIndexSize": "Taille des index",
+  "performanceAnalyzerTotalSize": "Taille totale",
+  "performanceAnalyzerTableName": "Nom de la table",
+  "performanceAnalyzerEngine": "Moteur",
+  "performanceAnalyzerRowCount": "Nombre de lignes",
+  "performanceAnalyzerPercentage": "Pourcentage",
+  "performanceAnalyzerTableSizeDistribution": "Distribution de la taille des tables (Top 10)",
+  "performanceAnalyzerDatabasePerformanceReport": "Rapport de performance de la base de données",
+  "performanceAnalyzerGeneratedAt": "Généré le :",
+  "performanceAnalyzerTableCount": "Nombre de tables",
+  "performanceAnalyzerSlowQueries": "Requêtes lentes",
+  "performanceAnalyzerSuggestions": "Suggestions",
+  "performanceAnalyzerImpact": "Impact :",
+  "performanceAnalyzerImpactHigh": "Élevé",
+  "performanceAnalyzerImpactMedium": "Moyen",
+  "performanceAnalyzerImpactLow": "Faible",
+  "performanceAnalyzerRecommendation": "Action recommandée :",
+  "performanceAnalyzerSlowQueriesTop": "Top des requêtes lentes",
+  "performanceAnalyzerLargeTableStatistics": "Statistiques des grandes tables",
+  "performanceAnalyzerClickGenerateReport": "Cliquez sur le bouton \"Générer le rapport\" pour commencer l'analyse",
+  "sqlHistoryTitle": "Historique SQL",
+  "sqlHistoryNoHistory": "Aucun historique",
+  "sqlHistoryClose": "Fermer",
+  "sqlHistoryDelete": "Supprimer",
+  "sqlHistoryConfirmDelete": "Confirmer la suppression",
+  "sqlHistoryDeleteConfirm": "Êtes-vous sûr de vouloir supprimer cet enregistrement d'historique ?",
+  "sqlHistoryJustNow": "À l'instant",
+  "sqlHistoryMinutesAgo": "Il y a {count} minutes",
+  "sqlHistoryHoursAgo": "Il y a {count} heures",
+  "sqlHistoryDaysAgo": "Il y a {count} jours",
+  "aiPanelApiSettings": "Paramètres API",
+  "aiPanelApiKey": "Clé API",
+  "aiPanelEnterApiKey": "Entrer la clé API",
+  "aiPanelApiBaseUrl": "URL de base de l'API (optionnel)",
+  "aiPanelCustomApiUrl": "URL API personnalisée",
+  "aiPanelRequestTimeout": "Délai d'expiration de la requête :",
+  "aiPanelSeconds": "secondes",
+  "aiPanelSave": "Enregistrer",
+  "aiPanelApiSettingsSaved": "Paramètres API enregistrés",
+  "aiPanelConfirmDangerousOperation": "Confirmer l'exécution d'une opération dangereuse ?",
+  "aiPanelConfirmExecuteSql": "Confirmer l'exécution SQL",
+  "aiPanelDangerousOperationWarning": "Cette opération pourrait modifier ou supprimer des données, veuillez procéder avec prudence !",
+  "aiPanelCancel": "Annuler",
+  "aiPanelConfirmExecute": "Confirmer l'exécution",
+  "aiPanelOperationCancelled": "Opération annulée",
+  "aiPanelExecutingSql": "Exécution du SQL en cours...",
+  "aiPanelExecuteSuccess": "Exécution réussie, {count} lignes retournées",
+  "aiPanelExecuteFailed": "Échec de l'exécution",
+  "aiPanelDataPreview": "Aperçu des données",
+  "aiPanelAndMoreRows": "et {count} lignes supplémentaires",
+  "aiPanelSqlExecutionSuccess": "Exécution SQL réussie, {count} lignes retournées",
+  "aiPanelSqlGenerationComplete": "Génération SQL terminée",
+  "aiPanelSqlGenerationCompleteWarning": "Génération SQL terminée ⚠️",
+  "aiPanelTaskCompleteDesc": "Tâche terminée, vous pouvez choisir d'exécuter ou de copier le SQL",
+  "aiPanelDangerousOperationDesc": "Ceci est une opération dangereuse, veuillez la traiter avec prudence",
+  "aiPanelGeneratedSql": "SQL généré",
+  "aiPanelDangerous": "Dangereux",
+  "aiPanelContinue": "Continuer",
+  "aiPanelClose": "Fermer",
+  "aiPanelCopy": "Copier",
+  "aiPanelExecute": "Exécuter",
+  "aiPanelConfirmExecuteDangerous": "Confirmer l'exécution",
+  "connectedToServer": "Connecté à {serverName}",
+  "openTableDataFailed": "Échec de l'ouverture des données de la table : {error}",
+  "queryTable": "Interroger {tableName}",
+  "openViewFailed": "Échec de l'ouverture de la vue : {error}",
+  "queryView": "Interroger {viewName}",
+  "openProcedureFailed": "Échec de l'ouverture de la procédure stockée : {error}",
+  "callProcedure": "Appeler {procName}",
+  "cancelConnection": "Annuler la connexion",
+  "deleteConnectionTitle": "Supprimer la connexion",
+  "deleteConnectionConfirm": "Êtes-vous sûr de vouloir supprimer la connexion \"{serverName}\" ?",
+  "refresh": "Actualiser",
+  "createNewTable": "Créer une nouvelle table",
+  "erDiagram": "Diagramme ER",
+  "properties": "Propriétés",
+  "exportStructure": "Exporter la structure",
+  "dropDatabase": "Supprimer la base de données",
+  "confirmDeleteDatabase": "Supprimer la base de données",
+  "confirmDropTable": "Supprimer la table",
+  "typeNameToConfirm": "Tapez \"{name}\" pour confirmer",
+  "dropDatabaseWarning": "La base de données \"{name}\" sera définitivement supprimée.",
+  "objectCountWarning": "{count} {type} seront détruits",
+  "allDataWillBeLost": "Toutes les données seront perdues",
+  "copiedDbStructureToClipboard": "Structure de {dbName} copiée dans le presse-papiers",
+  "databaseDeleted": "Base de données {dbName} supprimée",
+  "browseData": "Parcourir les données",
+  "editTable": "Modifier la table",
+  "copyTableName": "Copier le nom de la table",
+  "exportData": "Exporter les données",
+  "dataSync": "Synchronisation des données",
+  "rename": "Renommer",
+  "truncate": "Vider les données",
+  "dropTable": "Supprimer la table",
+  "loadTableStructureFailed": "Échec du chargement de la structure de la table : {error}",
+  "tableNameCopied": "Nom de la table copié",
+  "copiedTableDataToClipboard": "Données de {tableName} copiées dans le presse-papiers",
+  "tableRenamedTo": "Table renommée en {newName}",
+  "renameFailed": "Échec du renommage : {error}",
+  "tableTruncated": "Table {tableName} vidée",
+  "truncateFailed": "Échec de la suppression : {error}",
+  "tableDeleted": "Table {tableName} supprimée",
+  "analyzeTable": "Analyze Table",
+  "optimizeTable": "Optimize Table",
+  "checkTable": "Check Table",
+  "confirmAnalyzeTable": "Analyze Table {tableName}",
+  "@confirmAnalyzeTable": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "confirmAnalyzeTableMessage": "This will update index statistics for table \"{tableName}\".",
+  "@confirmAnalyzeTableMessage": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "confirmOptimizeTable": "Optimize Table {tableName}",
+  "@confirmOptimizeTable": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "confirmOptimizeTableMessage": "This will defragment and reclaim unused space for table \"{tableName}\".",
+  "@confirmOptimizeTableMessage": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "confirmCheckTable": "Check Table {tableName}",
+  "@confirmCheckTable": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "confirmCheckTableMessage": "This will check table \"{tableName}\" for errors.",
+  "@confirmCheckTableMessage": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "optimizeTableWarning": "This operation may lock the table and take a long time on large tables.",
+  "analyzeTableResultTitle": "Analyze Result: {tableName}",
+  "@analyzeTableResultTitle": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "optimizeTableResultTitle": "Optimize Result: {tableName}",
+  "@optimizeTableResultTitle": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "checkTableResultTitle": "Check Result: {tableName}",
+  "@checkTableResultTitle": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "maintenanceExecutedSql": "Executed SQL",
+  "maintenanceResult": "Result",
+  "maintenanceFailed": "{operation} failed: {error}",
+  "@maintenanceFailed": {
+    "placeholders": {
+      "operation": {},
+      "error": {}
+    }
+  },
+  "indexTypeNormal": "Normal",
+  "indexTypeUnique": "Unique",
+  "hintIndexColumns": "Ex : id, name",
+  "pleaseDefineAtLeastOneColumn": "Veuillez définir au moins une colonne",
+  "tableCreated": "Table {tableName} créée avec succès",
+  "createFailed": "Échec de la création : {error}",
+  "tableModified": "Table modifiée avec succès",
+  "modifyFailed": "Échec de la modification : {error}",
+  "noInformation": "Aucune information",
+  "noIndexes": "Aucun index",
+  "truncateTableData": "Vider les données de la table",
+  "menuCut": "Couper",
+  "menuCopy": "Copier",
+  "menuPaste": "Coller",
+  "menuSelectAll": "Tout sélectionner",
+  "menuFormatSql": "Formater SQL",
+  "menuExecuteQuery": "Exécuter la requête",
+  "commandNewConnection": "Nouvelle connexion",
+  "commandNewTab": "Nouvel onglet",
+  "commandExecuteQuery": "Exécuter la requête",
+  "commandFormatSql": "Formater SQL",
+  "commandToggleAiPanel": "Basculer le panneau IA",
+  "commandQueryHistory": "Historique des requêtes",
+  "commandShortcuts": "Raccourcis",
+  "commandSettings": "Paramètres",
+  "commandCategoryHistory": "Historique",
+  "commandCategoryHelp": "Aide",
+  "commandDescNewConnection": "Créer une nouvelle connexion de base de données",
+  "commandDescNewTab": "Créer un nouvel onglet de requête",
+  "commandDescExecuteQuery": "Exécuter la requête SQL actuelle",
+  "commandDescFormatSql": "Formater le code SQL",
+  "commandDescToggleSidebar": "Afficher ou masquer la barre latérale",
+  "commandDescToggleAiPanel": "Afficher ou masquer le panneau IA",
+  "commandDescQueryHistory": "Voir l'historique d'exécution",
+  "commandDescShortcuts": "Voir tous les raccourcis clavier",
+  "commandDescSettings": "Ouvrir les paramètres de l'application",
+  "searchNavigateKeys": "↑↓/Souris",
+  "menuConnect": "Connecter",
+  "menuCancelConnection": "Annuler la connexion",
+  "menuDisconnect": "Déconnecter",
+  "menuRefresh": "Actualiser",
+  "menuEditConnection": "Modifier la connexion",
+  "menuCloneConnection": "Cloner la connexion",
+  "menuDeleteConnection": "Supprimer la connexion",
+  "addColumn": "Ajouter une colonne",
+  "addIndex": "Ajouter un index",
+  "noIndexesClickToAdd": "Aucun index, cliquez sur le bouton ci-dessus pour ajouter",
+  "formatCSV": "CSV",
+  "formatJSON": "JSON",
+  "formatExcel": "Excel",
+  "formatMarkdown": "Markdown",
+  "formatSqlInsert": "SQL INSERT",
+  "formatCSVDesc": "CSV est un format de feuille de calcul universel, compatible avec Excel, Numbers, Google Sheets, etc.",
+  "formatJSONDesc": "JSON est un format de données structuré, idéal pour les programmes ou les appels d'API.",
+  "formatExcelDesc": "Le format Excel préserve les types de données et le formatage, idéal pour l'analyse approfondie des données.",
+  "formatMarkdownDesc": "Le format de tableau Markdown est adapté aux documents, rapports ou révisions de code.",
+  "formatSqlInsertDesc": "Les instructions SQL INSERT peuvent être directement importées dans d'autres bases de données, idéales pour la migration des données.",
+  "copiedToClipboard": "Copié dans le presse-papiers",
+  "hintFormatName": "Ex : Mon format",
+  "hintOptionalDescription": "Description optionnelle",
+  "formatterSelectPreset": "Sélectionner un préréglage",
+  "formatterFormat": "Formater",
+  "formatterCopyResult": "Copier le résultat",
+  "formatterHintInputSql": "Entrez le code SQL ici...",
+  "formatterSpace": "Espace",
+  "formatterTab": "Tabulation",
+  "formatterIndentSize": "Taille de l'indentation",
+  "formatterMaxLineLength": "Longueur maximale de ligne",
+  "formatterUppercaseKeywords": "Mots-clés en majuscules",
+  "formatterAlignKeywords": "Aligner les mots-clés",
+  "formatterPreserveComments": "Préserver les commentaires",
+  "formatterNewlineBeforeParentheses": "Nouvelle ligne avant les parenthèses",
+  "formatterCompactMode": "Mode compact",
+  "formatterPosition": "Position",
+  "formatterEnd": "Fin",
+  "formatterStart": "Début",
+  "timeAgoDays": "{count} jours",
+  "timeAgoHours": "{count} heures",
+  "timeAgoMinutes": "{count} minutes",
+  "timeAgoJustNow": "À l'instant",
+  "optimizationFullTableScan": "Analyse complète de table",
+  "optimizationFullTableScanDesc": "La requête utilise une analyse complète de table (type=ALL), un index est recommandé sur les colonnes WHERE",
+  "optimizationFilesort": "Tri de fichiers",
+  "optimizationFilesortDesc": "La requête utilise un tri de fichiers (Using filesort), un index est recommandé sur la colonne ORDER BY",
+  "optimizationTemporary": "Table temporaire",
+  "optimizationTemporaryDesc": "La requête utilise une table temporaire (Using temporary), envisagez d'optimiser les requêtes GROUP BY ou DISTINCT",
+  "optimizationLowEfficiency": "Faible efficacité",
+  "optimizationLowEfficiencyDesc": "L'efficacité d'analyse de la requête est faible, envisagez d'ajouter un index",
+  "optimizationNoIssue": "Aucun problème",
+  "optimizationNoIssueDesc": "Le plan d'exécution de la requête semble normal",
+  "optimizationSuggestions": "Suggestions d'optimisation",
+  "indexTypeDistribution": "Distribution des types d'index",
+  "noData": "Aucune donnée",
+  "indexPrimary": "Primaire",
+  "indexUnique": "Unique",
+  "indexNormal": "Normal",
+  "totalIndexes": "Total des index",
+  "indexUsed": "Utilisé",
+  "indexUnused": "Non utilisé",
+  "indexCount": "Nombre d'index",
+  "columnCardinality": "Cardinalité",
+  "columnsLabel": "Colonnes",
+  "totalTables": "Total des tables",
+  "totalRows": "Total des lignes",
+  "dataSize": "Taille des données",
+  "indexSize": "Taille des index",
+  "tableSizeDistribution": "Distribution de la taille des tables",
+  "tableNameLabel": "Nom de la table",
+  "tableEngineLabel": "Moteur",
+  "tableRowCountLabel": "Nombre de lignes",
+  "tableDataSizeLabel": "Taille des données",
+  "tableIndexSizeLabel": "Taille des index",
+  "tableTotalSizeLabel": "Taille totale",
+  "tableRatioLabel": "Ratio",
+  "databasePerformanceReport": "Rapport de performance de la base de données",
+  "databaseLabel": "Base de données",
+  "generatedAtLabel": "Généré le",
+  "tableCountLabel": "Nombre de tables",
+  "slowQueryCountLabel": "Nombre de requêtes lentes",
+  "suggestionCountLabel": "Nombre de suggestions",
+  "impactLevel": "Niveau d'impact",
+  "impactHigh": "Élevé",
+  "impactMedium": "Moyen",
+  "impactLow": "Faible",
+  "recommendedAction": "Action recommandée",
+  "slowQueryTopN": "Top des requêtes lentes",
+  "largeTableStats": "Statistiques des grandes tables",
+  "tabRenameTitle": "Renommer la requête",
+  "tabRenameHint": "Entrer le nom de la requête",
+  "tabRename": "Renommer",
+  "tabClose": "Fermer",
+  "tabCloseOthers": "Fermer les autres",
+  "tabCloseToRight": "Fermer à droite",
+  "tabCloseAll": "Fermer tout",
+  "tabDuplicate": "Dupliquer l'onglet",
+  "tabNewTooltip": "Nouvelle requête (Ctrl+T)",
+  "tabNewQueryTitle": "Requête {count}",
+  "confirm": "Confirmer",
+  "copySuffix": "(Copie)",
+  "triggerTitle": "Déclencheurs",
+  "triggerFailedToLoad": "Échec du chargement des déclencheurs: {error}",
+  "triggerFailedToLoadDefinition": "Échec du chargement de la définition du déclencheur",
+  "triggerDeleteTitle": "Supprimer le déclencheur",
+  "triggerDeleteConfirm": "Êtes-vous sûr de vouloir supprimer le déclencheur \"{name}\"?",
+  "triggerDeleted": "Déclencheur \"{name}\" supprimé",
+  "triggerDeleteFailed": "Échec de la suppression du déclencheur: {error}",
+  "triggerCannotDisable": "Les déclencheurs MySQL ne peuvent pas être désactivés directement. Utilisez Supprimer pour les retirer.",
+  "triggerShowList": "Afficher la liste",
+  "triggerGroupByTable": "Grouper par table",
+  "triggerSearchHint": "Rechercher des déclencheurs...",
+  "triggerNoTriggers": "Aucun déclencheur trouvé",
+  "triggerCreate": "Créer un déclencheur",
+  "triggerViewDefinition": "Voir la définition",
+  "triggerCopyName": "Copier le nom",
+  "triggerCopied": "\"{name}\" copié dans le presse-papiers",
+  "triggerNew": "Nouveau déclencheur",
+  "triggerDefinition": "Déclencheur: {name}",
+  "formatterSqlFormat": "Format SQL",
+  "formatterSavePreset": "Enregistrer le préréglage",
+  "formatterPresetName": "Nom du préréglage",
+  "formatterCustomPreset": "Préréglage personnalisé",
+  "formatterBuiltIn": "Intégré",
+  "formatterSaveAsPreset": "Enregistrer les paramètres actuels comme préréglage",
+  "formatterDeletePreset": "Supprimer le préréglage",
+  "formatterInput": "Entrée",
+  "formatterOptions": "Options de formatage",
+  "formatterIndent": "Indentation",
+  "formatterKeywords": "Mots-clés",
+  "formatterCommaStyle": "Style de virgule",
+  "formatterApplyToEditor": "Appliquer à l'éditeur",
+  "filterTitle": "Filtre: {columnName}",
+  "@filterTitle": {
+    "placeholders": {
+      "columnName": {
+        "type": "String"
+      }
+    }
+  },
+  "filterEquals": "égal à",
+  "filterNotEquals": "différent de",
+  "filterContains": "contient",
+  "filterNotContains": "ne contient pas",
+  "filterGreaterThan": "supérieur à",
+  "filterLessThan": "inférieur à",
+  "filterIsEmpty": "est vide",
+  "filterIsNotEmpty": "n'est pas vide",
+  "filterRegex": "regex",
+  "filterValue": "Valeur",
+  "filterEnterValue": "Entrez la valeur du filtre",
+  "filterCaseSensitive": "Sensible à la casse",
+  "filterTimeFilter": "Filtre temporel",
+  "filterToday": "Aujourd'hui",
+  "filterLast24Hours": "Dernières 24 heures",
+  "filterLast7Days": "7 derniers jours",
+  "filterLast30Days": "30 derniers jours",
+  "rowCountLabel": "{count} lignes",
+  "aiPanelCustomModel": "Modèle personnalisé",
+  "aiPanelBookmarks": "Signets",
+  "aiPanelScrollToMessageDeveloping": "Fonction de défilement vers le message en développement",
+  "aiPanelBranchConversationCreated": "Conversation de branche créée",
+  "aiPanelNoConnections": "Aucune connexion, veuillez en créer une dans la gestion des connexions",
+  "aiPanelConversationList": "Liste des conversations",
+  "aiPanelSelectConnection": "Sélectionner une connexion",
+  "aiPanelNoConnection": "Aucune connexion",
+  "aiPanelSelectDatabaseFirst": "Sélectionner d'abord une connexion",
+  "aiPanelSelectDatabase": "Sélectionner une base de données",
+  "aiPanelAllDatabases": "Toutes les bases de données",
+  "aiPanelConnectionFailed": "Échec de la connexion",
+  "aiPanelUnknownError": "Erreur inconnue",
+  "aiPanelLoadDatabasesFailed": "Échec du chargement des bases de données",
+  "aiPanelDangerousOperation": "Opération dangereuse",
+  "aiPanelOptimizeSql": "Optimiser SQL",
+  "aiPanelSecurityAnalysis": "Analyse de sécurité",
+  "aiPanelExecutionPlan": "Plan d'exécution",
+  "aiPanelIndexSuggestions": "Suggestions d'index",
+  "aiPanelInputHint": "Veuillez entrer votre question sur la base de données, ex: Comment optimiser cette requête?",
+  "aiPanelStop": "Arrêter",
+  "aiPanelSend": "Envoyer",
+  "aiPanelSelectConnectionFirst": "Veuillez d'abord sélectionner une instance de connexion dans le menu déroulant ci-dessus.",
+  "aiPanelConnectionNotAvailable": "L'instance de connexion \"{name}\" n'est pas connectée ou non disponible, veuillez d'abord la connecter.",
+  "aiPanelTable": "Table",
+  "aiPanelDangerousOperationBadge": "Opération dangereuse",
+  "aiPanelThinkingProcess": "Processus de réflexion",
+  "aiPanelExpandThinking": "Développer le processus de réflexion",
+  "aiPanelCollapseThinking": "Réduire le processus de réflexion",
+  "aiPanelRenameSession": "Renommer la conversation",
+  "aiPanelSessionTitle": "Titre de la conversation",
+  "aiPanelDeleteSession": "Supprimer la conversation",
+  "aiPanelDeleteSessionConfirm": "Êtes-vous sûr de vouloir supprimer \"{name}\"?",
+  "aiPanelRename": "Renommer",
+  "aiPanelUnarchive": "Désarchiver",
+  "aiPanelArchive": "Archiver",
+  "aiPanelSessions": "Conversations",
+  "aiPanelSearchSessions": "Rechercher des conversations",
+  "aiPanelNoSessions": "Aucune conversation",
+  "aiPanelArchivedSessions": "Conversations archivées ({count})",
+  "aiPanelJustNow": "À l'instant",
+  "aiPanelMinutesAgo": "Il y a {count} minutes",
+  "aiPanelHoursAgo": "Il y a {count} heures",
+  "aiPanelDaysAgo": "Il y a {count} jours",
+  "aiPanelSelectProvider": "Sélectionner un fournisseur",
+  "aiPanelSelectModelCurrent": "Sélectionner un modèle (Actuel: {provider})",
+  "aiPanelApiConfigCurrent": "Configuration API (Actuel: {provider})",
+  "aiPanelModelProviderMismatch": "Le modèle sélectionné n'appartient pas au fournisseur sélectionné",
+  "aiPanelAllowSession": "Autoriser cette session",
+  "aiPanelNoBookmarks": "Aucun signet",
+  "aiPanelClickBookmarkIcon": "Cliquez sur l'icône de signet d'un message pour l'ajouter",
+  "aiCmdOptimizeSql": "Optimiser l'instruction SQL",
+  "aiCmdExplainQuery": "Expliquer le plan de requête",
+  "aiCmdGenerateCrud": "Générer des instructions CRUD",
+  "aiCmdAnalyzeTable": "Analyser la structure de la table",
+  "aiCmdShowHistory": "Voir l'historique des requêtes",
+  "aiCmdShowBookmarks": "Voir les signets",
+  "aiCmdBranchConversation": "Créer une conversation de branche",
+  "aiCmdListDatabases": "List all databases",
+  "aiCmdListTables": "List all tables",
+  "settingsThemeMode": "Mode du thème",
+  "settingsThemeColor": "Couleur d'accent",
+  "settingsSystem": "Système",
+  "settingsPreview": "Aperçu",
+  "settingsPrimaryButton": "Bouton principal",
+  "settingsSecondaryButton": "Bouton secondaire",
+  "settingsApply": "Appliquer",
+  "colorBlue": "Bleu",
+  "colorPurple": "Violet",
+  "colorGreen": "Vert",
+  "colorOrange": "Orange",
+  "colorRed": "Rouge",
+  "colorCyan": "Cyan",
+  "colorPink": "Rose",
+  "colorYellow": "Jaune",
+  "aiChatPageTitle": "Assistant IA",
+  "messageLabelYou": "Vous",
+  "messageLabelAi": "IA",
+  "messageStatusSending": "Envoi",
+  "messageStatusGenerating": "Génération",
+  "messageStatusFailed": "Échoué",
+  "messageStatusCancelled": "Annulé",
+  "messageStatusError": "Erreur",
+  "messageStatusThinking": "Réflexion",
+  "tokenUsagePrompt": "Entrée {count}",
+  "@tokenUsagePrompt": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tokenUsageCompletion": "Sortie {count}",
+  "@tokenUsageCompletion": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tokenUsageTotal": "Total {count}",
+  "@tokenUsageTotal": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionTokenUsage": "Session: Entrée {promptTokens} · Sortie {completionTokens} · Total {totalTokens}",
+  "@sessionTokenUsage": {
+    "placeholders": {
+      "promptTokens": {
+        "type": "int"
+      },
+      "completionTokens": {
+        "type": "int"
+      },
+      "totalTokens": {
+        "type": "int"
+      }
+    }
+  },
+  "messageActionRegenerate": "Régénérer",
+  "tooltipCopyCode": "Copier le code",
+  "tooltipExecuteCode": "Exécuter le code",
+  "messageCopied": "Copié",
+  "toolCallTitle": "Outil: {name}",
+  "@toolCallTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "toolResultTitle": "Résultat: {name}",
+  "@toolResultTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "toolCallCompleted": "Appelé et terminé",
+  "toolParamLabel": "Paramètres",
+  "toolResultLabel": "Résultat",
+  "toolGroupTitle": "Groupe d'outils",
+  "toolGroupSummary": "{count} outils exécutés",
+  "@toolGroupSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "toolGroupItemTitle": "Outil {index}: {name}",
+  "@toolGroupItemTitle": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "toolNoParams": "Aucun paramètre",
+  "aiWelcomeTitle": "Assistant IA de base de données",
+  "aiWelcomeDescription": "Je peux vous aider à écrire du SQL, optimiser les requêtes, analyser la structure des tables, vérifier la sécurité ou répondre à toutes les questions sur les bases de données.",
+  "aiConnectedTo": "Connecté: {name}",
+  "@aiConnectedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiExampleSectionTitle": "Essayez de me demander",
+  "aiQuickActionsSectionTitle": "Actions rapides",
+  "aiTipQuickSend": "Ctrl + Entrée pour envoyer",
+  "aiTipSlashCommands": "Tapez / pour voir toutes les commandes",
+  "aiExampleQuestion1": "Optimiser les performances de cette requête",
+  "aiExampleQuestion2": "Analyser la structure actuelle de la table",
+  "aiExampleQuestion3": "Vérifier la sécurité de ce SQL",
+  "errorApiKeyRequired": "Veuillez d'abord entrer la clé API",
+  "errorBaseUrlRequired": "Veuillez d'abord entrer l'URL de base",
+  "errorFetchModelsFailed": "Échec de la récupération de la liste des modèles: {error}",
+  "@errorFetchModelsFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "tooltipRefreshModels": "Rafraîchir la liste des modèles",
+  "labelCustomModelInput": "Entrer le nom du modèle manuellement",
+  "tooltipAddModel": "Ajouter un modèle",
+  "hintFetchOrInputModel": "Cliquez sur rafraîchir pour récupérer ou entrez le nom du modèle manuellement",
+  "hintFetchModels": "Cliquez sur rafraîchir pour récupérer la liste des modèles",
+  "errorSelectModelRequired": "Veuillez sélectionner ou entrer un modèle",
+  "errorSaveFailed": "Échec de l'enregistrement: {error}",
+  "@errorSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "resultsTabExecutionDetails": "Execution Details",
+  "toolbarCodeSnippets": "Code Snippets (Ctrl+Shift+S)",
+  "toolbarCloseSplit": "Close Split",
+  "editorHintText": "Enter SQL query... (Ctrl+Space for autocomplete, F5/Ctrl+Enter to execute)",
+  "editorHintTextMongodb": "Enter MongoDB query... (F5/Ctrl+Enter to execute)",
+  "editorHintTextRedis": "Enter Redis command... (F5/Ctrl+Enter to execute)",
+  "allStatementsSuccess": "All {count} statements executed successfully ({time}ms)",
+  "@allStatementsSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "time": {
+        "type": "int"
+      }
+    }
+  },
+  "statementsPartialSuccess": "{success}/{total} statements succeeded, {failed} failed ({time}ms)",
+  "@statementsPartialSuccess": {
+    "placeholders": {
+      "success": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      },
+      "time": {
+        "type": "int"
+      }
+    }
+  },
+  "statementsAllSuccess": "{count} statements executed successfully",
+  "@statementsAllSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statementsPartialSuccessShort": "{success}/{total} succeeded, {failed} failed",
+  "@statementsPartialSuccessShort": {
+    "placeholders": {
+      "success": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "connErrorWithMessage": "Error: {error}",
+  "@connErrorWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "connSearchSnippetsHint": "Search snippets...",
+  "connPreview": "Preview",
+  "connInsert": "Insert",
+  "connApply": "Apply",
+  "connClearAll": "Clear All",
+  "connSaveConnectionFailed": "Failed to save connection: {error}",
+  "@connSaveConnectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "connDeleteConnectionFailed": "Failed to delete connection: {error}",
+  "@connDeleteConnectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "connCreateStatement": "Create Statement",
+  "connCreateStatementCopied": "Create statement copied",
+  "connCopyCreateStatement": "Copy Create Statement",
+  "connDeleteDatabase": "Delete Database",
+  "connCopiedToClipboard": "Copied to clipboard",
+  "connCopy": "Copy",
+  "connExportFeatureSetup": "Export feature requires additional setup",
+  "connExportFailed": "Export failed: {error}",
+  "@connExportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "connCopiedTableName": "Copied: {tableName}",
+  "@connCopiedTableName": {
+    "placeholders": {
+      "tableName": {
+        "type": "String"
+      }
+    }
+  },
+  "connRetry": "Retry",
+  "connReportIssue": "Report Issue",
+  "connEnterTableName": "Enter table name",
+  "connParameterName": "Parameter name",
+  "connClear": "Clear",
+  "connCharset": "Charset",
+  "connComment": "Comment",
+  "connName": "Name",
+  "connDefault": "Default",
+  "connIndexName": "Index Name",
+  "connTruncate": "Truncate",
+  "dlgProcedureUpdated": "Stored procedure/function updated successfully",
+  "dlgProcedureCreated": "Stored procedure/function created successfully",
+  "dlgOperationFailed": "Operation failed: {error}",
+  "@dlgOperationFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "dlgType": "Type",
+  "dlgProcedureType": "Procedure (PROCEDURE)",
+  "dlgFunctionType": "Function (FUNCTION)",
+  "dlgReturnType": "Return Type",
+  "dlgEnterSqlHint": "Enter SQL code...",
+  "dlgExecutionFailed": "Execution failed: {error}",
+  "@dlgExecutionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "dlgExecute": "Execute",
+  "dlgEnterValue": "Enter value",
+  "dlgCopied": "Copied",
+  "dlgNoHistory": "No history yet",
+  "dlgConfirmDeleteTitle": "Confirm Delete",
+  "dlgConfirmDeleteHistoryMessage": "Are you sure you want to delete this history record?\n\n{sql}",
+  "@dlgConfirmDeleteHistoryMessage": {
+    "placeholders": {
+      "sql": {
+        "type": "String"
+      }
+    }
+  },
+  "dlgTestSyntax": "Test Syntax",
+  "dlgSyntaxError": "Syntax error: {message}",
+  "@dlgSyntaxError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "dlgSyntaxLooksGood": "Syntax looks good!",
+  "dlgEnterTriggerName": "Enter trigger name",
+  "dlgEnterVariableValue": "Enter {variable}",
+  "@dlgEnterVariableValue": {
+    "placeholders": {
+      "variable": {
+        "type": "String"
+      }
+    }
+  },
+  "molChooseFromGallery": "Choose from Gallery",
+  "molTakePhoto": "Take Photo",
+  "molPickImageFailed": "Failed to pick image: {error}",
+  "@molPickImageFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "molSend": "Send",
+  "svcExportSuccess": "File exported: {result}",
+  "@svcExportSuccess": {
+    "placeholders": {
+      "result": {
+        "type": "String"
+      }
+    }
+  },
+  "svcExportFailed": "Export failed: {error}",
+  "@svcExportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scrInitFailed": "Initialization failed: {error}",
+  "@scrInitFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportTitle": "AI Smart Import",
+  "smartImportSubtitle": "Automatically analyze file structure and import to database",
+  "smartImportClose": "Close",
+  "smartImportTarget": "Import Target",
+  "smartImportSelectedTable": "Selected table: {table}",
+  "@smartImportSelectedTable": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportAutoInfer": "No table selected, AI will auto-infer",
+  "smartImportLoadTables": "Loading table list...",
+  "smartImportTableHint": "Search or enter table name (leave empty for AI inference)",
+  "smartImportStepSelectFile": "Select File",
+  "smartImportStepAnalyze": "Analyze",
+  "smartImportStepImport": "Import",
+  "smartImportStepComplete": "Complete",
+  "smartImportSelectFileTitle": "Select file to import",
+  "smartImportSelectFileHint": "Click to select CSV or JSON file",
+  "smartImportReselectFile": "Click to reselect",
+  "smartImportSupportedFormats": "Supported formats: CSV, TSV, JSON, JSON Lines",
+  "smartImportAnalyzing": "Analyzing file structure...",
+  "smartImportTableNotFound": "Target table does not exist",
+  "smartImportTableNotFoundMessage": "Table \"{table}\" does not exist in the current database.",
+  "@smartImportTableNotFoundMessage": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportCreateTableHint": "Please execute the following CREATE TABLE statement in the SQL editor first, then reopen Smart Import.",
+  "smartImportSuggestedSQL": "Suggested CREATE TABLE statement",
+  "smartImportCopySQL": "Copy SQL",
+  "smartImportSQLCopied": "SQL copied to clipboard",
+  "smartImportImporting": "Importing data...",
+  "smartImportImported": "Imported",
+  "smartImportTotalRecords": "Total",
+  "smartImportFailedRecords": "Failed",
+  "smartImportProgress": "Progress",
+  "smartImportImportComplete": "Import Complete",
+  "smartImportTargetTable": "Target Table",
+  "smartImportSuccessRows": "Successfully imported",
+  "smartImportFailedRows": "Failed to import",
+  "smartImportTotalRows": "Total rows in table",
+  "smartImportImportFailed": "Import Failed",
+  "smartImportFilePreview": "File Preview",
+  "smartImportSampleData": "Sample data (first 3 rows)",
+  "smartImportLogs": "Import Logs",
+  "smartImportClearLogs": "Clear",
+  "smartImportReimport": "Re-import",
+  "smartImportStartAnalysis": "Start Analysis",
+  "smartImportStartImport": "Start Import",
+  "smartImportCancelImport": "Cancel Import",
+  "smartImportUserCancelled": "User cancelled import",
+  "smartImportFileSelected": "File selected: {name}",
+  "@smartImportFileSelected": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportAnalysisComplete": "Analysis complete. Format: {format}, Encoding: {encoding}, Fields: {fields}",
+  "@smartImportAnalysisComplete": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      },
+      "encoding": {
+        "type": "String"
+      },
+      "fields": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportEstimatedRows": "Estimated total rows: ~{rows}",
+  "@smartImportEstimatedRows": {
+    "placeholders": {
+      "rows": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportUsingSelectedTable": "Using selected table: {table}",
+  "@smartImportUsingSelectedTable": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportCheckTableExists": "Checking if target table exists...",
+  "smartImportTableExists": "Table \"{table}\" exists with {count} rows",
+  "@smartImportTableExists": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportTableNotExists": "Table \"{table}\" does not exist. Please create table first.",
+  "@smartImportTableNotExists": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+
+  "smartImportAiInferringTable": "L'IA déduit le nom de la table...",
+
+  "smartImportAiSuggestedTable": "L'IA suggère le nom de table: {name}",
+  "@smartImportAiSuggestedTable": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+
+  "smartImportDoNotImport": "Ne pas importer",
+
+  "smartImportTaskDescription": "Importer {count} vers {table}",
+  "@smartImportTaskDescription": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "table": {"type": "String"}
+    }
+  },
+
+  "smartImportStartImporting": "Starting data import to table \"{table}\"...",
+  "@smartImportStartImporting": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportImportResult": "Import complete! Success: {imported} rows, Failed: {failed} rows",
+  "@smartImportImportResult": {
+    "placeholders": {
+      "imported": {
+        "type": "String"
+      },
+      "failed": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportQueryRowCount": "Querying total row count...",
+  "smartImportTableTotalRows": "Table \"{table}\" now has {count} rows",
+  "@smartImportTableTotalRows": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportQueryCountFailed": "Failed to query row count: {error}",
+  "@smartImportQueryCountFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportImportError": "Import failed: {error}",
+  "@smartImportImportError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportCopySuccess": "SQL copied to clipboard",
+  "smartImportRows": "{count} rows",
+  "@smartImportRows": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportAiModel": "Modèle AI",
+  "aiPanelFullscreen": "Plein écran",
+  "aiPanelExitFullscreen": "Quitter le plein écran",
+  "aiPanelOpenInNewQuery": "Ouvert dans une nouvelle requête",
+  "aiPanelInsertStatementsGenerated": "L'IA a généré {count} instructions INSERT, prêtes à être insérées dans la table [{tableName}].",
+  "@aiPanelInsertStatementsGenerated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "tableName": {
+        "type": "String"
+      }
+    }
+  },
+  "aiPanelSqlPreviewTitle": "Aperçu SQL (3 premières):",
+  "aiPanelMoreStatements": "... et {count} instructions supplémentaires",
+  "@aiPanelMoreStatements": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiAgentToolCallLimitReached": "L'assistant IA a atteint la limite d'appels d'outils ({count} fois). Veuillez simplifier votre question ou procéder étape par étape.",
+  "@aiAgentToolCallLimitReached": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiAgentMaxIterationsReached": "L'agent a atteint le nombre maximum d'itérations et n'a pas pu terminer la conversation.",
+  "aiAgentDuplicateQuery": "Cette requête a déjà été exécutée. Veuillez répondre directement sur la base des résultats existants sans répéter la requête.",
+  "aiAgentToolExecutionFailed": "Échec de l'exécution de l'outil: {error}",
+  "@aiAgentToolExecutionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "aiAgentUnknownTool": "Outil inconnu: {name}",
+  "@aiAgentUnknownTool": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiContextCurrentDatabase": "Base de données actuelle: {name}",
+  "@aiContextCurrentDatabase": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiContextCurrentTable": "Table actuelle: {name}",
+  "@aiContextCurrentTable": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiContextRecentQueries": "Requêtes récentes: {queries}",
+  "@aiContextRecentQueries": {
+    "placeholders": {
+      "queries": {
+        "type": "String"
+      }
+    }
+  },
+  "aiContextGoalSummary": "Résumé de l'objectif de la session actuelle: {summary}",
+  "@aiContextGoalSummary": {
+    "placeholders": {
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
+  "taskPanelTitle": "Tâches",
+  "taskPanelEmpty": "Aucune tâche",
+  "taskPanelEmptyDesc": "Les opérations d'importation ou d'exportation apparaîtront ici",
+  "taskPanelClearCompleted": "Effacer terminées",
+  "taskPanelStatusPending": "En attente",
+  "taskPanelStatusRunning": "En cours",
+  "taskPanelStatusPaused": "En pause",
+  "taskPanelStatusCompleted": "Terminé",
+  "taskPanelStatusFailed": "Échoué",
+  "taskPanelStatusCancelled": "Annulé",
+  "taskTypeImport": "Importation",
+  "taskTypeExport": "Exportation",
+  "taskTypeQuery": "Requête",
+  "taskActionCancel": "Annuler",
+  "taskActionRetry": "Réessayer",
+  "taskActionRemove": "Supprimer",
+  "taskActionOpenFolder": "Ouvrir le dossier",
+  "taskCreateExportTitle": "Créer une tâche d'exportation",
+  "taskCreateExportFormat": "Format d'exportation",
+  "taskCreateExportPath": "Chemin de sortie",
+  "taskCreateExportPathPlaceholder": "Cliquez sur le bouton à droite pour sélectionner l'emplacement de sauvegarde",
+  "taskCreateExportPathSelect": "Sélectionner l'emplacement",
+  "taskCreateExportStart": "Créer la tâche",
+  "taskValidationPathRequired": "Veuillez sélectionner un chemin de sortie",
+  "taskValidationPathNotWritable": "Le répertoire n'est pas accessible en écriture, veuillez choisir un autre emplacement",
+  "taskValidationPathExists": "Le fichier existe déjà et sera écrasé",
+  "taskStatusBarTasks": "{count} tâches",
+  "@taskStatusBarTasks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "taskStatusBarRunning": "{count} en cours",
+  "@taskStatusBarRunning": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "taskLogInfo": "Info",
+  "taskLogWarning": "Avertissement",
+  "taskLogError": "Erreur",
+  "taskLogSuccess": "Succès",
+  "taskDetailTitle": "Détails de la tâche",
+  "taskDetailBasicInfo": "Informations de base",
+  "taskDetailStatistics": "Statistiques d'exécution",
+  "taskDetailError": "Message d'erreur",
+  "taskDetailOutputFile": "Fichier de sortie",
+  "taskDetailLogs": "Journaux d'exécution",
+  "taskDetailCopied": "Chemin copié dans le presse-papiers",
+  "taskPhaseAnalyzing": "Analyse en cours...",
+  "taskPhaseQuerying": "Interrogation des données...",
+  "taskPhaseFormatting": "Formatage des données...",
+  "taskPhaseWriting": "Écriture du fichier...",
+  "taskPhaseCompleted": "Terminé",
+  "aiExportButtonCreate": "Créer une tâche d'exportation",
+  "aiExportButtonAnalyzing": "Analyse en cours...",
+  "aiMessageExportAction": "Exporter ces données",
+  "smartImportCreateTask": "Créer une tâche d'importation en arrière-plan",
+  "schemaDiffTitle": "Comparaison & Synchronisation de Schéma",
+  "schemaDiffMenuItem": "Comparaison & Synchronisation de Schéma",
+  "schemaDiffSource": "Source",
+  "schemaDiffTarget": "Cible",
+  "schemaDiffCompareButton": "Comparer",
+  "schemaDiffSelectDatabases": "Sélectionnez les bases source et cible à comparer",
+  "schemaDiffTabOverview": "Aperçu",
+  "schemaDiffTabDetails": "Détails",
+  "schemaDiffTabSync": "Synchronisation",
+  "columnDropped": "Colonne \"{column}\" supprimée",
+  "confirmDropColumn": "Supprimer la colonne \"{column}\" de la table \"{table}\" ?",
+  "confirmDropIndex": "Supprimer l'index \"{index}\" ?",
+  "copyColumnName": "Copier le nom de colonne",
+  "copyIndexName": "Copier le nom d'index",
+  "dropColumn": "Supprimer la colonne",
+  "dropColumnFailed": "Échec de la suppression de colonne : {error}",
+  "dropIndex": "Supprimer l'index",
+  "dropIndexFailed": "Échec de la suppression d'index : {error}",
+  "editIndex": "Modifier l'index",
+  "indexDropped": "Index \"{index}\" supprimé",
+  "loadingSchema": "Chargement...",
+  "noColumns": "Aucune colonne",
+  "noProgrammableObjects": "Ce type de base de données ne supporte pas les objets programmables",
+  "noSearchResults": "Aucun résultat correspondant",
+  "page": "Page",
+  "selectDatabaseHint": "Double-cliquez sur une base de données pour voir ses objets",
+  "workspaceEmptyTitle": "Aucune requête ouverte",
+  "workspaceEmptyHint": "Créez un nouvel onglet de requête pour commencer",
+  "sidebarCollections": "Collections",
+  "sidebarColumns": "Colonnes",
+  "sidebarEvents": "Événements",
+  "sidebarEnableEvent": "Enable Event",
+  "sidebarDisableEvent": "Disable Event",
+  "sidebarDropEvent": "Drop Event",
+  "sidebarEventProperties": "Properties",
+  "sidebarEventNoDefinition": "No definition",
+  "sidebarEventOperationFailed": "Operation failed: {error}",
+  "@sidebarEventOperationFailed": {
+    "description": "Error when MySQL event operation fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sidebarDropEventConfirm": "Are you sure you want to drop event \"{name}\"?\n\nThis action cannot be undone.",
+  "@sidebarDropEventConfirm": {
+    "description": "Confirmation dialog for dropping a MySQL event",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sidebarSynonyms": "Synonyms",
+  "sidebarBrowseSynonym": "Browse Synonym",
+  "sidebarScriptSynonymAsSelect": "Script as SELECT",
+  "sidebarDropSynonym": "Drop Synonym",
+  "sidebarDropSynonymConfirm": "Are you sure you want to drop synonym \"{name}\"?\n\nThis action cannot be undone.",
+  "@sidebarDropSynonymConfirm": {
+    "description": "Confirmation dialog for dropping a SQL Server synonym",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sidebarSynonymOperationFailed": "Operation failed: {error}",
+  "@sidebarSynonymOperationFailed": {
+    "description": "Error when SQL Server synonym operation fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sidebarIndexes": "Index",
+  "sidebarInsertIntoEditor": "Insérer dans l'éditeur",
+  "sidebarForeignKeys": "Clés étrangères",
+  "sidebarCopyIndexName": "Copier le nom de l'index",
+  "sidebarCopyForeignKeyName": "Copier le nom de la clé étrangère",
+  "sidebarCopyName": "Copier le nom",
+  "sidebarBrowseData": "Parcourir les données",
+  "sidebarDropViewConfirm": "Voulez-vous vraiment supprimer la vue « {viewName} » ?\n\nCette action est irréversible.",
+  "sidebarDropViewFailed": "Échec de la suppression de la vue : {error}",
+  "sidebarDeleteFailed": "Échec de la suppression : {error}",
+  "sidebarReadOnlyConnection": "Connexion en lecture seule",
+  "sidebarCopyColumnName": "Copier le nom de la colonne",
+  "sidebarCopyColumnType": "Copier le type de la colonne",
+  "sidebarCopyAllColumnNames": "Copier tous les noms de colonnes",
+  "sidebarOpenEditorFirst": "Ouvrez d'abord un onglet de requête",
+  "sidebarKeys": "Clés",
+  "sidebarProgrammableObjects": "Objets programmables",
+  "sidebarSuperTables": "SuperTables",
+  "settingsSubscriptionSettings": "Abonnement",
+  "settingsFreePlan": "Gratuit",
+  "settingsFreePlanDesc": "Vous utilisez actuellement le plan gratuit",
+  "settingsProActivated": "Pro activé",
+  "settingsProActivatedDesc": "Toutes les fonctionnalités Pro sont déverrouillées",
+  "settingsUpgradeToPro": "Passer à Pro",
+  "settingsRestorePurchases": "Restaurer les achats",
+  "purchaseDialogTitle": "Passer à Pro",
+  "purchaseDialogDesc": "Débloquez toutes les fonctionnalités premium avec un abonnement Pro",
+  "purchaseDialogNoProducts": "Aucun produit disponible",
+  "freeAiQuotaExceeded": "You have used all {count} free AI messages this month. Upgrade to Pro for unlimited AI usage.",
+  "@freeAiQuotaExceeded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "freeConnectionLimitReached": "Free plan supports up to {count} saved connections. Upgrade to Pro for unlimited connections.",
+  "@freeConnectionLimitReached": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "freeTabLimitReached": "Free plan supports up to {count} open query tabs. Upgrade to Pro for unlimited tabs.",
+  "@freeTabLimitReached": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "schemaDiffSyncProFeature": "Schema Diff sync is a Pro feature. Start a free trial or upgrade to Pro to execute synchronization.",
+  "tableMetadataComment": "Comment",
+  "tableMetadataRowCount": "Rows",
+  "tableMetadataDataSize": "Size",
+  "tableMetadataEngine": "Engine",
+  "tableMetadataUpdateTime": "Updated",
+  "resultsTruncatedMessage": "Results limited to first {count} rows. More data may be available.",
+  "settingsQueryLimit": "Query Limit",
+  "settingsAutoLimitEnabled": "Auto LIMIT",
+  "settingsAutoLimitValue": "Limit Value",
+  "sidebarFavorites": "Favorites",
+  "recentTables": "Récents",
+  "dataSyncTitle": "Data Sync",
+  "dataSyncCancel": "Cancel",
+  "dataSyncClose": "Close",
+  "dataSyncRestart": "Resync",
+  "dataSyncStart": "Start Sync",
+  "dataSyncSourceConfig": "Source",
+  "dataSyncSourceConnection": "Source Connection",
+  "dataSyncSourceDatabase": "Source Database",
+  "dataSyncSourceTable": "Source Table",
+  "dataSyncTargetConfig": "Target",
+  "dataSyncTargetConnection": "Target Connection",
+  "dataSyncTargetDatabase": "Target Database",
+  "dataSyncTargetTable": "Target Table",
+  "dataSyncSegmentConfig": "Segment",
+  "dataSyncSegmentStrategy": "Strategy",
+  "dataSyncSegmentTypeNumeric": "Numeric",
+  "dataSyncSegmentTypeTime": "Time",
+  "dataSyncSegmentField": "Field",
+  "dataSyncTimeUnit": "Unit",
+  "dataSyncTimeUnitMinute": "Minute",
+  "dataSyncTimeUnitHour": "Hour",
+  "dataSyncTimeUnitDay": "Day",
+  "dataSyncIntervalValue": "Interval",
+  "dataSyncSegmentSize": "Segment Size",
+  "dataSyncAdvancedOptions": "Advanced",
+  "dataSyncPageSize": "Page Size",
+  "dataSyncTargetStrategy": "Target Strategy",
+  "dataSyncStrategyTruncate": "Truncate then sync",
+  "dataSyncStrategyAppend": "Append (ignore conflicts)",
+  "dataSyncStrategyReplace": "Replace",
+  "dataSyncStrategyUpsert": "Upsert",
+  "dataSyncSegmentIntervalMs": "Segment Interval (ms)",
+  "dataSyncPageIntervalMs": "Page Interval (ms)",
+  "dataSyncPleaseCompleteConfig": "Please complete all fields",
+  "dataSyncConnectionNotFound": "Connection not found",
+  "dataSyncFailed": "Sync failed: {error}",
+  "@dataSyncFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "dataSyncCancelledByUser": "Cancelled by user",
+  "dataSyncCompleted": "Sync completed",
+  "dataSyncStatusSuccess": "Sync Successful",
+  "dataSyncStatusCancelled": "Sync Cancelled",
+  "dataSyncStatusFailed": "Sync Failed",
+  "dataSyncResultSourceTable": "Source",
+  "dataSyncResultTargetTable": "Target",
+  "dataSyncResultSyncedRows": "Synced Rows",
+  "dataSyncResultFailedRows": "Failed Rows",
+  "dataSyncResultDuration": "Duration",
+  "dataSyncPleaseSelect": "Please select {label}",
+  "@dataSyncPleaseSelect": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "dataSyncProgressDetectingSchema": "Detecting table schema...",
+  "dataSyncProgressCountingRows": "Counting total rows...",
+  "dataSyncProgressCalculatingSegments": "Calculating segments...",
+  "dataSyncProgressEmptyTable": "Source table is empty, sync completed",
+  "dataSyncProgressTruncatingTarget": "Truncating target table...",
+  "dataSyncProgressCancelled": "Sync cancelled",
+  "dataSyncProgressSyncingSegment": "Syncing segment {current}/{total}...",
+  "@dataSyncProgressSyncingSegment": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "dataSyncProgressPageStatus": "Segment {current}/{total}, synced {synced} / {totalRows} rows",
+  "@dataSyncProgressPageStatus": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "synced": {
+        "type": "int"
+      },
+      "totalRows": {
+        "type": "int"
+      }
+    }
+  },
+  "dataSyncProgressCompleted": "Sync completed! Success: {synced} rows, Failed: {failed} rows, Skipped: {skipped} rows",
+  "@dataSyncProgressCompleted": {
+    "placeholders": {
+      "synced": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "dataSyncErrorDateTimeParse": "Field `{field}` cannot be parsed as datetime: min={min}, max={max}",
+  "@dataSyncErrorDateTimeParse": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      },
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "dataSyncErrorNumericParse": "Field `{field}` cannot be parsed as number: min={min}, max={max}",
+  "@dataSyncErrorNumericParse": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      },
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "statsToggle": "Stats",
+  "statsChooseColumns": "Choose columns",
+  "statsApproximateTooltip": "Values prefixed with ~ are approximate",
+  "statsApproximateValue": "Approximate (~{value})",
+  "@statsApproximateValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "statsExactValue": "Exact",
+  "statsForeignKeys": "Foreign Keys",
+  "statsNoForeignKeys": "No foreign keys",
+  "dataSyncProgressSynced": "Synced {count} rows",
+  "dataSyncProgressTotal": "{count} rows",
+  "dataSyncProgressFailed": "Failed {count} rows",
+  "@dataSyncProgressSynced": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@dataSyncProgressTotal": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@dataSyncProgressFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unsavedChangesTitle": "Modifications non enregistrées",
+  "unsavedChangesMessage": "Cet onglet contient des modifications non enregistrées. Fermer sans enregistrer ?",
+  "discardChanges": "Ignorer",
+  "tabCloseConfirmMessage": "Voulez-vous enregistrer les modifications apportées à « {title} » avant de fermer ?",
+  "@tabCloseConfirmMessage": {"placeholders": {"title": {"type": "String"}}},
+  "aiPanelOverlayClickMask": "Click mask",
+  "aiPanelOverlayCloseOverlay": "Close overlay",
+  "aiPanelOverlayDragEdges": "Drag edges / corners",
+  "aiPanelOverlayDragToolbar": "Drag toolbar",
+  "aiPanelOverlayMoveOverlay": "Move overlay",
+  "aiPanelOverlayResizeOverlay": "Resize overlay",
+  "aiPanelOverlaySwitchToSidebar": "Switch to sidebar mode",
+  "aiPanelOverlayToggleMode": "Toggle overlay/sidebar mode",
+  "aiPanelOverlay_aiPanelShortcuts": "AI panel shortcuts",
+  "aiSettingsDisclosureTitle": "About AI Features",
+  "aiSettingsDisclosureBody": "AI features require your own API Key. All AI requests are sent directly from your device to the AI service provider you choose. DbMaster does not collect your data or relay requests through our servers.",
+  "exportConnectionsTitle": "Exporter les connexions",
+  "@exportConnectionsTitle": {
+    "description": "Title for export connections dialog"
+  },
+  "importConnectionsTitle": "Importer les connexions",
+  "@importConnectionsTitle": {
+    "description": "Title for import connections dialog"
+  },
+  "exportConnectionsCount": "Connexions à exporter",
+  "@exportConnectionsCount": {
+    "description": "Label showing number of connections to export"
+  },
+  "exportPasswordHint": "Mot de passe de sauvegarde",
+  "@exportPasswordHint": {
+    "description": "Hint for export password field"
+  },
+  "confirmExportPasswordHint": "Confirmer le mot de passe de sauvegarde",
+  "@confirmExportPasswordHint": {
+    "description": "Hint for confirm export password field"
+  },
+  "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
+  "@passwordsDoNotMatch": {
+    "description": "Error shown when export password confirmation does not match"
+  },
+  "importPasswordHint": "Mot de passe de sauvegarde",
+  "@importPasswordHint": {
+    "description": "Hint for import password field"
+  },
+  "selectExportFile": "Enregistrer dans un fichier",
+  "@selectExportFile": {
+    "description": "Button to select export file location"
+  },
+  "selectImportFile": "Sélectionner le fichier de sauvegarde",
+  "@selectImportFile": {
+    "description": "Button to select import file"
+  },
+  "selectImportFileFailed": "Échec de la sélection du fichier : {error}",
+  "@selectImportFileFailed": {
+    "description": "Error shown when import file picker fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "conflictStrategyLabel": "Si le nom de connexion existe déjà",
+  "@conflictStrategyLabel": {
+    "description": "Label for conflict strategy dropdown"
+  },
+  "conflictStrategySkip": "Ignorer",
+  "@conflictStrategySkip": {
+    "description": "Skip duplicate connections"
+  },
+  "conflictStrategyRename": "Renommer",
+  "@conflictStrategyRename": {
+    "description": "Rename imported duplicate connections"
+  },
+  "conflictStrategyOverwrite": "Écraser",
+  "@conflictStrategyOverwrite": {
+    "description": "Overwrite existing duplicate connections"
+  },
+  "exportSuccess": "Connexions exportées avec succès",
+  "@exportSuccess": {
+    "description": "Snackbar message after successful export"
+  },
+  "importSuccess": "Connexions importées avec succès",
+  "@importSuccess": {
+    "description": "Snackbar message after successful import"
+  },
+  "invalidPassword": "Mot de passe invalide",
+  "@invalidPassword": {
+    "description": "Error when import password is wrong"
+  },
+  "invalidFile": "Fichier de sauvegarde invalide ou corrompu",
+  "@invalidFile": {
+    "description": "Error when import file is invalid"
+  },
+  "noConnectionsToExport": "Aucune connexion à exporter",
+  "@noConnectionsToExport": {
+    "description": "Message when no connections are available to export"
+  },
+  "exportThisConnection": "Exporter cette connexion",
+  "@exportThisConnection": {
+    "description": "Context menu item to export single connection"
+  },
+  "commandCategoryTools": "Outils",
+  "@commandCategoryTools": {
+    "description": "Command palette category for tools"
+  },
+  "passwordRequiredTitle": "Mot de passe requis",
+  "@passwordRequiredTitle": {
+    "description": "Dialog title when password is required to connect"
+  },
+  "passwordRequiredMessage": "Entrez le mot de passe pour {serverName} pour vous connecter",
+  "@passwordRequiredMessage": {
+    "description": "Dialog message when password is required, {serverName} is the connection name",
+    "placeholders": {
+      "serverName": {
+        "type": "String"
+      }
+    }
+  },
+  "connectionConnectNoPassword": "Se connecter sans mot de passe",
+  "embeddedRequiresRemoteServer": "Serveur distant uniquement",
+  "serverSessionExpiredTitle": "Session expirée",
+  "serverSessionExpiredMessage": "Votre session serveur a expiré ou a été révoquée. Veuillez vous reconnecter.",
+  "serverSessionRelogin": "Se reconnecter",
+  "serverReconnectLastSession": "Revenir au dernier serveur",
+  "serverReconnectFailed": "La session enregistrée n'est plus valide. Veuillez vous reconnecter.",
+  "viewMenuTitle": "View",
+  "viewMenuToggleSidebar": "Sidebar",
+  "viewMenuToggleAiPanel": "AI Panel",
+  "viewMenuToggleBottomPanel": "Bottom Panel",
+  "viewMenuExpandWorkspace": "Expand Workspace",
+  "viewMenuLayoutPresets": "Layout Presets",
+  "viewMenuLayoutPresetDefault": "Default",
+  "viewMenuLayoutPresetExpand": "Expand Workspace",
+  "expandWorkspaceEnabled": "Expand Workspace",
+  "expandWorkspaceDisabled": "Exit Expand Workspace",
+  "bottomPanelTabResults": "Results",
+  "bottomPanelTabLogs": "Logs",
+  "bottomPanelTabHistory": "Historique",
+  "bottomPanelTabTasks": "Tâches",
+  "dmlCriticalTitle": "Opération Critique",
+  "dmlHighWarningTitle": "Opération à Haut Risque",
+  "dmlHighWarningBody": "Cette opération affectera toutes les lignes correspondantes. Envisagez d'ajouter une clause LIMIT.",
+  "dmlAddLimit": "Ajouter LIMIT",
+  "dmlConfirmExecute": "Confirmer l'exécution",
+  "dmlRiskSummary": "Résumé des risques",
+  "dmlStatementsToExecute": "Instructions à exécuter :",
+  "dmlEstimatedAffectedRows": "Lignes affectées estimées : {count}",
+  "dmlSqlInjectionDetail": "Injection SQL : {details}",
+  "dmlTriggerDeleteWithoutWhere": "DELETE sans clause WHERE",
+  "dmlTriggerUpdateWithoutWhere": "UPDATE sans clause WHERE",
+  "dmlTriggerDropTable": "Opération DROP TABLE",
+  "dmlTriggerDropDatabase": "Opération DROP DATABASE",
+  "dmlTriggerTruncateTable": "Opération TRUNCATE TABLE",
+  "dmlTriggerDmlWithoutLimit": "DML sans clause LIMIT",
+  "dmlTriggerAlterDropColumn": "ALTER TABLE DROP COLUMN",
+  "dmlTriggerSqlInjection": "Modèle d'injection SQL détecté",
+  "dropTableDeleteConfirmBody": "Voulez-vous vraiment supprimer la table \"{tableName}\" ?",
+  "dropTableDeleteImpact": "Cette opération est irréversible. Toutes les données de la table seront définitivement supprimées.",
+  "dropTableCheckingDependencies": "Vérification des dépendances...",
+  "dropTableDependencyWarning": "Avertissement de dépendance",
+  "connectionReadOnlyMode": "Mode lecture seule",
+  "connectionReadOnlyModeDesc": "Interdire les opérations INSERT/UPDATE/DELETE/DDL",
+  "connectionSshHost": "Hôte SSH",
+  "connectionSshUsername": "Nom d'utilisateur SSH",
+  "connectionSshPassword": "Mot de passe SSH",
+  "connSshHostRequired": "L'hôte SSH est requis",
+  "commonNavigate": "Naviguer",
+  "resultsSqlStatementLabel": "Instruction SQL :",
+  "resultsExecutionSuccess": "Exécution réussie",
+  "resultsAffectedRows": "{count} lignes affectées",
+  "resultsElapsedMs": "Durée : {ms} ms",
+  "resultsFilterConditions": "Filtre : {count} conditions",
+  "resultsShowingRows": "{filtered} / {total} lignes affichées",
+  "resultsClearFilter": "Effacer les filtres",
+  "resultsNoDataGuidance": "Écrivez une requête dans l'éditeur et appuyez sur Ctrl+Entrée (ou F5) pour l'exécuter",
+  "queryHistoryEmptyHint": "Exécutez une requête avec Ctrl+Entrée ou F5 — elle apparaîtra ici automatiquement",
+  "safetyExplainWarning": "Avertissement de performance",
+  "safetyExplainFullScan": "Analyse complète de table détectée. Estimation de {rows} lignes.",
+  "safetyExecuteAnyway": "Exécuter quand même",
+  "safetyCancelAndOptimize": "Annuler et voir le plan d'exécution",
+  "safetyPreflightTimeout": "Vérification préliminaire expirée. Analyse de performance ignorée.",
+  "dmlAuditBlocked": "Opération DML bloquée",
+  "processListKillQuery": "Kill Query",
+  "processListKillConfirmTitle": "Kill Process",
+  "processListKillConfirm": "Kill connection {id} ({user}@{host})?",
+  "@processListKillConfirm": {
+    "placeholders": {
+      "id": {"type": "String"},
+      "user": {"type": "String"},
+      "host": {"type": "String"}
+    }
+  },
+  "processListCopyQuery": "Copy Query",
+  "processListAutoRefresh": "Auto-refresh",
+  "processListRefreshInterval": "Refresh interval",
+  "processManagerTitle": "Gestionnaire de processus",
+  "@processManagerTitle": {"description": "C15 process manager dialog title (Kill Query entry)"},
+  "processListNoProcesses": "No active processes",
+  "processListNoQueryText": "Aucun texte de requête",
+  "engineStatusTitle": "Engine Status",
+  "engineInnodbStatus": "InnoDB Status",
+  "engineRowFormat": "Row Format",
+  "engineCompression": "Compression",
+  "engineTablespace": "Tablespace",
+  "replicationRunning": "Replication: Running",
+  "replicationStopped": "Replication: Stopped",
+  "replicationLag": "Lag: {seconds}s",
+  "@replicationLag": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "replicationNotConfigured": "Replication not configured",
+  "replicationDetailTitle": "Replication Status",
+  "replicationIoThread": "IO Thread",
+  "replicationSqlThread": "SQL Thread",
+  "mongoNodeReplication": "Réplication",
+  "mongoNodeSharding": "Sharding",
+  "mongoValidationRules": "Règles de validation",
+  "mongoReplicationStandalone": "Autonome - ne fait pas partie d'un réplica set",
+  "mongoShardingNotSharded": "Pas un cluster sharding",
+  "mongoValidationNoRules": "Aucune règle de validation",
+  "resultColumnTruncated": "La valeur peut être tronquée (type d'objet volumineux)",
+  "dorisUpdateGuardMessage": "Les tables Doris en modèle Duplicate/Aggregate ne prennent pas en charge UPDATE ; seuls les modèles Unique/Primary Key le font.",
+  "dorisTableModelLabel": "Modèle de table",
+  "dorisModelDuplicate": "Duplicate",
+  "dorisModelUnique": "Unique",
+  "dorisModelPrimaryKey": "Primary Key",
+  "dorisHashColumnLabel": "Colonne de hachage",
+  "dorisBucketsLabel": "Buckets",
+  "dorisModelNeedsKeyColumn": "Ce modèle nécessite au moins une colonne clé (cochez Primary Key sur une colonne)",
+  "dorisAggregateFunctionLabel": "Fonction d'agrégation",
+  "dorisModelAggregate": "Aggregate",
+  "dorisPartitionColumn": "Colonne de partition",
+  "dorisPartitionName": "Nom de partition",
+  "dorisPartitionLessThan": "Valeurs inférieures à",
+  "dorisAddPartition": "Ajouter une partition",
+  "offlineLicenseTitle": "Licence hors ligne",
+  "offlineLicensePurchaseHint": "Pour passer à Pro : scannez le code de paiement sur notre page GitHub/Gitee, puis envoyez votre code machine et la capture du paiement à l'auteur. Vous recevrez une licence à importer ci-dessous.",
+  "machineCodeLabel": "Code machine",
+  "machineCodeUnavailable": "Impossible de lire le code machine sur cet appareil",
+  "importLicense": "Importer une licence",
+  "importLicenseHint": "Collez la chaîne de licence ou choisissez un fichier .dbmlicense",
+  "buyLicense": "Acheter une licence",
+  "machineCodeCopied": "Code machine copié dans le presse-papiers",
+  "licenseFilePick": "Choisir un fichier",
+  "licenseTypeYearly": "Abonnement annuel",
+  "licenseTypeLifetime": "À vie",
+  "licenseExpiresAt": "Expire : {date}",
+  "removeLicense": "Retirer la licence",
+  "licenseImportSuccess": "Licence activée — fonctionnalités Pro débloquées",
+  "licenseErrorInvalid": "Format de licence invalide",
+  "licenseErrorSignature": "Échec de la vérification de la signature",
+  "licenseErrorMachine": "Cette licence est liée à une autre machine",
+  "licenseErrorExpired": "Cette licence a expiré",
+  "licenseErrorNoMachine": "Code machine illisible ; licence hors ligne indisponible sur cet appareil",
+  "licenseActiveInfo": "Licencié à {email}",
+  "errorCopy": "Copier",
+  "errorCopied": "Copié",
+  "errorAnalyzeWithAi": "Analyser avec l'IA",
+  "trialRemaining": "{count} essais restants pour {feature}",
+  "trialUsedUp": "Essai {feature} épuisé",
+  "centerTitle": "Centre d'exécution",
+  "centerTabTasks": "Tâches",
+  "centerTabErrors": "Erreurs",
+  "centerClearErrors": "Effacer les erreurs",
+  "centerDismissError": "Masquer",
+  "aiPromptErrorHeader": "Diagnostiquez cette erreur de base de données : expliquez la cause et proposez une correction.",
+  "commonUndo": "Annuler",
+  "commonDeleteWithCount": "Supprimer ({count})",
+  "aiPanelSessionsDeletedCount": "{count} conversations supprimées",
+  "aiPanelSessionDeleted": "« {title} » supprimée",
+  "aiPanelSelectDatabaseRequired": "Veuillez d'abord sélectionner une base de données dans la liste déroulante ci-dessus.",
+  "aiPanelMongoExecutionPlan": "🔍 Plan d'exécution Mongo",
+  "aiPanelSelectSessions": "Sélectionner les sessions",
+  "aiPanelExportTaskCreated": "Tâche d'export créée avec succès",
+  "aiPanelDdlOperationCancelled": "Opération DDL annulée par l'utilisateur.",
+  "aiAssistantOpenTooltip": "Ouvrir l'assistant IA",
+  "schemaImpactRiskLow": "Risque faible",
+  "schemaImpactRiskMedium": "Risque moyen",
+  "schemaImpactRiskHigh": "Risque élevé",
+  "schemaImpactRiskCritical": "Risque critique",
+  "schemaImpactTitle": "Analyse d'impact sur la structure",
+  "schemaImpactSubtitle": "{type} sur `{table}`",
+  "schemaImpactDataLossWarning": "Risque de perte de données : cette opération supprimera définitivement les données.",
+  "schemaImpactAffectedObjects": "Objets affectés ({count})",
+  "schemaImpactWarnings": "Avertissements ({count})",
+  "schemaImpactRecommendations": "Recommandations",
+  "schemaImpactHideRollbackScript": "Masquer le script de restauration",
+  "schemaImpactShowRollbackScript": "Afficher le script de restauration",
+  "schemaImpactNoRollbackAvailable": "Aucune restauration disponible",
+  "schemaImpactRollbackCaveat": "Le rollback auto-généré est une ébauche best-effort - les types de colonnes et contraintes peuvent être inexacts. Vérifiez avant l'exécution ; les données ne peuvent pas être récupérées automatiquement.",
+  "schemaImpactBackupRequired": "Sauvegarde des données requise avant la restauration",
+  "schemaImpactConfirmationRequired": "Cette opération requiert votre confirmation explicite avant exécution.",
+  "ddlConfirmDialogTitle": "Confirmation DDL requise",
+  "ddlAffectedObjectsCount": "Objets affectés ({count})",
+  "ddlExecuteButton": "Exécuter le DDL",
+  "ddlSqlStatementLabel": "Instruction SQL :",
+  "ddlRiskLevelLabel": "Niveau de risque : {level}",
+  "ddlDataLossRiskDetected": "Risque de perte de données détecté",
+  "ddlWarningsCount": "Avertissements ({count})",
+  "ddlTypeConfirmationToProceed": "Saisir la confirmation pour continuer",
+  "ddlTypeToConfirmDestructive": "Saisissez « {token} » pour confirmer cette opération destructive :",
+  "commonUnknown": "Inconnu",
+  "commonDismiss": "Fermer",
+  "readOnlyModeBlocked": "Cette connexion est en mode lecture seule ; les opérations d'écriture sont désactivées.",
+  "dlgFillVariables": "Renseigner les variables",
+  "dlgVariableRequired": "Veuillez saisir {variable}",
+  "dlgEditTrigger": "Modifier le trigger",
+  "dlgCreateTrigger": "Créer un trigger",
+  "triggerLoadTablesFailed": "Échec du chargement des tables : {error}",
+  "triggerSelectTableRequired": "Veuillez sélectionner une table",
+  "triggerSelectEventRequired": "Veuillez sélectionner au moins un événement",
+  "triggerUpdated": "Trigger mis à jour avec succès",
+  "triggerCreated": "Trigger créé avec succès",
+  "triggerSaveFailed": "Échec de l'enregistrement du trigger : {error}",
+  "triggerNameLabel": "Nom du trigger",
+  "triggerNameRequired": "Le nom du trigger est requis",
+  "triggerNameInvalid": "Format de nom de trigger invalide",
+  "triggerTimingLabel": "Timing",
+  "triggerEventLabel": "Événement",
+  "triggerTableLabel": "Table",
+  "triggerSelectTableHint": "Sélectionner une table",
+  "triggerBodyLabel": "Corps du trigger",
+  "triggerBodyHint": "Saisissez le corps du trigger (instructions SQL)\nExemple :\nSET NEW.updated_at = NOW();",
+  "triggerCount": "{count} triggers",
+  "dlgExecutionResult": "Résultat de l'exécution",
+  "dlgExecuteRoutine": "Exécuter {type}",
+  "dlgRoutineName": "Nom : {name}",
+  "dlgRoutineType": "Type : {type}",
+  "dlgRoutineReturnType": "Type de retour : {type}",
+  "dlgParameters": "Paramètres",
+  "dlgRoutineNoParams": "Cette procédure/fonction ne nécessite aucun paramètre",
+  "dlgOutputParam": "Paramètre de sortie",
+  "dlgReturnValueLabel": "Valeur de retour :",
+  "dlgRowsAffected": "Lignes affectées : {count}",
+  "dlgEditRoutine": "Modifier {type}",
+  "routineParameterCount": "{count, plural, =0{Aucun paramètre} =1{1 paramètre} other{{count} paramètres}}",
+  "@routineParameterCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "routineDeleteConfirmation": "Supprimer {type} \"{name}\" ?",
+  "routineListTitle": "Procédures & Fonctions",
+  "routineDefinitionTitle": "Définition {type}",
+  "queryExecutionPlan": "Plan d'exécution de requête",
+  "dlgCreateRoutine": "Créer {type}",
+  "dlgNameRequired": "Le nom est requis",
+  "dlgRoutineNameInvalid": "Le nom ne peut contenir que des lettres, des chiffres et des underscores, et ne peut pas commencer par un chiffre",
+  "dlgReturnTypeRequired": "Veuillez sélectionner un type de retour",
+  "dlgSqlCode": "Code SQL",
+  "dlgRoutineProcedure": "Procédure stockée",
+  "dlgRoutineFunction": "Fonction",
+  "commonUpdate": "Mettre à jour",
+  "commonCreate": "Créer",
+  "auditLogTitle": "Journal d'audit des requêtes",
+  "auditLogAllStatus": "Tous les statuts",
+  "auditLogAll": "Tous",
+  "auditLogTime": "Heure",
+  "auditLogDuration": "Durée",
+  "auditLogRows": "Lignes",
+  "auditLogStatus": "Statut",
+  "auditLogEmpty": "Aucun journal d'audit pour le moment",
+  "auditLogEmptyHint": "Exécutez des requêtes pour commencer à enregistrer des journaux",
+  "auditLogTotal": "Total",
+  "auditLogWrite": "Écriture",
+  "auditLogAvgTime": "Temps moyen",
+  "auditLogClearTitle": "Effacer les journaux d'audit",
+  "auditLogClearConfirm": "Voulez-vous vraiment effacer tous les journaux d'audit ? Cette action est irréversible.",
+  "auditLogClear": "Effacer",
+  "piiMaskingTitle": "Masquage des données PII",
+  "piiMaskingEnable": "Activer le masquage PII",
+  "piiMaskingEnableDesc": "Masquer automatiquement les données sensibles dans les résultats de requête",
+  "piiMaskingTypes": "Types de données sensibles",
+  "piiTypeEmail": "Adresses e-mail",
+  "piiTypePhone": "Numéros de téléphone",
+  "piiTypeIdCard": "Cartes d'identité",
+  "piiTypeCreditCard": "Cartes de crédit",
+  "piiTypeBankCard": "Comptes bancaires",
+  "piiTypePassword": "Mots de passe",
+  "piiTypeIpAddress": "Adresses IP",
+  "shortcutNoMatching": "Aucun raccourci correspondant",
+  "shortcutPressEscToClose": "Appuyez sur ÉCHAP pour fermer",
+  "indexTypePrimary": "Primaire",
+  "performanceAnalyzerWeeklyReportTitle": "Rapports hebdomadaires de requêtes lentes",
+  "performanceAnalyzerWeeklyReportDesc": "Recevez chaque lundi le top 10 des requêtes lentes avec analyse EXPLAIN",
+  "performanceAnalyzerLearnMore": "En savoir plus",
+  "backupListLoading": "Chargement de la liste des sauvegardes...",
+  "dbPropertiesTitle": "Propriétés de la base de données - {name}",
+  "dbPropertyName": "Nom",
+  "dbPropertyCharset": "Jeu de caractères",
+  "dbPropertyCollation": "Collation",
+  "dbPropertySize": "Taille",
+  "dbPropertyTableCount": "Tables",
+  "dbPropertyViewCount": "Vues",
+  "dbPropertyRoutineCount": "Procédures/Fonctions",
+  "exportFormatLabel": "Format d'export",
+  "exportRowCount": "{count} lignes au total",
+  "taskCreateExportFilter": "Filtre",
+  "taskCreateExportEstRows": "Lignes estimées",
+  "taskCreateExportValidating": "Validation...",
+  "taskCreateExportSaveDialogTitle": "Sélectionner l'emplacement d'enregistrement du fichier d'export",
+  "taskValidationPathNotExists": "Le répertoire n'existe pas : {path}",
+  "taskCreateExportDesc": "Exporter {table}",
+  "taskCreateExportDescFiltered": "Exporter {table} (filtré)",
+  "sqliteConnectionEditTitle": "Modifier la connexion SQLite",
+  "sqliteConnectionNewTitle": "Nouvelle connexion SQLite",
+  "createSuperTableTitle": "Créer une supertable",
+    "importWizardTitle": "Assistant d'import de données",
+  "dbCreateSuccess": "Base de données « {name} » créée avec succès",
+  "dbCreateFailed": "Échec de la création de la base de données",
+  "dbCreateError": "Erreur : {error}",
+  "dbOperationCannotBeUndone": "Cette opération est irréversible !",
+  "dropTablePermanentWarning": "La table « {table} » et toutes ses données seront définitivement supprimées.",
+  "dropTableDataLossWarning": "Cette opération est irréversible ! Toutes les données de cette table seront définitivement perdues.",
+  "objectTypeTable": "table",
+  "objectTypeView": "vue",
+  "commonRemove": "Retirer",
+  "commonRequired": "Requis",
+  "commonInvalidIdentifier": "Identifiant invalide",
+  "mongoValidationJsonObject": "Le JSON doit être un objet",
+  "mongoValidationInvalidJson": "JSON invalide : {error}",
+  "settingsAutoLimitEnabledDesc": "Ajouter automatiquement LIMIT aux requêtes SELECT",
+  "sqliteConnectionInfo": "Informations de connexion",
+  "sqliteNameHint": "Ma base SQLite",
+  "connectionDirNotExists": "Le répertoire n'existe pas",
+  "indexSelectColumnRequired": "Veuillez sélectionner au moins une colonne",
+  "indexCreateFailed": "Échec de la création de l'index : {error}",
+  "indexUpdateFailed": "Échec de la mise à jour de l'index : {error}",
+  "indexNameRequired": "Le nom de l'index est requis",
+  "superTableTags": "Tags",
+  "superTableCreated": "Supertable créée avec succès",
+  "redisLibNameCodeRequired": "Le nom de la bibliothèque et le code sont requis",
+  "redisAdapterNotAvailable": "Adaptateur Redis non disponible",
+  "redisLibraryCreated": "Bibliothèque de fonctions créée avec succès",
+  "redisLibraryCreateFailed": "Échec de la création de la bibliothèque : {error}",
+  "redisLibraryUsageHint": "Utilisé dans #!lua name=<library>",
+  "redisInsertExample": "Insérer un exemple",
+  "redisCreateLibrary": "Créer la bibliothèque",
+  "redisKeyLoadFailed": "Échec du chargement des données de la clé : {error}",
+  "redisKeyUpdated": "Clé mise à jour avec succès",
+  "redisKeySaveFailed": "Échec de l'enregistrement de la clé : {error}",
+  "redisKeySaveChanges": "Enregistrer les modifications",
+  "serverConnectTitle": "Se connecter au serveur",
+  "serverConnectUrl": "URL du serveur",
+  "serverUrlRequired": "L'URL du serveur est requise",
+  "serverUrlInvalid": "URL invalide (ex. https://myserver:3000)",
+  "serverConnectEmail": "E-mail",
+  "serverEmailRequired": "L'e-mail est requis",
+  "serverEmailInvalid": "E-mail invalide",
+  "serverPasswordRequired": "Le mot de passe est requis",
+  "mongoValidationFixErrors": "Veuillez corriger les erreurs JSON avant d'appliquer",
+  "mongoValidationApplied": "Règles de validation appliquées avec succès",
+  "mongoValidationRemoved": "Règles de validation supprimées",
+  "mongoValidationLevel": "Niveau de validation",
+  "mongoValidationAction": "Action de validation",
+  "mongoValidationApplyFailed": "Échec de l'application des règles de validation : {error}",
+  "indexSelectColumns": "Sélectionner les colonnes",
+  "redisLibraryTitle": "Créer une bibliothèque de fonctions",
+  "redisLibraryNameLabel": "Nom de la bibliothèque",
+  "redisLibraryCreateFailedSyntax": "Échec de la création de la bibliothèque (nécessite Redis 7.0+, vérifiez la syntaxe)",
+  "redisLuaCodeLabel": "Code Lua",
+  "redisReplaceExisting": "Remplacer la bibliothèque existante du même nom (FUNCTION LOAD REPLACE)",
+  "redisLibraryInfoText": "Le nom de la bibliothèque est écrit automatiquement dans le shebang #!lua. Le code Lua doit contenir des appels redis.register_function(). N'écrivez pas le shebang vous-même.",
+  "superTableCreateFailed": "Échec de la création de la supertable",
+  "superTableColumns": "Colonnes",
+
+  "errorTitle": "Une erreur est survenue",
+  "errorDescriptionLabel": "Détails de l'erreur :",
+  "errorStackLabel": "Trace d'exécution :",
+
+  "columnFilterTypeNumeric": "Numérique",
+  "columnFilterTypeDateTime": "Date/Heure",
+  "columnFilterTypeText": "Texte",
+  "columnFilterPlaceholderNumeric": "Entrez un nombre",
+  "columnFilterPlaceholderDateTime": "Entrez une date (ex. 2024-01-01)",
+  "columnFilterPlaceholderText": "Entrez du texte",
+  "columnFilterFor": "Filtre : {columnName}",
+
+  "columnFilterActive": "{count} conditions de filtre actives",
+
+  "columnFilterRowCount": "{filtered} / {total} lignes",
+
+  "filterOpEquals": "égal à",
+  "filterOpNotEquals": "différent de",
+  "filterOpContains": "contient",
+  "filterOpNotContains": "ne contient pas",
+  "filterOpStartsWith": "commence par",
+  "filterOpEndsWith": "se termine par",
+  "filterOpGreaterThan": "supérieur à",
+  "filterOpGreaterThanOrEqual": "supérieur ou égal à",
+  "filterOpLessThan": "inférieur à",
+  "filterOpLessThanOrEqual": "inférieur ou égal à",
+  "filterOpBetween": "entre",
+  "filterOpIsNull": "est null",
+  "filterOpIsNotNull": "n'est pas null",
+  "filterOpIsEmpty": "est vide",
+  "filterOpIsNotEmpty": "n'est pas vide",
+
+  "tableNoData": "Aucune donnée",
+  "tableRowCountTotal": "{count} lignes au total",
+
+  "tableLargeDatasetHint": "(Grand jeu de données, faites défiler pour charger)",
+
+  "tableRowRange": "{start}-{end} / {total} lignes",
+
+  "importWizStepSelectFile": "Sélectionner le fichier",
+  "importWizStepAnalyzeFile": "Analyser le fichier",
+  "importWizStepColumnMapping": "Correspondance des colonnes",
+  "importWizStepPreviewPII": "Aperçu et PII",
+  "importWizStepConfirmImport": "Confirmer l'importation",
+  "importWizStepOf": "Étape {current} sur {total} : {title}",
+  "importWizTargetDatabase": "Base de données cible",
+  "importWizSelectDatabase": "Sélectionner une base de données",
+  "importWizTargetTableOptional": "Table cible (facultatif)",
+  "importWizLetAiInfer": "-- Laisser l'IA déduire le nom de la table --",
+  "importWizChooseFile": "Cliquez pour sélectionner un fichier ou glissez ici",
+  "importWizChangeFile": "Changer de fichier",
+  "importWizSupportedFormats": "Prend en charge les formats CSV, JSON, Excel, TSV",
+  "importWizFileUnknown": "Inconnu",
+  "importWizAiAnalyzing": "L'IA analyse le fichier...",
+  "importWizDetectingFormat": "Détection du format, de l'encodage, des types de champs...",
+  "importWizFileAnalysisResult": "Résultat de l'analyse du fichier",
+  "importWizFormat": "Format",
+  "importWizEncoding": "Encodage",
+  "importWizFieldCount": "Champs",
+  "importWizEstimatedRows": "Lignes est.",
+  "importWizFileSize": "Taille du fichier",
+  "importWizDelimiter": "Délimiteur",
+  "importWizDetectedFields": "Champs détectés",
+  "importWizAiSuggestion": "Suggestion de l'IA",
+  "importWizTargetTableName": "Table cible : {tableName}",
+  "importWizNoAnalysisResult": "Aucun résultat d'analyse",
+  "importWizSelectFileFirst": "Veuillez d'abord sélectionner un fichier",
+  "importWizNoColumnMapping": "Aucune correspondance de colonnes",
+  "importWizGeneratingMapping": "Génération de la correspondance...",
+  "importWizColumnMappingConfig": "Configuration de la correspondance",
+  "importWizColumnsMapped": "{mapped}/{total} colonnes associées",
+  "importWizMappingDescription": "Associez les colonnes du fichier aux colonnes de la table. Sélectionnez \"Ignorer\" pour sauter une colonne.",
+  "importWizFileColumn": "Colonne fichier",
+  "importWizDatabaseColumn": "Colonne base de données",
+  "importWizType": "Type",
+  "importWizPiiDetection": "Détection de données sensibles PII",
+  "importWizPiiDetectionMessage": "Les champs sensibles suivants ont été détectés. Veuillez confirmer si vous souhaitez continuer l'importation :",
+  "importWizPiiAcknowledge": "Je comprends, continuer l'importation",
+  "importWizDataPreview": "Aperçu des données",
+  "importWizWarnings": "{count} avertissements",
+  "importWizFirstRows": "{count} premières lignes",
+  "importWizSensitiveField": "Champ sensible",
+  "importWizDataValidationWarnings": "Avertissements de validation des données",
+  "importWizValidationRowFormat": "Ligne {row}, Col {col} : {msg}",
+  "importWizImportSummary": "Résumé de la configuration d'importation",
+  "importWizSummaryTargetDatabase": "Base de données cible",
+  "importWizSummaryTargetTable": "Table cible",
+  "importWizSummaryFile": "Fichier",
+  "importWizSummaryMappedColumns": "Colonnes associées",
+  "importWizSummaryDataRows": "Lignes de données",
+  "importWizConflictStrategy": "Stratégie de résolution des conflits",
+  "importWizConflictSkip": "Ignorer les doublons",
+  "importWizConflictSkipDesc": "Si une clé en double est trouvée, ignorer la ligne et continuer l'importation",
+  "importWizConflictUpdate": "Mettre à jour les lignes existantes",
+  "importWizConflictUpdateDesc": "Si une clé en double est trouvée, mettre à jour les données existantes",
+  "importWizConflictAbort": "Annuler l'importation",
+  "importWizConflictAbortDesc": "Si une clé en double est trouvée, arrêter immédiatement l'importation",
+  "importWizImporting": "Importation en cours...",
+  "importWizRowsProgress": "{imported}/{total} lignes",
+  "importWizFailedRows": "Échec : {count} lignes",
+  "importWizImportComplete": "Importation terminée !",
+  "importWizImportFailed": "Échec de l'importation",
+  "importWizImportSuccessMsg": "{count} lignes importées avec succès",
+  "importWizImportErrorMsg": "Une erreur est survenue lors de l'importation",
+  "importWizPreviousStep": "Précédent",
+  "importWizClose": "Fermer",
+  "importWizStartImport": "Démarrer l'importation",
+  "importWizNextStep": "Suivant",
+  "importWizReimport": "Réimporter",
+  "importWizLoadDatabasesFailed": "Échec du chargement de la liste des bases de données : {error}",
+  "importWizLoadTablesFailed": "Échec du chargement de la liste des tables : {error}",
+  "importWizPickFileFailed": "Échec de la sélection du fichier : {error}",
+  "importWizAnalysisFailed": "Échec de l'analyse : {error}",
+  "importWizMappingFailed": "Échec de la génération de la correspondance : {error}",
+  "importWizImportFailed": "Échec de l'importation : {error}",
+  "importWizFileAnalysisFailed": "Échec de l'analyse du fichier",
+  "importWizImportFailedGeneric": "Échec de l'importation",
+  "importWizNotSelected": "Non sélectionné",
+  "importWizNotSet": "Non défini",
+  "importWizUnknown": "Inconnu",
+  "importWizPiiDetectionSummary": "Détection PII",
+  "importWizSensitiveFieldCount": "{count} champs sensibles",
+
+  "smartImportAnalyzingDetail": "L'IA identifie les types de champs et génère l'instruction CREATE TABLE",
+  "smartImportColumnMapping": "Correspondance des colonnes",
+  "smartImportColumnsMapped": "{mapped}/{total} colonnes associées",
+  "smartImportFileColumn": "Colonne fichier",
+  "smartImportTableColumn": "Colonne table",
+  "smartImportConflictResolution": "Résolution des conflits",
+  "smartImportDataPreview": "Aperçu des données",
+  "smartImportFirstRows": "{count} premières lignes",
+  "smartImportBack": "Retour",
+  "smartImportBackgroundTask": "Importation en arrière-plan",
+  "smartImportFailedToGenerateSql": "-- Échec de la génération de l'instruction CREATE TABLE",
+  "smartImportFileSelected": "Fichier sélectionné : {name}",
+  "smartImportTargetTableSelected": "Table cible sélectionnée : {table}",
+  "smartImportTargetTableEntered": "Table cible saisie : {table}",
+  "smartImportAnalysisFailed": "Échec de l'analyse du fichier : {error}",
+  "smartImportColumnMappingsComplete": "Correspondance terminée : {mapped}/{total} colonnes associées automatiquement",
+  "smartImportPiiDetected": "Détection PII : Champs sensibles trouvés - {types}",
+  "smartImportPiiNone": "Détection PII : Aucun champ sensible trouvé",
+  "smartImportPiiFailed": "Échec de la détection PII : {error}",
+  "smartImportPreviewGenerated": "Aperçu des données généré ({count} lignes)",
+  "smartImportPreviewFailed": "Échec de la génération de l'aperçu : {error}",
+  "smartImportMappingFailed": "Échec de la génération de la correspondance : {error}",
+
+  "importServiceStartImport": "Démarrage de l'importation vers la table \"{table}\"...",
+  "importServiceColumnMapping": "Correspondance : {mapped}/{total} colonnes associées",
+  "importServiceConflictStrategy": "Stratégie de conflit : {strategy}",
+  "importServiceImporting": "Démarrage de l'importation...",
+  "importServiceBatchSuccess": "Lot {batch} : {count} lignes importées avec succès",
+  "importServiceBatchInsertFailed": "Échec de l'importation par lot ({count} lignes), tentative ligne par ligne...",
+  "importServiceUpdateFailed": "Échec de la mise à jour : {error}",
+  "importServiceDataTooLong": "Ligne {row} données trop longues, ignorée",
+  "importServiceRowInsertFailed": "Ligne {row} échec de l'insertion : {error}",
+  "importServiceBatchSkipped": "Lot ignoré : {count} lignes (doublons)",
+  "importServiceBatchUpdated": "Lot mis à jour : {count} lignes",
+  "importServiceBatchFailed": "Lot échoué : {count} lignes",
+  "importServicePhaseProgress": "{imported} lignes importées, {skipped} ignorées, {updated} mises à jour...",
+  "importServiceImportCancelled": "Importation annulée",
+  "importServiceFileReadFailed": "Échec de la lecture du fichier : {error}",
+  "importServiceImportComplete": "Importation terminée ! Succès : {imported} lignes, Échec : {failed} lignes",
+
+  "taskExecutorAnalyzeFile": "Analyse du fichier : {path}",
+  "taskExecutorFileFormat": "Format : {format}, Encodage : {encoding}, Lignes est. : {rows}",
+  "taskExecutorTableNotExists": "La table n'existe pas, création en cours...",
+  "taskExecutorTableCreated": "Table créée avec succès",
+  "taskExecutorTableCreateFailed": "Échec de la création de la table",
+  "taskExecutorTableNotExistsError": "La table cible \"{table}\" n'existe pas. Veuillez d'abord créer la table.",
+  "taskExecutorNoColumnMapping": "Aucune correspondance de colonnes utilisable. Vérifiez que les champs du fichier correspondent aux champs de la table.",
+  "taskExecutorColumnMapping": "Correspondance : {mapped}/{total} colonnes associées",
+  "taskExecutorStartImport": "Démarrage de l'importation...",
+  "taskExecutorImportComplete": "Importation terminée ! Succès : {imported} lignes, Échec : {failed} lignes",
+  "taskExecutorImportFinished": "Importation terminée",
+  "serverConnectNoServerLearnMore": "Don't have a server? Learn more",
+  "touchpointLiteLearnMore": "See how",
+  "touchpointLiteSlowQueryTitle": "Recurring slow queries?",
+  "touchpointLiteSlowQueryDesc": "DbMaster Server can track these automatically and alert you on schedule.",
+  "touchpointLiteSchemaDiffTitle": "Repeat schema comparisons?",
+  "touchpointLiteSchemaDiffDesc": "DbMaster Server can run this on a schedule, retry on failure, and send Feishu/DingTalk alerts.",
+  "touchpointLiteDataSyncTitle": "Tired of running this manually?",
+  "touchpointLiteDataSyncDesc": "DbMaster Server can automate this sync with retries and team notifications.",
+  "viewModeTable": "Tableau",
+  "viewModeChart": "Graphique",
+  "viewModeCard": "Carte",
+  "viewModeDocument": "Documents",
+  "viewModeJsonTree": "Arborescence JSON",
+  "viewModeKeyValue": "Clé-Valeur",
+  "documentExpand": "Déplier",
+  "documentCollapse": "Replier",
+  "documentExpandMore": "Déplier {count} champs de plus",
+  "jsonTreeItemCount": "{count} éléments",
+  "keyValueField": "Champ",
+  "keyValueValue": "Valeur",
+  "keyValueFieldLabel": "Champ : {field}",
+  "keyValueLengthLabel": "Longueur : {length} caractères",
+  "chartViewComingSoon": "Vue graphique (bientôt)",
+  "chartExportSuccess": "Graphique enregistré sous {path}",
+  "@chartExportSuccess": {"placeholders": {"path": {"type": "String"}}},
+  "chartExportFailed": "Échec de l'export du graphique : {error}",
+  "@chartExportFailed": {"placeholders": {"error": {"type": "String"}}},
+  "chartSamplingNotice": "Grand jeu de données : {count} points échantillonnés",
+  "@chartSamplingNotice": {"placeholders": {"count": {"type": "int"}}},
+  "chartAiTrend": "Analyse de tendance IA",
+  "chartTypeLine": "Ligne",
+  "chartTypeBar": "Barre",
+  "chartTypePie": "Camembert",
+  "chartTypeScatter": "Nuage",
+  "chartXAxis": "Axe X",
+  "chartYAxis": "Axe Y",
+  "statisticsPanelTitle": "Statistiques",
+  "exportStepBack": "Précédent",
+  "exportStepNext": "Suivant",
+  "noJsonDataToSample": "Aucune donnée à échantillonner",
+  "noLeafNodes": "Aucun champ extractible",
+  "fieldNotInAllRows": "absent de certaines lignes",
+  "commonRetry": "Reessayer",
+  "extensionNoAdapter": "Pas d'adaptateur",
+  "extensionNotPostgres": "Pas une connexion PostgreSQL",
+  "extensionLoadFailed": "Echec du chargement des membres",
+  "extensionTypes": "Types",
+  "extensionFunctions": "Fonctions",
+  "extensionOperators": "Operateurs",
+  "extensionSchema": "Schema",
+  "extensionDescription": "Description",
+  "vectorLoadFailed": "Echec du chargement des index vectoriels",
+  "vectorNoAdapter": "Pas d'adaptateur",
+  "vectorNoIndexes": "Aucun index vectoriel defini",
+  "jsonInvalidJson": "JSON invalide",
+  "jsonNoMatches": "Aucune correspondance",
+  "jsonSearchHint": "Rechercher cles ou valeurs..."
+,
+  "mcpTokensMenuLabel": "Jetons MCP",
+  "@mcpTokensMenuLabel": {"type": "text"},
+  "mcpTokensTitle": "Jetons MCP",
+  "@mcpTokensTitle": {"type": "text"},
+  "mcpTokensIntro": "Jetons durables pour les clients IA (Claude Code, Cursor). Collez-en un comme Bearer token dans la configuration MCP du client ; révocable à tout moment.",
+  "@mcpTokensIntro": {"type": "text"},
+  "mcpTokensNotConnected": "Connectez-vous à un serveur DbMaster pour gérer les jetons MCP.",
+  "@mcpTokensNotConnected": {"type": "text"},
+  "mcpTokensEmpty": "Aucun jeton pour l'instant. Créez-en un pour votre client IA.",
+  "@mcpTokensEmpty": {"type": "text"},
+  "mcpTokensNameHint": "Nom du jeton (ex. claude-code-mac)",
+  "@mcpTokensNameHint": {"type": "text"},
+  "mcpTokensCreate": "Créer",
+  "@mcpTokensCreate": {"type": "text"},
+  "mcpTokensOnceTitle": "Jeton « {name} » créé",
+  "@mcpTokensOnceTitle": {"placeholders": {"name": {"type": "String"}}},
+  "mcpTokensOnceWarning": "Copiez-le maintenant — pour des raisons de sécurité, il ne sera plus jamais affiché. Utilisez-le comme Bearer token dans la configuration de votre client MCP (ex. mcp.json).",
+  "@mcpTokensOnceWarning": {"type": "text"},
+  "mcpTokensCopy": "Copier",
+  "@mcpTokensCopy": {"type": "text"},
+  "mcpTokensCopied": "Jeton copié dans le presse-papiers",
+  "@mcpTokensCopied": {"type": "text"},
+  "mcpTokensDone": "Terminé",
+  "@mcpTokensDone": {"type": "text"},
+  "mcpTokensLastUsed": "Dernière utilisation : {value}",
+  "@mcpTokensLastUsed": {"placeholders": {"value": {"type": "String"}}},
+  "mcpTokensNeverUsed": "jamais",
+  "@mcpTokensNeverUsed": {"type": "text"},
+  "mcpTokensRevoke": "Révoquer",
+  "@mcpTokensRevoke": {"type": "text"},
+  "mcpTokensRevokeTitle": "Révoquer ce jeton ?",
+  "@mcpTokensRevokeTitle": {"type": "text"},
+  "mcpTokensRevokeBody": "Les clients utilisant « {name} » ({prefix}…) cesseront immédiatement de fonctionner. Action irréversible.",
+  "@mcpTokensRevokeBody": {"placeholders": {"name": {"type": "String"}, "prefix": {"type": "String"}}},
+
+  "serverConnectionsMenuLabel": "Connexions du serveur",
+  "@serverConnectionsMenuLabel": {"type": "text"},
+  "serverConnectionsTitle": "Connexions du serveur",
+  "@serverConnectionsTitle": {"type": "text"},
+  "serverConnectionsIntro": "Connexions de base de données enregistrées sur le serveur. La synchronisation de données, les contrôles de santé et les approbations DDL s'exécutent sur celles-ci ; la barre latérale du bureau est distincte.",
+  "@serverConnectionsIntro": {"type": "text"},
+  "serverConnectionsNotConnected": "Non connecté à un serveur.",
+  "@serverConnectionsNotConnected": {"type": "text"},
+  "serverConnectionsEmpty": "Aucune connexion serveur pour le moment. Ajoutez-en une pour que les tâches de synchronisation / contrôle de santé / approbation aient une base de données.",
+  "@serverConnectionsEmpty": {"type": "text"},
+  "serverConnectionsAdd": "Ajouter",
+  "@serverConnectionsAdd": {"type": "text"},
+  "serverConnectionsEdit": "Modifier",
+  "@serverConnectionsEdit": {"type": "text"},
+  "serverConnectionsDelete": "Supprimer",
+  "@serverConnectionsDelete": {"type": "text"},
+  "serverConnectionsKindCollab": "collab",
+  "@serverConnectionsKindCollab": {"type": "text"},
+  "serverConnectionsKindSourceDrift": "source drift (lecture seule)",
+  "@serverConnectionsKindSourceDrift": {"type": "text"},
+  "serverConnectionsDeleteTitle": "Supprimer la connexion",
+  "@serverConnectionsDeleteTitle": {"type": "text"},
+  "serverConnectionsDeleteBody": "Supprimer la connexion serveur « {name} » ?",
+  "@serverConnectionsDeleteBody": {"placeholders": {"name": {"type": "String"}}},
+  "serverConnectionsDeleteTaskWarning": "{count} tâche(s) référencent cette connexion et seront supprimées (comme source) ou détachées (comme cible).",
+  "@serverConnectionsDeleteTaskWarning": {"placeholders": {"count": {"type": "num"}}},
+  "serverConnFormCreateTitle": "Ajouter une connexion serveur",
+  "@serverConnFormCreateTitle": {"type": "text"},
+  "serverConnFormEditTitle": "Modifier la connexion serveur",
+  "@serverConnFormEditTitle": {"type": "text"},
+  "serverConnFormName": "Nom",
+  "@serverConnFormName": {"type": "text"},
+  "serverConnFormType": "Type",
+  "@serverConnFormType": {"type": "text"},
+  "serverConnFormHost": "Hôte",
+  "@serverConnFormHost": {"type": "text"},
+  "serverConnFormPort": "Port",
+  "@serverConnFormPort": {"type": "text"},
+  "serverConnFormUsername": "Nom d'utilisateur",
+  "@serverConnFormUsername": {"type": "text"},
+  "serverConnFormPassword": "Mot de passe",
+  "@serverConnFormPassword": {"type": "text"},
+  "serverConnFormPasswordKeepHint": "Laisser vide pour conserver le mot de passe stocké",
+  "@serverConnFormPasswordKeepHint": {"type": "text"},
+  "serverConnFormDatabase": "Base de données par défaut (facultatif)",
+  "@serverConnFormDatabase": {"type": "text"},
+  "serverConnFormSqlitePath": "Chemin du fichier de base de données",
+  "@serverConnFormSqlitePath": {"type": "text"},
+  "serverConnFormSave": "Enregistrer",
+  "@serverConnFormSave": {"type": "text"},
+  "serverConnFormRequired": "Obligatoire",
+  "@serverConnFormRequired": {"type": "text"},
+  "serverConnFormInvalidPort": "Le port doit être un nombre",
+  "@serverConnFormInvalidPort": {"type": "text"},
+  "dataSyncConnectionNotOnServer": "La connexion sélectionnée n'est pas enregistrée sur le serveur. Ajoutez-la d'abord dans « Connexions du serveur », puis réessayez.",
+  "@dataSyncConnectionNotOnServer": {"type": "text"}
+,
+  "connectionFormProvidedBy": "Fourni par {plugin}",
+  "@connectionFormProvidedBy": {
+    "description": "Connection form footer: which plugin provides the current form",
+    "placeholders": {
+      "plugin": {
+        "type": "String"
+      }
+    }
+  },
+  "connectionDbIndex": "Index de base de données",
+  "@connectionDbIndex": {"description": "Redis database index field label"},
+  "connectionAuthDatabase": "Base de données d'authentification",
+  "@connectionAuthDatabase": {"description": "MongoDB authentication database field label"},
+  "connectionRedisAuthNone": "Aucune authentification",
+  "@connectionRedisAuthNone": {"description": "Redis auth mode: no authentication"},
+  "connectionRedisAuthNoneDesc": "Aucune authentification requise",
+  "@connectionRedisAuthNoneDesc": {"description": "Redis auth mode description: no authentication required"},
+  "connectionRedisAuthPasswordOnly": "Mot de passe seul",
+  "@connectionRedisAuthPasswordOnly": {"description": "Redis auth mode: password only"},
+  "connectionRedisAuthPasswordOnlyDesc": "Mot de passe AUTH (Redis < 6.0)",
+  "@connectionRedisAuthPasswordOnlyDesc": {"description": "Redis auth mode description: AUTH password (pre-6.0)"},
+  "connectionRedisAuthUsernamePassword": "Nom d'utilisateur + mot de passe (ACL)",
+  "@connectionRedisAuthUsernamePassword": {"description": "Redis auth mode: username + password (ACL)"},
+  "connectionRedisAuthUsernamePasswordDesc": "AUTH nom d'utilisateur mot de passe (Redis 6.0+ ACL)",
+  "@connectionRedisAuthUsernamePasswordDesc": {"description": "Redis auth mode description: AUTH username password (Redis 6.0+ ACL)"},
+  "connectionSshAuthPassword": "Mot de passe",
+  "@connectionSshAuthPassword": {"description": "SSH auth mode: password"},
+  "connectionSshAuthPrivateKey": "Clé privée",
+  "@connectionSshAuthPrivateKey": {"description": "SSH auth mode: private key"},
+  "sidebarCapabilityTitle": "Capacités",
+  "@sidebarCapabilityTitle": {"description": "C14 sidebar capability menu section title"},
+  "sidebarCapGroupDatabaseObjects": "Objets de base de données",
+  "@sidebarCapGroupDatabaseObjects": {"description": "C14 capability menu group: database objects"},
+  "sidebarCapGroupAdvanced": "Avancé",
+  "@sidebarCapGroupAdvanced": {"description": "C14 capability menu group: advanced"},
+  "redisCapGroupKeyspace": "Espace de clés",
+  "@redisCapGroupKeyspace": {"description": "C17 redis capability menu group: keyspace"},
+  "redisCapWorkbench": "Workbench en ligne de commande",
+  "@redisCapWorkbench": {"description": "C17 redis capability item: CLI workbench panel"},
+  "redisCapPubsub": "Pub/Sub",
+  "@redisCapPubsub": {"description": "C17 redis capability item: pub/sub panel"},
+  "redisCapLua": "Scripts Lua",
+  "@redisCapLua": {"description": "C17 redis capability item: lua scripts panel"},
+  "redisCapPipeline": "Pipeline",
+  "@redisCapPipeline": {"description": "C17 redis capability item: pipeline panel"},
+  "redisCapTransaction": "Transaction",
+  "@redisCapTransaction": {"description": "C17 redis capability item: MULTI-EXEC transaction panel"},
+  "redisCapMemoryAnalysis": "Analyse mémoire",
+  "@redisCapMemoryAnalysis": {"description": "C17 redis capability item: memory analysis panel"},
+  "redisCapKeyspaceNotifications": "Notifications d'espace de clés",
+  "@redisCapKeyspaceNotifications": {"description": "C17 redis capability item: keyspace notifications panel"},
+  "redisCapAcl": "Gestion des ACL",
+  "@redisCapAcl": {"description": "C17 redis capability item: ACL management panel"},
+  "redisCapConfig": "Modifier la configuration",
+  "@redisCapConfig": {"description": "C17 redis capability item: CONFIG SET edit dialog"},
+  "mongoValidationTitle": "Règles de validation",
+  "@mongoValidationTitle": {"description": "C17 mongo collection validation rules viewer title"},
+  "mongoValidationNoValidator": "Cette collection n'a aucune règle de validation configurée (à ajouter via collMod ou le shell MongoDB).",
+  "@mongoValidationNoValidator": {"description": "C17 mongo validation viewer: no validator state"},
+  "mongoValidationLevel": "Niveau de validation",
+  "@mongoValidationLevel": {"description": "C17 mongo validation viewer row: validationLevel"},
+  "mongoValidationAction": "Action de validation",
+  "@mongoValidationAction": {"description": "C17 mongo validation viewer row: validationAction"},
+  "mongoValidationLoadFailed": "Échec du chargement des règles de validation : {error}",
+  "@mongoValidationLoadFailed": {"description": "C17 mongo validation viewer load failure", "placeholders": {"error": {"type": "String"}}},
+  "sidebarDocumentInserted": "Document inséré dans {collection}",
+  "@sidebarDocumentInserted": {"description": "C17 snackbar after mongo document insert", "placeholders": {"collection": {"type": "String"}}},
+
+  "aiSkillCatalogTitle": "Compétences",
+  "@aiSkillCatalogTitle": {"description":"C23 skill catalog panel title"},
+  "aiSkillGroupSql": "SQL",
+  "@aiSkillGroupSql": {"description":"C23 skill catalog group: SQL"},
+  "aiSkillGroupData": "Données",
+  "@aiSkillGroupData": {"description":"C23 skill catalog group: data"},
+  "aiSkillGroupSchema": "Schéma",
+  "@aiSkillGroupSchema": {"description":"C23 skill catalog group: schema"},
+  "aiSkillGroupOps": "Ops",
+  "@aiSkillGroupOps": {"description":"C23 skill catalog group: ops"},
+  "aiSkillNl2sqlName": "Langage naturel vers SQL",
+  "@aiSkillNl2sqlName": {"description":"C23 skill: nl2sql display name"},
+  "aiSkillNl2sqlDesc": "Décrivez ce que vous voulez et obtenez du SQL",
+  "@aiSkillNl2sqlDesc": {"description":"C23 skill: nl2sql description"},
+  "aiSkillSqlExplainName": "Explication SQL",
+  "@aiSkillSqlExplainName": {"description":"C23 skill: sql explain display name"},
+  "aiSkillSqlExplainDesc": "Expliquez ce que fait une instruction SQL",
+  "@aiSkillSqlExplainDesc": {"description":"C23 skill: sql explain description"},
+  "aiSkillSqlExplainPrompt": "Expliquez pas à pas ce que fait cette instruction SQL :\n```\n\n```",
+  "@aiSkillSqlExplainPrompt": {"description":"C23 skill: sql explain prompt template"},
+  "aiSkillQueryOptimizerName": "Optimisation de requête",
+  "@aiSkillQueryOptimizerName": {"description":"C23 skill: query optimizer display name"},
+  "aiSkillQueryOptimizerDesc": "Analysez une requête lente et proposez des optimisations",
+  "@aiSkillQueryOptimizerDesc": {"description":"C23 skill: query optimizer description"},
+  "aiSkillQueryOptimizerPrompt": "Analysez les problèmes de performance de cette requête et proposez des optimisations :\n```\n\n```",
+  "@aiSkillQueryOptimizerPrompt": {"description":"C23 skill: query optimizer prompt template"},
+  "aiSkillDataCleaningName": "Conseils de nettoyage de données",
+  "@aiSkillDataCleaningName": {"description":"C23 skill: data cleaning display name"},
+  "aiSkillDataCleaningDesc": "Proposez des étapes pour nettoyer les données sales",
+  "@aiSkillDataCleaningDesc": {"description":"C23 skill: data cleaning description"},
+  "aiSkillDataCleaningPrompt": "Proposez des étapes de nettoyage pour les données sales de ma table. Problèmes connus :",
+  "@aiSkillDataCleaningPrompt": {"description":"C23 skill: data cleaning prompt template"},
+  "aiSkillImportMappingName": "Mapping d’import",
+  "@aiSkillImportMappingName": {"description":"C23 skill: import mapping display name"},
+  "aiSkillImportMappingDesc": "Générez un mapping de colonnes pour l’import de données",
+  "@aiSkillImportMappingDesc": {"description":"C23 skill: import mapping description"},
+  "aiSkillImportMappingPrompt": "Générez un mapping de colonnes (JSON) pour importer le fichier suivant dans la table.\nColonnes source :\nColonnes cible :",
+  "@aiSkillImportMappingPrompt": {"description":"C23 skill: import mapping prompt template"},
+  "aiSkillSchemaAnalysisName": "Analyse de schéma",
+  "@aiSkillSchemaAnalysisName": {"description":"C23 skill: schema analysis display name"},
+  "aiSkillSchemaAnalysisDesc": "Examinez le schéma actuel et signalez les risques",
+  "@aiSkillSchemaAnalysisDesc": {"description":"C23 skill: schema analysis description"},
+  "aiSkillSchemaAnalysisPrompt": "Examinez le schéma de la base actuelle et signalez les risques de conception et les améliorations.",
+  "@aiSkillSchemaAnalysisPrompt": {"description":"C23 skill: schema analysis prompt template"},
+  "aiSkillSchemaDiffName": "Assistant de comparaison de schéma",
+  "@aiSkillSchemaDiffName": {"description":"C23 skill: schema diff display name"},
+  "aiSkillSchemaDiffDesc": "Comparez deux définitions de schéma et produisez un diff",
+  "@aiSkillSchemaDiffDesc": {"description":"C23 skill: schema diff description"},
+  "aiSkillSchemaDiffPrompt": "Comparez les deux définitions de schéma suivantes et produisez un diff unifié :\n<schema-a>\n\n</schema-a>\n<schema-b>\n\n</schema-b>",
+  "@aiSkillSchemaDiffPrompt": {"description":"C23 skill: schema diff prompt template"},
+  "aiSkillIndexSuggestName": "Conseils d’index",
+  "@aiSkillIndexSuggestName": {"description":"C23 skill: index advice display name"},
+  "aiSkillIndexSuggestDesc": "Proposez des index pour une requête ou une table",
+  "@aiSkillIndexSuggestDesc": {"description":"C23 skill: index advice description"},
+  "aiSkillIndexSuggestPrompt": "Proposez des index pour cette requête et justifiez :\n```\n\n```",
+  "@aiSkillIndexSuggestPrompt": {"description":"C23 skill: index advice prompt template"},
+  "aiSkillErrorDiagnosisName": "Diagnostic d’erreur",
+  "@aiSkillErrorDiagnosisName": {"description":"C23 skill: error diagnosis display name"},
+  "aiSkillErrorDiagnosisDesc": "Diagnostiquez un message d’erreur de base de données",
+  "@aiSkillErrorDiagnosisDesc": {"description":"C23 skill: error diagnosis description"},
+  "aiSkillErrorDiagnosisPrompt": "Diagnostiquez cette erreur de base de données et proposez des correctifs :\n```\n\n```",
+  "@aiSkillErrorDiagnosisPrompt": {"description":"C23 skill: error diagnosis prompt template"},
+  "aiSkillSlowQueryName": "Analyse de requêtes lentes",
+  "@aiSkillSlowQueryName": {"description":"C23 skill: slow query display name"},
+  "aiSkillSlowQueryDesc": "Analysez les entrées du journal de requêtes lentes",
+  "@aiSkillSlowQueryDesc": {"description":"C23 skill: slow query description"},
+  "aiSkillSlowQueryPrompt": "Analysez cette entrée du journal de requêtes lentes et localisez le goulot d’étranglement :\n```\n\n```",
+  "@aiSkillSlowQueryPrompt": {"description":"C23 skill: slow query prompt template"},
+  "aiContextPanelTitle": "Contexte",
+  "@aiContextPanelTitle": {"description":"C23 context panel title"},
+  "aiContextConnectionSection": "Connexion actuelle",
+  "@aiContextConnectionSection": {"description":"C23 context panel section: current connection"},
+  "aiContextDatabaseSection": "Base de données actuelle",
+  "@aiContextDatabaseSection": {"description":"C23 context panel section: current database"},
+  "aiContextNoConnection": "Aucune connexion sélectionnée",
+  "@aiContextNoConnection": {"description":"C23 context panel empty state"},
+  "aiContextSchemaContext": "Inclure le contexte du schéma",
+  "@aiContextSchemaContext": {"description":"C23 context panel toggle label"},
+  "aiContextSchemaContextDesc": "Joindre les schémas des tables de la base actuelle lors de l’envoi",
+  "@aiContextSchemaContextDesc": {"description":"C23 context panel toggle description"},
+  "aiPanelOpenSkillCatalog": "Catalogue de compétences",
+  "@aiPanelOpenSkillCatalog": {"description":"C23 narrow-mode toolbar button: open skill catalog"},
+  "aiPanelOpenContextPanel": "Panneau de contexte",
+  "@aiPanelOpenContextPanel": {"description":"C23 narrow-mode toolbar button: open context panel"},
+  "safetyBannerAddLimit": "Ajouter LIMIT",
+  "safetyBannerCooldown": "Confirmer ({seconds}s)",
+  "safetyDmlAllRowsWarning": "Cette opération affectera toutes les lignes correspondantes. Envisagez d'ajouter une clause LIMIT.",
+  "safetySeverityHigh": "Élevé",
+  "safetySeverityMedium": "Avertissement",
+  "safetySeverityLow": "Info",
+  "safetySeverityPolicy": "Stratégie",
+  "gateTitleSingle": "Confirmation d'exécution : {count} risque(s) dans ce SQL",
+  "gateTitleMulti": "Confirmation d'exécution : {count} risque(s) sur {total} instructions",
+  "gateDdlImpactTitle": "Analyse d'impact DDL",
+  "gateStatementLabel": "Instruction {n}",
+  "gateSuggestionLabel": "Correction suggérée",
+  "gateOverview": "{total} instructions · Élevé {high} · Avertissement {medium} · Info {low} · OK {ok}",
+  "gateSkipHighRisk": "Ignorer {skip} à haut risque, exécuter {exec}",
+  "gateAllHighDisabled": "Tous à haut risque — rien à exécuter",
+  "gateApplySuggestions": "Appliquer les suggestions",
+  "gateProceed": "Exécuter quand même",
+  "gateProceedAll": "Tout exécuter quand même",
+  "gateCancelAll": "Tout annuler",
+  "settingsNavAppearance": "Apparence",
+  "settingsNavAi": "IA",
+  "settingsNavQuery": "Requêtes",
+  "settingsNavLanguage": "Langue",
+  "settingsNavSecurity": "Sécurité",
+  "settingsNavAbout": "À propos",
+  "piiExportStepFormat": "Format",
+  "piiExportStepScan": "Analyse PII",
+  "piiExportStepConfirm": "Confirmer",
+  "piiExportNoPiiTitle": "Aucune donnée PII détectée",
+  "piiExportNoPiiSubtitle": "Toutes les colonnes seront exportées telles quelles",
+  "piiExportDetectedCount": "{count} colonnes contenant des PII détectées",
+  "piiExportHighSensitivity": "(haute sensibilité)",
+  "piiExportKeep": "Conserver",
+  "piiExportMask": "Masquer",
+  "piiExportHash": "Hacher",
+  "piiExportDrop": "Supprimer la colonne",
+  "piiExportReadyTitle": "Prêt à exporter",
+  "piiExportSummaryFormat": "Format",
+  "piiExportSummaryRows": "Lignes",
+  "piiExportSummaryPiiColumns": "Colonnes PII traitées",
+  "piiExportFootnote": "Les colonnes PII seront traitées selon l'action choisie ; les colonnes non PII seront exportées telles quelles",
+  "serverBarNotConnected": "Non connecté",
+  "serverBarConnecting": "Connexion…",
+  "serverBarLocal": "Local",
+  "serverBarConnected": "Connecté",
+  "serverBarReconnecting": "Reconnexion…",
+  "serverBarReconnectingIn": "Reconnexion dans {seconds} s…",
+  "serverBarServerUrl": "Serveur : {url}",
+  "serverBarDisconnect": "Déconnecter",
+  "serverBarUnknownUser": "Inconnu",
+  "serverConnectUnexpectedError": "Une erreur inattendue s'est produite.",
+  "cellViewerCopy": "Copier",
+  "cellViewerChars": "{count} caractères",
+  "slowQueryMenuLabel": "Statistiques de requêtes lentes",
+  "slowQueryDialogTitle": "Statistiques de requêtes lentes",
+  "slowQueryScopeBanner": "Les requêtes exécutées via dbmaster/server plus lentes que {thresholdMs} ms sont enregistrées ; lorsque la collecte native du slow log est activée sur l'instance, les requêtes lentes de la base elle-même sont incluses (distinguées par source).",
+  "slowQueryWindow1h": "Dernière heure",
+  "slowQueryWindow24h": "Dernières 24 h",
+  "slowQueryWindow7d": "Derniers 7 jours",
+  "slowQuerySortTotalMs": "Durée totale",
+  "slowQuerySortCount": "Nombre",
+  "slowQuerySortAvgMs": "Durée moy.",
+  "slowQuerySortMaxMs": "Durée max",
+  "slowQueryAllConnections": "Toutes les connexions",
+  "slowQueryDigestStats": "{count} appels · total {total} · moy. {avg} · max {max}",
+  "slowQueryLastSeen": "dernière {time}",
+  "slowQueryEmptyTitle": "Aucune requête lente",
+  "slowQueryEmptyBody": "Rien au-delà du seuil dans cette fenêtre. Exécutez quelque chose de lent via dbmaster puis revenez.",
+  "slowQueryLoadFailed": "Échec du chargement des statistiques.",
+  "slowQueryRetry": "Réessayer",
+  "slowQueryLoadMore": "Afficher plus ({shown} sur {total})",
+  "slowQueryStatusOk": "ok",
+  "slowQueryStatusError": "erreur",
+  "slowQueryStatusCancelled": "annulée",
+  "slowQueryDatabaseLabel": "Base de données",
+  "slowQueryNoPlaintext": "Le SQL en clair est désactivé sur cette instance (digest uniquement).",
+  "slowQueryCopySql": "Copier SQL",
+  "slowQueryCopied": "Copié",
+  "reportsMenuLabel": "Rapports",
+  "reportsDialogTitle": "Rapports",
+  "reportsGenerateButton": "Générer le rapport hebdo",
+  "reportsGeneratedToast": "Rapport hebdomadaire généré.",
+  "reportsExistingToast": "Le rapport de cette semaine existe déjà.",
+  "reportsEmptyTitle": "Aucun rapport",
+  "reportsEmptyBody": "Générez le rapport hebdo des requêtes lentes, ou attendez la cadence hebdomadaire.",
+  "reportsLoadFailed": "Échec du chargement des rapports.",
+  "reportsRetry": "Réessayer",
+  "reportsLoadMore": "Afficher plus ({shown} sur {total})",
+  "reportsWindowLabel": "Période",
+  "reportsTruncatedHint": "Période incomplète : les échantillons plus anciens ont déjà été purgés par la rétention.",
+  "reportsSamplesLabel": "Échantillons",
+  "reportsDistinctLabel": "Requêtes distinctes",
+  "reportsTotalTimeLabel": "Durée totale",
+  "reportsErrorsLabel": "Erreurs",
+  "reportsWowLabel": "vs semaine dern.",
+  "reportsTopSection": "Requêtes les plus lentes",
+  "reportsByDaySection": "Par jour",
+  "reportsByConnectionSection": "Par connexion",
+  "reportsUnknownType": "Type de rapport inconnu — contenu brut :"
+,
+  "reportsAnalyzeWithAi": "Analyser avec l'IA"
+}

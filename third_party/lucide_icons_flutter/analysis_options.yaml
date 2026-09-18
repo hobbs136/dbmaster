@@ -1,0 +1,11 @@
+# vendored 生成代码的 lint 豁免（#31 T15）
+#
+# lib/lucide_icons.dart 是上游自动生成的常量表（27,874 个 static const，
+# 形如 `static const IconData x = const IconData(...)`），逐条触发
+# unnecessary_const——上游文件保持逐字节一致以便 diff 升级，故按包豁免。
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    unnecessary_const: ignore
+    unnecessary_library_name: ignore

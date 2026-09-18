@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- 不追踪用户 -->
+  <key>NSPrivacyTracking</key>
+  <false/>
+
+  <!-- 不追踪用户域名 -->
+  <key>NSPrivacyTrackingDomains</key>
+  <array/>
+
+  <!-- 不收集用户数据 -->
+  <key>NSPrivacyCollectedDataTypes</key>
+  <array/>
+
+  <!-- 访问的 API 类型及原因 -->
+  <key>NSPrivacyAccessedAPITypes</key>
+  <array>
+    <dict>
+      <!-- shared_preferences 使用 NSUserDefaults 存储应用设置 -->
+      <key>NSPrivacyAccessedAPIType</key>
+      <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+      <key>NSPrivacyAccessedAPITypeReasons</key>
+      <array>
+        <string>CA92.1</string>
+      </array>
+    </dict>
+  </array>
+</dict>
+</plist>

@@ -1,0 +1,95 @@
+/* DbMaster 设计诊断报告 — 项目级设计令牌 */
+
+:root {
+  /* Brand primary: 专业靛蓝 */
+  --color-primary-50: #eef4ff;
+  --color-primary-100: #d9e6ff;
+  --color-primary-200: #bcd5ff;
+  --color-primary-300: #8fb8ff;
+  --color-primary-400: #5b91f8;
+  --color-primary-500: #3574f0;
+  --color-primary-600: #2158d4;
+  --color-primary-700: #1d45ab;
+  --color-primary-800: #1e3b8a;
+  --color-primary-900: #1e3671;
+
+  /* Neutral: Slate */
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+
+  /* State colors */
+  --state-success: #16a34a;
+  --state-warning: #d97706;
+  --state-error: #dc2626;
+  --state-info: #0891b2;
+
+  /* Semantic aliases (light default) */
+  --audit-background: #f8fafc;
+  --audit-foreground: #0f172a;
+  --audit-card: #ffffff;
+  --audit-card-foreground: #0f172a;
+  --audit-muted: #f1f5f9;
+  --audit-muted-foreground: #64748b;
+  --audit-border: #e2e8f0;
+  --audit-input: #e2e8f0;
+  --audit-ring: #3574f0;
+  --audit-primary: #3574f0;
+  --audit-primary-foreground: #ffffff;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+}
+
+.dark {
+  --audit-background: #0b0f19;
+  --audit-foreground: #f1f5f9;
+  --audit-card: #141b2a;
+  --audit-card-foreground: #f1f5f9;
+  --audit-muted: #1e293b;
+  --audit-muted-foreground: #94a3b8;
+  --audit-border: #27354f;
+  --audit-input: #27354f;
+  --audit-ring: #5b91f8;
+  --audit-primary: #5b91f8;
+  --audit-primary-foreground: #ffffff;
+}
+
+@theme inline {
+  --color-background: var(--audit-background);
+  --color-foreground: var(--audit-foreground);
+  --color-card: var(--audit-card);
+  --color-card-foreground: var(--audit-card-foreground);
+  --color-muted: var(--audit-muted);
+  --color-muted-foreground: var(--audit-muted-foreground);
+  --color-border: var(--audit-border);
+  --color-input: var(--audit-input);
+  --color-ring: var(--audit-ring);
+  --color-primary: var(--audit-primary);
+  --color-primary-foreground: var(--audit-primary-foreground);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-full: var(--radius-full);
+}
+
+/* Typography */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--audit-background);
+  color: var(--audit-foreground);
+}
+
+.font-mono {
+  font-family: "JetBrains Mono", "Fira Code", Consolas, Monaco, "Courier New", monospace;
+}

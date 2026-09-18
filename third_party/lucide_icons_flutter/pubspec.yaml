@@ -1,0 +1,23 @@
+name: lucide_icons_flutter
+description: >-
+  Lucide 图标包的 dbmaster vendor 副本（上游 vqh2602/lucide-flutter-main
+  3.1.15）。与上游差异：仅声明 Lucide 主字体且指向子集化后的
+  assets/lucide.ttf；移除 Lucide100-600 六个字重变体字体声明（app 零引用，
+  每个变体约 0.4-0.8MB）。lib/lucide_icons.dart 与上游逐字节一致。
+version: 3.1.15-dbmaster.1
+homepage: https://lucide.dev
+repository: https://github.com/vqh2602/lucide-flutter-main
+publish_to: 'none'
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  fonts:
+    - family: Lucide
+      fonts:
+        - asset: assets/lucide.ttf

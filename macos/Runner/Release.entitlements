@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- App Sandbox: Mac App Store 强制要求 -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+
+	<!-- 网络访问权限: 连接数据库服务器、AI 服务 -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<key>com.apple.security.network.server</key>
+	<true/>
+
+	<!-- 文件访问权限: 导入/导出数据、备份、文件选择器 -->
+	<key>com.apple.security.files.user-selected.read-only</key>
+	<true/>
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+
+	<!-- 钥匙串访问: flutter_secure_storage 需要 keychain-access-groups 才能
+	     在沙盒中读写钥匙串。$(AppIdentifierPrefix) 由 Xcode / codesign 根据
+	     Team ID 自动填充。 -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)$(CFBundleIdentifier)</string>
+	</array>
+</dict>
+</plist>

@@ -1,0 +1,84 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8">
+<title>DbMaster banner — Constellation</title>
+<style>
+  :root{
+    --bg:#09090b; --bg2:#18181b; --line:#27272a;
+    --text:#fafafa; --muted:#a1a1aa; --faint:#71717a;
+    --accent:#0ea5e9; --accent2:#8b5cf6;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1600px;height:900px;overflow:hidden;background:var(--bg);
+    font-family:'Inter','PingFang SC','Microsoft YaHei',-apple-system,'Segoe UI',sans-serif;color:var(--text);}
+  .canvas{position:relative;width:1600px;height:900px;
+    background:
+      radial-gradient(820px 560px at 72% 48%, rgba(14,165,233,.12), transparent 60%),
+      radial-gradient(640px 460px at 72% 48%, rgba(139,92,246,.12), transparent 66%),
+      var(--bg);}
+  .left{position:absolute;left:120px;top:248px;width:600px}
+  .wordmark{font-size:104px;font-weight:800;letter-spacing:-3px;line-height:.95}
+  .wordmark .a{background:linear-gradient(92deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .tagline{margin-top:24px;font-size:32px;color:var(--muted);font-weight:600;letter-spacing:.5px}
+  .pill{display:inline-flex;align-items:center;gap:10px;margin-top:34px;padding:11px 20px;border:1px solid var(--line);border-radius:999px;background:var(--bg2);font-size:19px;color:var(--muted)}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 14px var(--accent)}
+  .article{position:absolute;left:120px;bottom:84px;font-size:20px;color:var(--faint);max-width:600px;line-height:1.55}
+  .article b{color:var(--muted);font-weight:600}
+  .grid-bg{position:absolute;inset:0;opacity:.5;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:80px 80px;mask-image:radial-gradient(700px 500px at 72% 48%,#000,transparent 70%)}
+  svg.const{position:absolute;right:0;top:0}
+  .db-label{font-size:15px;font-weight:700;font-family:'Inter',sans-serif}
+</style></head>
+<body><div class="canvas">
+  <div class="grid-bg"></div>
+  <div class="left">
+    <div class="wordmark">Db<span class="a">Master</span></div>
+    <div class="tagline">AI 驱动的 8 库管理工具</div>
+    <div class="pill"><span class="dot"></span> AI Agent · 自主多步执行</div>
+  </div>
+  <div class="article"><b>《让 AI 帮你写 SQL、建表、灌数据：DbMaster 的 AI Agent 实战》</b></div>
+
+  <svg class="const" width="860" height="900" viewBox="0 0 860 900">
+    <defs>
+      <radialGradient id="core" cx="50%" cy="45%" r="60%">
+        <stop offset="0%" stop-color="#38bdf8"/><stop offset="60%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#8b5cf6"/>
+      </radialGradient>
+      <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+        <feGaussianBlur stdDeviation="10" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <!-- connecting lines center(470,450) -> nodes -->
+    <g stroke="#3f3f46" stroke-width="1.4" opacity="0.9">
+      <line x1="470" y1="450" x2="750" y2="450"/>
+      <line x1="470" y1="450" x2="668" y2="648"/>
+      <line x1="470" y1="450" x2="470" y2="730"/>
+      <line x1="470" y1="450" x2="272" y2="648"/>
+      <line x1="470" y1="450" x2="190" y2="450"/>
+      <line x1="470" y1="450" x2="272" y2="252"/>
+      <line x1="470" y1="450" x2="470" y2="170"/>
+      <line x1="470" y1="450" x2="668" y2="252"/>
+    </g>
+    <!-- AI core -->
+    <circle cx="470" cy="450" r="66" fill="url(#core)" filter="url(#glow)"/>
+    <circle cx="470" cy="450" r="66" fill="none" stroke="#38bdf8" stroke-width="1.5" opacity="0.6"/>
+    <text x="470" y="446" text-anchor="middle" font-size="26" font-weight="800" fill="#0a0a0b" font-family="Inter,sans-serif">AI</text>
+    <text x="470" y="470" text-anchor="middle" font-size="12" fill="#0a0a0b" opacity="0.8" font-family="Inter,sans-serif">CORE</text>
+
+    <!-- 8 DB nodes: (cx,cy,color,label,ly) -->
+    <!-- 0°  MySQL -->
+    <g><circle cx="750" cy="450" r="34" fill="#00758F"/><text x="750" y="455" text-anchor="middle" class="db-label" fill="#fff">MySQL</text></g>
+    <!-- 45° Mongo -->
+    <g><circle cx="668" cy="648" r="34" fill="#4DB33D"/><text x="668" y="653" text-anchor="middle" class="db-label" fill="#06140a">Mongo</text></g>
+    <!-- 90° Redis -->
+    <g><circle cx="470" cy="730" r="34" fill="#DC382D"/><text x="470" y="735" text-anchor="middle" class="db-label" fill="#fff">Redis</text></g>
+    <!-- 135° SQLServer -->
+    <g><circle cx="272" cy="648" r="34" fill="#CC2927"/><text x="272" y="650" text-anchor="middle" class="db-label" fill="#fff" font-size="12">SQL</text><text x="272" y="664" text-anchor="middle" class="db-label" fill="#fff" font-size="12">Server</text></g>
+    <!-- 180° PostgreSQL -->
+    <g><circle cx="190" cy="450" r="34" fill="#336791"/><text x="190" y="448" text-anchor="middle" class="db-label" fill="#fff" font-size="12">Postgre</text><text x="190" y="462" text-anchor="middle" class="db-label" fill="#fff" font-size="12">SQL</text></g>
+    <!-- 225° SQLite -->
+    <g><circle cx="272" cy="252" r="34" fill="#6B8CA3"/><text x="272" y="257" text-anchor="middle" class="db-label" fill="#fff">SQLite</text></g>
+    <!-- 270° TDengine -->
+    <g><circle cx="470" cy="170" r="34" fill="#8B5CF6"/><text x="470" y="169" text-anchor="middle" class="db-label" fill="#fff" font-size="12">TD</text><text x="470" y="183" text-anchor="middle" class="db-label" fill="#fff" font-size="12">engine</text></g>
+    <!-- 315° Doris -->
+    <g><circle cx="668" cy="252" r="34" fill="#2B6F9F"/><text x="668" y="257" text-anchor="middle" class="db-label" fill="#fff">Doris</text></g>
+  </svg>
+</div></body></html>

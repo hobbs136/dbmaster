@@ -1,0 +1,41 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8">
+<title>DbMaster banner — Bold Type</title>
+<style>
+  :root{--bg:#09090b;--bg2:#18181b;--line:#27272a;--text:#fafafa;--muted:#a1a1aa;--faint:#71717a;--accent:#0ea5e9;--accent2:#8b5cf6}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1600px;height:900px;overflow:hidden;background:var(--bg);
+    font-family:'Inter','PingFang SC','Microsoft YaHei',sans-serif;color:var(--text)}
+  .canvas{position:relative;width:1600px;height:900px;padding:0 120px;display:flex;flex-direction:column;justify-content:center;
+    background:radial-gradient(900px 700px at 18% 110%, rgba(139,92,246,.14), transparent 60%),radial-gradient(800px 700px at 110% -10%, rgba(14,165,233,.14), transparent 60%),var(--bg)}
+  .eyebrow{font-size:22px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:26px}
+  .h1{font-size:150px;font-weight:800;letter-spacing:-4px;line-height:.98}
+  .h1 .x{color:var(--faint);font-weight:300;margin:0 10px}
+  .h1 .ai{background:linear-gradient(92deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{margin-top:30px;font-size:34px;color:var(--muted);font-weight:600}
+  .row{margin-top:60px;display:flex;gap:14px;flex-wrap:wrap}
+  .chip{display:flex;align-items:center;gap:10px;padding:12px 20px;border-radius:14px;background:var(--bg2);border:1px solid var(--line);font-size:20px;font-weight:700}
+  .chip i{width:14px;height:14px;border-radius:4px;display:inline-block}
+  .foot{position:absolute;left:120px;bottom:60px;display:flex;align-items:baseline;gap:18px}
+  .brand{font-size:30px;font-weight:800;letter-spacing:-.5px}
+  .brand .a{color:var(--accent)}
+  .foot .art{font-size:18px;color:var(--faint)}
+</style></head>
+<body><div class="canvas">
+  <div class="eyebrow">DbMaster · AI-native database tool</div>
+  <div class="h1">8 个数据库<span class="x">/</span><span class="ai">1 个 AI</span></div>
+  <div class="sub">让 AI 帮你写 SQL、建表、灌数据，自己跑完一整套任务</div>
+  <div class="row">
+    <span class="chip"><i style="background:#00758F"></i>MySQL</span>
+    <span class="chip"><i style="background:#336791"></i>PostgreSQL</span>
+    <span class="chip"><i style="background:#6B8CA3"></i>SQLite</span>
+    <span class="chip"><i style="background:#4DB33D"></i>MongoDB</span>
+    <span class="chip"><i style="background:#DC382D"></i>Redis</span>
+    <span class="chip"><i style="background:#2B6F9F"></i>Doris</span>
+    <span class="chip"><i style="background:#8B5CF6"></i>TDengine</span>
+    <span class="chip"><i style="background:#CC2927"></i>SQL Server</span>
+  </div>
+  <div class="foot">
+    <span class="brand">Db<span class="a">Master</span></span>
+    <span class="art">《DbMaster 的 AI Agent 实战》</span>
+  </div>
+</div></body></html>

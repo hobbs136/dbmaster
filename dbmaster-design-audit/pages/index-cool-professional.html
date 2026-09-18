@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DbMaster 设计诊断报告 — 冷专业方向</title>
+    <style id="theme-vars">
+/* DbMaster 设计诊断报告 — 项目级设计令牌 */
+
+:root {
+  /* Brand primary: 专业靛蓝 */
+  --color-primary-50: #eef4ff;
+  --color-primary-100: #d9e6ff;
+  --color-primary-200: #bcd5ff;
+  --color-primary-300: #8fb8ff;
+  --color-primary-400: #5b91f8;
+  --color-primary-500: #3574f0;
+  --color-primary-600: #2158d4;
+  --color-primary-700: #1d45ab;
+  --color-primary-800: #1e3b8a;
+  --color-primary-900: #1e3671;
+
+  /* Neutral: Slate */
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+
+  /* State colors */
+  --state-success: #16a34a;
+  --state-warning: #d97706;
+  --state-error: #dc2626;
+  --state-info: #0891b2;
+
+  /* Semantic aliases (light default) */
+  --audit-background: #f8fafc;
+  --audit-foreground: #0f172a;
+  --audit-card: #ffffff;
+  --audit-card-foreground: #0f172a;
+  --audit-muted: #f1f5f9;
+  --audit-muted-foreground: #64748b;
+  --audit-border: #e2e8f0;
+  --audit-input: #e2e8f0;
+  --audit-ring: #3574f0;
+  --audit-primary: #3574f0;
+  --audit-primary-foreground: #ffffff;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+}
+
+.dark {
+  --audit-background: #0b0f19;
+  --audit-foreground: #f1f5f9;
+  --audit-card: #141b2a;
+  --audit-card-foreground: #f1f5f9;
+  --audit-muted: #1e293b;
+  --audit-muted-foreground: #94a3b8;
+  --audit-border: #27354f;
+  --audit-input: #27354f;
+  --audit-ring: #5b91f8;
+  --audit-primary: #5b91f8;
+  --audit-primary-foreground: #ffffff;
+}
+
+@theme inline {
+  --color-background: var(--audit-background);
+  --color-foreground: var(--audit-foreground);
+  --color-card: var(--audit-card);
+  --color-card-foreground: var(--audit-card-foreground);
+  --color-muted: var(--audit-muted);
+  --color-muted-foreground: var(--audit-muted-foreground);
+  --color-border: var(--audit-border);
+  --color-input: var(--audit-input);
+  --color-ring: var(--audit-ring);
+  --color-primary: var(--audit-primary);
+  --color-primary-foreground: var(--audit-primary-foreground);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-full: var(--radius-full);
+}
+
+/* Typography */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--audit-background);
+  color: var(--audit-foreground);
+}
+
+.font-mono {
+  font-family: "JetBrains Mono", "Fira Code", Consolas, Monaco, "Courier New", monospace;
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--audit-background);
+    --color-foreground: var(--audit-foreground);
+    --color-card: var(--audit-card);
+    --color-card-foreground: var(--audit-card-foreground);
+    --color-muted: var(--audit-muted);
+    --color-muted-foreground: var(--audit-muted-foreground);
+    --color-border: var(--audit-border);
+    --color-input: var(--audit-input);
+    --color-ring: var(--audit-ring);
+    --color-primary: var(--audit-primary);
+    --color-primary-foreground: var(--audit-primary-foreground);
+    --radius-sm: var(--radius-sm);
+    --radius-md: var(--radius-md);
+    --radius-lg: var(--radius-lg);
+    --radius-full: var(--radius-full);
+  }
+  @layer base {
+    body { background: var(--audit-background); color: var(--audit-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--audit-background); }
+      .text-background { color: var(--audit-background); }
+      .border-background { border-color: var(--audit-background); }
+      .ring-background { --tw-ring-color: var(--audit-background); }
+      .bg-foreground { background-color: var(--audit-foreground); }
+      .text-foreground { color: var(--audit-foreground); }
+      .border-foreground { border-color: var(--audit-foreground); }
+      .ring-foreground { --tw-ring-color: var(--audit-foreground); }
+      .bg-card { background-color: var(--audit-card); }
+      .text-card { color: var(--audit-card); }
+      .border-card { border-color: var(--audit-card); }
+      .ring-card { --tw-ring-color: var(--audit-card); }
+      .bg-card-foreground { background-color: var(--audit-card-foreground); }
+      .text-card-foreground { color: var(--audit-card-foreground); }
+      .border-card-foreground { border-color: var(--audit-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--audit-card-foreground); }
+      .bg-muted { background-color: var(--audit-muted); }
+      .text-muted { color: var(--audit-muted); }
+      .border-muted { border-color: var(--audit-muted); }
+      .ring-muted { --tw-ring-color: var(--audit-muted); }
+      .bg-muted-foreground { background-color: var(--audit-muted-foreground); }
+      .text-muted-foreground { color: var(--audit-muted-foreground); }
+      .border-muted-foreground { border-color: var(--audit-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--audit-muted-foreground); }
+      .bg-border { background-color: var(--audit-border); }
+      .text-border { color: var(--audit-border); }
+      .border-border { border-color: var(--audit-border); }
+      .ring-border { --tw-ring-color: var(--audit-border); }
+      .bg-input { background-color: var(--audit-input); }
+      .text-input { color: var(--audit-input); }
+      .border-input { border-color: var(--audit-input); }
+      .ring-input { --tw-ring-color: var(--audit-input); }
+      .bg-ring { background-color: var(--audit-ring); }
+      .text-ring { color: var(--audit-ring); }
+      .border-ring { border-color: var(--audit-ring); }
+      .ring-ring { --tw-ring-color: var(--audit-ring); }
+      .bg-primary { background-color: var(--audit-primary); }
+      .text-primary { color: var(--audit-primary); }
+      .border-primary { border-color: var(--audit-primary); }
+      .ring-primary { --tw-ring-color: var(--audit-primary); }
+      .bg-primary-foreground { background-color: var(--audit-primary-foreground); }
+      .text-primary-foreground { color: var(--audit-primary-foreground); }
+      .border-primary-foreground { border-color: var(--audit-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--audit-primary-foreground); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen" style="background-color: var(--audit-background); color: var(--audit-foreground);">
+  <div class="max-w-[1200px] mx-auto px-6 py-12 md:px-8 md:py-16">
+
+    <!-- Hero -->
+    <header class="mb-16">
+      <div class="mb-4 flex items-center gap-2 text-sm font-medium" style="color: var(--audit-primary);">
+        <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+        <span>Design Audit Report — Cool Professional</span>
+      </div>
+      <h1 class="text-4xl md:text-5xl font-semibold tracking-tight mb-3">DbMaster 设计诊断报告 — 冷专业方向</h1>
+      <p class="text-lg md:text-xl mb-10" style="color: var(--audit-muted-foreground);">统一冷暖色温：Slate 冷中性 + 靛蓝品牌色</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="audit-card p-6">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-8 h-8 rounded-md flex items-center justify-center" style="background-color: var(--state-error); color: white;">
+              <i data-lucide="thermometer" class="w-4 h-4"></i>
+            </div>
+            <h3 class="font-semibold text-lg">当前：冷暖冲突</h3>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">深色 Zinc 灰 + 冷蓝 vs 浅色暖白 + 冷蓝，两种底色的色温相反，品牌蓝在冷暖底上表现不一致。</p>
+        </div>
+
+        <div class="audit-card p-6">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-8 h-8 rounded-md flex items-center justify-center" style="background-color: var(--state-warning); color: white;">
+              <i data-lucide="target" class="w-4 h-4"></i>
+            </div>
+            <h3 class="font-semibold text-lg">方向：统一色温</h3>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">把浅色底也调向 Slate 冷中性（#F8FAFC），与深色深蓝灰同温，使深浅主题共享同一中性家族。</p>
+        </div>
+
+        <div class="audit-card p-6">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-8 h-8 rounded-md flex items-center justify-center" style="background-color: var(--state-info); color: white;">
+              <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+            </div>
+            <h3 class="font-semibold text-lg">结果：品牌蓝稳定</h3>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">品牌蓝在冷暖底上都能稳定存在，不再孤立；移除紫色 accent，语义色收敛到蓝 + 成功 / 警告 / 错误。</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- Color Diagnosis -->
+    <section class="mb-16">
+      <div class="mb-4">
+        <h2 class="text-2xl md:text-3xl font-semibold mb-2">色彩诊断</h2>
+        <p class="text-base" style="color: var(--audit-muted-foreground);">从主题一致性、强调色层级、编辑器配色与主题消费入口四个维度梳理问题。</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
+        <div class="audit-card p-5 border-l-4 severity-bar-error">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-semibold px-2 py-0.5 rounded" style="background-color: color-mix(in srgb, var(--state-error) 12%, transparent); color: var(--state-error);">error</span>
+            <h3 class="font-semibold">深色与浅色像两个产品</h3>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">暗色模式使用偏暖的 Zinc 灰系背景，而浅色模式使用偏暖的米白；两者共用同一组冷蓝强调色，导致暗色偏冷、浅色偏暖，方向相反。</p>
+        </div>
+
+        <div class="audit-card p-5 border-l-4 severity-bar-warning">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-semibold px-2 py-0.5 rounded" style="background-color: color-mix(in srgb, var(--state-warning) 12%, transparent); color: var(--state-warning);">warning</span>
+            <h3 class="font-semibold">强调色过多，缺乏主从关系</h3>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">蓝、紫、绿、黄、红同时作为功能色与装饰色出现，没有明确的主品牌色与辅助状态色区分，界面焦点分散。</p>
+        </div>
+
+        <div class="audit-card p-5 border-l-4 severity-bar-warning">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-semibold px-2 py-0.5 rounded" style="background-color: color-mix(in srgb, var(--state-warning) 12%, transparent); color: var(--state-warning);">warning</span>
+            <h3 class="font-semibold">SQL 编辑器 Darcula 配色与 Zinc 中性壳脱节</h3>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">编辑器采用高对比 Darcula 深色主题，而应用外壳为低饱和 Zinc 中性风格，两者在饱和度和色温上均不匹配，形成视觉断层。</p>
+        </div>
+
+        <div class="audit-card p-5 border-l-4 severity-bar-info">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-semibold px-2 py-0.5 rounded" style="background-color: color-mix(in srgb, var(--state-info) 12%, transparent); color: var(--state-info);">info</span>
+            <h3 class="font-semibold">主题消费入口混乱，多处硬编码</h3>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">代码中同时出现 <code class="font-mono text-xs px-1 py-0.5 rounded" style="background-color: var(--audit-muted);">Theme.of(context)</code>、<code class="font-mono text-xs px-1 py-0.5 rounded" style="background-color: var(--audit-muted);">AppDesignSystem</code> 与散落的十六进制色值，单一颜色语义无法统一维护。</p>
+        </div>
+      </div>
+
+      <!-- Palette Comparison -->
+      <div class="audit-card p-6 md:p-8">
+        <h3 class="font-semibold text-lg mb-2">建议色板对比</h3>
+        <p class="text-sm mb-6" style="color: var(--audit-muted-foreground);">当前色板与冷专业方向建议色板并列对比：暗色向冷 Navy 收敛，亮色底改为 Slate 冷中性，移除紫色 accent，语义色更收敛。</p>
+
+        <div class="space-y-6">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-medium">当前暗色</span>
+              <span class="text-xs" style="color: var(--audit-muted-foreground);">偏暖 Zinc 灰 + 冷蓝</span>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #09090b;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#09090b</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #18181b;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#18181b</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #27272a;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#27272a</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #3574F0;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#3574F0</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #8b5cf6;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#8b5cf6</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #22c55e;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#22c55e</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #f59e0b;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#f59e0b</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #ef4444;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#ef4444</code></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-medium">建议暗色</span>
+              <span class="text-xs" style="color: var(--audit-muted-foreground);">冷 Navy 基调 + 更收敛语义色</span>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #0B0F19;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#0B0F19</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #141B2A;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#141B2A</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #1E293B;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#1E293B</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #5B91F8;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#5B91F8</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #16a34a;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#16a34a</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #d97706;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#d97706</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #dc2626;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#dc2626</code></div>
+            </div>
+          </div>
+
+          <div class="border-t" style="border-color: var(--audit-border);"></div>
+
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-medium">当前亮色</span>
+              <span class="text-xs" style="color: var(--audit-muted-foreground);">暖白底 + 多彩强调</span>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm border" style="background-color: #F5F3EF; border-color: var(--audit-border);"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#F5F3EF</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm border" style="background-color: #FFFFFF; border-color: var(--audit-border);"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#FFFFFF</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm border" style="background-color: #F0EDE8; border-color: var(--audit-border);"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#F0EDE8</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #3574F0;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#3574F0</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #8b5cf6;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#8b5cf6</code></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-medium">建议亮色</span>
+              <span class="text-xs" style="color: var(--audit-muted-foreground);">Slate 冷中性 + 主色唯一</span>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm border" style="background-color: #F8FAFC; border-color: var(--audit-border);"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#F8FAFC</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm border" style="background-color: #FFFFFF; border-color: var(--audit-border);"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#FFFFFF</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm border" style="background-color: #F1F5F9; border-color: var(--audit-border);"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#F1F5F9</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #3574F0;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#3574F0</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #16a34a;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#16a34a</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #d97706;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#d97706</code></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="w-16 h-16 rounded-md shadow-sm" style="background-color: #dc2626;"></div><code class="font-mono text-xs" style="color: var(--audit-muted-foreground);">#dc2626</code></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 pt-5 border-t text-sm font-medium" style="border-color: var(--audit-border); color: var(--audit-primary);">
+          建议亮色从暖白 #F5F3EF 改为冷白 #F8FAFC，与深色主题共享同一套 Slate 中性家族。
+        </div>
+      </div>
+    </section>
+
+    <!-- Layout Diagnosis -->
+    <section class="mb-16">
+      <div class="mb-4">
+        <h2 class="text-2xl md:text-3xl font-semibold mb-2">布局诊断</h2>
+        <p class="text-base" style="color: var(--audit-muted-foreground);">从信息层级、区域堆叠、Sidebar 动态内容、分栏约束与状态反馈五个角度定位问题。</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
+        <div class="audit-card p-5 border-l-4 severity-bar-warning">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-semibold px-2 py-0.5 rounded" style="background-color: color-mix(in srgb, var(--state-warning) 12%, transparent); color: var(--state-warning);">warning</span>
+            <h3 class="font-semibold">Header 按钮过多，中间 Spacer 造成大面积真空</h3>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">Header 左侧聚集数据库、连接、AI 等入口，右侧放置窗口控制，中间以 Spacer 撑开，形成视觉空洞，搜索与全局操作被边缘化。</p>
+        </div>
+
+        <div class="audit-card p-5 border-l-4 severity-bar-warning">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-semibold px-2 py-0.5 rounded" style="background-color: color-mix(in srgb, var(--state-warning) 12%, transparent); color: var(--state-warning);">warning</span>
+            <h3 class="font-semibold">纵向层叠区域过多</h3>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">Header / Divider / Workspace / Execution Center / Divider / Status Bar 层层堆叠，水平分割线密集，Workspace 实际可用高度被压缩。</p>
+        </div>
+
+        <div class="audit-card p-5 border-l-4 severity-bar-warning">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-semibold px-2 py-0.5 rounded" style="background-color: color-mix(in srgb, var(--state-warning) 12%, transparent); color: var(--state-warning);">warning</span>
+            <h3 class="font-semibold">Sidebar 动态插入 MySQL Process Panel，挤压 Tree 空间</h3>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">连接 MySQL 时 Process Panel 从 Sidebar 底部插入，Tree 区域被向上挤压，用户频繁需要滚动才能访问表节点。</p>
+        </div>
+
+        <div class="audit-card p-5 border-l-4 severity-bar-error">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-semibold px-2 py-0.5 rounded" style="background-color: color-mix(in srgb, var(--state-error) 12%, transparent); color: var(--state-error);">error</span>
+            <h3 class="font-semibold">Editor/Results 分栏最小高度 50px，结果区可能被压到不可读</h3>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">分栏控件允许结果区被压至 50px，表格与状态文本几乎无法辨认，容易误操作且影响数据核对。</p>
+        </div>
+
+        <div class="audit-card p-5 border-l-4 severity-bar-info md:col-span-2">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-semibold px-2 py-0.5 rounded" style="background-color: color-mix(in srgb, var(--state-info) 12%, transparent); color: var(--state-info);">info</span>
+            <h3 class="font-semibold">Execution Status Bar 28px + 彩色半透明底，成功态视觉过强</h3>
+          </div>
+          <p class="text-sm leading-relaxed" style="color: var(--audit-muted-foreground);">每次执行成功都触发高饱和绿色半透明背景，持续吸引注意力；状态栏高度与色彩权重高于实际工作区，喧宾夺主。</p>
+        </div>
+      </div>
+
+      <!-- Layout Diagram -->
+      <div class="audit-card p-6 md:p-8">
+        <h3 class="font-semibold text-lg mb-2">当前布局结构</h3>
+        <p class="text-sm mb-2" style="color: var(--audit-muted-foreground);">简化示意主要区域堆叠关系与问题位置。</p>
+        <p class="text-sm mb-6 font-medium" style="color: var(--audit-primary);">布局问题与色温独立，但在冷专业方向下，分割线建议改为 surface 色差而非 1px 硬线。</p>
+
+        <div class="relative mx-auto" style="max-width: 720px;">
+          <!-- Header -->
+          <div class="relative rounded-t-md border border-b-0 p-3 flex items-center gap-3" style="background-color: var(--audit-muted); border-color: var(--audit-border);">
+            <div class="flex gap-1.5">
+              <div class="w-2.5 h-2.5 rounded-full" style="background-color: var(--state-error);"></div>
+              <div class="w-2.5 h-2.5 rounded-full" style="background-color: var(--state-warning);"></div>
+              <div class="w-2.5 h-2.5 rounded-full" style="background-color: var(--state-success);"></div>
+            </div>
+            <div class="text-xs font-medium">Header</div>
+            <div class="flex-1 h-1.5 rounded" style="background-color: var(--audit-border);"></div>
+            <div class="text-[10px] px-1.5 py-0.5 rounded" style="background-color: var(--audit-card); color: var(--state-warning);">按钮过多 / 真空</div>
+          </div>
+
+          <!-- Main body -->
+          <div class="flex border" style="border-color: var(--audit-border);">
+            <!-- Sidebar -->
+            <div class="relative w-1/4 min-w-[140px] border-r p-3" style="background-color: var(--audit-card); border-color: var(--audit-border);">
+              <div class="text-xs font-medium mb-2">Sidebar</div>
+              <div class="space-y-1.5 mb-3">
+                <div class="h-2 rounded" style="background-color: var(--audit-muted);"></div>
+                <div class="h-2 rounded w-5/6" style="background-color: var(--audit-muted);"></div>
+                <div class="h-2 rounded w-4/6" style="background-color: var(--audit-muted);"></div>
+              </div>
+              <div class="absolute bottom-2 left-2 right-2 rounded p-2" style="background-color: var(--audit-muted); border: 1px dashed var(--audit-border);">
+                <div class="text-[10px]" style="color: var(--state-warning);">MySQL Process Panel</div>
+                <div class="text-[10px]" style="color: var(--audit-muted-foreground);">挤压 Tree 空间</div>
+              </div>
+            </div>
+
+            <!-- Workspace -->
+            <div class="relative flex-1 p-3" style="background-color: var(--audit-background);">
+              <div class="text-xs font-medium mb-2">Workspace</div>
+              <div class="rounded border p-2 mb-2" style="background-color: var(--audit-card); border-color: var(--audit-border);">
+                <div class="text-[10px] mb-1">Editor</div>
+                <div class="h-16 rounded" style="background-color: var(--audit-muted);"></div>
+              </div>
+              <div class="rounded border p-2" style="background-color: var(--audit-card); border-color: var(--audit-border);">
+                <div class="text-[10px] mb-1">Results</div>
+                <div class="h-10 rounded" style="background-color: var(--audit-muted);"></div>
+              </div>
+              <div class="absolute -right-3 top-1/2 -translate-y-1/2 text-[10px] px-1.5 py-0.5 rounded shadow-sm" style="background-color: var(--audit-card); color: var(--state-error); border: 1px solid var(--audit-border);">最小 50px</div>
+
+              <!-- AI Panel overlay -->
+              <div class="absolute right-3 top-3 bottom-16 w-[120px] rounded border p-2" style="background-color: color-mix(in srgb, var(--audit-card) 96%, transparent); border-color: var(--audit-border);">
+                <div class="text-[10px] font-medium mb-1">AI Panel</div>
+                <div class="h-full rounded" style="background-color: var(--audit-muted);"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Execution Center -->
+          <div class="relative border border-t-0 p-2 flex items-center justify-between" style="background-color: color-mix(in srgb, var(--state-success) 12%, var(--audit-card)); border-color: var(--audit-border);">
+            <div class="text-xs font-medium">Execution Center / Status Bar</div>
+            <div class="text-[10px] px-1.5 py-0.5 rounded" style="background-color: var(--audit-card); color: var(--state-info);">28px + 彩色底</div>
+          </div>
+
+          <!-- Bottom status -->
+          <div class="relative rounded-b-md border border-t-0 p-2 flex items-center justify-between" style="background-color: var(--audit-muted); border-color: var(--audit-border);">
+            <div class="text-xs">Status Bar</div>
+            <div class="text-[10px] px-1.5 py-0.5 rounded" style="background-color: var(--audit-card); color: var(--audit-muted-foreground);">Divider 密集</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Roadmap -->
+    <section class="mb-16">
+      <div class="mb-6">
+        <h2 class="text-2xl md:text-3xl font-semibold mb-2">改进路线图</h2>
+        <p class="text-base" style="color: var(--audit-muted-foreground);">按优先级划分改进项，冷专业方向先做色温统一，再处理布局细节。</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="audit-card p-6">
+          <div class="flex items-center gap-2 mb-4">
+            <div class="w-2 h-2 rounded-full" style="background-color: var(--state-error);"></div>
+            <h3 class="font-semibold">高优先级</h3>
+          </div>
+          <ul class="space-y-3 text-sm" style="color: var(--audit-muted-foreground);">
+            <li class="flex gap-2"><span style="color: var(--audit-border);">—</span><span>浅色底改为 Slate 冷中性（#F8FAFC / #F1F5F9），与深色同温</span></li>
+            <li class="flex gap-2"><span style="color: var(--audit-border);">—</span><span>移除紫色 accent（#8b5cf6），把装饰/功能色收敛到品牌蓝</span></li>
+            <li class="flex gap-2"><span style="color: var(--audit-border);">—</span><span>品牌蓝统一主入口：所有 primary action 走 #3574F0 / #5B91F8</span></li>
+          </ul>
+        </div>
+
+        <div class="audit-card p-6">
+          <div class="flex items-center gap-2 mb-4">
+            <div class="w-2 h-2 rounded-full" style="background-color: var(--state-warning);"></div>
+            <h3 class="font-semibold">中优先级</h3>
+          </div>
+          <ul class="space-y-3 text-sm" style="color: var(--audit-muted-foreground);">
+            <li class="flex gap-2"><span style="color: var(--audit-border);">—</span><span>语义色收敛：success #16a34a、warning 降低饱和、error #dc2626</span></li>
+            <li class="flex gap-2"><span style="color: var(--audit-border);">—</span><span>SQL 编辑器提供冷主题高亮，与 Slate 外壳色温对齐</span></li>
+            <li class="flex gap-2"><span style="color: var(--audit-border);">—</span><span>分割线改 surface 色差，弱化 1px 硬线带来的密集层级</span></li>
+          </ul>
+        </div>
+
+        <div class="audit-card p-6">
+          <div class="flex items-center gap-2 mb-4">
+            <div class="w-2 h-2 rounded-full" style="background-color: var(--state-info);"></div>
+            <h3 class="font-semibold">低优先级</h3>
+          </div>
+          <ul class="space-y-3 text-sm" style="color: var(--audit-muted-foreground);">
+            <li class="flex gap-2"><span style="color: var(--audit-border);">—</span><span>折叠 Sidebar 尺寸，最小宽度适配窄屏</span></li>
+            <li class="flex gap-2"><span style="color: var(--audit-border);">—</span><span>Resizer 加宽，提升拖拽手感与可访问性</span></li>
+            <li class="flex gap-2"><span style="color: var(--audit-border);">—</span><span>成功态轻反馈，如短 toast 或微动画</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="pt-8 border-t text-center text-sm" style="border-color: var(--audit-border); color: var(--audit-muted-foreground);">
+      冷专业方向下，色彩叙事先收敛；下一步可进入布局层级重构。
+    </footer>
+
+  </div>
+
+  <script>
+    lucide.createIcons();
+  </script>
+
+    <style>
+    .severity-bar-error { border-left-color: var(--state-error); }
+    .severity-bar-warning { border-left-color: var(--state-warning); }
+    .severity-bar-info { border-left-color: var(--state-info); }
+    .audit-card {
+      background-color: var(--audit-card);
+      border: 1px solid var(--audit-border);
+      border-radius: var(--radius-lg);
+    }
+  </style>
+</body>
+</html>

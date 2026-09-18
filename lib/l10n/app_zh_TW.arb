@@ -1,0 +1,3130 @@
+{
+  "@@locale": "zh_TW",
+  "filterBarApply": "套用",
+  "@filterBarApply": {},
+  "filterBarAddCondition": "新增條件",
+  "@filterBarAddCondition": {},
+  "filterBarAnd": "且",
+  "@filterBarAnd": {},
+  "filterBarOr": "或",
+  "@filterBarOr": {},
+  "filterBarNoColumns": "無欄位",
+  "@filterBarNoColumns": {},
+  "filterBarLoading": "載入中…",
+  "@filterBarLoading": {},
+  "mongoAutocompleteTitle": "Mongo 自動補全",
+  "appTitle": "DbMaster",
+  "settingsTitle": "設定",
+  "settingsLanguage": "語言",
+  "settingsTheme": "主題",
+  "settingsGeneral": "一般",
+  "settingsConnection": "連線",
+  "settingsEditor": "編輯器",
+  "settingsAbout": "關於",
+  "connectionNewConnection": "新建連線",
+  "connectionEditConnection": "編輯連線",
+  "connectionManageConnection": "管理連線",
+  "connectionDeleteConnection": "刪除連線",
+  "connectionConnect": "連線",
+  "connectionCreateDatabase": "新增資料庫",
+  "connectionEnableReadOnly": "啟用唯讀",
+  "connectionDisableReadOnly": "停用唯讀",
+  "connectionMoveToGroup": "移動至 {groupName}",
+  "@connectionMoveToGroup": {"placeholders": {"groupName": {"type": "String"}}},
+  "connectionRemoveFromGroup": "從群組移除",
+  "connectionCollapseAll": "全部摺疊",
+  "connectionDisconnect": "斷開",
+  "connectionTestConnection": "測試連線",
+  "connectionConnectionName": "連線名稱",
+  "connectionHost": "主機",
+  "connectionPort": "連接埠",
+  "connectionUsername": "使用者名稱",
+  "connNameRequired": "連線名稱為必填",
+  "connHostRequired": "主機為必填",
+  "connPortRequired": "連接埠為必填",
+  "connUsernameRequired": "使用者名稱為必填",
+  "connectionPassword": "密碼",
+  "connectionDatabase": "資料庫",
+  "connectionEnvironment": "環境",
+  "connectionEnvironmentNone": "未指定",
+  "commonSave": "儲存",
+  "commonCancel": "取消",
+  "commonDelete": "刪除",
+  "commonEdit": "編輯",
+  "commonAdd": "新增",
+  "commonClose": "關閉",
+  "commonConfirm": "確認",
+  "commonSearch": "搜尋",
+  "commonRefresh": "重新整理",
+  "commonLoading": "載入中...",
+  "commonNoData": "無資料",
+  "commonSuccess": "成功",
+  "commonError": "錯誤",
+  "commonWarning": "警告",
+  "tableNewTable": "新建資料表",
+  "tableEditTable": "編輯資料表",
+  "tableDeleteTable": "刪除資料表",
+  "tableTableName": "資料表名稱",
+  "tableColumns": "欄位",
+  "tableIndexes": "索引",
+  "tablePrimaryKey": "主鍵",
+  "tableForeignKey": "外鍵",
+  "tableRenameTable": "重新命名表",
+  "tableNewTableName": "新表名",
+  "queryExecute": "執行",
+  "queryExecuteSelected": "執行選取",
+  "queryFormat": "格式化",
+  "queryClear": "清除",
+  "queryHistory": "歷史",
+  "queryResults": "結果",
+  "sidebarConnections": "連線",
+  "sidebarDatabases": "資料庫",
+  "sidebarTables": "資料表",
+  "sidebarViews": "檢視",
+  "sidebarSavedQueries": "已保存的查詢",
+  "sidebarProcedures": "預存程序",
+  "sidebarTriggers": "觸發程序",
+  "sidebarFunctions": "函數",
+  "sidebarServer": "伺服器",
+  "sidebarProcessList": "處理程序清單",
+  "sidebarServerStatus": "伺服器狀態",
+  "sidebarNoUsers": "無使用者",
+  "sidebarNoActiveProcesses": "無活動處理程序",
+  "sidebarTdColsTags": "{cols} 欄，{tags} 標籤",
+  "sidebarTdColumnsCount": "欄（{count}）",
+  "sidebarTdTagsCount": "標籤（{count}）",
+  "sidebarTdDeleteTitle": "刪除超級表",
+  "sidebarTdDeleteConfirm": "確定要刪除超級表「{name}」嗎？\n\n這也會刪除其所有子表！",
+  "sidebarDeleteGroup": "刪除分組",
+  "sidebarDeleteGroupPrompt": "選擇要刪除的分組：",
+  "sidebarConnectionSwitch": "切換連線",
+  "sidebarSelectConnectionHint": "從上方連線選擇器選擇一個連線開始",
+  "sidebarConnectionNone": "暫無連線",
+  "sidebarManageConnections": "管理連線…",
+  "sidebarExtensions": "Extensions",
+  "noExtensionsInstalled": "No extensions installed",
+  "sidebarSchemas": "模式",
+  "sidebarMaterializedViews": "物化檢視",
+  "sidebarSequences": "序列",
+  "settingsGeneralSettings": "常規設置",
+  "settingsAppearanceSettings": "外觀",
+  "settingsEditorSettings": "編輯器設置",
+  "settingsEnableAutocomplete": "啟用自動完成",
+  "settingsAutocompleteDescription": "自動建議SQL關鍵字和表名",
+  "settingsAiSettings": "AI設置",
+  "settingsAutoExecuteSql": "自動執行SQL",
+  "settingsAutoExecuteSqlDescription": "打開標籤頁時自動執行SQL",
+  "settingsThemeSettings": "主題",
+  "settingsDarkMode": "深色",
+  "settingsLightMode": "淺色",
+  "shortcutCategoryFile": "檔案",
+  "shortcutCategoryEdit": "編輯",
+  "shortcutCategoryView": "檢視",
+  "shortcutCategoryAi": "AI",
+  "shortcutCategoryTab": "標籤頁",
+  "shortcutNewConnection": "新建連線",
+  "shortcutNewTab": "新建標籤頁",
+  "shortcutCloseTab": "關閉標籤頁",
+  "shortcutSaveQuery": "儲存查詢",
+  "shortcutExportData": "匯出資料",
+  "shortcutExecuteQuery": "執行查詢",
+  "shortcutExecuteQueryNewTab": "在新標籤頁中執行",
+  "shortcutFormatSql": "格式化SQL",
+  "shortcutFind": "尋找",
+  "shortcutReplace": "取代",
+  "shortcutAutocomplete": "自動完成",
+  "shortcutUndo": "復原",
+  "shortcutRedo": "重做",
+  "shortcutToggleSidebar": "切換側邊欄",
+  "shortcutToggleAiPanel": "切換AI面板",
+  "shortcutCommandPalette": "命令面板",
+  "shortcutShortcutHelp": "快捷鍵說明",
+  "shortcutGenerateSql": "生成SQL",
+  "shortcutOptimizeSql": "優化SQL",
+  "shortcutExplainSql": "解釋SQL",
+  "shortcutNextTab": "下一個標籤頁",
+  "shortcutPreviousTab": "上一個標籤頁",
+  "shortcutSwitchToTab": "切換到標籤頁",
+  "shortcutToggleAiFullscreen": "AI 面板全屏",
+  "shortcutAuditLog": "查詢稽核日誌",
+  "shortcutIncreaseOpacity": "提高浮層不透明度",
+  "shortcutDecreaseOpacity": "降低浮層不透明度",
+  "tableCreateNewTable": "創建新資料表",
+  "quickActionsTitle": "快捷操作",
+  "quickActionsNewTable": "新資料表",
+  "quickActionsNewQuery": "新查詢",
+  "quickActionsAiAssistant": "AI助手",
+  "quickActionsSelectDatabaseFirst": "請先選擇一個資料庫",
+  "resultsTabResults": "結果",
+  "resultsTabMessages": "訊息",
+  "resultsTabExecutionPlan": "執行計畫",
+  "resultsTabExecutionDetails": "執行詳情",
+  "resultsSearchBtn": "搜尋",
+  "resultsClear": "清除",
+  "resultsSubmit": "提交",
+  "resultsSearchResults": "搜尋結果",
+  "resultsViewTable": "表格",
+  "resultsViewCard": "卡片",
+  "resultsViewChart": "圖表",
+  "resultsViewStatistics": "統計",
+  "paginationShowing": "顯示",
+  "paginationRows": "行",
+  "paginationFirstPage": "第一頁",
+  "paginationPreviousPage": "上一頁",
+  "paginationNextPage": "下一頁",
+  "paginationLastPage": "最後一頁",
+  "editModeTitle": "編輯模式",
+  "editModeChanges": "處修改",
+  "editModeHint": "雙擊編輯 | Enter確認 | Esc取消 | Tab切換",
+  "resultsNoDataTitle": "無結果資料",
+  "resultsNoDataMessage": "執行查詢後將顯示結果",
+  "resultsNoDataCardMessage": "執行查詢後將顯示卡片視圖",
+  "resultsNoDataChartMessage": "執行查詢後將顯示圖表",
+  "resultsNoDataStatisticsMessage": "執行查詢後將顯示統計資訊",
+  "resultsNoDataExecutionPlanMessage": "點擊「執行計畫」按鈕查看查詢執行計畫",
+  "statisticsTotalRows": "總行數",
+  "statisticsFieldInfo": "欄位資訊",
+  "statisticsNumeric": "數值",
+  "statisticsText": "文字",
+  "statisticsNumericStats": "數值統計",
+  "statisticsCount": "數量",
+  "statisticsSum": "總和",
+  "statisticsAvg": "平均值",
+  "statisticsMin": "最小值",
+  "statisticsMax": "最大值",
+  "chartXAxis": "X軸: ",
+  "chartYAxis": "Y軸: ",
+  "chartType": "類型: ",
+  "chartCannotGenerate": "無法生成圖表：請確保Y軸欄位包含數值資料",
+  "messagesQuerySuccess": "查詢成功，返回 {rows} 行，{cols} 列",
+  "messagesExecuteToSeeResults": "執行查詢後將顯示結果資訊",
+  "sqlPreviewWillExecute": "即將對資料表 `{table}` 執行以下 {count} 條SQL語句：",
+  "saveErrorNoTab": "無法儲存：目前標籤頁不存在",
+  "saveErrorCannotExtractTable": "無法儲存：無法從查詢中提取資料表名稱",
+  "saveErrorFailed": "儲存失敗: {error}",
+  "exportSelectFormat": "選擇匯出格式",
+  "toolbarExecute": "執行",
+  "toolbarStop": "停止",
+  "toolbarReadOnlyChip": "唯讀",
+  "toolbarLimitChipTooltip": "此連線的行數限制（自動 LIMIT）",
+  "toolbarTimeoutChipTooltip": "此連線的查詢逾時",
+  "toolbarChipFollowSettings": "跟隨設定",
+  "toolbarChipOff": "關閉",
+  "toolbarChipFollowConnection": "跟隨連線",
+  "gridEditBlockedReadOnly": "連線為唯讀，儲存格編輯已停用。",
+  "gridEditBlockedNoTable": "無法從結果推斷目標表——儲存格編輯需要單表查詢。",
+  "gridEditsCount": "{count} 處修改 · {rows} 行",
+  "gridCommitButton": "提交變更",
+  "gridDiscardButton": "放棄修改",
+  "gridCommitSuccess": "已寫回 {rows} 行",
+  "gridCommitNoPrimaryKey": "表 {table} 無主鍵，無法寫回。",
+  "gridCommitFailed": "寫回失敗：{error}",
+  "statusBarReady": "就緒",
+  "statusBarExecuting": "執行中",
+  "statusBarElapsed": "已耗時 {duration}",
+  "@statusBarElapsed": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "statusBarLineCol": "行 {line}, 列 {column}",
+  "@statusBarLineCol": {
+    "placeholders": {
+      "line": {
+        "type": "int"
+      },
+      "column": {
+        "type": "int"
+      }
+    }
+  },
+  "executionStatusBarRows": "{count} 行",
+  "@executionStatusBarRows": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "executionStatusBarErrorHint": "點擊結果子標籤查看錯誤詳情",
+  "toolbarExecutionPlan": "執行計畫",
+  "toolbarFormat": "格式化",
+  "toolbarSave": "儲存",
+  "splitButton": "分割",
+  "horizontalSplit": "水平分割",
+  "verticalSplit": "垂直分割",
+  "refreshData": "重新整理資料",
+  "analyzingDatabasePerformance": "正在分析資料庫效能...",
+  "loadFailed": "載入失敗",
+  "fullTableScanDetected": "偵測到全表掃描",
+  "fullTableScanDesc": "查詢使用全表掃描(type=ALL)，建議在WHERE子句欄位新增索引",
+  "timeThreshold": "時間閾值：",
+  "searchPlaceholder": "搜尋...",
+  "closeBtn": "關閉",
+  "apiSettingsSavedMsg": "API設定已儲存",
+  "resultsHeaderExport": "匯出",
+  "resultsHeaderSearch": "搜尋",
+  "resultsHeaderClear": "清除",
+  "resultsHeaderSubmit": "提交",
+  "connectionStatusConnected": "已連線",
+  "connectionStatusNotConnected": "未連線",
+  "selectConnection": "選擇連線...",
+  "selectDatabase": "選擇資料庫",
+  "aiQuickActionOptimizeSql": "最佳化SQL",
+  "aiQuickActionExplainQuery": "解釋查詢",
+  "aiQuickActionGenerateInsert": "產生INSERT",
+  "aiQuickActionGenerateUpdate": "產生UPDATE",
+  "aiQuickActionGenerateDelete": "產生DELETE",
+  "aiQuickActionCreateTable": "建立資料表",
+  "aiQuickActionSecurityCheck": "安全性檢查",
+  "aiQuickActionIndexSuggestion": "索引建議",
+  "aiQuickActionExecutionPlan": "執行計畫",
+  "aiQuickActionQueryHistory": "查詢歷史",
+  "confirmExecute": "確認執行",
+  "shortcutCategoryQuery": "查詢",
+  "queryCancelled": "查詢已取消",
+  "queryFailed": "查詢失敗: {error}",
+  "querySuccessWithTime": "查詢成功，返回 {count} 行資料 ({time}ms)",
+  "cancelingQuery": "正在取消查詢...",
+  "cancelQueryFailed": "取消查詢失敗",
+  "confirmCancelTransaction": "確認取消交易",
+  "confirmCancelTransactionMessage": "目前連線有未提交的異動。取消查詢將會中斷並重新連線，導致異動回復。是否繼續？",
+  "cancel": "取消",
+  "explainPlanSuccess": "執行計畫成功取得",
+  "explainPlanFailed": "取得執行計畫失敗: {error}",
+  "queryEmptyCannotSave": "查詢內容為空，無法儲存",
+  "saveQueryTitle": "儲存查詢",
+  "queryName": "查詢名稱",
+  "enterQueryName": "輸入查詢名稱",
+  "saveQueryHint": "將儲存到已儲存查詢列表中（最多20個）",
+  "querySaved": "查詢已儲存: {name}",
+  "saveQueryLimitReached": "已達到儲存上限（20個），請先刪除一些查詢",
+  "savedQueryNameExists": "儲存查詢名稱 \"{name}\" 在目前連線下已存在",
+  "sqlFormatted": "SQL 已格式化",
+  "pleaseEnterSqlCode": "請輸入 SQL 程式碼",
+  "noConnectedServer": "沒有已連線的伺服器",
+  "split2Hint": "分割 2 - 輸入 SQL 查詢...",
+  "toolbarClose": "關閉",
+  "toolbarBackup": "备份",
+  "toolbarImport": "导入",
+  "toolbarExport": "导出",
+  "sidebarExpand": "展开侧边栏",
+  "sidebarSettings": "设置",
+  "sidebarSearchHint": "搜索连接、表、视图...",
+  "sidebarConnectionActive": "{count} 个连接活跃",
+  "sidebarNoConnections": "暂无保存的连接",
+  "sidebarClickToCreateConnection": "点击下方按钮新建连接",
+  "sidebarCreateConnection": "新建连接",
+  "resultsExport": "导出",
+  "resultsSave": "保存",
+  "resultsDiscard": "放弃",
+  "resultsNoDataToExport": "没有数据可导出",
+  "resultsCSV": "CSV",
+  "resultsJSON": "JSON",
+  "resultsExcel": "Excel",
+  "resultsConfirmDiscardChanges": "确认放弃修改",
+  "resultsDiscardChangesMessage": "确定要放弃 {count} 处修改吗？此操作不可撤销。",
+  "resultsContinueEditing": "继续编辑",
+  "resultsDiscardChanges": "放弃修改",
+  "resultsConfirmExecuteSQL": "确认执行SQL",
+  "resultsBarChart": "柱状图",
+  "resultsLineChart": "折线图",
+  "resultsPieChart": "饼图",
+  "resultsSelectAxisFields": "请选择X轴和Y轴字段",
+  "statusNotConnected": "未连接",
+  "statusConnected": "已连接",
+  "statusTables": "{count} 表",
+  "statusNone": "无",
+  "statusVersion": "v{version}",
+  "backupManagement": "备份管理",
+  "backupList": "备份列表",
+  "createBackup": "创建备份",
+  "noBackupFiles": "暂无备份文件",
+  "clickCreateBackupTab": "点击'创建备份'标签页开始备份",
+  "importBackup": "导入备份",
+  "previewContent": "预览内容",
+  "exportFile": "导出文件",
+  "restoreBackup": "恢复备份",
+  "selectBackupToView": "选择一个备份查看详情",
+  "database": "数据库",
+  "backupType": "类型",
+  "backupSize": "大小",
+  "createdAt": "创建时间",
+  "tableCount": "表数量",
+  "description": "描述",
+  "preview": "预览",
+  "export": "导出",
+  "restore": "恢复",
+  "confirmRestore": "确认恢复",
+  "confirmRestoreMessage": "确定要恢复备份 \"{name}\" 吗？\n\n这将执行备份文件中的所有 SQL 语句，可能会覆盖现有数据。",
+  "confirmDelete": "确认删除",
+  "confirmDeleteMessage": "确定要删除备份 \"{name}\" 吗？\n\n此操作不可撤销。",
+  "backupFormat": "备份格式",
+  "backupContent": "备份内容",
+  "selectTablesHint": "选择表（留空备份所有）",
+  "advancedOptions": "高级选项",
+  "includeStructure": "包含表结构",
+  "includeStructureDesc": "CREATE TABLE 语句",
+  "includeData": "包含数据",
+  "includeDataDesc": "INSERT 语句或数据行",
+  "noTablesAvailable": "暂无可用表",
+  "selectAll": "全选",
+  "deselectAll": "取消全选",
+  "tablesSelected": "已选择 {count} 个表",
+  "addDropTable": "添加 DROP TABLE",
+  "useExtendedInsert": "使用扩展 INSERT",
+  "useExtendedInsertDesc": "多行值合并为一个 INSERT",
+  "rowLimitPerTable": "每表行数限制（可选）",
+  "leaveEmptyForNoLimit": "留空表示不限",
+  "whereCondition": "WHERE 条件（可选）",
+  "whereConditionExample": "例如: id > 100",
+  "enterBackupDescription": "输入备份描述（可选）",
+  "startBackup": "开始备份",
+  "backupProgress": "备份进度",
+  "waitingToStartBackup": "等待开始备份...",
+  "currentTable": "当前表",
+  "progressPercent": "进度",
+  "backupComplete": "备份完成！",
+  "backupFailed": "备份失败",
+  "loadBackupListFailed": "加载备份列表失败",
+  "retry": "重试",
+  "previewFailed": "预览失败",
+  "exportedTo": "已导出到",
+  "exportFailed": "匯出失敗：{error}",
+  "backupRestoreSuccess": "备份恢复成功",
+  "restoreFailed": "恢复失败",
+  "backupDeleted": "备份已删除",
+  "deleteFailed": "删除失败: {error}",
+  "selectBackupFile": "选择备份文件",
+  "backupImportSuccess": "备份文件导入成功",
+  "importFailed": "匯入失敗：{error}",
+  "selectAtLeastOneOption": "请至少选择备份结构或数据",
+  "backupFailedError": "备份失败",
+  "aiAssistant": "AI 助手",
+  "aiAnalyze": "AI 分析",
+  "aiAnalyzeTable": "AI 分析表",
+  "aiAnalyzeDatabase": "AI 分析資料庫",
+  "aiAnalyzeServer": "AI 分析伺服器",
+  "aiAnalyzeErrorResult": "AI 分析錯誤",
+  "aiAnalyzeNodeFailed": "AI 分析失敗：{error}",
+  "@aiAnalyzeNodeFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "apiSettings": "API设置",
+  "clearChat": "清空对话",
+  "model": "模型",
+  "enterModelName": "输入模型名称",
+  "autoExecuteSql": "自动执行SQL",
+  "autoExecuteSqlDesc": "启用后，AI生成的查询语句将自动执行",
+  "aiDatabaseAssistant": "AI 数据库助手",
+  "aiAssistantDesc": "支持多家大模型厂商\n帮你编写SQL、优化查询、解释数据库结构",
+  "enterYourQuestion": "输入你的问题...",
+  "configureApiKeyFirst": "请先在设置中配置 {provider} 的 API 密钥以启用AI对话功能。\n\n点击右上角设置图标进行配置。",
+  "generationFailed": "生成失败",
+  "stepAnalyzeNeeds": "第一步：分析用户需求，确定需要查询的表...",
+  "stepGetTableSchema": "第二步：获取表的详细建表语句...",
+  "stepGenerateSql": "第三步：生成SQL语句...",
+  "analysisResultTables": "分析结果：需要查询的表",
+  "tableSchemaInfo": "表结构信息",
+  "operationCancelled": "操作已取消",
+  "executingSql": "正在执行SQL...",
+  "executeSuccessRows": "执行成功，返回 {count} 行数据",
+  "executeFailedError": "执行失败",
+  "confirmDangerousOperation": "确认执行危险操作?",
+  "confirmExecuteSql": "确认执行SQL",
+  "dangerousOperationWarning": "此操作可能会修改或删除数据，请谨慎执行！",
+  "sqlCopied": "SQL已复制",
+  "sqlGenerationComplete": "SQL生成完成",
+  "dangerousOperation": "危险操作",
+  "dangerousOperationDesc": "这是一个危险操作，请谨慎处理",
+  "taskCompleteDesc": "任务已完成，您可以选择执行或复制SQL",
+  "generatedSql": "生成的 SQL",
+  "dangerous": "危险",
+  "requestTimeout": "请求超时时间",
+  "seconds": "秒",
+  "apiSettingsSaved": "API设置已保存",
+  "dataImport": "数据导入",
+  "selectFile": "选择文件",
+  "noFileSelected": "未选择文件",
+  "importConfig": "导入配置",
+  "targetTableName": "目标表名",
+  "enterTableName": "输入表名",
+  "includeHeader": "包含表头",
+  "delimiter": "分隔符",
+  "overwriteTable": "覆盖表",
+  "deleteExistingTable": "（删除已存在的表）",
+  "batchSize": "批量大小",
+  "dataPreviewRows": "数据预览（{count} 行）",
+  "pleaseSelectFile": "请选择文件以预览数据",
+  "importProgress": "导入进度",
+  "importPreparing": "导入准备中...",
+  "totalRecords": "总数",
+  "importedRecords": "已导入",
+  "failedRecords": "失败",
+  "readyToImport": "准备导入",
+  "importingData": "正在导入数据...",
+  "importComplete": "导入完成！",
+  "parseFileFailed": "解析文件失败",
+  "noDataToImport": "没有可导入的数据",
+  "selectDatabaseFirst": "请先选择一个数据库",
+  "importFailedError": "导入失败",
+  "startImport": "开始导入",
+  "importing": "导入中...",
+  "optimizeSql": "优化SQL",
+  "explainQuery": "解释查询",
+  "generateInsert": "生成INSERT",
+  "generateUpdate": "生成UPDATE",
+  "generateDelete": "生成DELETE",
+  "createTableStatement": "建表语句",
+  "securityCheck": "安全检测",
+  "indexSuggestion": "索引建议",
+  "executionPlan": "执行计划",
+  "pleaseEnterSql": "请先输入SQL语句",
+  "pleaseConnectDatabase": "请先连接数据库",
+  "analysisFailed": "分析失败",
+  "loadHistoryFailed": "加载历史失败",
+  "noQueryHistory": "暂无查询历史记录\n\n执行SQL查询后，历史记录将保存在这里。",
+  "queryHistoryRecords": "查询历史记录（最近 {count} 条）",
+  "databaseType": "数据库类型",
+  "server": "服务器",
+  "currentDatabase": "当前数据库",
+  "notConnected": "未连接",
+  "notSelected": "未选择",
+  "tableName": "表名",
+  "tableStructureInfo": "表结构信息",
+  "createStatement": "建表语句",
+  "andMoreTables": "... 还有 {count} 个表",
+  "primaryKey": "主键",
+  "executionTime": "执行时间",
+  "status": "状态",
+  "commonFailed": "失败",
+  "format": "格式",
+  "connectionDefaultDatabase": "默认数据库",
+  "connectionSavePassword": "保存密码",
+  "connectionAdvancedOptions": "高级选项",
+  "connectionMongoMode": "連線模式",
+  "connectionMongoModeDirect": "直連（單機）",
+  "connectionMongoModeReplicaSet": "副本集",
+  "connectionMongoSeedHosts": "種子節點清單",
+  "connectionMongoSeedHostsHint": "列出所有副本集成員節點（host:port，每行一個）。驅動自動發現 primary，連線以此清單為準。",
+  "connectionMongoSeedHostsRequired": "至少需要一個種子節點（host:port）",
+  "connectionMongoReplicaSetName": "副本集名稱",
+  "connectionMongoReplicaSetNameRequired": "副本集名稱不可為空",
+  "connectionMongoModeAdvanced": "進階（連線字串）",
+  "connectionMongoModeSharded": "分片（mongos）",
+  "connectionMongoMongosHosts": "mongos 路由節點",
+  "connectionMongoMongosHostsHint": "列出所有 mongos 路由節點（host:port，每行一個）。驅動經 mongos 連線，分片透明。",
+  "connectionMongoMongosHostsRequired": "至少需要一個 mongos 路由節點（host:port）",
+  "connectionMongoInvalidHostPort": "項目格式無效（應為 host 或 host:port）",
+  "connectionMongoConnectionString": "連線字串",
+  "connectionMongoConnectionStringHint": "貼上完整連線字串（mongodb:// 或 mongodb+srv://，含 Atlas）。憑證自動剝離，密碼單獨加密儲存。",
+  "connectionMongoConnectionStringRequired": "請貼上連線字串",
+  "connectionMongoConnectionStringInvalid": "無效連線字串（須以 mongodb:// 或 mongodb+srv:// 開頭）",
+  "connectionTimeout": "超时(秒)",
+  "connectionUseSSL": "使用 SSL/TLS",
+  "connectionEnableSecureConnection": "启用安全连接",
+  "connectionUseTls": "使用 TLS/SSL",
+  "connectionUseTlsDesc": "經 server 端建立 TLS 加密連線",
+  "connectionTlsInsecure": "忽略憑證校驗（不安全）",
+  "connectionTlsInsecureDesc": "不校驗伺服器端憑證，僅限可信/測試環境",
+  "connectionSshSubtitleGateway": "SSH 通道由 dbmaster server 端建立（設定隨連線下發）",
+  "connectionAutoReconnect": "自动重连",
+  "connectionAutoReconnectDesc": "连接断开时自动尝试重连",
+  "connectionCharset": "字元集",
+  "connectionTimezone": "時區",
+  "connectionTestSuccess": "连接成功!",
+  "connectionTestFailed": "连接失败",
+  "connectionDatabaseType": "数据库类型",
+  "connectionManager": "连接管理",
+  "connectionSavedConnections": "已保存的连接",
+  "connectionNoSavedConnections": "暂无保存的连接",
+  "connectionCurrent": "当前",
+  "connectionConnected": "已连接",
+  "connectionSwitchToConnection": "切换到此连接",
+  "connectionCloneConnection": "复制连接",
+  "connectionCloned": "已复制连接",
+  "connectionDeleteConnectionTitle": "删除连接",
+  "connectionDeleteConnectionConfirm": "确定要删除连接",
+  "connectionDisconnectAll": "断开全部",
+  "searchDialogTitle": "查询",
+  "searchHint": "搜索表、视图、存储过程、列...",
+  "searchNoResults": "未找到对象",
+  "searchTryDifferentKeywords": "尝试不同的关键词",
+  "searchNavigate": "导航",
+  "searchSelect": "选中",
+  "searchClose": "关闭",
+  "searchResultsCount": "{count} 个结果",
+  "searchTypeConnection": "连接",
+  "searchTypeDatabase": "数据库",
+  "searchTypeTable": "表",
+  "searchTypeView": "视图",
+  "searchTypeProcedure": "存储过程",
+  "searchTypeColumn": "列",
+  "savedQueriesTitle": "已保存的查询",
+  "savedQueriesNoQueries": "暂无保存的查询",
+  "savedQueriesDeleteTitle": "删除查询",
+  "savedQueriesDeleteConfirm": "确定要删除此查询吗？",
+  "savedQueriesOpen": "打开",
+  "viewJson": "檢視 JSON",
+  "extractFieldAsColumn": "擷取欄位為列",
+  "erDiagramTitle": "ER 圖",
+  "erDiagramSearchTables": "搜尋資料表...",
+  "erDiagramHierarchicalLayout": "层級佈局",
+  "erDiagramForceDirectedLayout": "力導向佈局",
+  "erDiagramCircleLayout": "圆形佈局",
+  "erDiagramResetLayout": "重置佈局",
+  "erDiagramZoomIn": "放大",
+  "erDiagramZoomOut": "縮小",
+  "erDiagramFitToScreen": "適應螢幕",
+  "erDiagramRelations": "關係",
+  "erDiagramZoom": "縮放",
+  "erDiagramShowIsolated": "顯示孤立節點",
+  "erDiagramExportAsPNG": "匯出為 PNG",
+  "erDiagramExportAsJPG": "匯出為 JPG",
+  "erDiagramLoading": "載入 ER 圖中...",
+  "erDiagramErrorLoading": "載入 ER 圖失敗",
+  "erDiagramNoData": "無圖資料表數據可用",
+  "erDiagramRetry": "重試",
+  "erDiagramSelectConnection": "选择连接",
+  "erDiagramSelectDatabase": "选择数据库",
+  "performanceAnalyzerTitle": "性能分析工具",
+  "performanceAnalyzerSearch": "搜尋...",
+  "performanceAnalyzerRefresh": "重新整理資料",
+  "performanceAnalyzerGenerateReport": "產生報告",
+  "performanceAnalyzerExport": "匯出",
+  "performanceAnalyzerClose": "關閉",
+  "performanceAnalyzerNotConnected": "未連線到資料庫",
+  "performanceAnalyzerNotConnectedDesc": "請先連線到資料庫以使用效能分析功能",
+  "performanceAnalyzerConfirm": "確定",
+  "performanceAnalyzerSlowQueryAnalysis": "慢查詢分析",
+  "performanceAnalyzerIndexAnalysis": "索引分析",
+  "performanceAnalyzerTableStatistics": "表統計",
+  "performanceAnalyzerPerformanceReport": "效能報告",
+  "performanceAnalyzerLoading": "正在分析資料庫效能...",
+  "performanceAnalyzerLoadFailed": "載入失敗",
+  "performanceAnalyzerRetry": "重試",
+  "performanceAnalyzerTimeThreshold": "時間閾值:",
+  "performanceAnalyzerNoSlowQueries": "沒有找到慢查詢",
+  "performanceAnalyzerSelectQuery": "選擇一個查詢查看詳情",
+  "performanceAnalyzerQueryInfo": "查詢資訊",
+  "performanceAnalyzerExecutionTime": "執行時間",
+  "performanceAnalyzerDatabase": "資料庫",
+  "performanceAnalyzerRowsScaned": "掃描行數",
+  "performanceAnalyzerRowsReturned": "返回行數",
+  "performanceAnalyzerTimestamp": "執行時間",
+  "performanceAnalyzerSqlStatement": "SQL 語句",
+  "performanceAnalyzerExecutionPlan": "執行計畫",
+  "performanceAnalyzerOptimizationSuggestions": "最佳化建議",
+  "performanceAnalyzerFullTableScan": "全表掃描偵測",
+  "performanceAnalyzerFullTableScanDesc": "查詢使用了全表掃描(type=ALL)，建議在 WHERE 子句的欄位上新增索引",
+  "performanceAnalyzerFileSort": "檔案排序",
+  "performanceAnalyzerFileSortDesc": "查詢使用了檔案排序(Using filesort)，建議在 ORDER BY 欄位上新增索引",
+  "performanceAnalyzerTempTable": "臨時表使用",
+  "performanceAnalyzerTempTableDesc": "查詢使用了臨時表(Using temporary)，考慮最佳化 GROUP BY 或 DISTINCT 查詢",
+  "performanceAnalyzerLowScanEfficiency": "掃描效率低",
+  "performanceAnalyzerNoIssues": "未發現明顯問題",
+  "performanceAnalyzerNoIssuesDesc": "查詢執行計畫看起來正常",
+  "performanceAnalyzerIndexTypeDistribution": "索引類型分布",
+  "performanceAnalyzerNoData": "無資料",
+  "performanceAnalyzerTotalIndexes": "總索引",
+  "performanceAnalyzerUsedIndexes": "已使用",
+  "performanceAnalyzerUnusedIndexes": "未使用",
+  "performanceAnalyzerIndexes": "個索引",
+  "performanceAnalyzerColumns": "欄位:",
+  "performanceAnalyzerCardinality": "基數:",
+  "performanceAnalyzerTotalTables": "總表數",
+  "performanceAnalyzerTotalRows": "總行數",
+  "performanceAnalyzerDataSize": "資料大小",
+  "performanceAnalyzerIndexSize": "索引大小",
+  "performanceAnalyzerTotalSize": "總大小",
+  "performanceAnalyzerTableName": "資料表名稱",
+  "performanceAnalyzerEngine": "引擎",
+  "performanceAnalyzerRowCount": "行數",
+  "performanceAnalyzerPercentage": "占比",
+  "performanceAnalyzerTableSizeDistribution": "資料表大小分布 (Top 10)",
+  "performanceAnalyzerDatabasePerformanceReport": "資料庫效能報告",
+  "performanceAnalyzerGeneratedAt": "產生時間:",
+  "performanceAnalyzerTableCount": "表數量",
+  "performanceAnalyzerSlowQueries": "慢查詢",
+  "performanceAnalyzerSuggestions": "建議",
+  "performanceAnalyzerImpact": "影響:",
+  "performanceAnalyzerImpactHigh": "高",
+  "performanceAnalyzerImpactMedium": "中",
+  "performanceAnalyzerImpactLow": "低",
+  "performanceAnalyzerRecommendation": "建議操作:",
+  "performanceAnalyzerSlowQueriesTop": "慢查詢 Top",
+  "performanceAnalyzerLargeTableStatistics": "大表統計",
+  "performanceAnalyzerClickGenerateReport": "點擊\"產生報告\"按鈕開始分析",
+  "sqlHistoryTitle": "SQL 历史记录",
+  "sqlHistoryNoHistory": "暂无历史记录",
+  "sqlHistoryClose": "关闭",
+  "sqlHistoryDelete": "删除",
+  "sqlHistoryConfirmDelete": "确认删除",
+  "sqlHistoryDeleteConfirm": "确定要删除这条历史记录吗？",
+  "sqlHistoryJustNow": "刚刚",
+  "sqlHistoryMinutesAgo": "{count} 分钟前",
+  "sqlHistoryHoursAgo": "{count} 小时前",
+  "sqlHistoryDaysAgo": "{count} 天前",
+  "aiPanelApiSettings": "API 设置",
+  "aiPanelApiKey": "API Key",
+  "aiPanelEnterApiKey": "输入API密钥",
+  "aiPanelApiBaseUrl": "API Base URL (可选)",
+  "aiPanelCustomApiUrl": "自定义API地址",
+  "aiPanelRequestTimeout": "请求超时时间:",
+  "aiPanelSeconds": "秒",
+  "aiPanelSave": "保存",
+  "aiPanelApiSettingsSaved": "API设置已保存",
+  "aiPanelConfirmDangerousOperation": "确认执行危险操作?",
+  "aiPanelConfirmExecuteSql": "确认执行SQL",
+  "aiPanelDangerousOperationWarning": "此操作可能会修改或删除数据，请谨慎执行！",
+  "aiPanelCancel": "取消",
+  "aiPanelConfirmExecute": "确认执行",
+  "aiPanelOperationCancelled": "操作已取消",
+  "aiPanelExecutingSql": "正在执行SQL...",
+  "aiPanelExecuteSuccess": "执行成功，返回 {count} 行",
+  "aiPanelExecuteFailed": "执行失败",
+  "aiPanelDataPreview": "数据预览",
+  "aiPanelAndMoreRows": "还有 {count} 行数据",
+  "aiPanelSqlExecutionSuccess": "SQL执行成功，返回 {count} 行",
+  "aiPanelSqlGenerationComplete": "SQL生成完成",
+  "aiPanelSqlGenerationCompleteWarning": "SQL生成完成 ⚠️",
+  "aiPanelTaskCompleteDesc": "任务已完成，您可以选择执行或复制SQL",
+  "aiPanelDangerousOperationDesc": "这是一个危险操作，请谨慎处理",
+  "aiPanelGeneratedSql": "生成的 SQL",
+  "aiPanelDangerous": "危险",
+  "aiPanelContinue": "继续",
+  "aiPanelClose": "关闭",
+  "aiPanelCopy": "复制",
+  "aiPanelExecute": "执行",
+  "aiPanelConfirmExecuteDangerous": "确认执行",
+  "connectedToServer": "已连接到 {serverName}",
+  "openTableDataFailed": "打开表数据失败: {error}",
+  "queryTable": "查询 {tableName}",
+  "openViewFailed": "打开视图失败: {error}",
+  "queryView": "查询 {viewName}",
+  "openProcedureFailed": "打开存储过程失败: {error}",
+  "callProcedure": "调用 {procName}",
+  "cancelConnection": "取消连接",
+  "deleteConnectionTitle": "删除连接",
+  "deleteConnectionConfirm": "确定要删除连接 \"{serverName}\" 吗？",
+  "refresh": "刷新",
+  "createNewTable": "新建表",
+  "erDiagram": "ER 图",
+  "properties": "属性",
+  "exportStructure": "导出结构",
+  "dropDatabase": "删除数据库",
+  "confirmDeleteDatabase": "刪除資料庫",
+  "confirmDropTable": "刪除表",
+  "typeNameToConfirm": "輸入 \"{name}\" 以確認",
+  "dropDatabaseWarning": "資料庫 \"{name}\" 將被永久刪除。",
+  "objectCountWarning": "{count} 個{type}將被銷毀",
+  "allDataWillBeLost": "所有資料將遺失",
+  "copiedDbStructureToClipboard": "已复制 {dbName} 的结构到剪贴板",
+  "databaseDeleted": "数据库 {dbName} 已删除",
+  "browseData": "浏览数据",
+  "editTable": "修改表",
+  "copyTableName": "复制表名",
+  "exportData": "导出数据",
+  "dataSync": "資料同步",
+  "rename": "重命名",
+  "truncate": "清空数据",
+  "dropTable": "删除表",
+  "loadTableStructureFailed": "加载表结构失败: {error}",
+  "tableNameCopied": "已复制表名",
+  "copiedTableDataToClipboard": "已复制 {tableName} 的数据到剪贴板",
+  "tableRenamedTo": "表已重命名为 {newName}",
+  "renameFailed": "重命名失败: {error}",
+  "tableTruncated": "表 {tableName} 已清空",
+  "truncateFailed": "清空失败: {error}",
+  "tableDeleted": "表 {tableName} 已删除",
+  "analyzeTable": "分析表",
+  "optimizeTable": "最佳化表",
+  "checkTable": "檢查表",
+  "confirmAnalyzeTable": "分析表 {tableName}",
+  "@confirmAnalyzeTable": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "confirmAnalyzeTableMessage": "這將更新資料表 \"{tableName}\" 的索引統計資訊。",
+  "@confirmAnalyzeTableMessage": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "confirmOptimizeTable": "最佳化表 {tableName}",
+  "@confirmOptimizeTable": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "confirmOptimizeTableMessage": "這將整理資料表 \"{tableName}\" 的碎片並回收未使用空間。",
+  "@confirmOptimizeTableMessage": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "confirmCheckTable": "檢查表 {tableName}",
+  "@confirmCheckTable": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "confirmCheckTableMessage": "這將檢查資料表 \"{tableName}\" 是否有錯誤。",
+  "@confirmCheckTableMessage": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "optimizeTableWarning": "此操作可能會鎖定資料表，在大型資料表上可能需要較長時間。",
+  "analyzeTableResultTitle": "分析結果：{tableName}",
+  "@analyzeTableResultTitle": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "optimizeTableResultTitle": "最佳化結果：{tableName}",
+  "@optimizeTableResultTitle": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "checkTableResultTitle": "檢查結果：{tableName}",
+  "@checkTableResultTitle": {
+    "placeholders": {
+      "tableName": {}
+    }
+  },
+  "maintenanceExecutedSql": "執行的 SQL",
+  "maintenanceResult": "結果",
+  "maintenanceFailed": "{operation} 失敗：{error}",
+  "@maintenanceFailed": {
+    "placeholders": {
+      "operation": {},
+      "error": {}
+    }
+  },
+  "indexTypeNormal": "普通",
+  "indexTypeUnique": "唯一",
+  "hintIndexColumns": "如: id, name",
+  "pleaseDefineAtLeastOneColumn": "请至少定义一个列",
+  "tableCreated": "表 {tableName} 创建成功",
+  "createFailed": "创建失败: {error}",
+  "tableModified": "表修改成功",
+  "modifyFailed": "修改失败: {error}",
+  "noInformation": "无信息",
+  "noIndexes": "无索引",
+  "truncateTableData": "清空表数据",
+  "menuCut": "剪切",
+  "menuCopy": "复制",
+  "menuPaste": "粘贴",
+  "menuSelectAll": "全选",
+  "menuFormatSql": "格式化 SQL",
+  "menuExecuteQuery": "执行查询",
+  "commandNewConnection": "新建连接",
+  "commandNewTab": "新建标签",
+  "commandExecuteQuery": "执行查询",
+  "commandFormatSql": "格式化 SQL",
+  "commandToggleAiPanel": "切换 AI 面板",
+  "commandQueryHistory": "查询历史",
+  "commandShortcuts": "快捷键",
+  "commandSettings": "设置",
+  "commandCategoryHistory": "歷史",
+  "commandCategoryHelp": "幫助",
+  "commandDescNewConnection": "建立新的資料庫連線",
+  "commandDescNewTab": "建立新的查詢標籤",
+  "commandDescExecuteQuery": "執行目前的 SQL 查詢",
+  "commandDescFormatSql": "美化 SQL 程式碼格式",
+  "commandDescToggleSidebar": "顯示或隱藏側邊欄",
+  "commandDescToggleAiPanel": "顯示或隱藏 AI 助手面板",
+  "commandDescQueryHistory": "檢視執行歷史",
+  "commandDescShortcuts": "檢視所有快捷鍵",
+  "commandDescSettings": "開啟應用設定",
+  "searchNavigateKeys": "↑↓/滑鼠",
+  "menuConnect": "连接",
+  "menuCancelConnection": "取消连接",
+  "menuDisconnect": "断开连接",
+  "menuRefresh": "刷新",
+  "menuEditConnection": "编辑连接",
+  "menuCloneConnection": "复制连接",
+  "menuDeleteConnection": "删除连接",
+  "addColumn": "添加列",
+  "addIndex": "添加索引",
+  "noIndexesClickToAdd": "暂无索引，点击上方按钮添加",
+  "formatCSV": "CSV",
+  "formatJSON": "JSON",
+  "formatExcel": "Excel",
+  "formatMarkdown": "Markdown",
+  "formatSqlInsert": "SQL INSERT",
+  "formatCSVDesc": "CSV 是通用的电子表格格式，兼容 Excel、Numbers、Google Sheets 等工具。",
+  "formatJSONDesc": "JSON 是结构化数据格式，适合程序读取或 API 接口调用。",
+  "formatExcelDesc": "Excel 格式保留数据类型和格式，适合深度数据分析。",
+  "formatMarkdownDesc": "Markdown 表格格式适合文档、报告或代码审查中使用。",
+  "formatSqlInsertDesc": "SQL INSERT 语句可直接导入到其他数据库，适合数据迁移。",
+  "copiedToClipboard": "已复制到剪贴板",
+  "hintFormatName": "例如：我的格式",
+  "hintOptionalDescription": "可选描述",
+  "formatterSelectPreset": "选择预设",
+  "formatterFormat": "格式化",
+  "formatterCopyResult": "复制结果",
+  "formatterHintInputSql": "在此输入 SQL 代码...",
+  "formatterSpace": "空格",
+  "formatterTab": "Tab",
+  "formatterIndentSize": "缩进大小",
+  "formatterMaxLineLength": "最大行长度",
+  "formatterUppercaseKeywords": "关键字大写",
+  "formatterAlignKeywords": "对齐关键字",
+  "formatterPreserveComments": "保留注释",
+  "formatterNewlineBeforeParentheses": "括号前换行",
+  "formatterCompactMode": "紧凑模式",
+  "formatterPosition": "位置",
+  "formatterEnd": "末尾",
+  "formatterStart": "开头",
+  "timeAgoDays": "{count}天前",
+  "timeAgoHours": "{count}小時前",
+  "timeAgoMinutes": "{count}分鐘前",
+  "timeAgoJustNow": "剛剛",
+  "optimizationFullTableScan": "全資料表掃描偵測",
+  "optimizationFullTableScanDesc": "查詢使用了全資料表掃描(type=ALL)，建議在 WHERE 子句的欄位上新增索引",
+  "optimizationFilesort": "檔案排序",
+  "optimizationFilesortDesc": "查詢使用了檔案排序(Using filesort)，建議在 ORDER BY 欄位上添加索引",
+  "optimizationTemporary": "臨時資料表使用",
+  "optimizationTemporaryDesc": "查詢使用了臨時資料表(Using temporary)，考慮最佳化 GROUP BY 或 DISTINCT 查詢",
+  "optimizationLowEfficiency": "掃描效率低",
+  "optimizationLowEfficiencyDesc": "掃描了 {rowsExamined} 行但只返回了 {rowsSent} 行，掃描比例為 {ratio}:1",
+  "optimizationNoIssue": "未發現明顯問題",
+  "optimizationNoIssueDesc": "查詢執行計畫看起來正常",
+  "optimizationSuggestions": "最佳化建議",
+  "indexTypeDistribution": "索引類型分布",
+  "noData": "無數據",
+  "indexPrimary": "主鍵",
+  "indexUnique": "唯一",
+  "indexNormal": "普通",
+  "totalIndexes": "總索引",
+  "indexUsed": "已使用",
+  "indexUnused": "未使用",
+  "indexCount": "{count} 個索引",
+  "columnCardinality": "基數: {cardinality}",
+  "columnsLabel": "欄位: {columns}",
+  "totalTables": "總資料表數",
+  "totalRows": "總行數",
+  "dataSize": "數據大小",
+  "indexSize": "索引大小",
+  "tableSizeDistribution": "資料表大小分布 (Top 10)",
+  "tableNameLabel": "資料表名",
+  "tableEngineLabel": "引擎",
+  "tableRowCountLabel": "行數",
+  "tableDataSizeLabel": "數據大小",
+  "tableIndexSizeLabel": "索引大小",
+  "tableTotalSizeLabel": "總大小",
+  "tableRatioLabel": "占比",
+  "databasePerformanceReport": "資料庫效能報告",
+  "databaseLabel": "資料庫: {name}",
+  "generatedAtLabel": "產生時間: {time}",
+  "tableCountLabel": "資料表數量",
+  "slowQueryCountLabel": "慢查詢",
+  "suggestionCountLabel": "建議",
+  "impactLevel": "影響: {level}",
+  "impactHigh": "高",
+  "impactMedium": "中",
+  "impactLow": "低",
+  "recommendedAction": "建議操作:",
+  "slowQueryTopN": "慢查詢 Top {count}",
+  "largeTableStats": "大表統計",
+  "tabRenameTitle": "重新命名查詢",
+  "tabRenameHint": "輸入查詢名稱",
+  "tabRename": "重新命名",
+  "tabClose": "關閉",
+  "tabCloseOthers": "關閉其他",
+  "tabCloseToRight": "關閉右側",
+  "tabCloseAll": "關閉所有",
+  "tabDuplicate": "複製標籤頁",
+  "tabNewTooltip": "新建查詢 (Ctrl+T)",
+  "tabNewQueryTitle": "查詢{count}",
+  "confirm": "確定",
+  "copySuffix": "（副本）",
+  "triggerTitle": "觸發器",
+  "triggerFailedToLoad": "載入觸發器失敗: {error}",
+  "triggerFailedToLoadDefinition": "載入觸發器定義失敗",
+  "triggerDeleteTitle": "刪除觸發器",
+  "triggerDeleteConfirm": "確定要刪除觸發器 \"{name}\" 嗎？",
+  "triggerDeleted": "觸發器 \"{name}\" 已刪除",
+  "triggerDeleteFailed": "刪除觸發器失敗: {error}",
+  "triggerCannotDisable": "MySQL 觸發器無法直接停用。請使用刪除來移除。",
+  "triggerShowList": "顯示列表",
+  "triggerGroupByTable": "按表分組",
+  "triggerSearchHint": "搜尋觸發器...",
+  "triggerNoTriggers": "未找到觸發器",
+  "triggerCreate": "建立觸發器",
+  "triggerViewDefinition": "檢視定義",
+  "triggerCopyName": "複製名稱",
+  "triggerCopied": "已複製 \"{name}\" 到剪貼簿",
+  "triggerNew": "新建觸發器",
+  "triggerDefinition": "觸發器: {name}",
+  "formatterSqlFormat": "SQL 格式化",
+  "formatterSavePreset": "儲存預設",
+  "formatterPresetName": "預設名稱",
+  "formatterCustomPreset": "自訂預設",
+  "formatterBuiltIn": "內建",
+  "formatterSaveAsPreset": "儲存目前設定為預設",
+  "formatterDeletePreset": "刪除預設",
+  "formatterInput": "輸入",
+  "formatterOptions": "格式化選項",
+  "formatterIndent": "縮排",
+  "formatterKeywords": "關鍵字",
+  "formatterCommaStyle": "逗號樣式",
+  "formatterApplyToEditor": "套用到編輯器",
+  "filterTitle": "篩選: {columnName}",
+  "@filterTitle": {
+    "placeholders": {
+      "columnName": {
+        "type": "String"
+      }
+    }
+  },
+  "filterEquals": "等於",
+  "filterNotEquals": "不等於",
+  "filterContains": "包含",
+  "filterNotContains": "不包含",
+  "filterGreaterThan": "大於",
+  "filterLessThan": "小於",
+  "filterIsEmpty": "為空",
+  "filterIsNotEmpty": "不為空",
+  "filterRegex": "正規表達式",
+  "filterValue": "值",
+  "filterEnterValue": "輸入篩選值",
+  "filterCaseSensitive": "區分大小寫",
+  "filterTimeFilter": "時間篩選",
+  "filterToday": "今天",
+  "filterLast24Hours": "最近24小時",
+  "filterLast7Days": "最近7天",
+  "filterLast30Days": "最近30天",
+  "rowCountLabel": "{count} 列",
+  "aiPanelCustomModel": "自訂模型",
+  "aiPanelBookmarks": "書籤",
+  "aiPanelScrollToMessageDeveloping": "滾動到訊息功能開發中",
+  "aiPanelBranchConversationCreated": "已建立分支對話",
+  "aiPanelNoConnections": "暫無連線，請在連線管理中建立",
+  "aiPanelConversationList": "對話列表",
+  "aiPanelSelectConnection": "選擇連線",
+  "aiPanelNoConnection": "無連線",
+  "aiPanelSelectDatabaseFirst": "先選擇連線",
+  "aiPanelSelectDatabase": "選擇資料庫",
+  "aiPanelAllDatabases": "所有資料庫",
+  "aiPanelConnectionFailed": "連線失敗",
+  "aiPanelUnknownError": "未知錯誤",
+  "aiPanelLoadDatabasesFailed": "載入資料庫失敗",
+  "aiPanelDangerousOperation": "危險操作",
+  "aiPanelOptimizeSql": "最佳化SQL",
+  "aiPanelSecurityAnalysis": "安全性分析",
+  "aiPanelExecutionPlan": "執行計畫",
+  "aiPanelIndexSuggestions": "索引建議",
+  "aiPanelInputHint": "請輸入您的資料庫問題，例如：如何最佳化這個查詢？",
+  "aiPanelStop": "停止",
+  "aiPanelSend": "發送",
+  "aiPanelSelectConnectionFirst": "請先在上方的下拉框中選擇一個連線實例。",
+  "aiPanelConnectionNotAvailable": "連線實例 \"{name}\" 未連線或不可用，請先連線該實例。",
+  "aiPanelTable": "表",
+  "aiPanelDangerousOperationBadge": "危險操作",
+  "aiPanelThinkingProcess": "思考過程",
+  "aiPanelExpandThinking": "展開思考過程",
+  "aiPanelCollapseThinking": "收起思考過程",
+  "aiPanelRenameSession": "重新命名對話",
+  "aiPanelSessionTitle": "對話標題",
+  "aiPanelDeleteSession": "刪除對話",
+  "aiPanelDeleteSessionConfirm": "確定要刪除 \"{name}\" 嗎？",
+  "aiPanelRename": "重新命名",
+  "aiPanelUnarchive": "取消歸檔",
+  "aiPanelArchive": "歸檔",
+  "aiPanelSessions": "對話",
+  "aiPanelSearchSessions": "搜尋對話",
+  "aiPanelNoSessions": "暫無對話",
+  "aiPanelArchivedSessions": "歸檔對話 ({count})",
+  "aiPanelJustNow": "剛剛",
+  "aiPanelMinutesAgo": "{count}分鐘前",
+  "aiPanelHoursAgo": "{count}小時前",
+  "aiPanelDaysAgo": "{count}天前",
+  "aiPanelSelectProvider": "選擇模型廠商",
+  "aiPanelSelectModelCurrent": "選擇模型 (目前: {provider})",
+  "aiPanelApiConfigCurrent": "API 設定 (目前: {provider})",
+  "aiPanelModelProviderMismatch": "所選模型不屬於所選廠商",
+  "aiPanelAllowSession": "允許本次會話",
+  "aiPanelNoBookmarks": "暫無書籤",
+  "aiPanelClickBookmarkIcon": "點擊訊息上的書籤圖示添加",
+  "aiCmdOptimizeSql": "最佳化SQL語句",
+  "aiCmdExplainQuery": "解釋查詢計畫",
+  "aiCmdGenerateCrud": "產生CRUD語句",
+  "aiCmdAnalyzeTable": "分析表結構",
+  "aiCmdShowHistory": "查看查詢歷史",
+  "aiCmdShowBookmarks": "查看書籤",
+  "aiCmdBranchConversation": "建立分支對話",
+  "aiCmdListDatabases": "列出所有資料庫",
+  "aiCmdListTables": "列出所有資料表",
+  "settingsThemeMode": "主題模式",
+  "settingsThemeColor": "主題色",
+  "settingsSystem": "跟隨系統",
+  "settingsPreview": "預覽效果",
+  "settingsPrimaryButton": "主要按鈕",
+  "settingsSecondaryButton": "次要按鈕",
+  "settingsApply": "應用",
+  "colorBlue": "藍色",
+  "colorPurple": "紫色",
+  "colorGreen": "綠色",
+  "colorOrange": "橙色",
+  "colorRed": "紅色",
+  "colorCyan": "青色",
+  "colorPink": "粉色",
+  "colorYellow": "黃色",
+  "aiChatPageTitle": "AI 助手",
+  "messageLabelYou": "你",
+  "messageLabelAi": "AI",
+  "messageStatusSending": "發送中",
+  "messageStatusGenerating": "生成中",
+  "messageStatusFailed": "失敗",
+  "messageStatusCancelled": "已取消",
+  "messageStatusError": "出錯了",
+  "messageStatusThinking": "思考中",
+  "tokenUsagePrompt": "輸入 {count}",
+  "@tokenUsagePrompt": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tokenUsageCompletion": "輸出 {count}",
+  "@tokenUsageCompletion": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tokenUsageTotal": "總計 {count}",
+  "@tokenUsageTotal": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionTokenUsage": "會話：輸入 {promptTokens} · 輸出 {completionTokens} · 總計 {totalTokens}",
+  "@sessionTokenUsage": {
+    "placeholders": {
+      "promptTokens": {
+        "type": "int"
+      },
+      "completionTokens": {
+        "type": "int"
+      },
+      "totalTokens": {
+        "type": "int"
+      }
+    }
+  },
+  "messageActionRegenerate": "重新生成",
+  "tooltipCopyCode": "複製程式碼",
+  "tooltipExecuteCode": "執行程式碼",
+  "messageCopied": "已複製",
+  "toolCallTitle": "工具: {name}",
+  "@toolCallTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "toolResultTitle": "結果: {name}",
+  "@toolResultTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "toolCallCompleted": "已呼叫並完成",
+  "toolParamLabel": "參數",
+  "toolResultLabel": "結果",
+  "toolGroupTitle": "工具執行組",
+  "toolGroupSummary": "執行了 {count} 個工具",
+  "@toolGroupSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "toolGroupItemTitle": "工具 {index}: {name}",
+  "@toolGroupItemTitle": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "toolNoParams": "無參數",
+  "aiWelcomeTitle": "AI 資料庫助手",
+  "aiWelcomeDescription": "我可以幫你寫 SQL、優化查詢、分析表結構、檢查安全問題，或者解答任何資料庫相關的疑問。",
+  "aiConnectedTo": "已連線: {name}",
+  "@aiConnectedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiExampleSectionTitle": "試試這樣問我",
+  "aiQuickActionsSectionTitle": "快捷操作",
+  "aiTipQuickSend": "Ctrl + Enter 快速發送",
+  "aiTipSlashCommands": "輸入 / 查看所有命令",
+  "aiExampleQuestion1": "優化這個查詢的效能",
+  "aiExampleQuestion2": "分析目前表結構",
+  "aiExampleQuestion3": "檢查這段 SQL 的安全性",
+  "errorApiKeyRequired": "請先填寫 API Key",
+  "errorBaseUrlRequired": "請先填寫 Base URL",
+  "errorFetchModelsFailed": "取得模型列表失敗: {error}",
+  "@errorFetchModelsFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "tooltipRefreshModels": "重新整理模型列表",
+  "labelCustomModelInput": "手動輸入模型名稱",
+  "tooltipAddModel": "新增模型",
+  "hintFetchOrInputModel": "點擊重新整理按鈕取得或手動輸入模型名稱",
+  "hintFetchModels": "點擊重新整理按鈕取得模型列表",
+  "errorSelectModelRequired": "請選擇或輸入一個模型",
+  "errorSaveFailed": "儲存失敗: {error}",
+  "@errorSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "toolbarCodeSnippets": "程式碼片段 (Ctrl+Shift+S)",
+  "toolbarCloseSplit": "關閉分割",
+  "editorHintText": "輸入 SQL 查詢... (Ctrl+Space 自動完成, F5/Ctrl+Enter 執行)",
+  "editorHintTextMongodb": "輸入 MongoDB 查詢... (F5/Ctrl+Enter 執行)",
+  "editorHintTextRedis": "輸入 Redis 命令... (F5/Ctrl+Enter 執行)",
+  "allStatementsSuccess": "全部 {count} 條語句執行成功 ({time}ms)",
+  "@allStatementsSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "time": {
+        "type": "int"
+      }
+    }
+  },
+  "statementsPartialSuccess": "{success}/{total} 條成功, {failed} 條失敗 ({time}ms)",
+  "@statementsPartialSuccess": {
+    "placeholders": {
+      "success": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      },
+      "time": {
+        "type": "int"
+      }
+    }
+  },
+  "statementsAllSuccess": "{count} 條語句執行成功",
+  "@statementsAllSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statementsPartialSuccessShort": "{success}/{total} 成功，{failed} 失敗",
+  "@statementsPartialSuccessShort": {
+    "placeholders": {
+      "success": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "connErrorWithMessage": "錯誤：{error}",
+  "@connErrorWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "connSearchSnippetsHint": "搜尋程式碼片段...",
+  "connPreview": "預覽",
+  "connInsert": "插入",
+  "connApply": "套用",
+  "connClearAll": "全部清除",
+  "connSaveConnectionFailed": "儲存連線失敗：{error}",
+  "@connSaveConnectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "connDeleteConnectionFailed": "刪除連線失敗：{error}",
+  "@connDeleteConnectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "connCreateStatement": "建立語句",
+  "connCreateStatementCopied": "建立語句已複製",
+  "connCopyCreateStatement": "複製建立語句",
+  "connDeleteDatabase": "刪除資料庫",
+  "connCopiedToClipboard": "已複製到剪貼簿",
+  "connCopy": "複製",
+  "connExportFeatureSetup": "匯出功能需要額外設定",
+  "connExportFailed": "匯出失敗：{error}",
+  "@connExportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "connCopiedTableName": "已複製：{tableName}",
+  "@connCopiedTableName": {
+    "placeholders": {
+      "tableName": {
+        "type": "String"
+      }
+    }
+  },
+  "connRetry": "重試",
+  "connReportIssue": "回報問題",
+  "connEnterTableName": "輸入資料表名稱",
+  "connParameterName": "參數名稱",
+  "connClear": "清除",
+  "connCharset": "字元集",
+  "connComment": "註解",
+  "connName": "名稱",
+  "connDefault": "預設值",
+  "connIndexName": "索引名稱",
+  "connTruncate": "截斷",
+  "dlgProcedureUpdated": "預存程序/函數更新成功",
+  "dlgProcedureCreated": "預存程序/函數建立成功",
+  "dlgOperationFailed": "操作失敗：{error}",
+  "@dlgOperationFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "dlgType": "類型",
+  "dlgProcedureType": "程序 (PROCEDURE)",
+  "dlgFunctionType": "函數 (FUNCTION)",
+  "dlgReturnType": "回傳類型",
+  "dlgEnterSqlHint": "輸入 SQL 程式碼...",
+  "dlgExecutionFailed": "執行失敗：{error}",
+  "@dlgExecutionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "dlgExecute": "執行",
+  "dlgEnterValue": "輸入值",
+  "dlgCopied": "已複製",
+  "dlgNoHistory": "尚無歷史記錄",
+  "dlgConfirmDeleteTitle": "確認刪除",
+  "dlgConfirmDeleteHistoryMessage": "確定要刪除此歷史記錄嗎？\n\n{sql}",
+  "@dlgConfirmDeleteHistoryMessage": {
+    "placeholders": {
+      "sql": {
+        "type": "String"
+      }
+    }
+  },
+  "dlgTestSyntax": "測試語法",
+  "dlgSyntaxError": "語法錯誤：{message}",
+  "@dlgSyntaxError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "dlgSyntaxLooksGood": "語法看起來沒問題！",
+  "dlgEnterTriggerName": "輸入觸發器名稱",
+  "dlgEnterVariableValue": "輸入 {variable}",
+  "@dlgEnterVariableValue": {
+    "placeholders": {
+      "variable": {
+        "type": "String"
+      }
+    }
+  },
+  "molChooseFromGallery": "從相簿選擇",
+  "molTakePhoto": "拍照",
+  "molPickImageFailed": "選取圖片失敗：{error}",
+  "@molPickImageFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "molSend": "發送",
+  "svcExportSuccess": "檔案已匯出：{result}",
+  "@svcExportSuccess": {
+    "placeholders": {
+      "result": {
+        "type": "String"
+      }
+    }
+  },
+  "svcExportFailed": "匯出失敗：{error}",
+  "@svcExportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scrInitFailed": "初始化失敗：{error}",
+  "@scrInitFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportTitle": "AI 智能導入",
+  "smartImportSubtitle": "自動分析文件結構並導入數據庫",
+  "smartImportClose": "關閉",
+  "smartImportTarget": "導入目標",
+  "smartImportSelectedTable": "已選擇表: {table}",
+  "@smartImportSelectedTable": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportAutoInfer": "未選擇表，將由 AI 自動推斷",
+  "smartImportLoadTables": "加載表列表...",
+  "smartImportTableHint": "搜索或輸入表名（留空由 AI 推斷）",
+  "smartImportStepSelectFile": "選擇文件",
+  "smartImportStepAnalyze": "分析文件",
+  "smartImportStepImport": "導入數據",
+  "smartImportStepComplete": "完成",
+  "smartImportSelectFileTitle": "選擇要導入的文件",
+  "smartImportSelectFileHint": "點擊選擇 CSV 或 JSON 文件",
+  "smartImportReselectFile": "點擊重新選擇",
+  "smartImportSupportedFormats": "支持格式: CSV, TSV, JSON, JSON Lines",
+  "smartImportAnalyzing": "正在分析文件結構...",
+  "smartImportTableNotFound": "目標表不存在",
+  "smartImportTableNotFoundMessage": "表 \"{table}\" 在當前數據庫中不存在。",
+  "@smartImportTableNotFoundMessage": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportCreateTableHint": "請先在 SQL 編輯器中執行以下建表語句，然後重新打開智能導入。",
+  "smartImportSuggestedSQL": "建議的建表語句",
+  "smartImportCopySQL": "複製語句",
+  "smartImportSQLCopied": "建表語句已複製到剪貼板",
+  "smartImportImporting": "正在導入數據...",
+  "smartImportImported": "已導入",
+  "smartImportTotalRecords": "總數據",
+  "smartImportFailedRecords": "失敗",
+  "smartImportProgress": "進度",
+  "smartImportImportComplete": "導入完成",
+  "smartImportTargetTable": "目標表",
+  "smartImportSuccessRows": "成功導入",
+  "smartImportFailedRows": "失敗跳過",
+  "smartImportTotalRows": "表當前總行數",
+  "smartImportImportFailed": "導入失敗",
+  "smartImportFilePreview": "文件預覽",
+  "smartImportSampleData": "樣本數據（前3行）",
+  "smartImportLogs": "導入日誌",
+  "smartImportClearLogs": "清空",
+  "smartImportReimport": "重新導入",
+  "smartImportStartAnalysis": "開始分析",
+  "smartImportStartImport": "開始導入",
+  "smartImportCancelImport": "取消導入",
+  "smartImportUserCancelled": "用戶取消導入",
+  "smartImportFileSelected": "已選擇文件: {name}",
+  "@smartImportFileSelected": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportAnalysisComplete": "文件分析完成。格式: {format}, 編碼: {encoding}, 字段數: {fields}",
+  "@smartImportAnalysisComplete": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      },
+      "encoding": {
+        "type": "String"
+      },
+      "fields": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportEstimatedRows": "估計總行數: ~{rows}",
+  "@smartImportEstimatedRows": {
+    "placeholders": {
+      "rows": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportUsingSelectedTable": "使用已選擇的表: {table}",
+  "@smartImportUsingSelectedTable": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportCheckTableExists": "檢查目標表是否存在...",
+  "smartImportTableExists": "表 \"{table}\" 已存在，當前有 {count} 行數據",
+  "@smartImportTableExists": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportTableNotExists": "表 \"{table}\" 不存在。請先創建表。",
+  "@smartImportTableNotExists": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+
+  "smartImportAiInferringTable": "AI 正在推斷表名",
+
+  "smartImportAiSuggestedTable": "AI 建議表名: {name}",
+  "@smartImportAiSuggestedTable": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+
+  "smartImportDoNotImport": "不匯入",
+
+  "smartImportTaskDescription": "匯入 {count} 到 {table}",
+  "@smartImportTaskDescription": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "table": {"type": "String"}
+    }
+  },
+
+  "smartImportStartImporting": "開始導入數據到表 \"{table}\"...",
+  "@smartImportStartImporting": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportImportResult": "導入完成！成功: {imported} 行, 失敗: {failed} 行",
+  "@smartImportImportResult": {
+    "placeholders": {
+      "imported": {
+        "type": "String"
+      },
+      "failed": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportQueryRowCount": "正在查詢表總行數...",
+  "smartImportTableTotalRows": "表 \"{table}\" 當前共有 {count} 行數據",
+  "@smartImportTableTotalRows": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportQueryCountFailed": "查詢數量失敗: {error}",
+  "@smartImportQueryCountFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportImportError": "導入失敗: {error}",
+  "@smartImportImportError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportCopySuccess": "SQL 語句已複製",
+  "smartImportRows": "{count} 行",
+  "@smartImportRows": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "smartImportAiModel": "AI 模型",
+  "aiPanelFullscreen": "全屏模式",
+  "aiPanelExitFullscreen": "退出全屏",
+  "aiPanelOpenInNewQuery": "已在新查詢中打開",
+  "aiPanelInsertStatementsGenerated": "AI 已生成 {count} 條 INSERT 語句，準備插入到表 [{tableName}]。",
+  "@aiPanelInsertStatementsGenerated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "tableName": {
+        "type": "String"
+      }
+    }
+  },
+  "aiPanelSqlPreviewTitle": "SQL 預覽（前3條）:",
+  "aiPanelMoreStatements": "... 還有 {count} 條語句",
+  "@aiPanelMoreStatements": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiAgentToolCallLimitReached": "AI助手已達到工具調用上限（{count}次）。請簡化您的問題，或分步進行操作。",
+  "@aiAgentToolCallLimitReached": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiAgentMaxIterationsReached": "Agent 達到最大迭代次數，未能完成對話。",
+  "aiAgentDuplicateQuery": "該查詢已執行過，請基於已有結果直接回答，不要重複查詢相同信息。",
+  "aiAgentToolExecutionFailed": "工具執行失敗: {error}",
+  "@aiAgentToolExecutionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "aiAgentUnknownTool": "未知工具: {name}",
+  "@aiAgentUnknownTool": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiContextCurrentDatabase": "當前數據庫: {name}",
+  "@aiContextCurrentDatabase": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiContextCurrentTable": "當前表: {name}",
+  "@aiContextCurrentTable": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiContextRecentQueries": "最近查詢: {queries}",
+  "@aiContextRecentQueries": {
+    "placeholders": {
+      "queries": {
+        "type": "String"
+      }
+    }
+  },
+  "aiContextGoalSummary": "當前會話目標摘要: {summary}",
+  "@aiContextGoalSummary": {
+    "placeholders": {
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
+  "taskPanelTitle": "任務",
+  "taskPanelEmpty": "暫無任務",
+  "taskPanelEmptyDesc": "導入或導出操作將顯示在這裡",
+  "taskPanelClearCompleted": "清除已完成",
+  "taskPanelStatusPending": "等待中",
+  "taskPanelStatusRunning": "執行中",
+  "taskPanelStatusPaused": "已暫停",
+  "taskPanelStatusCompleted": "已完成",
+  "taskPanelStatusFailed": "失敗",
+  "taskPanelStatusCancelled": "已取消",
+  "taskTypeImport": "導入",
+  "taskTypeExport": "導出",
+  "taskTypeQuery": "查詢",
+  "taskActionCancel": "取消",
+  "taskActionRetry": "重試",
+  "taskActionRemove": "刪除",
+  "taskActionOpenFolder": "打開目錄",
+  "taskCreateExportTitle": "創建導出任務",
+  "taskCreateExportFormat": "導出格式",
+  "taskCreateExportPath": "輸出路徑",
+  "taskCreateExportPathPlaceholder": "點擊右側按鈕選擇保存位置",
+  "taskCreateExportPathSelect": "選擇保存位置",
+  "taskCreateExportStart": "創建任務",
+  "taskValidationPathRequired": "請選擇輸出路徑",
+  "taskValidationPathNotWritable": "目錄不可寫，請選擇其他位置",
+  "taskValidationPathExists": "文件已存在，將被覆蓋",
+  "taskStatusBarTasks": "{count} 個任務",
+  "@taskStatusBarTasks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "taskStatusBarRunning": "{count} 個執行中",
+  "@taskStatusBarRunning": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "taskLogInfo": "信息",
+  "taskLogWarning": "警告",
+  "taskLogError": "錯誤",
+  "taskLogSuccess": "成功",
+  "taskDetailTitle": "任務詳情",
+  "taskDetailBasicInfo": "基本信息",
+  "taskDetailStatistics": "執行統計",
+  "taskDetailError": "錯誤信息",
+  "taskDetailOutputFile": "輸出文件",
+  "taskDetailLogs": "執行日誌",
+  "taskDetailCopied": "路徑已複製到剪貼板",
+  "taskPhaseAnalyzing": "正在分析...",
+  "taskPhaseQuerying": "正在查詢數據...",
+  "taskPhaseFormatting": "正在格式化數據...",
+  "taskPhaseWriting": "正在寫入文件...",
+  "taskPhaseCompleted": "已完成",
+  "aiExportButtonCreate": "創建導出任務",
+  "aiExportButtonAnalyzing": "分析中...",
+  "aiMessageExportAction": "導出此數據",
+  "smartImportCreateTask": "在後台創建導入任務",
+  "schemaDiffTitle": "Schema 比對與同步",
+  "schemaDiffMenuItem": "Schema 比對與同步",
+  "schemaDiffSource": "來源資料庫",
+  "schemaDiffTarget": "目標資料庫",
+  "schemaDiffCompareButton": "比對",
+  "schemaDiffSelectDatabases": "請選擇來源資料庫和目標資料庫進行比對",
+  "schemaDiffTabOverview": "概覽",
+  "schemaDiffTabDetails": "詳情",
+  "schemaDiffTabSync": "同步",
+  "columnDropped": "已刪除欄位「{column}」",
+  "confirmDropColumn": "確定要刪除資料表「{table}」中的欄位「{column}」嗎？",
+  "confirmDropIndex": "確定要刪除索引「{index}」嗎？",
+  "copyColumnName": "複製欄位名稱",
+  "copyIndexName": "複製索引名稱",
+  "dropColumn": "刪除欄位",
+  "dropColumnFailed": "刪除欄位失敗：{error}",
+  "dropIndex": "刪除索引",
+  "dropIndexFailed": "刪除索引失敗：{error}",
+  "editIndex": "編輯索引",
+  "indexDropped": "已刪除索引「{index}」",
+  "loadingSchema": "載入中...",
+  "noColumns": "無欄位",
+  "noProgrammableObjects": "此資料庫類型不支援可程式化物件",
+  "noSearchResults": "無符合的結果",
+  "page": "頁面",
+  "selectDatabaseHint": "雙擊資料庫以檢視其物件",
+  "workspaceEmptyTitle": "沒有開啟的查詢",
+  "workspaceEmptyHint": "建立新查詢標籤頁以開始工作",
+  "sidebarCollections": "集合",
+  "sidebarColumns": "欄位",
+  "sidebarEvents": "事件",
+  "sidebarEnableEvent": "啟用事件",
+  "sidebarDisableEvent": "停用事件",
+  "sidebarDropEvent": "刪除事件",
+  "sidebarEventProperties": "屬性",
+  "sidebarEventNoDefinition": "無定義",
+  "sidebarEventOperationFailed": "操作失敗：{error}",
+  "@sidebarEventOperationFailed": {
+    "description": "MySQL 事件操作失敗錯誤",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sidebarDropEventConfirm": "確定要刪除事件 \"{name}\" 嗎？\n\n此操作無法復原。",
+  "@sidebarDropEventConfirm": {
+    "description": "刪除 MySQL 事件確認對話框",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sidebarSynonyms": "同義詞",
+  "sidebarBrowseSynonym": "瀏覽同義詞",
+  "sidebarScriptSynonymAsSelect": "產生 SELECT 腳本",
+  "sidebarDropSynonym": "刪除同義詞",
+  "sidebarDropSynonymConfirm": "確定要刪除同義詞 \"{name}\" 嗎？\n\n此操作無法復原。",
+  "@sidebarDropSynonymConfirm": {
+    "description": "刪除 SQL Server 同義詞確認對話框",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sidebarSynonymOperationFailed": "操作失敗：{error}",
+  "@sidebarSynonymOperationFailed": {
+    "description": "SQL Server 同義詞操作失敗錯誤",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sidebarIndexes": "索引",
+  "sidebarInsertIntoEditor": "插入到編輯器",
+  "sidebarForeignKeys": "外部索引鍵",
+  "sidebarCopyIndexName": "複製索引名",
+  "sidebarCopyForeignKeyName": "複製外部索引鍵名稱",
+  "sidebarCopyName": "複製名稱",
+  "sidebarBrowseData": "瀏覽資料",
+  "sidebarDropViewConfirm": "確定要刪除檢視表 \"{viewName}\" 嗎？\n\n此動作無法復原。",
+  "sidebarDropViewFailed": "刪除檢視表失敗：{error}",
+  "sidebarDeleteFailed": "刪除失敗：{error}",
+  "sidebarReadOnlyConnection": "唯讀連線",
+  "sidebarCopyColumnName": "複製欄位名稱",
+  "sidebarCopyColumnType": "複製欄位類型",
+  "sidebarCopyAllColumnNames": "複製全部欄位名稱",
+  "sidebarOpenEditorFirst": "請先開啟查詢分頁",
+  "sidebarKeys": "鍵",
+  "sidebarProgrammableObjects": "可程式化物件",
+  "sidebarSuperTables": "超級表",
+  "settingsSubscriptionSettings": "訂閱",
+  "settingsFreePlan": "免費版",
+  "settingsFreePlanDesc": "您目前使用的是免費版",
+  "settingsProActivated": "Pro 已啟用",
+  "settingsProActivatedDesc": "所有 Pro 功能已解鎖",
+  "settingsUpgradeToPro": "升級到 Pro",
+  "settingsRestorePurchases": "恢復購買",
+  "purchaseDialogTitle": "升級到 Pro",
+  "purchaseDialogDesc": "訂閱 Pro 解鎖所有進階功能",
+  "purchaseDialogNoProducts": "暫無可用產品",
+  "freeAiQuotaExceeded": "本月 {count} 次免費 AI 訊息額度已用完。升級到 Pro 即可無限使用 AI。",
+  "@freeAiQuotaExceeded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "freeConnectionLimitReached": "Free 計畫最多儲存 {count} 個連線。升級到 Pro 以解鎖無限連線。",
+  "@freeConnectionLimitReached": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "freeTabLimitReached": "Free 計畫最多同時開啟 {count} 個查詢分頁。升級到 Pro 以解鎖無限分頁。",
+  "@freeTabLimitReached": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "schemaDiffSyncProFeature": "Schema Diff 同步是 Pro 功能。開始免費試用或升級到 Pro 以執行同步。",
+  "tableMetadataComment": "Comment",
+  "tableMetadataRowCount": "Rows",
+  "tableMetadataDataSize": "Size",
+  "tableMetadataEngine": "Engine",
+  "tableMetadataUpdateTime": "Updated",
+  "resultsTruncatedMessage": "Results limited to first {count} rows. More data may be available.",
+  "settingsQueryLimit": "Query Limit",
+  "settingsAutoLimitEnabled": "Auto LIMIT",
+  "settingsAutoLimitValue": "Limit Value",
+  "sidebarFavorites": "Favorites",
+  "recentTables": "最近",
+  "dataSyncTitle": "資料同步",
+  "dataSyncCancel": "取消",
+  "dataSyncClose": "關閉",
+  "dataSyncRestart": "重新同步",
+  "dataSyncStart": "開始同步",
+  "dataSyncSourceConfig": "源配置",
+  "dataSyncSourceConnection": "源連接",
+  "dataSyncSourceDatabase": "源資料庫",
+  "dataSyncSourceTable": "源表",
+  "dataSyncTargetConfig": "目標配置",
+  "dataSyncTargetConnection": "目標連接",
+  "dataSyncTargetDatabase": "目標資料庫",
+  "dataSyncTargetTable": "目標表",
+  "dataSyncSegmentConfig": "分段配置",
+  "dataSyncSegmentStrategy": "分段策略",
+  "dataSyncSegmentTypeNumeric": "數值分段",
+  "dataSyncSegmentTypeTime": "時間分段",
+  "dataSyncSegmentField": "分段欄位",
+  "dataSyncTimeUnit": "時間單位",
+  "dataSyncTimeUnitMinute": "分鐘",
+  "dataSyncTimeUnitHour": "小時",
+  "dataSyncTimeUnitDay": "天",
+  "dataSyncIntervalValue": "間隔值",
+  "dataSyncSegmentSize": "每段大小",
+  "dataSyncAdvancedOptions": "進階選項",
+  "dataSyncPageSize": "頁大小",
+  "dataSyncTargetStrategy": "目標策略",
+  "dataSyncStrategyTruncate": "清空後同步",
+  "dataSyncStrategyAppend": "追加（忽略衝突）",
+  "dataSyncStrategyReplace": "覆蓋（REPLACE）",
+  "dataSyncStrategyUpsert": "衝突時更新",
+  "dataSyncSegmentIntervalMs": "段間間隔(ms)",
+  "dataSyncPageIntervalMs": "頁間間隔(ms)",
+  "dataSyncPleaseCompleteConfig": "請完善所有配置項",
+  "dataSyncConnectionNotFound": "連接未找到",
+  "dataSyncFailed": "同步失敗: {error}",
+  "@dataSyncFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "dataSyncCancelledByUser": "用戶取消",
+  "dataSyncCompleted": "同步完成",
+  "dataSyncStatusSuccess": "同步成功",
+  "dataSyncStatusCancelled": "同步已取消",
+  "dataSyncStatusFailed": "同步失敗",
+  "dataSyncResultSourceTable": "源表",
+  "dataSyncResultTargetTable": "目標表",
+  "dataSyncResultSyncedRows": "已同步行數",
+  "dataSyncResultFailedRows": "失敗行數",
+  "dataSyncResultDuration": "總耗時",
+  "dataSyncPleaseSelect": "請選擇{label}",
+  "@dataSyncPleaseSelect": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "dataSyncProgressDetectingSchema": "正在探測表結構...",
+  "dataSyncProgressCountingRows": "正在統計總行數...",
+  "dataSyncProgressCalculatingSegments": "正在計算分段...",
+  "dataSyncProgressEmptyTable": "源表無資料，同步完成",
+  "dataSyncProgressTruncatingTarget": "正在清空目標表...",
+  "dataSyncProgressCancelled": "同步已取消",
+  "dataSyncProgressSyncingSegment": "正在同步第 {current}/{total} 段...",
+  "@dataSyncProgressSyncingSegment": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "dataSyncProgressPageStatus": "第 {current}/{total} 段，已同步 {synced} / {totalRows} 行",
+  "@dataSyncProgressPageStatus": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "synced": {
+        "type": "int"
+      },
+      "totalRows": {
+        "type": "int"
+      }
+    }
+  },
+  "dataSyncProgressCompleted": "同步完成！成功 {synced} 行，失敗 {failed} 行，跳過 {skipped} 行",
+  "@dataSyncProgressCompleted": {
+    "placeholders": {
+      "synced": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "dataSyncErrorDateTimeParse": "欄位 `{field}` 的值無法解析為日期時間: min={min}, max={max}",
+  "@dataSyncErrorDateTimeParse": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      },
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "dataSyncErrorNumericParse": "欄位 `{field}` 的值無法解析為數值: min={min}, max={max}",
+  "@dataSyncErrorNumericParse": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      },
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "statsToggle": "統計",
+  "statsChooseColumns": "選擇顯示欄",
+  "statsApproximateTooltip": "帶 ~ 前綴的為近似值",
+  "statsApproximateValue": "近似值（~{value}）",
+  "@statsApproximateValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "statsExactValue": "精確值",
+  "statsForeignKeys": "Foreign Keys",
+  "statsNoForeignKeys": "No foreign keys",
+  "dataSyncProgressSynced": "已同步 {count} 行",
+  "dataSyncProgressTotal": "{count} 行",
+  "dataSyncProgressFailed": "失敗 {count} 行",
+  "@dataSyncProgressSynced": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@dataSyncProgressTotal": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@dataSyncProgressFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unsavedChangesTitle": "未儲存的變更",
+  "unsavedChangesMessage": "此標籤頁有未儲存的變更，關閉後不儲存？",
+  "discardChanges": "不儲存",
+  "tabCloseConfirmMessage": "是否儲存對「{title}」的變更？",
+  "@tabCloseConfirmMessage": {"placeholders": {"title": {"type": "String"}}},
+  "aiPanelOverlayClickMask": "Click mask",
+  "aiPanelOverlayCloseOverlay": "Close overlay",
+  "aiPanelOverlayDragEdges": "Drag edges / corners",
+  "aiPanelOverlayDragToolbar": "Drag toolbar",
+  "aiPanelOverlayMoveOverlay": "Move overlay",
+  "aiPanelOverlayResizeOverlay": "Resize overlay",
+  "aiPanelOverlaySwitchToSidebar": "Switch to sidebar mode",
+  "aiPanelOverlayToggleMode": "Toggle overlay/sidebar mode",
+  "aiPanelOverlay_aiPanelShortcuts": "AI panel shortcuts",
+  "aiSettingsDisclosureTitle": "About AI Features",
+  "aiSettingsDisclosureBody": "AI features require your own API Key. All AI requests are sent directly from your device to the AI service provider you choose. DbMaster does not collect your data or relay requests through our servers.",
+  "exportConnectionsTitle": "匯出連線",
+  "@exportConnectionsTitle": {
+    "description": "Title for export connections dialog"
+  },
+  "importConnectionsTitle": "匯入連線",
+  "@importConnectionsTitle": {
+    "description": "Title for import connections dialog"
+  },
+  "exportConnectionsCount": "待匯出連線數",
+  "@exportConnectionsCount": {
+    "description": "Label showing number of connections to export"
+  },
+  "exportPasswordHint": "備份密碼",
+  "@exportPasswordHint": {
+    "description": "Hint for export password field"
+  },
+  "confirmExportPasswordHint": "確認備份密碼",
+  "@confirmExportPasswordHint": {
+    "description": "Hint for confirm export password field"
+  },
+  "passwordsDoNotMatch": "密碼不一致",
+  "@passwordsDoNotMatch": {
+    "description": "Error shown when export password confirmation does not match"
+  },
+  "importPasswordHint": "備份密碼",
+  "@importPasswordHint": {
+    "description": "Hint for import password field"
+  },
+  "selectExportFile": "儲存到檔案",
+  "@selectExportFile": {
+    "description": "Button to select export file location"
+  },
+  "selectImportFile": "選擇備份檔案",
+  "@selectImportFile": {
+    "description": "Button to select import file"
+  },
+  "selectImportFileFailed": "選擇檔案失敗：{error}",
+  "@selectImportFileFailed": {
+    "description": "Error shown when import file picker fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "conflictStrategyLabel": "若連線名稱已存在",
+  "@conflictStrategyLabel": {
+    "description": "Label for conflict strategy dropdown"
+  },
+  "conflictStrategySkip": "跳過",
+  "@conflictStrategySkip": {
+    "description": "Skip duplicate connections"
+  },
+  "conflictStrategyRename": "重新命名",
+  "@conflictStrategyRename": {
+    "description": "Rename imported duplicate connections"
+  },
+  "conflictStrategyOverwrite": "覆寫",
+  "@conflictStrategyOverwrite": {
+    "description": "Overwrite existing duplicate connections"
+  },
+  "exportSuccess": "連線匯出成功",
+  "@exportSuccess": {
+    "description": "Snackbar message after successful export"
+  },
+  "importSuccess": "連線匯入成功",
+  "@importSuccess": {
+    "description": "Snackbar message after successful import"
+  },
+  "invalidPassword": "密碼錯誤",
+  "@invalidPassword": {
+    "description": "Error when import password is wrong"
+  },
+  "invalidFile": "檔案無效或已損毀",
+  "@invalidFile": {
+    "description": "Error when import file is invalid"
+  },
+  "noConnectionsToExport": "沒有可匯出的連線",
+  "@noConnectionsToExport": {
+    "description": "Message when no connections are available to export"
+  },
+  "exportThisConnection": "匯出此連線",
+  "@exportThisConnection": {
+    "description": "Context menu item to export single connection"
+  },
+  "commandCategoryTools": "工具",
+  "@commandCategoryTools": {
+    "description": "Command palette category for tools"
+  },
+  "passwordRequiredTitle": "需要密碼",
+  "@passwordRequiredTitle": {
+    "description": "Dialog title when password is required to connect"
+  },
+  "passwordRequiredMessage": "請輸入 {serverName} 的連線密碼",
+  "@passwordRequiredMessage": {
+    "description": "Dialog message when password is required, {serverName} is the connection name",
+    "placeholders": {
+      "serverName": {
+        "type": "String"
+      }
+    }
+  },
+  "connectionConnectNoPassword": "不使用密碼連線",
+  "embeddedRequiresRemoteServer": "需要遠端 Server",
+  "serverSessionExpiredTitle": "會話已過期",
+  "serverSessionExpiredMessage": "與伺服器的會話已過期或已被撤銷，請重新登入後繼續。",
+  "serverSessionRelogin": "重新登入",
+  "serverReconnectLastSession": "重新連線上次的會話",
+  "serverReconnectFailed": "上次會話已失效，請重新登入。",
+  "viewMenuTitle": "視圖",
+  "viewMenuToggleSidebar": "左側邊欄",
+  "viewMenuToggleAiPanel": "AI 面板",
+  "viewMenuToggleBottomPanel": "底部面板",
+  "viewMenuExpandWorkspace": "擴展工作區",
+  "viewMenuLayoutPresets": "布局預設",
+  "viewMenuLayoutPresetDefault": "預設",
+  "viewMenuLayoutPresetExpand": "擴展工作區",
+  "expandWorkspaceEnabled": "擴展工作區",
+  "expandWorkspaceDisabled": "退出擴展工作區",
+  "bottomPanelTabResults": "結果",
+  "bottomPanelTabLogs": "日誌",
+  "bottomPanelTabHistory": "歷史",
+  "bottomPanelTabTasks": "任務",
+  "dmlCriticalTitle": "極高風險操作",
+  "dmlHighWarningTitle": "高風險操作",
+  "dmlHighWarningBody": "此操作將影響所有符合條件的行，建議添加 LIMIT",
+  "dmlAddLimit": "添加 LIMIT",
+  "dmlConfirmExecute": "確認執行",
+  "dmlRiskSummary": "風險摘要",
+  "dmlStatementsToExecute": "待執行的語句：",
+  "dmlEstimatedAffectedRows": "預計影響行數：{count}",
+  "dmlSqlInjectionDetail": "SQL 注入：{details}",
+  "dmlTriggerDeleteWithoutWhere": "不含 WHERE 條件的 DELETE",
+  "dmlTriggerUpdateWithoutWhere": "不含 WHERE 條件的 UPDATE",
+  "dmlTriggerDropTable": "DROP TABLE 操作",
+  "dmlTriggerDropDatabase": "DROP DATABASE 操作",
+  "dmlTriggerTruncateTable": "TRUNCATE TABLE 操作",
+  "dmlTriggerDmlWithoutLimit": "不含 LIMIT 的 DML",
+  "dmlTriggerAlterDropColumn": "ALTER TABLE DROP COLUMN",
+  "dmlTriggerSqlInjection": "偵測到 SQL 注入模式",
+  "dropTableDeleteConfirmBody": "確定要刪除表 \"{tableName}\" 嗎？",
+  "dropTableDeleteImpact": "此操作無法復原。表中的所有資料將被永久刪除。",
+  "dropTableCheckingDependencies": "正在檢查相依性...",
+  "dropTableDependencyWarning": "相依性警告",
+  "connectionReadOnlyMode": "唯讀模式",
+  "connectionReadOnlyModeDesc": "禁止執行 INSERT/UPDATE/DELETE/DDL 操作",
+  "connectionSshHost": "SSH 主機",
+  "connectionSshUsername": "SSH 使用者名稱",
+  "connectionSshPassword": "SSH 密碼",
+  "connSshHostRequired": "SSH 主機為必填項",
+  "commonNavigate": "導覽",
+  "resultsSqlStatementLabel": "SQL 語句：",
+  "resultsExecutionSuccess": "執行成功",
+  "resultsAffectedRows": "影響 {count} 列",
+  "resultsElapsedMs": "耗時 {ms}ms",
+  "resultsFilterConditions": "篩選：{count} 個條件",
+  "resultsShowingRows": "顯示 {filtered} / {total} 列",
+  "resultsClearFilter": "清除篩選",
+  "resultsNoDataGuidance": "在編輯器中撰寫查詢，按 Ctrl+Enter（或 F5）執行",
+  "queryHistoryEmptyHint": "使用 Ctrl+Enter 或 F5 執行查詢後，將自動記錄在這裡",
+  "safetyExplainWarning": "效能警告",
+  "safetyExplainFullScan": "偵測到全表掃描，預計掃描約 {rows} 行",
+  "safetyExecuteAnyway": "仍然執行",
+  "safetyCancelAndOptimize": "取消並檢視執行計畫",
+  "safetyPreflightTimeout": "預檢逾時，跳過效能分析",
+  "dmlAuditBlocked": "DML 操作被攔截",
+  "processListKillQuery": "Kill Query",
+  "processListKillConfirmTitle": "Kill Process",
+  "processListKillConfirm": "Kill connection {id} ({user}@{host})?",
+  "@processListKillConfirm": {
+    "placeholders": {
+      "id": {"type": "String"},
+      "user": {"type": "String"},
+      "host": {"type": "String"}
+    }
+  },
+  "processListCopyQuery": "Copy Query",
+  "processListAutoRefresh": "Auto-refresh",
+  "processListRefreshInterval": "Refresh interval",
+  "processManagerTitle": "程序管理",
+  "@processManagerTitle": {"description": "C15 process manager dialog title (Kill Query entry)"},
+  "processListNoProcesses": "No active processes",
+  "processListNoQueryText": "無查詢文字",
+  "engineStatusTitle": "Engine Status",
+  "engineInnodbStatus": "InnoDB Status",
+  "engineRowFormat": "Row Format",
+  "engineCompression": "Compression",
+  "engineTablespace": "Tablespace",
+  "replicationRunning": "Replication: Running",
+  "replicationStopped": "Replication: Stopped",
+  "replicationLag": "Lag: {seconds}s",
+  "@replicationLag": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "replicationNotConfigured": "Replication not configured",
+  "replicationDetailTitle": "Replication Status",
+  "replicationIoThread": "IO Thread",
+  "replicationSqlThread": "SQL Thread",
+  "sidebarServerGlobal": "伺服器",
+  "sidebarPerformance": "效能",
+  "sidebarUsers": "使用者",
+  "serverInfoVersion": "MySQL {version}",
+  "serverInfoUptime": "運行時間：{duration}",
+  "serverInfoThreads": "{active} 活動連線 / {running} 執行中",
+  "serverInfoQueries": "{count} 次查詢",
+  "serverInfoSlowQueries": "{count} 條慢查詢",
+  "serverVarMaxConnections": "最大連線數",
+  "serverVarBufferPool": "緩衝池",
+  "serverVarCharset": "字元集",
+  "serverStatusUnavailable": "伺服器狀態不可用",
+  "processListRefreshLabel": "重新整理：",
+  "processListRefreshOff": "關閉",
+  "processListMore": "…還有 {count} 條",
+  "usersNoUsers": "找不到使用者",
+  "usersLocked": "已鎖定",
+  "sidebarDbTableCount": "{count} 個資料表",
+  "mongoNodeReplication": "複製集",
+  "mongoNodeSharding": "分片",
+  "mongoValidationRules": "驗證規則",
+  "mongoReplicationStandalone": "獨立實例 - 不是副本集的一部分",
+  "mongoShardingNotSharded": "非分片集群",
+  "mongoValidationNoRules": "無驗證規則",
+  "resultColumnTruncated": "值可能被截斷（大物件類型）",
+  "dorisUpdateGuardMessage": "Doris 的 Duplicate/Aggregate 模型表不支援 UPDATE，僅 Unique/Primary Key 模型支援。",
+  "dorisTableModelLabel": "表模型",
+  "dorisModelDuplicate": "明細 (Duplicate)",
+  "dorisModelUnique": "主鍵去重 (Unique)",
+  "dorisModelPrimaryKey": "主鍵 (Primary Key)",
+  "dorisHashColumnLabel": "分桶列",
+  "dorisBucketsLabel": "桶數",
+  "dorisModelNeedsKeyColumn": "該模型需要至少一個鍵列（在某列勾選主鍵）",
+  "dorisAggregateFunctionLabel": "聚合函數",
+  "dorisModelAggregate": "聚合 (Aggregate)",
+  "dorisPartitionColumn": "分區列",
+  "dorisPartitionName": "分區名",
+  "dorisPartitionLessThan": "小於值",
+  "dorisAddPartition": "新增分區",
+  "offlineLicenseTitle": "離線授權",
+  "offlineLicensePurchaseHint": "升級方式：掃描 GitHub/Gitee 頁面上的付款碼付款後，將本機機器碼與付款截圖傳送至作者信箱，收到授權後在下方匯入。",
+  "machineCodeLabel": "機器碼",
+  "machineCodeUnavailable": "無法讀取本機機器碼",
+  "importLicense": "匯入授權",
+  "importLicenseHint": "貼上授權字串，或選擇 .dbmlicense 檔案",
+  "buyLicense": "購買 License",
+  "machineCodeCopied": "機器碼已複製到剪貼板",
+  "licenseFilePick": "選擇檔案",
+  "licenseTypeYearly": "年訂閱",
+  "licenseTypeLifetime": "買斷",
+  "licenseExpiresAt": "到期：{date}",
+  "removeLicense": "移除授權",
+  "licenseImportSuccess": "授權成功，Pro 功能已解鎖",
+  "licenseErrorInvalid": "授權碼格式無效",
+  "licenseErrorSignature": "授權簽名校驗失敗",
+  "licenseErrorMachine": "該授權綁定的是其他機器",
+  "licenseErrorExpired": "授權已過期",
+  "licenseErrorNoMachine": "無法讀取機器碼，本裝置不支援離線授權",
+  "licenseActiveInfo": "授權給 {email}",
+  "errorCopy": "複製",
+  "errorCopied": "已複製",
+  "errorAnalyzeWithAi": "AI 分析",
+  "trialRemaining": "{feature} 剩餘 {count} 次試用",
+  "trialUsedUp": "{feature} 試用已用完",
+  "centerTitle": "執行中心",
+  "centerTabTasks": "任務",
+  "centerTabErrors": "錯誤",
+  "centerClearErrors": "清除錯誤",
+  "centerDismissError": "忽略",
+  "aiPromptErrorHeader": "請診斷這個資料庫錯誤：說明原因並給出修復建議。",
+  "commonUndo": "復原",
+  "commonDeleteWithCount": "刪除（{count}）",
+  "aiPanelSessionsDeletedCount": "已刪除 {count} 個對話",
+  "aiPanelSessionDeleted": "已刪除「{title}」",
+  "aiPanelSelectDatabaseRequired": "請先在上方的下拉選單中選擇一個資料庫。",
+  "aiPanelMongoExecutionPlan": "🔍 Mongo 執行計畫",
+  "aiPanelSelectSessions": "選擇對話",
+  "aiPanelExportTaskCreated": "匯出工作已建立",
+  "aiPanelDdlOperationCancelled": "DDL 操作已被使用者取消。",
+  "aiAssistantOpenTooltip": "開啟 AI 助理",
+  "schemaImpactRiskLow": "低風險",
+  "schemaImpactRiskMedium": "中風險",
+  "schemaImpactRiskHigh": "高風險",
+  "schemaImpactRiskCritical": "極高風險",
+  "schemaImpactTitle": "結構影響分析",
+  "schemaImpactSubtitle": "{type} 於`{table}`",
+  "schemaImpactDataLossWarning": "資料遺失風險：此操作將永久刪除資料。",
+  "schemaImpactAffectedObjects": "受影響的物件（{count}）",
+  "schemaImpactWarnings": "警告（{count}）",
+  "schemaImpactRecommendations": "建議",
+  "schemaImpactHideRollbackScript": "隱藏回滾指令碼",
+  "schemaImpactShowRollbackScript": "顯示回滾指令碼",
+  "schemaImpactNoRollbackAvailable": "無可用回滾",
+  "schemaImpactRollbackCaveat": "自動回滾為 best-effort 草稿 - 欄類型/約束可能有誤。執行前請核對；資料無法自動恢復。",
+  "schemaImpactBackupRequired": "回滾前需備份資料",
+  "schemaImpactConfirmationRequired": "此操作執行前需要您的明確確認。",
+  "ddlConfirmDialogTitle": "需要 DDL 確認",
+  "ddlAffectedObjectsCount": "受影響的物件（{count}）",
+  "ddlExecuteButton": "執行 DDL",
+  "ddlSqlStatementLabel": "SQL 陳述式：",
+  "ddlRiskLevelLabel": "風險等級：{level}",
+  "ddlDataLossRiskDetected": "偵測到資料遺失風險",
+  "ddlWarningsCount": "警告（{count}）",
+  "ddlTypeConfirmationToProceed": "輸入確認以繼續",
+  "ddlTypeToConfirmDestructive": "輸入「{token}」以確認此破壞性操作：",
+  "commonUnknown": "未知",
+  "commonDismiss": "關閉",
+  "readOnlyModeBlocked": "此連線為唯讀模式，寫入操作已停用。",
+  "dlgFillVariables": "填寫變數",
+  "dlgVariableRequired": "請輸入{variable}",
+  "dlgEditTrigger": "編輯觸發器",
+  "dlgCreateTrigger": "建立觸發器",
+  "triggerLoadTablesFailed": "載入資料表失敗: {error}",
+  "triggerSelectTableRequired": "請選擇資料表",
+  "triggerSelectEventRequired": "請至少選擇一個事件",
+  "triggerUpdated": "觸發器更新成功",
+  "triggerCreated": "觸發器建立成功",
+  "triggerSaveFailed": "儲存觸發器失敗: {error}",
+  "triggerNameLabel": "觸發器名稱",
+  "triggerNameRequired": "觸發器名稱為必填",
+  "triggerNameInvalid": "觸發器名稱格式無效",
+  "triggerTimingLabel": "時機",
+  "triggerEventLabel": "事件",
+  "triggerTableLabel": "資料表",
+  "triggerSelectTableHint": "請選擇資料表",
+  "triggerBodyLabel": "觸發器主體",
+  "triggerBodyHint": "輸入觸發器主體（SQL 語句）\n範例：\nSET NEW.updated_at = NOW();",
+  "triggerCount": "{count} 個觸發器",
+  "dlgExecutionResult": "執行結果",
+  "dlgExecuteRoutine": "執行{type}",
+  "dlgRoutineName": "名稱: {name}",
+  "dlgRoutineType": "類型: {type}",
+  "dlgRoutineReturnType": "回傳類型: {type}",
+  "dlgParameters": "參數",
+  "dlgRoutineNoParams": "此預存程序/函式不需要參數",
+  "dlgOutputParam": "輸出參數",
+  "dlgReturnValueLabel": "回傳值:",
+  "dlgRowsAffected": "受影響的列數: {count}",
+  "dlgEditRoutine": "編輯{type}",
+  "routineParameterCount": "{count} 個參數",
+  "routineDeleteConfirmation": "刪除{type}\"{name}\"?",
+  "routineListTitle": "預存程序和函式",
+  "routineDefinitionTitle": "{type}定義",
+  "queryExecutionPlan": "查詢執行計畫",
+  "dlgCreateRoutine": "建立{type}",
+  "dlgNameRequired": "請輸入名稱",
+  "dlgRoutineNameInvalid": "名稱只能包含字母、數字和底線，且不能以數字開頭",
+  "dlgReturnTypeRequired": "請選擇回傳類型",
+  "dlgSqlCode": "SQL 程式碼",
+  "dlgRoutineProcedure": "預存程序",
+  "dlgRoutineFunction": "函式",
+  "commonUpdate": "更新",
+  "commonCreate": "建立",
+  "auditLogTitle": "查詢稽核日誌",
+  "auditLogAllStatus": "全部狀態",
+  "auditLogAll": "全部",
+  "auditLogTime": "時間",
+  "auditLogDuration": "耗時",
+  "auditLogRows": "列數",
+  "auditLogStatus": "狀態",
+  "auditLogEmpty": "尚無稽核日誌",
+  "auditLogEmptyHint": "執行查詢後開始記錄日誌",
+  "auditLogTotal": "總計",
+  "auditLogWrite": "寫入",
+  "auditLogAvgTime": "平均耗時",
+  "auditLogClearTitle": "清除稽核日誌",
+  "auditLogClearConfirm": "確定要清除所有稽核日誌嗎？此操作無法復原。",
+  "auditLogClear": "清除",
+  "piiMaskingTitle": "PII 資料遮罩",
+  "piiMaskingEnable": "啟用 PII 遮罩",
+  "piiMaskingEnableDesc": "自動遮罩查詢結果中的敏感資料",
+  "piiMaskingTypes": "敏感資料類型",
+  "piiTypeEmail": "電子郵件地址",
+  "piiTypePhone": "電話號碼",
+  "piiTypeIdCard": "身分證字號",
+  "piiTypeCreditCard": "信用卡",
+  "piiTypeBankCard": "銀行帳戶",
+  "piiTypePassword": "密碼",
+  "piiTypeIpAddress": "IP 位址",
+  "shortcutNoMatching": "無符合的快速鍵",
+  "shortcutPressEscToClose": "按 ESC 關閉",
+  "indexTypePrimary": "主鍵",
+  "performanceAnalyzerWeeklyReportTitle": "每週慢查詢報告",
+  "performanceAnalyzerWeeklyReportDesc": "每週一取得 Top 10 慢查詢及 EXPLAIN 分析",
+  "performanceAnalyzerLearnMore": "瞭解更多",
+  "backupListLoading": "載入備份清單...",
+  "dbPropertiesTitle": "資料庫屬性 - {name}",
+  "dbPropertyName": "名稱",
+  "dbPropertyCharset": "字元集",
+  "dbPropertyCollation": "定序",
+  "dbPropertySize": "大小",
+  "dbPropertyTableCount": "資料表數量",
+  "dbPropertyViewCount": "檢視數量",
+  "dbPropertyRoutineCount": "預存程序/函式",
+  "exportFormatLabel": "匯出格式",
+  "exportRowCount": "共 {count} 列資料",
+  "taskCreateExportFilter": "篩選",
+  "taskCreateExportEstRows": "估計列數",
+  "taskCreateExportValidating": "驗證中...",
+  "taskCreateExportSaveDialogTitle": "選擇匯出檔案儲存位置",
+  "taskValidationPathNotExists": "目錄不存在: {path}",
+  "taskCreateExportDesc": "匯出 {table}",
+  "taskCreateExportDescFiltered": "匯出 {table}（篩選）",
+  "sqliteConnectionEditTitle": "編輯 SQLite 連線",
+  "sqliteConnectionNewTitle": "新增 SQLite 連線",
+  "createSuperTableTitle": "建立超級表",
+    "importWizardTitle": "資料匯入精靈",
+  "dbCreateSuccess": "資料庫 \"{name}\" 建立成功",
+  "dbCreateFailed": "建立資料庫失敗",
+  "dbCreateError": "錯誤: {error}",
+  "dbOperationCannotBeUndone": "此操作無法復原！",
+  "dropTablePermanentWarning": "資料表 \"{table}\" 及其所有資料將被永久刪除。",
+  "dropTableDataLossWarning": "此操作無法復原！該資料表中的所有資料將永久遺失。",
+  "objectTypeTable": "資料表",
+  "objectTypeView": "檢視",
+  "commonRemove": "移除",
+  "commonRequired": "必填",
+  "commonInvalidIdentifier": "識別碼無效",
+  "mongoValidationJsonObject": "JSON 必須是物件",
+  "mongoValidationInvalidJson": "JSON 無效: {error}",
+  "settingsAutoLimitEnabledDesc": "自動為 SELECT 查詢加上 LIMIT",
+  "sqliteConnectionInfo": "連線資訊",
+  "sqliteNameHint": "我的 SQLite 資料庫",
+  "connectionDirNotExists": "目錄不存在",
+  "indexSelectColumnRequired": "請至少選擇一欄",
+  "indexCreateFailed": "建立索引失敗: {error}",
+  "indexUpdateFailed": "更新索引失敗: {error}",
+  "indexNameRequired": "索引名稱為必填項",
+  "superTableTags": "標籤",
+  "superTableCreated": "超級表建立成功",
+  "redisLibNameCodeRequired": "庫名稱和程式碼為必填項",
+  "redisAdapterNotAvailable": "Redis 轉接器不可用",
+  "redisLibraryCreated": "函式庫建立成功",
+  "redisLibraryCreateFailed": "建立函式庫失敗: {error}",
+  "redisLibraryUsageHint": "用於 #!lua name=<library>",
+  "redisInsertExample": "插入範例",
+  "redisCreateLibrary": "建立庫",
+  "redisKeyLoadFailed": "載入鍵資料失敗: {error}",
+  "redisKeyUpdated": "鍵更新成功",
+  "redisKeySaveFailed": "儲存鍵失敗: {error}",
+  "redisKeySaveChanges": "儲存變更",
+  "serverConnectTitle": "連線到伺服器",
+  "serverConnectUrl": "伺服器 URL",
+  "serverUrlRequired": "伺服器 URL 為必填項",
+  "serverUrlInvalid": "URL 無效（例如 https://myserver:3000）",
+  "serverConnectEmail": "電子郵件",
+  "serverEmailRequired": "電子郵件為必填項",
+  "serverEmailInvalid": "電子郵件無效",
+  "serverPasswordRequired": "密碼為必填項",
+  "mongoValidationFixErrors": "請先修正 JSON 錯誤再套用",
+  "mongoValidationApplied": "驗證規則套用成功",
+  "mongoValidationRemoved": "驗證規則已移除",
+  "mongoValidationLevel": "驗證層級",
+  "mongoValidationAction": "驗證動作",
+  "mongoValidationApplyFailed": "套用驗證規則失敗: {error}",
+  "indexSelectColumns": "選擇欄",
+  "redisLibraryTitle": "建立函式庫",
+  "redisLibraryNameLabel": "庫名稱",
+  "redisLibraryCreateFailedSyntax": "建立庫失敗（需要 Redis 7.0+，請檢查語法）",
+  "redisLuaCodeLabel": "Lua 程式碼",
+  "redisReplaceExisting": "取代同名既有庫（FUNCTION LOAD REPLACE）",
+  "redisLibraryInfoText": "庫名稱會自動寫入 #!lua shebang。Lua 程式碼應包含 redis.register_function() 呼叫。請勿自行撰寫 shebang。",
+  "superTableCreateFailed": "建立超級表失敗",
+  "superTableColumns": "欄",
+
+  "errorTitle": "發生錯誤",
+  "errorDescriptionLabel": "錯誤資訊：",
+  "errorStackLabel": "堆疊追蹤：",
+
+  "columnFilterTypeNumeric": "數值",
+  "columnFilterTypeDateTime": "時間",
+  "columnFilterTypeText": "文字",
+  "columnFilterPlaceholderNumeric": "輸入數值",
+  "columnFilterPlaceholderDateTime": "輸入時間（如：2024-01-01）",
+  "columnFilterPlaceholderText": "輸入文字",
+  "columnFilterFor": "篩選：{columnName}",
+
+  "columnFilterActive": "已套用 {count} 個篩選條件",
+
+  "columnFilterRowCount": "{filtered} / {total} 列",
+
+  "filterOpEquals": "等於",
+  "filterOpNotEquals": "不等於",
+  "filterOpContains": "包含",
+  "filterOpNotContains": "不包含",
+  "filterOpStartsWith": "開頭為",
+  "filterOpEndsWith": "結尾為",
+  "filterOpGreaterThan": "大於",
+  "filterOpGreaterThanOrEqual": "大於等於",
+  "filterOpLessThan": "小於",
+  "filterOpLessThanOrEqual": "小於等於",
+  "filterOpBetween": "介於",
+  "filterOpIsNull": "為空",
+  "filterOpIsNotNull": "不為空",
+  "filterOpIsEmpty": "為空字串",
+  "filterOpIsNotEmpty": "不為空字串",
+
+  "tableNoData": "無資料",
+  "tableRowCountTotal": "共 {count} 列",
+
+  "tableLargeDatasetHint": "（大數據集，請捲動查看更多）",
+
+  "tableRowRange": "{start}-{end} / {total} 列",
+
+  "importWizStepSelectFile": "選擇檔案",
+  "importWizStepAnalyzeFile": "分析檔案",
+  "importWizStepColumnMapping": "欄位對應",
+  "importWizStepPreviewPII": "預覽 & PII",
+  "importWizStepConfirmImport": "確認匯入",
+  "importWizStepOf": "第 {current} 步（共 {total} 步）：{title}",
+  "importWizTargetDatabase": "目標資料庫",
+  "importWizSelectDatabase": "選擇資料庫",
+  "importWizTargetTableOptional": "目標資料表（可選）",
+  "importWizLetAiInfer": "-- 讓 AI 推斷資料表名稱 --",
+  "importWizChooseFile": "點擊選擇檔案或拖曳至此處",
+  "importWizChangeFile": "更換檔案",
+  "importWizSupportedFormats": "支援 CSV、JSON、Excel、TSV 格式",
+  "importWizFileUnknown": "未知",
+  "importWizAiAnalyzing": "AI 正在分析檔案...",
+  "importWizDetectingFormat": "正在檢測格式、編碼、欄位類型...",
+  "importWizFileAnalysisResult": "檔案分析結果",
+  "importWizFormat": "格式",
+  "importWizEncoding": "編碼",
+  "importWizFieldCount": "欄位數",
+  "importWizEstimatedRows": "估計列數",
+  "importWizFileSize": "檔案大小",
+  "importWizDelimiter": "分隔符",
+  "importWizDetectedFields": "檢測到的欄位",
+  "importWizAiSuggestion": "AI 建議",
+  "importWizTargetTableName": "目標資料表：{tableName}",
+  "importWizNoAnalysisResult": "尚無分析結果",
+  "importWizSelectFileFirst": "請先選擇檔案",
+  "importWizNoColumnMapping": "尚無欄位對應",
+  "importWizGeneratingMapping": "正在產生對應...",
+  "importWizColumnMappingConfig": "欄位對應設定",
+  "importWizColumnsMapped": "{mapped}/{total} 欄已對應",
+  "importWizMappingDescription": "將檔案中的欄位對應到資料庫資料表的欄位。選擇「不匯入」跳過該欄位。",
+  "importWizFileColumn": "檔案欄位",
+  "importWizDatabaseColumn": "資料庫欄位",
+  "importWizType": "類型",
+  "importWizPiiDetection": "PII 敏感資料檢測",
+  "importWizPiiDetectionMessage": "檢測到以下敏感欄位，請確認是否繼續匯入：",
+  "importWizPiiAcknowledge": "我已知悉，繼續匯入",
+  "importWizDataPreview": "資料預覽",
+  "importWizWarnings": "{count} 個警告",
+  "importWizFirstRows": "前 {count} 列",
+  "importWizSensitiveField": "敏感欄位",
+  "importWizDataValidationWarnings": "資料驗證警告",
+  "importWizValidationRowFormat": "第 {row} 列，{col} 欄：{msg}",
+  "importWizImportSummary": "匯入設定摘要",
+  "importWizSummaryTargetDatabase": "目標資料庫",
+  "importWizSummaryTargetTable": "目標資料表",
+  "importWizSummaryFile": "檔案",
+  "importWizSummaryMappedColumns": "對應欄位",
+  "importWizSummaryDataRows": "資料列數",
+  "importWizConflictStrategy": "衝突處理策略",
+  "importWizConflictSkip": "跳過重複列",
+  "importWizConflictSkipDesc": "當遇到重複鍵時，跳過該列繼續匯入",
+  "importWizConflictUpdate": "更新現有列",
+  "importWizConflictUpdateDesc": "當遇到重複鍵時，更新已有資料",
+  "importWizConflictAbort": "中止匯入",
+  "importWizConflictAbortDesc": "當遇到重複鍵時，立即停止匯入",
+  "importWizImporting": "匯入中...",
+  "importWizRowsProgress": "{imported}/{total} 列",
+  "importWizFailedRows": "失敗：{count} 列",
+  "importWizImportComplete": "匯入完成！",
+  "importWizImportFailed": "匯入失敗",
+  "importWizImportSuccessMsg": "成功匯入 {count} 列資料",
+  "importWizImportErrorMsg": "匯入過程中發生錯誤",
+  "importWizPreviousStep": "上一步",
+  "importWizClose": "關閉",
+  "importWizStartImport": "開始匯入",
+  "importWizNextStep": "下一步",
+  "importWizReimport": "重新匯入",
+  "importWizLoadDatabasesFailed": "載入資料庫列表失敗：{error}",
+  "importWizLoadTablesFailed": "載入資料表列表失敗：{error}",
+  "importWizPickFileFailed": "選擇檔案失敗：{error}",
+  "importWizAnalysisFailed": "分析失敗：{error}",
+  "importWizMappingFailed": "產生欄位對應失敗：{error}",
+  "importWizImportFailed": "匯入失敗：{error}",
+  "importWizFileAnalysisFailed": "檔案分析失敗",
+  "importWizImportFailedGeneric": "匯入失敗",
+  "importWizNotSelected": "未選擇",
+  "importWizNotSet": "未設定",
+  "importWizUnknown": "未知",
+  "importWizPiiDetectionSummary": "PII 檢測",
+  "importWizSensitiveFieldCount": "{count} 個敏感欄位",
+
+  "smartImportAnalyzingDetail": "AI 正在識別欄位類型並產生建表語句",
+  "smartImportColumnMapping": "欄位對應",
+  "smartImportColumnsMapped": "{mapped}/{total} 欄已對應",
+  "smartImportFileColumn": "檔案欄位",
+  "smartImportTableColumn": "資料表欄位",
+  "smartImportConflictResolution": "衝突處理",
+  "smartImportDataPreview": "資料預覽",
+  "smartImportFirstRows": "前 {count} 列",
+  "smartImportBack": "返回",
+  "smartImportBackgroundTask": "背景匯入",
+  "smartImportFailedToGenerateSql": "-- 未能產生建表語句",
+  "smartImportFileSelected": "已選擇檔案：{name}",
+  "smartImportTargetTableSelected": "已選擇目標資料表：{table}",
+  "smartImportTargetTableEntered": "已輸入目標資料表：{table}",
+  "smartImportAnalysisFailed": "檔案分析失敗：{error}",
+  "smartImportColumnMappingsComplete": "欄位對應完成：{mapped}/{total} 欄自動匹配",
+  "smartImportPiiDetected": "PII 檢測：發現敏感欄位 - {types}",
+  "smartImportPiiNone": "PII 檢測：未發現敏感欄位",
+  "smartImportPiiFailed": "PII 檢測失敗：{error}",
+  "smartImportPreviewGenerated": "資料預覽已產生（{count} 列）",
+  "smartImportPreviewFailed": "產生預覽失敗：{error}",
+  "smartImportMappingFailed": "產生欄位對應失敗：{error}",
+
+  "importServiceStartImport": "開始匯入資料到資料表 \"{table}\"...",
+  "importServiceColumnMapping": "欄位對應：{mapped}/{total} 欄已對應",
+  "importServiceConflictStrategy": "衝突處理策略：{strategy}",
+  "importServiceImporting": "開始匯入資料...",
+  "importServiceBatchSuccess": "批次 {batch}：成功匯入 {count} 列",
+  "importServiceBatchInsertFailed": "批次插入失敗（{count} 列），嘗試逐列插入...",
+  "importServiceUpdateFailed": "更新失敗：{error}",
+  "importServiceDataTooLong": "第 {row} 列資料過長，已跳過",
+  "importServiceRowInsertFailed": "第 {row} 列插入失敗：{error}",
+  "importServiceBatchSkipped": "此批次跳過：{count} 列（重複）",
+  "importServiceBatchUpdated": "此批次更新：{count} 列",
+  "importServiceBatchFailed": "此批次失敗：{count} 列",
+  "importServicePhaseProgress": "已匯入 {imported} 列，跳過 {skipped} 列，更新 {updated} 列...",
+  "importServiceImportCancelled": "匯入已取消",
+  "importServiceFileReadFailed": "檔案讀取失敗：{error}",
+  "importServiceImportComplete": "資料匯入完成！成功：{imported} 列，失敗：{failed} 列",
+
+  "taskExecutorAnalyzeFile": "開始分析檔案：{path}",
+  "taskExecutorFileFormat": "檔案格式：{format}，編碼：{encoding}，預估列數：{rows}",
+  "taskExecutorTableNotExists": "資料表不存在，正在建立資料表...",
+  "taskExecutorTableCreated": "資料表建立成功",
+  "taskExecutorTableCreateFailed": "建立資料表失敗",
+  "taskExecutorTableNotExistsError": "目標資料表 \"{table}\" 不存在，請先建立資料表",
+  "taskExecutorNoColumnMapping": "沒有可用的欄位對應，請檢查檔案欄位與資料表欄位是否匹配",
+  "taskExecutorColumnMapping": "欄位對應：{mapped}/{total} 欄已對應",
+  "taskExecutorStartImport": "開始匯入資料...",
+  "taskExecutorImportComplete": "匯入完成！成功：{imported} 列，失敗：{failed} 列",
+  "taskExecutorImportFinished": "匯入完成",
+  "serverConnectNoServerLearnMore": "Don't have a server? Learn more",
+  "touchpointLiteLearnMore": "See how",
+  "touchpointLiteSlowQueryTitle": "Recurring slow queries?",
+  "touchpointLiteSlowQueryDesc": "DbMaster Server can track these automatically and alert you on schedule.",
+  "touchpointLiteSchemaDiffTitle": "Repeat schema comparisons?",
+  "touchpointLiteSchemaDiffDesc": "DbMaster Server can run this on a schedule, retry on failure, and send Feishu/DingTalk alerts.",
+  "touchpointLiteDataSyncTitle": "Tired of running this manually?",
+  "touchpointLiteDataSyncDesc": "DbMaster Server can automate this sync with retries and team notifications.",
+  "viewModeTable": "表格",
+  "viewModeChart": "圖表",
+  "viewModeCard": "卡片",
+  "viewModeDocument": "文件卡片",
+  "viewModeJsonTree": "JSON 樹",
+  "viewModeKeyValue": "鍵值視圖",
+  "documentExpand": "展開",
+  "documentCollapse": "摺疊",
+  "documentExpandMore": "展開其餘 {count} 個欄位",
+  "jsonTreeItemCount": "{count} 項",
+  "keyValueField": "欄位",
+  "keyValueValue": "值",
+  "keyValueFieldLabel": "欄位：{field}",
+  "keyValueLengthLabel": "長度：{length} 字元",
+  "chartViewComingSoon": "圖表視圖（即將上線）",
+  "chartExportSuccess": "圖表已儲存到 {path}",
+  "@chartExportSuccess": {"placeholders": {"path": {"type": "String"}}},
+  "chartExportFailed": "圖表匯出失敗：{error}",
+  "@chartExportFailed": {"placeholders": {"error": {"type": "String"}}},
+  "chartSamplingNotice": "資料量較大：已取樣 {count} 個點以保證效能",
+  "@chartSamplingNotice": {"placeholders": {"count": {"type": "int"}}},
+  "chartAiTrend": "AI 趨勢分析",
+  "chartTypeLine": "折線",
+  "chartTypeBar": "柱狀",
+  "chartTypePie": "圓餅",
+  "chartTypeScatter": "散佈",
+  "chartXAxis": "X 軸",
+  "chartYAxis": "Y 軸",
+  "statisticsPanelTitle": "統計",
+  "exportStepBack": "上一步",
+  "exportStepNext": "下一步",
+  "noJsonDataToSample": "無資料可取樣",
+  "noLeafNodes": "無可提取欄位",
+  "fieldNotInAllRows": "非所有列都有",
+  "commonRetry": "重試",
+  "extensionNoAdapter": "無介面卡",
+  "extensionNotPostgres": "非 PostgreSQL 連線",
+  "extensionLoadFailed": "載入成員失敗",
+  "extensionTypes": "類型",
+  "extensionFunctions": "函式",
+  "extensionOperators": "運算子",
+  "extensionSchema": "結構描述",
+  "extensionDescription": "描述",
+  "vectorLoadFailed": "載入向量索引失敗",
+  "vectorNoAdapter": "無介面卡",
+  "vectorNoIndexes": "未定義向量索引",
+  "jsonInvalidJson": "無效 JSON",
+  "jsonNoMatches": "無符合",
+  "jsonSearchHint": "搜尋鍵或值…"
+,
+  "mcpTokensMenuLabel": "MCP 權杖",
+  "@mcpTokensMenuLabel": {"type": "text"},
+  "mcpTokensTitle": "MCP 權杖",
+  "@mcpTokensTitle": {"type": "text"},
+  "mcpTokensIntro": "供 AI 用戶端（Claude Code、Cursor）使用的長效權杖。將它作為 Bearer token 設定到用戶端的 MCP 設定即可；隨時可撤銷。",
+  "@mcpTokensIntro": {"type": "text"},
+  "mcpTokensNotConnected": "連線 DbMaster 伺服器後才能管理 MCP 權杖。",
+  "@mcpTokensNotConnected": {"type": "text"},
+  "mcpTokensEmpty": "還沒有權杖。為你的 AI 用戶端建立一個吧。",
+  "@mcpTokensEmpty": {"type": "text"},
+  "mcpTokensNameHint": "權杖名稱（如 claude-code-mac）",
+  "@mcpTokensNameHint": {"type": "text"},
+  "mcpTokensCreate": "建立",
+  "@mcpTokensCreate": {"type": "text"},
+  "mcpTokensOnceTitle": "權杖「{name}」已建立",
+  "@mcpTokensOnceTitle": {"placeholders": {"name": {"type": "String"}}},
+  "mcpTokensOnceWarning": "請立即複製——基於安全考量不會再次顯示。將它作為 Bearer token 設定到 MCP 用戶端（如 mcp.json）。",
+  "@mcpTokensOnceWarning": {"type": "text"},
+  "mcpTokensCopy": "複製",
+  "@mcpTokensCopy": {"type": "text"},
+  "mcpTokensCopied": "權杖已複製到剪貼簿",
+  "@mcpTokensCopied": {"type": "text"},
+  "mcpTokensDone": "完成",
+  "@mcpTokensDone": {"type": "text"},
+  "mcpTokensLastUsed": "最近使用：{value}",
+  "@mcpTokensLastUsed": {"placeholders": {"value": {"type": "String"}}},
+  "mcpTokensNeverUsed": "從未使用",
+  "@mcpTokensNeverUsed": {"type": "text"},
+  "mcpTokensRevoke": "撤銷",
+  "@mcpTokensRevoke": {"type": "text"},
+  "mcpTokensRevokeTitle": "撤銷此權杖？",
+  "@mcpTokensRevokeTitle": {"type": "text"},
+  "mcpTokensRevokeBody": "使用「{name}」（{prefix}…）的用戶端將立即失效，且無法復原。",
+  "@mcpTokensRevokeBody": {"placeholders": {"name": {"type": "String"}, "prefix": {"type": "String"}}},
+
+  "serverConnectionsMenuLabel": "管理 Server 連線",
+  "@serverConnectionsMenuLabel": {"type": "text"},
+  "serverConnectionsTitle": "Server 連線管理",
+  "@serverConnectionsTitle": {"type": "text"},
+  "serverConnectionsIntro": "註冊在 Server 上的資料庫連線。資料同步、健康檢查、DDL 審批都基於這些連線執行；桌面側欄的連線清單是獨立的。",
+  "@serverConnectionsIntro": {"type": "text"},
+  "serverConnectionsNotConnected": "未連線 Server。",
+  "@serverConnectionsNotConnected": {"type": "text"},
+  "serverConnectionsEmpty": "Server 上還沒有連線。請先新增，資料同步 / 健康檢查 / 審批任務才有可用的資料庫。",
+  "@serverConnectionsEmpty": {"type": "text"},
+  "serverConnectionsAdd": "新增",
+  "@serverConnectionsAdd": {"type": "text"},
+  "serverConnectionsEdit": "編輯",
+  "@serverConnectionsEdit": {"type": "text"},
+  "serverConnectionsDelete": "刪除",
+  "@serverConnectionsDelete": {"type": "text"},
+  "serverConnectionsKindCollab": "協作",
+  "@serverConnectionsKindCollab": {"type": "text"},
+  "serverConnectionsKindSourceDrift": "Drift 來源（唯讀）",
+  "@serverConnectionsKindSourceDrift": {"type": "text"},
+  "serverConnectionsDeleteTitle": "刪除連線",
+  "@serverConnectionsDeleteTitle": {"type": "text"},
+  "serverConnectionsDeleteBody": "刪除 Server 連線「{name}」？",
+  "@serverConnectionsDeleteBody": {"placeholders": {"name": {"type": "String"}}},
+  "serverConnectionsDeleteTaskWarning": "有 {count} 個任務引用此連線，將隨之被刪除（作為來源）或斷開（作為目標）。",
+  "@serverConnectionsDeleteTaskWarning": {"placeholders": {"count": {"type": "num"}}},
+  "serverConnFormCreateTitle": "新增 Server 連線",
+  "@serverConnFormCreateTitle": {"type": "text"},
+  "serverConnFormEditTitle": "編輯 Server 連線",
+  "@serverConnFormEditTitle": {"type": "text"},
+  "serverConnFormName": "名稱",
+  "@serverConnFormName": {"type": "text"},
+  "serverConnFormType": "類型",
+  "@serverConnFormType": {"type": "text"},
+  "serverConnFormHost": "主機",
+  "@serverConnFormHost": {"type": "text"},
+  "serverConnFormPort": "連接埠",
+  "@serverConnFormPort": {"type": "text"},
+  "serverConnFormUsername": "使用者名稱",
+  "@serverConnFormUsername": {"type": "text"},
+  "serverConnFormPassword": "密碼",
+  "@serverConnFormPassword": {"type": "text"},
+  "serverConnFormPasswordKeepHint": "留空保持原密碼不變",
+  "@serverConnFormPasswordKeepHint": {"type": "text"},
+  "serverConnFormDatabase": "預設資料庫（可選）",
+  "@serverConnFormDatabase": {"type": "text"},
+  "serverConnFormSqlitePath": "資料庫檔案路徑",
+  "@serverConnFormSqlitePath": {"type": "text"},
+  "serverConnFormSave": "儲存",
+  "@serverConnFormSave": {"type": "text"},
+  "serverConnFormRequired": "必填",
+  "@serverConnFormRequired": {"type": "text"},
+  "serverConnFormInvalidPort": "連接埠必須是數字",
+  "@serverConnFormInvalidPort": {"type": "text"},
+  "dataSyncConnectionNotOnServer": "所選連線尚未註冊到 Server。請先在「管理 Server 連線」中新增，再重試。",
+  "@dataSyncConnectionNotOnServer": {"type": "text"}
+,
+  "connectionFormProvidedBy": "由 {plugin} 提供",
+  "@connectionFormProvidedBy": {
+    "description": "Connection form footer: which plugin provides the current form",
+    "placeholders": {
+      "plugin": {
+        "type": "String"
+      }
+    }
+  },
+  "connectionDbIndex": "資料庫索引",
+  "@connectionDbIndex": {"description": "Redis database index field label"},
+  "connectionAuthDatabase": "認證資料庫",
+  "@connectionAuthDatabase": {"description": "MongoDB authentication database field label"},
+  "connectionRedisAuthNone": "無認證",
+  "@connectionRedisAuthNone": {"description": "Redis auth mode: no authentication"},
+  "connectionRedisAuthNoneDesc": "無需認證",
+  "@connectionRedisAuthNoneDesc": {"description": "Redis auth mode description: no authentication required"},
+  "connectionRedisAuthPasswordOnly": "僅密碼",
+  "@connectionRedisAuthPasswordOnly": {"description": "Redis auth mode: password only"},
+  "connectionRedisAuthPasswordOnlyDesc": "AUTH 密碼（Redis < 6.0）",
+  "@connectionRedisAuthPasswordOnlyDesc": {"description": "Redis auth mode description: AUTH password (pre-6.0)"},
+  "connectionRedisAuthUsernamePassword": "帳號 + 密碼（ACL）",
+  "@connectionRedisAuthUsernamePassword": {"description": "Redis auth mode: username + password (ACL)"},
+  "connectionRedisAuthUsernamePasswordDesc": "AUTH 帳號 密碼（Redis 6.0+ ACL）",
+  "@connectionRedisAuthUsernamePasswordDesc": {"description": "Redis auth mode description: AUTH username password (Redis 6.0+ ACL)"},
+  "connectionSshAuthPassword": "密碼",
+  "@connectionSshAuthPassword": {"description": "SSH auth mode: password"},
+  "connectionSshAuthPrivateKey": "私鑰",
+  "@connectionSshAuthPrivateKey": {"description": "SSH auth mode: private key"},
+  "sidebarCapabilityTitle": "能力",
+  "@sidebarCapabilityTitle": {"description": "C14 sidebar capability menu section title"},
+  "sidebarCapGroupDatabaseObjects": "資料庫物件",
+  "@sidebarCapGroupDatabaseObjects": {"description": "C14 capability menu group: database objects"},
+  "sidebarCapGroupAdvanced": "進階",
+  "@sidebarCapGroupAdvanced": {"description": "C14 capability menu group: advanced"},
+  "redisCapGroupKeyspace": "鍵空間",
+  "@redisCapGroupKeyspace": {"description": "C17 redis capability menu group: keyspace"},
+  "redisCapWorkbench": "命令列工作台",
+  "@redisCapWorkbench": {"description": "C17 redis capability item: CLI workbench panel"},
+  "redisCapPubsub": "發布訂閱",
+  "@redisCapPubsub": {"description": "C17 redis capability item: pub/sub panel"},
+  "redisCapLua": "Lua 腳本",
+  "@redisCapLua": {"description": "C17 redis capability item: lua scripts panel"},
+  "redisCapPipeline": "管線",
+  "@redisCapPipeline": {"description": "C17 redis capability item: pipeline panel"},
+  "redisCapTransaction": "交易",
+  "@redisCapTransaction": {"description": "C17 redis capability item: MULTI-EXEC transaction panel"},
+  "redisCapMemoryAnalysis": "記憶體分析",
+  "@redisCapMemoryAnalysis": {"description": "C17 redis capability item: memory analysis panel"},
+  "redisCapKeyspaceNotifications": "鍵空間通知",
+  "@redisCapKeyspaceNotifications": {"description": "C17 redis capability item: keyspace notifications panel"},
+  "redisCapAcl": "ACL 管理",
+  "@redisCapAcl": {"description": "C17 redis capability item: ACL management panel"},
+  "redisCapConfig": "編輯設定",
+  "@redisCapConfig": {"description": "C17 redis capability item: CONFIG SET edit dialog"},
+  "mongoValidationTitle": "驗證規則",
+  "@mongoValidationTitle": {"description": "C17 mongo collection validation rules viewer title"},
+  "mongoValidationNoValidator": "此集合未設定驗證規則（可透過 collMod 或 MongoDB Shell 新增）。",
+  "@mongoValidationNoValidator": {"description": "C17 mongo validation viewer: no validator state"},
+  "mongoValidationLevel": "驗證級別",
+  "@mongoValidationLevel": {"description": "C17 mongo validation viewer row: validationLevel"},
+  "mongoValidationAction": "驗證動作",
+  "@mongoValidationAction": {"description": "C17 mongo validation viewer row: validationAction"},
+  "mongoValidationLoadFailed": "載入驗證規則失敗：{error}",
+  "@mongoValidationLoadFailed": {"description": "C17 mongo validation viewer load failure", "placeholders": {"error": {"type": "String"}}},
+  "sidebarDocumentInserted": "文件已插入到 {collection}",
+  "@sidebarDocumentInserted": {"description": "C17 snackbar after mongo document insert", "placeholders": {"collection": {"type": "String"}}},
+
+  "aiSkillCatalogTitle": "技能目錄",
+  "@aiSkillCatalogTitle": {"description":"C23 skill catalog panel title"},
+  "aiSkillGroupSql": "SQL 類",
+  "@aiSkillGroupSql": {"description":"C23 skill catalog group: SQL"},
+  "aiSkillGroupData": "資料類",
+  "@aiSkillGroupData": {"description":"C23 skill catalog group: data"},
+  "aiSkillGroupSchema": "結構類",
+  "@aiSkillGroupSchema": {"description":"C23 skill catalog group: schema"},
+  "aiSkillGroupOps": "維運類",
+  "@aiSkillGroupOps": {"description":"C23 skill catalog group: ops"},
+  "aiSkillNl2sqlName": "自然語言轉 SQL",
+  "@aiSkillNl2sqlName": {"description":"C23 skill: nl2sql display name"},
+  "aiSkillNl2sqlDesc": "用自然語言描述需求，產生 SQL",
+  "@aiSkillNl2sqlDesc": {"description":"C23 skill: nl2sql description"},
+  "aiSkillSqlExplainName": "SQL 解釋",
+  "@aiSkillSqlExplainName": {"description":"C23 skill: sql explain display name"},
+  "aiSkillSqlExplainDesc": "逐段解釋一條 SQL 的作用",
+  "@aiSkillSqlExplainDesc": {"description":"C23 skill: sql explain description"},
+  "aiSkillSqlExplainPrompt": "請逐段解釋這條 SQL 的作用：\n```\n\n```",
+  "@aiSkillSqlExplainPrompt": {"description":"C23 skill: sql explain prompt template"},
+  "aiSkillQueryOptimizerName": "查詢最佳化",
+  "@aiSkillQueryOptimizerName": {"description":"C23 skill: query optimizer display name"},
+  "aiSkillQueryOptimizerDesc": "分析慢查詢並給出最佳化建議",
+  "@aiSkillQueryOptimizerDesc": {"description":"C23 skill: query optimizer description"},
+  "aiSkillQueryOptimizerPrompt": "請分析這條查詢的效能問題並給出最佳化建議：\n```\n\n```",
+  "@aiSkillQueryOptimizerPrompt": {"description":"C23 skill: query optimizer prompt template"},
+  "aiSkillDataCleaningName": "資料清理建議",
+  "@aiSkillDataCleaningName": {"description":"C23 skill: data cleaning display name"},
+  "aiSkillDataCleaningDesc": "針對表中的髒資料給出清理建議",
+  "@aiSkillDataCleaningDesc": {"description":"C23 skill: data cleaning description"},
+  "aiSkillDataCleaningPrompt": "我表裡存在髒資料，請針對以下問題給出清理步驟：",
+  "@aiSkillDataCleaningPrompt": {"description":"C23 skill: data cleaning prompt template"},
+  "aiSkillImportMappingName": "匯入對應產生",
+  "@aiSkillImportMappingName": {"description":"C23 skill: import mapping display name"},
+  "aiSkillImportMappingDesc": "為資料匯入產生欄位對應",
+  "@aiSkillImportMappingDesc": {"description":"C23 skill: import mapping description"},
+  "aiSkillImportMappingPrompt": "請產生把以下檔案匯入目標表的欄位對應（JSON）。\n來源檔欄位：\n目標表欄位：",
+  "@aiSkillImportMappingPrompt": {"description":"C23 skill: import mapping prompt template"},
+  "aiSkillSchemaAnalysisName": "Schema 分析",
+  "@aiSkillSchemaAnalysisName": {"description":"C23 skill: schema analysis display name"},
+  "aiSkillSchemaAnalysisDesc": "審視目前庫的表結構並指出風險",
+  "@aiSkillSchemaAnalysisDesc": {"description":"C23 skill: schema analysis description"},
+  "aiSkillSchemaAnalysisPrompt": "請審視目前庫的表結構，指出設計風險與改進建議。",
+  "@aiSkillSchemaAnalysisPrompt": {"description":"C23 skill: schema analysis prompt template"},
+  "aiSkillSchemaDiffName": "結構比對助手",
+  "@aiSkillSchemaDiffName": {"description":"C23 skill: schema diff display name"},
+  "aiSkillSchemaDiffDesc": "比較兩段結構定義並輸出 diff",
+  "@aiSkillSchemaDiffDesc": {"description":"C23 skill: schema diff description"},
+  "aiSkillSchemaDiffPrompt": "請比較以下兩段結構定義並輸出 unified diff：\n<schema-a>\n\n</schema-a>\n<schema-b>\n\n</schema-b>",
+  "@aiSkillSchemaDiffPrompt": {"description":"C23 skill: schema diff prompt template"},
+  "aiSkillIndexSuggestName": "索引建議",
+  "@aiSkillIndexSuggestName": {"description":"C23 skill: index advice display name"},
+  "aiSkillIndexSuggestDesc": "針對查詢或表給出索引建議",
+  "@aiSkillIndexSuggestDesc": {"description":"C23 skill: index advice description"},
+  "aiSkillIndexSuggestPrompt": "請針對這條查詢給出索引建議並說明理由：\n```\n\n```",
+  "@aiSkillIndexSuggestPrompt": {"description":"C23 skill: index advice prompt template"},
+  "aiSkillErrorDiagnosisName": "錯誤診斷",
+  "@aiSkillErrorDiagnosisName": {"description":"C23 skill: error diagnosis display name"},
+  "aiSkillErrorDiagnosisDesc": "診斷資料庫報錯",
+  "@aiSkillErrorDiagnosisDesc": {"description":"C23 skill: error diagnosis description"},
+  "aiSkillErrorDiagnosisPrompt": "請診斷這個資料庫報錯並給出修復方案：\n```\n\n```",
+  "@aiSkillErrorDiagnosisPrompt": {"description":"C23 skill: error diagnosis prompt template"},
+  "aiSkillSlowQueryName": "Slow Query 分析",
+  "@aiSkillSlowQueryName": {"description":"C23 skill: slow query display name"},
+  "aiSkillSlowQueryDesc": "分析慢查詢日誌",
+  "@aiSkillSlowQueryDesc": {"description":"C23 skill: slow query description"},
+  "aiSkillSlowQueryPrompt": "請分析這條慢查詢日誌並定位瓶頸：\n```\n\n```",
+  "@aiSkillSlowQueryPrompt": {"description":"C23 skill: slow query prompt template"},
+  "aiContextPanelTitle": "上下文",
+  "@aiContextPanelTitle": {"description":"C23 context panel title"},
+  "aiContextConnectionSection": "目前連線",
+  "@aiContextConnectionSection": {"description":"C23 context panel section: current connection"},
+  "aiContextDatabaseSection": "目前資料庫",
+  "@aiContextDatabaseSection": {"description":"C23 context panel section: current database"},
+  "aiContextNoConnection": "未選擇連線",
+  "@aiContextNoConnection": {"description":"C23 context panel empty state"},
+  "aiContextSchemaContext": "附加 Schema 上下文",
+  "@aiContextSchemaContext": {"description":"C23 context panel toggle label"},
+  "aiContextSchemaContextDesc": "傳送時附帶目前庫的表結構資訊",
+  "@aiContextSchemaContextDesc": {"description":"C23 context panel toggle description"},
+  "aiPanelOpenSkillCatalog": "技能目錄",
+  "@aiPanelOpenSkillCatalog": {"description":"C23 narrow-mode toolbar button: open skill catalog"},
+  "aiPanelOpenContextPanel": "上下文面板",
+  "@aiPanelOpenContextPanel": {"description":"C23 narrow-mode toolbar button: open context panel"},
+  "safetyBannerAddLimit": "追加 LIMIT",
+  "safetyBannerCooldown": "確認（{seconds}s）",
+  "safetyDmlAllRowsWarning": "此操作將影響所有符合行，建議附加 LIMIT 子句。",
+  "safetySeverityHigh": "高危",
+  "safetySeverityMedium": "警告",
+  "safetySeverityLow": "資訊",
+  "safetySeverityPolicy": "策略",
+  "gateTitleSingle": "執行確認：此 SQL 存在 {count} 項風險",
+  "gateTitleMulti": "執行確認：{total} 條語句中發現 {count} 項風險",
+  "gateDdlImpactTitle": "DDL 影響分析",
+  "gateStatementLabel": "語句 {n}",
+  "gateSuggestionLabel": "建議修復",
+  "gateOverview": "{total} 條語句 · 高危 {high} · 警告 {medium} · 資訊 {low} · 通過 {ok}",
+  "gateSkipHighRisk": "跳過 {skip} 條高危，執行 {exec} 條",
+  "gateAllHighDisabled": "全部為高危——無可執行語句",
+  "gateApplySuggestions": "採用全部建議",
+  "gateProceed": "知情繼續執行",
+  "gateProceedAll": "全部繼續執行",
+  "gateCancelAll": "全部取消",
+  "settingsNavAppearance": "外觀",
+  "settingsNavAi": "AI 設定",
+  "settingsNavQuery": "查詢",
+  "settingsNavLanguage": "語言",
+  "settingsNavSecurity": "安全性",
+  "settingsNavAbout": "關於",
+  "piiExportStepFormat": "格式",
+  "piiExportStepScan": "PII 偵測",
+  "piiExportStepConfirm": "確認",
+  "piiExportNoPiiTitle": "未偵測到 PII 資料",
+  "piiExportNoPiiSubtitle": "所有欄位將以原始值匯出",
+  "piiExportDetectedCount": "偵測到 {count} 個含 PII 的欄位",
+  "piiExportHighSensitivity": "（高敏感）",
+  "piiExportKeep": "保留",
+  "piiExportMask": "遮罩",
+  "piiExportHash": "雜湊",
+  "piiExportDrop": "刪除此欄",
+  "piiExportReadyTitle": "準備匯出",
+  "piiExportSummaryFormat": "格式",
+  "piiExportSummaryRows": "行數",
+  "piiExportSummaryPiiColumns": "PII 處理欄數",
+  "piiExportFootnote": "PII 欄位將依所選方式處理，非 PII 欄位以原始值匯出",
+  "serverBarNotConnected": "未連線",
+  "serverBarConnecting": "連線中…",
+  "serverBarLocal": "本機",
+  "serverBarConnected": "已連線",
+  "serverBarReconnecting": "重新連線中…",
+  "serverBarReconnectingIn": "{seconds} 秒後重新連線…",
+  "serverBarServerUrl": "伺服器：{url}",
+  "serverBarDisconnect": "中斷連線",
+  "serverBarUnknownUser": "未知使用者",
+  "serverConnectUnexpectedError": "發生未知錯誤。",
+  "cellViewerCopy": "複製",
+  "cellViewerChars": "{count} 個字元",
+  "slowQueryMenuLabel": "慢查詢統計",
+  "slowQueryDialogTitle": "慢查詢統計",
+  "slowQueryScopeBanner": "記錄經 dbmaster/server 執行且超過 {thresholdMs} 毫秒的查詢；實例啟用原生慢日誌採集時另含資料庫自身的慢查詢（按 source 區分）。",
+  "slowQueryWindow1h": "近 1 小時",
+  "slowQueryWindow24h": "近 24 小時",
+  "slowQueryWindow7d": "近 7 天",
+  "slowQuerySortTotalMs": "總耗時",
+  "slowQuerySortCount": "次數",
+  "slowQuerySortAvgMs": "平均耗時",
+  "slowQuerySortMaxMs": "最大耗時",
+  "slowQueryAllConnections": "全部連線",
+  "slowQueryDigestStats": "{count} 次 · 總 {total} · 均 {avg} · 峰 {max}",
+  "slowQueryLastSeen": "最近發生 {time}",
+  "slowQueryEmptyTitle": "暫無慢查詢",
+  "slowQueryEmptyBody": "該時間窗內沒有超過取樣閾值的查詢。用 dbmaster 跑些慢的再回來看看。",
+  "slowQueryLoadFailed": "慢查詢統計載入失敗。",
+  "slowQueryRetry": "重試",
+  "slowQueryLoadMore": "載入更多（已顯示 {shown} / 共 {total}）",
+  "slowQueryStatusOk": "正常",
+  "slowQueryStatusError": "錯誤",
+  "slowQueryStatusCancelled": "已取消",
+  "slowQueryDatabaseLabel": "資料庫",
+  "slowQueryNoPlaintext": "該實例已關閉明文 SQL（僅 digest）。",
+  "slowQueryCopySql": "複製 SQL",
+  "slowQueryCopied": "已複製",
+  "reportsMenuLabel": "報告中心",
+  "reportsDialogTitle": "報告中心",
+  "reportsGenerateButton": "產生本期週報",
+  "reportsGeneratedToast": "週報已產生。",
+  "reportsExistingToast": "本期週報已存在。",
+  "reportsEmptyTitle": "暫無報告",
+  "reportsEmptyBody": "手動產生本期慢查詢週報，或等待每週自動產生。",
+  "reportsLoadFailed": "報告載入失敗。",
+  "reportsRetry": "重試",
+  "reportsLoadMore": "載入更多（已顯示 {shown} / 共 {total}）",
+  "reportsWindowLabel": "統計視窗",
+  "reportsTruncatedHint": "視窗不完整：更早的取樣已被 retention 清理。",
+  "reportsSamplesLabel": "取樣數",
+  "reportsDistinctLabel": "不同查詢",
+  "reportsTotalTimeLabel": "總耗時",
+  "reportsErrorsLabel": "錯誤",
+  "reportsWowLabel": "較上週",
+  "reportsTopSection": "Top 查詢",
+  "reportsByDaySection": "按天分佈",
+  "reportsByConnectionSection": "按連線分佈",
+  "reportsUnknownType": "未知報告類型——原始內容："
+,
+  "reportsAnalyzeWithAi": "AI 分析"
+}

@@ -1,0 +1,25 @@
+DbMaster — AI-enhanced database management client
+Copyright (c) 2026 dbmaster contributors
+
+This program is licensed under the GNU Affero General Public License
+v3.0 only (AGPL-3.0-only), as published by the Free Software Foundation.
+The complete license text is available in the LICENSE file at the root of
+this repository, or at <https://www.gnu.org/licenses/>.
+
+If you distribute a modified version of this program, you must provide
+the complete source code of the modified version under the same license
+(AGPL-3.0-only).
+
+Third-party components bundled under third_party/:
+
+* lucide_icons_flutter (third_party/lucide_icons_flutter)
+  Lucide icons for Flutter, licensed under the MIT License.
+  See third_party/lucide_icons_flutter/LICENSE.
+
+* re_editor (third_party/re_editor)
+  Local fork of the re_editor package with local patches, licensed under
+  the MIT License. See third_party/re_editor/LICENSE.
+
+Licenses of this program's other dependencies are collected automatically
+at build time and can be viewed in the in-app license page
+(Sidebar footer -> About -> license entry).

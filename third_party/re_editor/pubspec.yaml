@@ -1,0 +1,25 @@
+name: re_editor
+description: >-
+  [dbmaster fork of re_editor 0.10.0] 本地补丁：自动补全触发时显示段落
+  滞后编辑（异步高亮 span 按 TextSpan 实例缓存），caret 越界使上游误
+  dismiss 补全弹窗（每次击键都关掉）。fork 增加夹紧版位置查询
+  （_code_field.dart 的 calculateTextPositionScreenOffsetForAutocomplete，
+  _code_editable.dart 调用）。升级上游前先核对该补丁是否已修复。
+version: 0.10.0+dbmaster.1
+homepage: https://reqable.com
+repository: https://github.com/reqable/re-editor
+
+environment:
+  sdk: ">=2.17.3 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  re_highlight: ^0.0.3
+  isolate_manager: ^4.1.5+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.1
+  path: ^1.8.2

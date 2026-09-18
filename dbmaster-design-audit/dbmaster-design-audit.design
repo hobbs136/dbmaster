@@ -1,0 +1,101 @@
+{
+  "data": [
+    {
+      "id": "page-index",
+      "title": "DbMaster 设计诊断报告",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1786606740000,
+      "canvasData": {
+        "x": 0,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 3153,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-b3dd9f85",
+          "measuredAt": 1787034712352
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/index.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-index-cool-professional",
+      "title": "DbMaster 设计诊断报告 — 冷专业方向",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1786607592000,
+      "canvasData": {
+        "x": 480,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 3268,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-fc4f014e",
+          "measuredAt": 1787034712352
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/index-cool-professional.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-index-layout-refactor",
+      "title": "DbMaster 布局重构方案",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1786608475000,
+      "canvasData": {
+        "x": 960,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 3589,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-23ea8577",
+          "measuredAt": 1787034712352
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/index-layout-refactor.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "page-index-components-interactions",
+      "title": "DbMaster 组件与交互细节",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1786609849000,
+      "canvasData": {
+        "x": 1440,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 4955,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-a0ab2800",
+          "measuredAt": 1787034712352
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/index-components-interactions.html",
+        "interactions": []
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": true,
+    "deviceType": "desktop",
+    "projectName": "DbMaster 设计诊断报告"
+  }
+}

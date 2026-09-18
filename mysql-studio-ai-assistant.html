@@ -1,0 +1,2269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MySQL Studio - AI增强数据库管理客户端</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* DataGrip 深色主题配色 */
+            --bg-primary: #1e1f22;
+            --bg-secondary: #2b2d30;
+            --bg-tertiary: #313438;
+            --bg-hover: #3c3f44;
+            --bg-active: #4a4d52;
+            --bg-ai: #1a1d26;
+            --bg-ai-message: #252836;
+            --bg-ai-user: #2d3a4a;
+            
+            --text-primary: #dfe1e5;
+            --text-secondary: #9da0a8;
+            --text-muted: #6b7280;
+            --text-accent: #4ec9b0;
+            
+            --border-color: #4a4d52;
+            --border-light: #3c3f44;
+            
+            --accent-blue: #3574f0;
+            --accent-blue-hover: #4682f5;
+            --accent-green: #499c54;
+            --accent-orange: #cf8e6d;
+            --accent-red: #f75454;
+            --accent-purple: #9e7dd3;
+            --accent-yellow: #f2c55c;
+            --accent-cyan: #00d4aa;
+            --accent-pink: #ff6b9d;
+            
+            --sidebar-width: 280px;
+            --ai-panel-width: 380px;
+            --toolbar-height: 42px;
+            --status-height: 28px;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --font-sans: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            font-size: 13px;
+        }
+
+        /* 应用容器 */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* 顶部工具栏 */
+        .toolbar {
+            height: var(--toolbar-height);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            gap: 8px;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0 8px;
+            border-right: 1px solid var(--border-light);
+        }
+
+        .toolbar-group:last-child {
+            border-right: none;
+            margin-left: auto;
+        }
+
+        .toolbar-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+        }
+
+        .toolbar-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .toolbar-btn.primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .toolbar-btn.primary:hover {
+            background: var(--accent-blue-hover);
+        }
+
+        .toolbar-btn.ai {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            color: white;
+        }
+
+        .toolbar-btn.ai:hover {
+            opacity: 0.9;
+        }
+
+        .toolbar-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 20px;
+            background: var(--border-light);
+            margin: 0 4px;
+        }
+
+        /* 数据库选择器 */
+        .db-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 12px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            border: 1px solid var(--border-light);
+            cursor: pointer;
+        }
+
+        .db-selector:hover {
+            border-color: var(--border-color);
+        }
+
+        .db-icon {
+            width: 16px;
+            height: 16px;
+            color: var(--accent-orange);
+        }
+
+        .db-name {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .db-arrow {
+            width: 12px;
+            height: 12px;
+            color: var(--text-muted);
+        }
+
+        /* 主体区域 */
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* 左侧边栏 */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .sidebar-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 6px 10px 6px 28px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-light);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 12px;
+            outline: none;
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            color: var(--text-muted);
+        }
+
+        /* 数据库树 */
+        .db-tree {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+
+        .db-tree::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .db-tree::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .db-tree::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .tree-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px 5px 16px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.1s ease;
+        }
+
+        .tree-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .tree-item.active {
+            background: var(--accent-blue);
+        }
+
+        .tree-item.level-1 { padding-left: 16px; }
+        .tree-item.level-2 { padding-left: 32px; }
+        .tree-item.level-3 { padding-left: 48px; }
+        .tree-item.level-4 { padding-left: 64px; }
+
+        .tree-toggle {
+            width: 14px;
+            height: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        .tree-toggle.expanded {
+            transform: rotate(90deg);
+        }
+
+        .tree-icon {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .tree-icon.server { color: var(--accent-orange); }
+        .tree-icon.database { color: var(--accent-green); }
+        .tree-icon.table { color: var(--accent-blue); }
+        .tree-icon.column { color: var(--text-secondary); }
+        .tree-icon.index { color: var(--accent-purple); }
+        .tree-icon.key { color: var(--accent-yellow); }
+
+        .tree-label {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tree-badge {
+            font-size: 10px;
+            padding: 1px 5px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            color: var(--text-muted);
+        }
+
+        /* 中间工作区 */
+        .workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+            overflow: hidden;
+            transition: margin-right 0.3s ease;
+        }
+
+        .workspace.ai-open {
+            margin-right: var(--ai-panel-width);
+        }
+
+        /* 标签栏 */
+        .tabs-bar {
+            display: flex;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            overflow-x: auto;
+        }
+
+        .tabs-bar::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            cursor: pointer;
+            min-width: 120px;
+            max-width: 200px;
+            transition: background 0.15s ease;
+        }
+
+        .tab:hover {
+            background: var(--bg-hover);
+        }
+
+        .tab.active {
+            background: var(--bg-primary);
+            border-bottom: 2px solid var(--accent-blue);
+        }
+
+        .tab-icon {
+            width: 14px;
+            height: 14px;
+            color: var(--text-muted);
+        }
+
+        .tab.active .tab-icon {
+            color: var(--accent-blue);
+        }
+
+        .tab-title {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 12px;
+        }
+
+        .tab-close {
+            width: 14px;
+            height: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 3px;
+            color: var(--text-muted);
+            opacity: 0;
+            transition: all 0.15s ease;
+        }
+
+        .tab:hover .tab-close,
+        .tab.active .tab-close {
+            opacity: 1;
+        }
+
+        .tab-close:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .tab-new {
+            padding: 8px 12px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .tab-new:hover {
+            color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+
+        /* 编辑器区域 */
+        .editor-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* SQL编辑器 */
+        .sql-editor {
+            flex: 1;
+            position: relative;
+            background: var(--bg-primary);
+            overflow: hidden;
+        }
+
+        .editor-line-numbers {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 50px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-light);
+            padding: 12px 8px;
+            text-align: right;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--text-muted);
+            user-select: none;
+        }
+
+        .editor-content {
+            position: absolute;
+            left: 50px;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            padding: 12px 16px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            line-height: 1.6;
+            overflow: auto;
+            white-space: pre;
+            outline: none;
+        }
+
+        /* 语法高亮 */
+        .sql-keyword { color: var(--accent-purple); font-weight: 500; }
+        .sql-function { color: var(--accent-yellow); }
+        .sql-string { color: var(--accent-green); }
+        .sql-number { color: var(--accent-orange); }
+        .sql-comment { color: var(--text-muted); font-style: italic; }
+        .sql-operator { color: var(--accent-red); }
+
+        /* 结果区域 */
+        .results-area {
+            height: 300px;
+            min-height: 150px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            resize: vertical;
+            overflow: hidden;
+        }
+
+        .results-header {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .results-tab {
+            padding: 4px 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .results-tab.active {
+            color: var(--text-primary);
+            border-bottom-color: var(--accent-blue);
+        }
+
+        .results-toolbar {
+            margin-left: auto;
+            display: flex;
+            gap: 4px;
+        }
+
+        .results-toolbar-btn {
+            padding: 4px 8px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .results-toolbar-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        /* 数据表格 */
+        .data-grid {
+            flex: 1;
+            overflow: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .data-table th {
+            position: sticky;
+            top: 0;
+            background: var(--bg-tertiary);
+            padding: 8px 12px;
+            text-align: left;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .data-table th.sortable {
+            cursor: pointer;
+        }
+
+        .data-table th.sortable:hover {
+            color: var(--text-primary);
+        }
+
+        .data-table td {
+            padding: 6px 12px;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-primary);
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .data-table tr:hover td {
+            background: var(--bg-hover);
+        }
+
+        .data-table tr.selected td {
+            background: rgba(53, 116, 240, 0.2);
+        }
+
+        .data-type-icon {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            margin-right: 4px;
+            font-size: 10px;
+            text-align: center;
+            line-height: 14px;
+            border-radius: 2px;
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .null-value {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* 状态栏 */
+        .status-bar {
+            height: var(--status-height);
+            background: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            font-size: 12px;
+            color: white;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0 12px;
+            border-right: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .status-item:last-child {
+            border-right: none;
+            margin-left: auto;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+        }
+
+        .status-indicator.connecting {
+            background: var(--accent-yellow);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* 右侧面板 */
+        .right-panel {
+            width: 260px;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-section {
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            cursor: pointer;
+        }
+
+        .panel-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .panel-toggle {
+            width: 12px;
+            height: 12px;
+            color: var(--text-muted);
+        }
+
+        .panel-content {
+            padding: 0 12px 12px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 12px;
+        }
+
+        .info-label {
+            color: var(--text-muted);
+        }
+
+        .info-value {
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+        }
+
+        /* 快捷操作按钮 */
+        .quick-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 8px 12px;
+        }
+
+        .quick-btn {
+            padding: 4px 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-light);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .quick-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        /* ========== AI 助理面板 ========== */
+        .ai-panel {
+            position: fixed;
+            right: 0;
+            top: var(--toolbar-height);
+            bottom: var(--status-height);
+            width: var(--ai-panel-width);
+            background: var(--bg-ai);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 100;
+        }
+
+        .ai-panel.open {
+            transform: translateX(0);
+        }
+
+        /* AI面板头部 */
+        .ai-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .ai-panel-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .ai-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--accent-purple);
+        }
+
+        .ai-panel-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .ai-panel-btn {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .ai-panel-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        /* AI模型选择器 */
+        .ai-model-selector {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .ai-model-select {
+            flex: 1;
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 13px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .ai-model-select:focus {
+            border-color: var(--accent-purple);
+        }
+
+        .ai-config-btn {
+            padding: 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .ai-config-btn:hover {
+            border-color: var(--accent-purple);
+            color: var(--text-primary);
+        }
+
+        /* 快捷功能按钮 */
+        .ai-quick-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .ai-action-chip {
+            padding: 6px 12px;
+            background: var(--bg-ai-message);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .ai-action-chip:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-purple);
+            color: var(--text-primary);
+        }
+
+        .ai-action-chip svg {
+            width: 14px;
+            height: 14px;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+
+        /* AI聊天区域 */
+        .ai-chat {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .ai-chat::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .ai-chat::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .ai-message {
+            margin-bottom: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .ai-message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .ai-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .ai-avatar.ai {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            color: white;
+        }
+
+        .ai-avatar.user {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .ai-message-author {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .ai-message-time {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .ai-message-content {
+            padding: 12px 14px;
+            border-radius: 12px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .ai-message.ai .ai-message-content {
+            background: var(--bg-ai-message);
+            border: 1px solid var(--border-light);
+        }
+
+        .ai-message.user .ai-message-content {
+            background: var(--bg-ai-user);
+            margin-left: 20px;
+        }
+
+        /* 代码块 */
+        .ai-code-block {
+            margin: 10px 0;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .ai-code-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .ai-code-lang {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .ai-code-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .ai-code-btn {
+            padding: 4px 10px;
+            background: var(--bg-hover);
+            border: none;
+            border-radius: 4px;
+            color: var(--text-secondary);
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .ai-code-btn:hover {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .ai-code-content {
+            padding: 12px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        /* AI输入区域 */
+        .ai-input-area {
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .ai-input-wrapper {
+            position: relative;
+            display: flex;
+            gap: 8px;
+        }
+
+        .ai-input {
+            flex: 1;
+            padding: 10px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 13px;
+            resize: none;
+            outline: none;
+            min-height: 40px;
+            max-height: 120px;
+        }
+
+        .ai-input:focus {
+            border-color: var(--accent-purple);
+        }
+
+        .ai-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .ai-send-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--accent-purple);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .ai-send-btn:hover {
+            background: var(--accent-blue);
+        }
+
+        .ai-send-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* AI悬浮按钮 */
+        .ai-fab {
+            position: fixed;
+            right: 24px;
+            bottom: 48px;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            border: none;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(158, 125, 211, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 99;
+        }
+
+        .ai-fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 30px rgba(158, 125, 211, 0.6);
+        }
+
+        .ai-fab.active {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .ai-fab svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* AI配置模态框 */
+        .ai-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .ai-modal-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .ai-modal {
+            width: 520px;
+            max-height: 80vh;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+
+        .ai-modal-overlay.open .ai-modal {
+            transform: scale(1);
+        }
+
+        .ai-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .ai-modal-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .ai-modal-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 6px;
+        }
+
+        .ai-modal-close:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .ai-modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 60vh;
+        }
+
+        .ai-form-group {
+            margin-bottom: 16px;
+        }
+
+        .ai-form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .ai-form-select,
+        .ai-form-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 13px;
+            outline: none;
+        }
+
+        .ai-form-select:focus,
+        .ai-form-input:focus {
+            border-color: var(--accent-purple);
+        }
+
+        .ai-form-hint {
+            margin-top: 4px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .ai-provider-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .ai-provider-card {
+            padding: 16px 12px;
+            background: var(--bg-tertiary);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .ai-provider-card:hover {
+            background: var(--bg-hover);
+        }
+
+        .ai-provider-card.active {
+            border-color: var(--accent-purple);
+            background: rgba(158, 125, 211, 0.1);
+        }
+
+        .ai-provider-icon {
+            width: 36px;
+            height: 36px;
+            margin: 0 auto 8px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .ai-provider-icon.openai { background: #10a37f; color: white; }
+        .ai-provider-icon.claude { background: #d97757; color: white; }
+        .ai-provider-icon.kimi { background: #00d4aa; color: black; }
+        .ai-provider-icon.qwen { background: #615ced; color: white; }
+        .ai-provider-icon.gemini { background: #4285f4; color: white; }
+        .ai-provider-icon.deepseek { background: #4d6bfa; color: white; }
+
+        .ai-provider-name {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .ai-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 16px 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .ai-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .ai-btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .ai-btn-secondary:hover {
+            background: var(--bg-hover);
+        }
+
+        .ai-btn-primary {
+            background: var(--accent-purple);
+            color: white;
+        }
+
+        .ai-btn-primary:hover {
+            background: var(--accent-blue);
+        }
+
+        /* 控制台输出 */
+        .console-output {
+            flex: 1;
+            padding: 12px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            line-height: 1.5;
+            overflow: auto;
+            background: var(--bg-primary);
+        }
+
+        .console-line {
+            padding: 2px 0;
+        }
+
+        .console-time {
+            color: var(--text-muted);
+        }
+
+        .console-success { color: var(--accent-green); }
+        .console-error { color: var(--accent-red); }
+        .console-info { color: var(--accent-blue); }
+        .console-warn { color: var(--accent-yellow); }
+
+        /* 加载动画 */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* AI 打字效果 */
+        .ai-typing {
+            display: flex;
+            gap: 4px;
+            padding: 8px 12px;
+        }
+
+        .ai-typing-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-purple);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .ai-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .ai-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        /* 空状态 */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+            padding: 40px;
+            text-align: center;
+        }
+
+        .empty-icon {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .empty-text {
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .empty-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 顶部工具栏 -->
+        <div class="toolbar">
+            <div class="toolbar-group">
+                <button class="toolbar-btn primary">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    执行
+                </button>
+                <button class="toolbar-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="6" y="4" width="4" height="16"></rect>
+                        <rect x="14" y="4" width="4" height="16"></rect>
+                    </svg>
+                    停止
+                </button>
+            </div>
+            
+            <div class="toolbar-divider"></div>
+            
+            <div class="toolbar-group">
+                <div class="db-selector">
+                    <svg class="db-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                    </svg>
+                    <span class="db-name">production_db</span>
+                    <svg class="db-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
+            </div>
+            
+            <div class="toolbar-divider"></div>
+            
+            <div class="toolbar-group">
+                <button class="toolbar-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    保存
+                </button>
+                <button class="toolbar-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    导出
+                </button>
+            </div>
+
+            <div class="toolbar-group">
+                <button class="toolbar-btn ai" onclick="toggleAIPanel()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                        <path d="M2 17l10 5 10-5"></path>
+                        <path d="M2 12l10 5 10-5"></path>
+                    </svg>
+                    AI 助手
+                </button>
+            </div>
+            
+            <div class="toolbar-group">
+                <button class="toolbar-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 主体区域 -->
+        <div class="main-container">
+            <!-- 左侧数据库导航 -->
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <div class="sidebar-title">数据库导航</div>
+                    <div class="search-box">
+                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                        <input type="text" class="search-input" placeholder="搜索表、视图、过程...">
+                    </div>
+                </div>
+                
+                <div class="db-tree">
+                    <!-- 服务器 -->
+                    <div class="tree-item level-1">
+                        <span class="tree-toggle expanded">
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10">
+                                <path d="M8 5l8 7-8 7V5z"/>
+                            </svg>
+                        </span>
+                        <svg class="tree-icon server" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                        </svg>
+                        <span class="tree-label">localhost:3306</span>
+                    </div>
+                    
+                    <!-- 数据库 -->
+                    <div class="tree-item level-2">
+                        <span class="tree-toggle expanded">
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10">
+                                <path d="M8 5l8 7-8 7V5z"/>
+                            </svg>
+                        </span>
+                        <svg class="tree-icon database" viewBox="0 0 24 24" fill="currentColor">
+                            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                        </svg>
+                        <span class="tree-label">production_db</span>
+                    </div>
+                    
+                    <!-- 表文件夹 -->
+                    <div class="tree-item level-3">
+                        <span class="tree-toggle expanded">
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10">
+                                <path d="M8 5l8 7-8 7V5z"/>
+                            </svg>
+                        </span>
+                        <svg class="tree-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <span class="tree-label">Tables</span>
+                        <span class="tree-badge">24</span>
+                    </div>
+                    
+                    <!-- 表列表 -->
+                    <div class="tree-item level-4 active">
+                        <span class="tree-toggle"></span>
+                        <svg class="tree-icon table" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/>
+                        </svg>
+                        <span class="tree-label">users</span>
+                    </div>
+                    
+                    <div class="tree-item level-4">
+                        <span class="tree-toggle"></span>
+                        <svg class="tree-icon table" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/>
+                        </svg>
+                        <span class="tree-label">orders</span>
+                    </div>
+                    
+                    <div class="tree-item level-4">
+                        <span class="tree-toggle"></span>
+                        <svg class="tree-icon table" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/>
+                        </svg>
+                        <span class="tree-label">products</span>
+                    </div>
+                    
+                    <div class="tree-item level-4">
+                        <span class="tree-toggle"></span>
+                        <svg class="tree-icon table" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/>
+                        </svg>
+                        <span class="tree-label">categories</span>
+                    </div>
+                    
+                    <!-- Views 文件夹 -->
+                    <div class="tree-item level-3">
+                        <span class="tree-toggle">
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10">
+                                <path d="M8 5l8 7-8 7V5z"/>
+                            </svg>
+                        </span>
+                        <svg class="tree-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <span class="tree-label">Views</span>
+                        <span class="tree-badge">3</span>
+                    </div>
+                    
+                    <!-- Stored Procedures -->
+                    <div class="tree-item level-3">
+                        <span class="tree-toggle">
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10">
+                                <path d="M8 5l8 7-8 7V5z"/>
+                            </svg>
+                        </span>
+                        <svg class="tree-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="16 18 22 12 16 6"></polyline>
+                            <polyline points="8 6 2 12 8 18"></polyline>
+                        </svg>
+                        <span class="tree-label">Stored Procedures</span>
+                        <span class="tree-badge">5</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 中间工作区 -->
+            <div class="workspace" id="workspace">
+                <!-- 标签栏 -->
+                <div class="tabs-bar">
+                    <div class="tab active">
+                        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        <span class="tab-title">query_001.sql</span>
+                        <span class="tab-close">×</span>
+                    </div>
+                    <div class="tab">
+                        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="3" y1="9" x2="21" y2="9"></line>
+                            <line x1="9" y1="21" x2="9" y2="9"></line>
+                        </svg>
+                        <span class="tab-title">users</span>
+                        <span class="tab-close">×</span>
+                    </div>
+                    <div class="tab-new">+</div>
+                </div>
+                
+                <!-- 编辑器区域 -->
+                <div class="editor-area">
+                    <div class="sql-editor">
+                        <div class="editor-line-numbers">1
+2
+3
+4
+5
+6</div>
+                        <div class="editor-content" contenteditable="true"><span class="sql-keyword">SELECT</span> 
+    u.id,
+    u.username,
+    u.email,
+    u.created_at
+<span class="sql-keyword">FROM</span> users u
+<span class="sql-keyword">WHERE</span> u.status <span class="sql-operator">=</span> <span class="sql-string">'active'</span>
+<span class="sql-keyword">ORDER BY</span> u.created_at <span class="sql-keyword">DESC</span>
+<span class="sql-keyword">LIMIT</span> <span class="sql-number">100</span>;</div>
+                    </div>
+                    
+                    <!-- 结果区域 -->
+                    <div class="results-area">
+                        <div class="results-header">
+                            <div class="results-tab active">结果</div>
+                            <div class="results-tab">消息</div>
+                            <div class="results-tab">执行计划</div>
+                            <div class="results-toolbar">
+                                <button class="results-toolbar-btn">CSV</button>
+                                <button class="results-toolbar-btn">JSON</button>
+                                <button class="results-toolbar-btn">Excel</button>
+                            </div>
+                        </div>
+                        <div class="data-grid">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th class="sortable">
+                                            <span class="data-type-icon">PK</span>id
+                                        </th>
+                                        <th class="sortable">username</th>
+                                        <th class="sortable">email</th>
+                                        <th class="sortable">created_at</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>1</td>
+                                        <td>admin</td>
+                                        <td>admin@example.com</td>
+                                        <td>2024-01-15 08:30:00</td>
+                                    </tr>
+                                    <tr class="selected">
+                                        <td>2</td>
+                                        <td>zhangsan</td>
+                                        <td>zhangsan@example.com</td>
+                                        <td>2024-01-16 14:22:18</td>
+                                    </tr>
+                                    <tr>
+                                        <td>3</td>
+                                        <td>lisi</td>
+                                        <td>lisi@example.com</td>
+                                        <td>2024-01-17 09:15:33</td>
+                                    </tr>
+                                    <tr>
+                                        <td>4</td>
+                                        <td>wangwu</td>
+                                        <td>wangwu@example.com</td>
+                                        <td>2024-01-18 16:45:09</td>
+                                    </tr>
+                                    <tr>
+                                        <td>5</td>
+                                        <td>zhaoliu</td>
+                                        <td>zhaoliu@example.com</td>
+                                        <td>2024-01-19 11:30:27</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧面板 -->
+            <div class="right-panel">
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <span class="panel-title">表属性</span>
+                        <svg class="panel-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="18 15 12 9 6 15"></polyline>
+                        </svg>
+                    </div>
+                    <div class="panel-content">
+                        <div class="info-row">
+                            <span class="info-label">表名</span>
+                            <span class="info-value">users</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">引擎</span>
+                            <span class="info-value">InnoDB</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">行数</span>
+                            <span class="info-value">15,234</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">大小</span>
+                            <span class="info-value">2.4 MB</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">创建时间</span>
+                            <span class="info-value">2024-01-10</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <span class="panel-title">列信息</span>
+                        <svg class="panel-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="18 15 12 9 6 15"></polyline>
+                        </svg>
+                    </div>
+                    <div class="panel-content">
+                        <div class="info-row">
+                            <span class="info-label">id</span>
+                            <span class="info-value">bigint PK</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">username</span>
+                            <span class="info-value">varchar(50)</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">email</span>
+                            <span class="info-value">varchar(100)</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">status</span>
+                            <span class="info-value">enum</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">created_at</span>
+                            <span class="info-value">datetime</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <span class="panel-title">索引</span>
+                        <svg class="panel-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="18 15 12 9 6 15"></polyline>
+                        </svg>
+                    </div>
+                    <div class="panel-content">
+                        <div class="info-row">
+                            <span class="info-label">PRIMARY</span>
+                            <span class="info-value">id</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">idx_email</span>
+                            <span class="info-value">email</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">idx_username</span>
+                            <span class="info-value">username</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <span class="panel-title">快捷操作</span>
+                        <svg class="panel-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="18 15 12 9 6 15"></polyline>
+                        </svg>
+                    </div>
+                    <div class="quick-actions">
+                        <button class="quick-btn">查看DDL</button>
+                        <button class="quick-btn">修改表</button>
+                        <button class="quick-btn">导出数据</button>
+                        <button class="quick-btn">导入数据</button>
+                        <button class="quick-btn">清空表</button>
+                        <button class="quick-btn">复制表</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 状态栏 -->
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-indicator"></span>
+                <span>已连接</span>
+            </div>
+            <div class="status-item">
+                <span>localhost:3306</span>
+            </div>
+            <div class="status-item">
+                <span>MySQL 8.0.32</span>
+            </div>
+            <div class="status-item">
+                <span>查询完成: 5 行, 0.023 秒</span>
+            </div>
+            <div class="status-item">
+                <span>UTF-8 Unicode</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI 助理面板 -->
+    <div class="ai-panel" id="aiPanel">
+        <div class="ai-panel-header">
+            <div class="ai-panel-title">
+                <svg class="ai-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                    <path d="M2 17l10 5 10-5"></path>
+                    <path d="M2 12l10 5 10-5"></path>
+                </svg>
+                AI SQL 助手
+            </div>
+            <div class="ai-panel-actions">
+                <button class="ai-panel-btn" onclick="openAIConfig()" title="配置">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v6m4.22-10.22l4.24-4.24M6.34 17.66l-4.24 4.24M23 12h-6m-6 0H1m20.24 4.24l-4.24-4.24M6.34 6.34L2.1 2.1"></path>
+                    </svg>
+                </button>
+                <button class="ai-panel-btn" onclick="toggleAIPanel()" title="关闭">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- 模型选择器 -->
+        <div class="ai-model-selector">
+            <select class="ai-model-select" id="aiModelSelect">
+                <option value="gpt-4">OpenAI GPT-4</option>
+                <option value="gpt-3.5">OpenAI GPT-3.5</option>
+                <option value="claude-3">Claude 3 Opus</option>
+                <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                <option value="kimi">Kimi K2.5</option>
+                <option value="qwen-turbo">通义千问 Turbo</option>
+                <option value="qwen-plus">通义千问 Plus</option>
+                <option value="gemini-pro">Gemini Pro</option>
+                <option value="deepseek">DeepSeek Chat</option>
+            </select>
+            <button class="ai-config-btn" onclick="openAIConfig()">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- 快捷功能 -->
+        <div class="ai-quick-actions">
+            <button class="ai-action-chip" onclick="sendQuickMessage('优化当前SQL')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                优化SQL
+            </button>
+            <button class="ai-action-chip" onclick="sendQuickMessage('解释当前SQL')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                解释SQL
+            </button>
+            <button class="ai-action-chip" onclick="sendQuickMessage('生成查询语句')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                生成SQL
+            </button>
+            <button class="ai-action-chip" onclick="sendQuickMessage('检查表结构')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                检查结构
+            </button>
+        </div>
+
+        <!-- 聊天区域 -->
+        <div class="ai-chat" id="aiChat">
+            <!-- 欢迎消息 -->
+            <div class="ai-message ai">
+                <div class="ai-message-header">
+                    <div class="ai-avatar ai">AI</div>
+                    <span class="ai-message-author">SQL 助手</span>
+                    <span class="ai-message-time">刚刚</span>
+                </div>
+                <div class="ai-message-content">
+                    👋 你好！我是你的 SQL AI 助手。
+                    <br><br>
+                    我可以帮你：
+                    <ul style="margin: 8px 0; padding-left: 20px;">
+                        <li>生成复杂的 SQL 查询</li>
+                        <li>优化现有 SQL 性能</li>
+                        <li>解释 SQL 执行计划</li>
+                        <li>设计数据库表结构</li>
+                        <li>分析慢查询问题</li>
+                    </ul>
+                    你想从什么开始？
+                </div>
+            </div>
+
+            <!-- 示例：AI生成SQL -->
+            <div class="ai-message ai">
+                <div class="ai-message-header">
+                    <div class="ai-avatar ai">AI</div>
+                    <span class="ai-message-author">SQL 助手</span>
+                    <span class="ai-message-time">2分钟前</span>
+                </div>
+                <div class="ai-message-content">
+                    根据你的需求，我生成了以下SQL：
+                    <div class="ai-code-block">
+                        <div class="ai-code-header">
+                            <span class="ai-code-lang">SQL</span>
+                            <div class="ai-code-actions">
+                                <button class="ai-code-btn" onclick="copyCode(this)">复制</button>
+                                <button class="ai-code-btn" onclick="insertToEditor(this)">插入编辑器</button>
+                            </div>
+                        </div>
+                        <div class="ai-code-content"><span class="sql-keyword">SELECT</span> 
+    u.id,
+    u.username,
+    u.email,
+    <span class="sql-function">COUNT</span>(o.id) <span class="sql-keyword">AS</span> order_count,
+    <span class="sql-function">SUM</span>(o.total_amount) <span class="sql-keyword">AS</span> total_spent
+<span class="sql-keyword">FROM</span> users u
+<span class="sql-keyword">LEFT JOIN</span> orders o <span class="sql-keyword">ON</span> u.id = o.user_id
+<span class="sql-keyword">WHERE</span> u.status = <span class="sql-string">'active'</span>
+    <span class="sql-keyword">AND</span> u.created_at >= <span class="sql-function">DATE_SUB</span>(<span class="sql-function">NOW</span>(), <span class="sql-keyword">INTERVAL</span> <span class="sql-number">30</span> <span class="sql-keyword">DAY</span>)
+<span class="sql-keyword">GROUP BY</span> u.id
+<span class="sql-keyword">HAVING</span> order_count > <span class="sql-number">5</span>
+<span class="sql-keyword">ORDER BY</span> total_spent <span class="sql-keyword">DESC</span>
+<span class="sql-keyword">LIMIT</span> <span class="sql-number">100</span>;</div>
+                    </div>
+                    这个查询会返回过去30天内下单超过5次的高价值活跃用户。
+                </div>
+            </div>
+
+            <!-- 示例：用户消息 -->
+            <div class="ai-message user">
+                <div class="ai-message-header">
+                    <div class="ai-avatar user">我</div>
+                    <span class="ai-message-author">你</span>
+                    <span class="ai-message-time">3分钟前</span>
+                </div>
+                <div class="ai-message-content">
+                    帮我查询过去30天内的活跃用户，需要显示他们的订单数量和消费总额，按消费金额排序
+                </div>
+            </div>
+        </div>
+
+        <!-- 输入区域 -->
+        <div class="ai-input-area">
+            <div class="ai-input-wrapper">
+                <textarea class="ai-input" id="aiInput" placeholder="输入你的问题，例如：帮我优化这个查询..." rows="1"></textarea>
+                <button class="ai-send-btn" onclick="sendMessage()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI 配置模态框 -->
+    <div class="ai-modal-overlay" id="aiConfigModal">
+        <div class="ai-modal">
+            <div class="ai-modal-header">
+                <span class="ai-modal-title">🤖 AI 模型配置</span>
+                <button class="ai-modal-close" onclick="closeAIConfig()">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="ai-modal-body">
+                <!-- 提供商选择 -->
+                <div class="ai-form-group">
+                    <label class="ai-form-label">选择 AI 提供商</label>
+                    <div class="ai-provider-cards">
+                        <div class="ai-provider-card active" data-provider="openai" onclick="selectProvider('openai')">
+                            <div class="ai-provider-icon openai">O</div>
+                            <div class="ai-provider-name">OpenAI</div>
+                        </div>
+                        <div class="ai-provider-card" data-provider="anthropic" onclick="selectProvider('anthropic')">
+                            <div class="ai-provider-icon claude">C</div>
+                            <div class="ai-provider-name">Claude</div>
+                        </div>
+                        <div class="ai-provider-card" data-provider="moonshot" onclick="selectProvider('moonshot')">
+                            <div class="ai-provider-icon kimi">K</div>
+                            <div class="ai-provider-name">Kimi</div>
+                        </div>
+                        <div class="ai-provider-card" data-provider="aliyun" onclick="selectProvider('aliyun')">
+                            <div class="ai-provider-icon qwen">Q</div>
+                            <div class="ai-provider-name">通义千问</div>
+                        </div>
+                        <div class="ai-provider-card" data-provider="google" onclick="selectProvider('google')">
+                            <div class="ai-provider-icon gemini">G</div>
+                            <div class="ai-provider-name">Gemini</div>
+                        </div>
+                        <div class="ai-provider-card" data-provider="deepseek" onclick="selectProvider('deepseek')">
+                            <div class="ai-provider-icon deepseek">D</div>
+                            <div class="ai-provider-name">DeepSeek</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模型选择 -->
+                <div class="ai-form-group">
+                    <label class="ai-form-label">模型</label>
+                    <select class="ai-form-select" id="configModelSelect">
+                        <option value="gpt-4">GPT-4 (推荐)</option>
+                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                    </select>
+                </div>
+
+                <!-- API Key -->
+                <div class="ai-form-group">
+                    <label class="ai-form-label">API Key</label>
+                    <input type="password" class="ai-form-input" placeholder="sk-xxxxxxxxxxxxxxxx" id="apiKeyInput">
+                    <div class="ai-form-hint">你的 API Key 仅存储在本地，不会上传到服务器</div>
+                </div>
+
+                <!-- API Base URL -->
+                <div class="ai-form-group">
+                    <label class="ai-form-label">API Base URL (可选)</label>
+                    <input type="text" class="ai-form-input" placeholder="https://api.openai.com/v1" id="apiBaseInput">
+                    <div class="ai-form-hint">如果使用代理或第三方服务，请填写自定义 API 地址</div>
+                </div>
+
+                <!-- 温度设置 -->
+                <div class="ai-form-group">
+                    <label class="ai-form-label">Temperature (创造性): <span id="tempValue">0.7</span></label>
+                    <input type="range" class="ai-form-input" min="0" max="2" step="0.1" value="0.7" id="temperatureInput" oninput="updateTempValue(this.value)">
+                    <div class="ai-form-hint">较低值产生更确定的回答，较高值产生更创造性的回答</div>
+                </div>
+
+                <!-- 系统提示词 -->
+                <div class="ai-form-group">
+                    <label class="ai-form-label">系统提示词 (System Prompt)</label>
+                    <textarea class="ai-form-input" rows="3" id="systemPromptInput">你是一个专业的 SQL 专家，擅长 MySQL 数据库优化和查询设计。请提供高效、安全的 SQL 语句。</textarea>
+                </div>
+            </div>
+            <div class="ai-modal-footer">
+                <button class="ai-btn ai-btn-secondary" onclick="closeAIConfig()">取消</button>
+                <button class="ai-btn ai-btn-primary" onclick="saveAIConfig()">保存配置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI 悬浮按钮 -->
+    <button class="ai-fab" id="aiFab" onclick="toggleAIPanel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+            <path d="M2 17l10 5 10-5"></path>
+            <path d="M2 12l10 5 10-5"></path>
+        </svg>
+    </button>
+
+    <script>
+        // AI 面板开关
+        function toggleAIPanel() {
+            const panel = document.getElementById('aiPanel');
+            const workspace = document.getElementById('workspace');
+            const fab = document.getElementById('aiFab');
+            
+            panel.classList.toggle('open');
+            workspace.classList.toggle('ai-open');
+            fab.classList.toggle('active');
+        }
+
+        // 打开配置模态框
+        function openAIConfig() {
+            document.getElementById('aiConfigModal').classList.add('open');
+        }
+
+        // 关闭配置模态框
+        function closeAIConfig() {
+            document.getElementById('aiConfigModal').classList.remove('open');
+        }
+
+        // 选择提供商
+        function selectProvider(provider) {
+            document.querySelectorAll('.ai-provider-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            document.querySelector(`[data-provider="${provider}"]`).classList.add('active');
+            
+            // 更新模型选项
+            const modelSelect = document.getElementById('configModelSelect');
+            modelSelect.innerHTML = getModelOptions(provider);
+        }
+
+        // 获取模型选项
+        function getModelOptions(provider) {
+            const options = {
+                openai: `
+                    <option value="gpt-4">GPT-4 (推荐)</option>
+                    <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                `,
+                anthropic: `
+                    <option value="claude-3-opus">Claude 3 Opus (推荐)</option>
+                    <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                    <option value="claude-3-haiku">Claude 3 Haiku</option>
+                `,
+                moonshot: `
+                    <option value="kimi-k2.5">Kimi K2.5 (推荐)</option>
+                    <option value="kimi-k1.5">Kimi K1.5</option>
+                `,
+                aliyun: `
+                    <option value="qwen-turbo">通义千问 Turbo</option>
+                    <option value="qwen-plus">通义千问 Plus (推荐)</option>
+                    <option value="qwen-max">通义千问 Max</option>
+                `,
+                google: `
+                    <option value="gemini-pro">Gemini Pro (推荐)</option>
+                    <option value="gemini-ultra">Gemini Ultra</option>
+                `,
+                deepseek: `
+                    <option value="deepseek-chat">DeepSeek Chat (推荐)</option>
+                    <option value="deepseek-coder">DeepSeek Coder</option>
+                `
+            };
+            return options[provider] || options.openai;
+        }
+
+        // 更新温度显示
+        function updateTempValue(value) {
+            document.getElementById('tempValue').textContent = value;
+        }
+
+        // 保存配置
+        function saveAIConfig() {
+            // 这里可以添加保存到 localStorage 的逻辑
+            closeAIConfig();
+            showNotification('配置已保存');
+        }
+
+        // 发送消息
+        function sendMessage() {
+            const input = document.getElementById('aiInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // 添加用户消息
+            addMessage('user', message);
+            input.value = '';
+
+            // 模拟 AI 回复
+            setTimeout(() => {
+                addMessage('ai', '我正在分析你的请求...');
+            }, 500);
+        }
+
+        // 发送快捷消息
+        function sendQuickMessage(message) {
+            const input = document.getElementById('aiInput');
+            input.value = message;
+            sendMessage();
+        }
+
+        // 添加消息到聊天
+        function addMessage(type, content) {
+            const chat = document.getElementById('aiChat');
+            const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `ai-message ${type}`;
+            messageDiv.innerHTML = `
+                <div class="ai-message-header">
+                    <div class="ai-avatar ${type}">${type === 'ai' ? 'AI' : '我'}</div>
+                    <span class="ai-message-author">${type === 'ai' ? 'SQL 助手' : '你'}</span>
+                    <span class="ai-message-time">${time}</span>
+                </div>
+                <div class="ai-message-content">${content}</div>
+            `;
+            
+            chat.insertBefore(messageDiv, chat.firstChild);
+            chat.scrollTop = 0;
+        }
+
+        // 复制代码
+        function copyCode(btn) {
+            const code = btn.closest('.ai-code-block').querySelector('.ai-code-content').textContent;
+            navigator.clipboard.writeText(code);
+            btn.textContent = '已复制!';
+            setTimeout(() => btn.textContent = '复制', 2000);
+        }
+
+        // 插入到编辑器
+        function insertToEditor(btn) {
+            const code = btn.closest('.ai-code-block').querySelector('.ai-code-content').textContent;
+            // 这里可以实现插入到 SQL 编辑器的逻辑
+            showNotification('已插入到编辑器');
+        }
+
+        // 显示通知
+        function showNotification(message) {
+            // 简单的通知实现
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                background: var(--accent-green);
+                color: white;
+                border-radius: 6px;
+                font-size: 13px;
+                z-index: 10000;
+                animation: fadeIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+
+        // 输入框自动调整高度
+        document.getElementById('aiInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // Enter 发送消息
+        document.getElementById('aiInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // 点击模态框外部关闭
+        document.getElementById('aiConfigModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAIConfig();
+            }
+        });
+    </script>
+</body>
+</html>

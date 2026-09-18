@@ -1,0 +1,7 @@
+# git-blame-ignore-revs — commits that are pure formatting/noise and should not
+# appear in `git blame`. Configure once per user:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# 83f046ba — chore: strip 603 historical CHANGE: review markers from code
+#            (comment-prefix-only mass cleanup; no code-logic change)
+83f046babfc5561af50b2a0804a5e9de84199294
