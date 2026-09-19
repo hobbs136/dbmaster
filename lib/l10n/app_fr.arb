@@ -248,6 +248,7 @@
     }
   },
   "executionStatusBarErrorHint": "Cliquez sur un onglet de résultat pour voir les détails des erreurs",
+  "statusBarConnectionErrorTooltip": "Des erreurs de connexion non traitées sont présentes. Cliquez pour afficher",
   "toolbarExecutionPlan": "Plan d'exécution",
   "toolbarFormat": "Formater",
   "toolbarSave": "Enregistrer",
@@ -3115,5 +3116,24 @@
   "reportsByConnectionSection": "Par connexion",
   "reportsUnknownType": "Type de rapport inconnu — contenu brut :"
 ,
-  "reportsAnalyzeWithAi": "Analyser avec l'IA"
+  "reportsAnalyzeWithAi": "Analyser avec l'IA",
+  "connectFailureTitle": "Échec de la connexion",
+  "connectFailureFileLocked": "Le fichier est verrouillé par un autre programme. Fermez le programme qui l'utilise puis réessayez.",
+  "connectFailureFileNotFound": "Le fichier n'existe pas. Il a peut-être été déplacé ou supprimé.",
+  "connectFailurePermissionDenied": "Accès refusé. Vérifiez les autorisations du fichier puis réessayez.",
+  "connectFailureNotADatabase": "Le fichier n'est pas un fichier de base de données valide.",
+  "connectFailureCorrupt": "Le fichier de base de données semble corrompu.",
+  "connectFailureAuthFailed": "Échec de l'authentification. Vérifiez le nom d'utilisateur et le mot de passe.",
+  "connectFailureUnreachable": "Impossible de joindre le serveur. Vérifiez l'adresse et le réseau.",
+  "connectFailureUnknown": "Impossible de se connecter à la base de données.",
+  "connectFailureRetry": "Réessayer",
+  "connectFailureChooseFile": "Choisir un autre fichier",
+  "connectFailureCopyDetails": "Copier les détails",
+  "connectFailureTechnicalDetails": "Détails techniques",
+  "connectFailureErrorCode": "Code d'erreur",
+  "connectFailureStatement": "Instruction",
+  "connectFailureFile": "Fichier",
+  "connectFailureRawError": "Erreur brute",
+  "connectFailureLatestTooltip": "Dernière connexion échouée : {message}",
+  "@connectFailureLatestTooltip": {"placeholders": {"message": {"type": "String"}}}
 }

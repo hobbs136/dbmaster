@@ -2045,6 +2045,10 @@ class AppLocalizationsRu extends AppLocalizations {
       'Нажмите на вкладку результата, чтобы увидеть подробности ошибок';
 
   @override
+  String get statusBarConnectionErrorTooltip =>
+      'Есть необработанные ошибки подключения. Нажмите для просмотра';
+
+  @override
   String get toolbarExecutionPlan => 'План выполнения';
 
   @override
@@ -10137,4 +10141,66 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get reportsAnalyzeWithAi => 'Анализировать с ИИ';
+
+  @override
+  String get connectFailureTitle => 'Ошибка подключения';
+
+  @override
+  String get connectFailureFileLocked =>
+      'Файл занят другой программой. Закройте программу, использующую этот файл, и повторите попытку.';
+
+  @override
+  String get connectFailureFileNotFound =>
+      'Файл не существует. Возможно, он был перемещён или удалён.';
+
+  @override
+  String get connectFailurePermissionDenied =>
+      'Доступ запрещён. Проверьте права доступа к файлу и повторите попытку.';
+
+  @override
+  String get connectFailureNotADatabase =>
+      'Файл не является допустимым файлом базы данных.';
+
+  @override
+  String get connectFailureCorrupt => 'Файл базы данных повреждён.';
+
+  @override
+  String get connectFailureAuthFailed =>
+      'Ошибка аутентификации. Проверьте имя пользователя и пароль.';
+
+  @override
+  String get connectFailureUnreachable =>
+      'Не удалось подключиться к серверу. Проверьте адрес и сеть.';
+
+  @override
+  String get connectFailureUnknown => 'Не удалось подключиться к базе данных.';
+
+  @override
+  String get connectFailureRetry => 'Повторить';
+
+  @override
+  String get connectFailureChooseFile => 'Выбрать другой файл';
+
+  @override
+  String get connectFailureCopyDetails => 'Копировать подробности';
+
+  @override
+  String get connectFailureTechnicalDetails => 'Технические подробности';
+
+  @override
+  String get connectFailureErrorCode => 'Код ошибки';
+
+  @override
+  String get connectFailureStatement => 'Инструкция';
+
+  @override
+  String get connectFailureFile => 'Файл';
+
+  @override
+  String get connectFailureRawError => 'Исходная ошибка';
+
+  @override
+  String connectFailureLatestTooltip(String message) {
+    return 'Последнее подключение завершилось ошибкой: $message';
+  }
 }

@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:dbmaster/services/database_abstract.dart';
 import 'package:dbmaster/services/adapters/tdengine_adapter.dart';
+import 'package:dbmaster/models/connection_failure.dart';
 import 'package:dbmaster/models/tdengine_models.dart';
 import 'config/tdengine_test_config.dart';
 import 'helpers/td_gateway_e2e_helper.dart';
@@ -78,8 +79,29 @@ void main() {
         password: 'wrong_password',
       );
 
-      final result = await adapter.connect(connection);
-      expect(result, isFalse);
+      // 连接失败 UX 重构 T9b：connect 失败不再 return false，改抛
+      // AdapterConnectException。server 有稳定码时 kind=authFailed
+      // （AUTH_DENIED）；旧 server/无码 envelope 回落 unknown——errorCode
+      // 两种形态下均非空。
+      await expectLater(
+        adapter.connect(connection),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having(
+                (e) =>
+                    e.failure.kind == ConnectionFailureKind.authFailed ||
+                    e.failure.kind == ConnectionFailureKind.unknown,
+                'kind',
+                isTrue,
+              )
+              .having((e) => e.failure.errorCode, 'errorCode', isNotEmpty)
+              .having(
+                (e) => e.failure.target,
+                'target',
+                '${TDengineTestConfig.host}:${TDengineTestConfig.port}',
+              ),
+        ),
+      );
       expect(adapter.isConnected, isFalse);
     });
 

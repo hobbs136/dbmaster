@@ -37,6 +37,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../database_abstract.dart';
 import '../server_connection.dart';
+import '../../models/connection_failure.dart';
 import '../../models/database_models.dart' show DbColumn, DbTable;
 import '../../utils/app_logger.dart';
 import '../../utils/sql_escape_utils.dart';
@@ -103,43 +104,67 @@ class ClickhouseAdapter extends DatabaseAdapter
     _currentConnection = connection;
     final server = _requireServerSession();
 
-    // 1) 已有镜像映射 → 验证注册仍存在且类型一致（server 换库/重置后 id
-    //    可能失效；同 localId 跨类型复用会把查询打去错误的引擎）。
-    final mapped = await _lookupServerIdMapping(connection.id);
-    if (mapped != null) {
-      final known = await _registeredTypes(server);
-      final mappedType = known[mapped];
-      if (mappedType != null && mappedType == 'clickhouse') {
-        _serverConnId = mapped;
-        return true;
+    // 连接失败 UX 重构 T9a：失败不再吞掉（原草稿 test 失败 return false、
+    // 途中网关异常裸抛），统一抛 AdapterConnectException 供上层分型展示；
+    // envelope 解析走 T1 纯函数 gatewayEnvelopeFailure。target 契约 =
+    // 「网关族 host:port」。与 mysql_gateway_adapter 同构。
+    final target = '${connection.host}:${connection.port}';
+
+    try {
+      // 1) 已有镜像映射 → 验证注册仍存在且类型一致（server 换库/重置后 id
+      //    可能失效；同 localId 跨类型复用会把查询打去错误的引擎）。
+      final mapped = await _lookupServerIdMapping(connection.id);
+      if (mapped != null) {
+        final known = await _registeredTypes(server);
+        final mappedType = known[mapped];
+        if (mappedType != null && mappedType == 'clickhouse') {
+          _serverConnId = mapped;
+          return true;
+        }
+        AppLogger.w(
+          _tag,
+          mappedType == null
+              ? 'mapped serverConnId $mapped not found on server, re-registering'
+              : 'mapped serverConnId $mapped type mismatch '
+                    '(registered=$mappedType, want clickhouse), re-registering',
+        );
       }
-      AppLogger.w(
-        _tag,
-        mappedType == null
-            ? 'mapped serverConnId $mapped not found on server, re-registering'
-            : 'mapped serverConnId $mapped type mismatch '
-                  '(registered=$mappedType, want clickhouse), re-registering',
+
+      // 2) 凭据草稿测试（对齐「真连」语义——凭据错误时 connect 失败即抛，
+      //    而非注册成功把失败推迟到首次查询）。
+      final testResp = await _sendNoBody(
+        'POST',
+        '/api/gw/connections/test',
+        body: _draftBody(connection),
+      );
+      final testBody = jsonDecode(testResp.body) as Map<String, dynamic>;
+      if (testBody['ok'] != true) {
+        AppLogger.w(_tag, 'gateway credential test failed: ${testBody['error']}');
+        throw AdapterConnectException(
+          _draftEnvelopeFailure(testBody, target: target),
+          // 无异常对象的失败源：envelope error 原体作 cause 保链。
+          testBody['error'] ?? testBody,
+        );
+      }
+
+      // 3) 现场注册（凭据入 vault）+ 写回映射（删除连接的注销链路依赖它）。
+      final registered = await _registerConnection(connection);
+      await _rememberServerIdMapping(connection.id, registered);
+      _serverConnId = registered;
+      return true;
+    } on ClickhouseGatewayException catch (e) {
+      // connect 途中抛出的网关异常（草稿 test 被拒 / 注册失败等）→
+      // 结构化包装，原始异常经 cause 保留。
+      throw AdapterConnectException(
+        gatewayEnvelopeFailure(
+          code: e.code,
+          engineCode: e.engineCode,
+          message: e.message,
+          target: target,
+        ),
+        e,
       );
     }
-
-    // 2) 凭据草稿测试（对齐「真连」语义——凭据错误时 connect 返回 false，
-    //    而非注册成功把失败推迟到首次查询）。
-    final testResp = await _sendNoBody(
-      'POST',
-      '/api/gw/connections/test',
-      body: _draftBody(connection),
-    );
-    final testBody = jsonDecode(testResp.body) as Map<String, dynamic>;
-    if (testBody['ok'] != true) {
-      AppLogger.w(_tag, 'gateway credential test failed: ${testBody['error']}');
-      return false;
-    }
-
-    // 3) 现场注册（凭据入 vault）+ 写回映射（删除连接的注销链路依赖它）。
-    final registered = await _registerConnection(connection);
-    await _rememberServerIdMapping(connection.id, registered);
-    _serverConnId = registered;
-    return true;
   }
 
   @override
@@ -681,6 +706,39 @@ class ClickhouseAdapter extends DatabaseAdapter
       // 非 JSON 错误体——保留 HTTP 概要。
     }
     return ClickhouseGatewayException(code, message);
+  }
+
+  /// 草稿 test envelope（`{ok:false, error:...}`）→ [ConnectionFailure]
+  /// （连接失败 UX 重构 T9a，与 mysql_gateway_adapter 同构）。容错（任务书
+  /// 允许自决项）：error 为 Map 时取 code/engineCode/message；为字符串时
+  /// 整串作 message（server 草稿 test 端点凭据失败即此形状，无稳定码 →
+  /// errorCode=''）；缺失/类型异常 → unknown 兜底。分型映射走 T1 纯函数
+  /// gatewayEnvelopeFailure，不在 adapter 内散写 if-chain。T12c：顶层
+  /// `error_code` 稳定码（snake_case 新键）优先于旧 `error.code`，缺省
+  /// 回落既有解析。
+  static ConnectionFailure _draftEnvelopeFailure(
+    Map<String, dynamic> body, {
+    required String? target,
+  }) {
+    final err = body['error'];
+    String? code;
+    String? engineCode;
+    String message;
+    if (err is Map<String, dynamic>) {
+      code = err['code']?.toString();
+      engineCode = err['engineCode']?.toString();
+      message = err['message']?.toString() ?? err.toString();
+    } else if (err is String && err.isNotEmpty) {
+      message = err;
+    } else {
+      message = 'gateway credential test failed';
+    }
+    return gatewayEnvelopeFailure(
+      code: body['error_code']?.toString() ?? code,
+      engineCode: engineCode,
+      message: message,
+      target: target,
+    );
   }
 
   /// v4 uuid（执行取消句柄预置；server 端校验 uuid 合法性）。

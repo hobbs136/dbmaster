@@ -21,6 +21,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:dbmaster/models/connection_failure.dart';
 import 'package:dbmaster/models/database_models.dart';
 import 'package:dbmaster/services/adapters/redis_adapter.dart';
 import 'package:dbmaster/services/database_abstract.dart';
@@ -207,7 +208,7 @@ void main() {
       );
     });
 
-    test('凭据 test 失败 → connect false 且不注册', () async {
+    test('凭据 test 失败（error 非对象）→ AdapterConnectException 兜底且不注册', () async {
       final client = _RecordingClient((req) {
         if (req.url.path == '/api/gw/connections/test') {
           return _jsonResp({'ok': false, 'error': 'auth failed'}, 200);
@@ -215,7 +216,108 @@ void main() {
         return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
       });
       final adapter = RedisAdapter()..httpClient = client;
-      expect(await adapter.connect(_conn()), isFalse);
+      // 连接失败 UX 重构 T9b：失败不再吞掉（原 return false）。error 为
+      // 字符串（非对象）→ unknown 兜底（errorCode 空），message 保留原文。
+      await expectLater(
+        adapter.connect(_conn()),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having(
+                (e) => e.failure.kind,
+                'kind',
+                ConnectionFailureKind.unknown,
+              )
+              .having((e) => e.failure.errorCode, 'errorCode', '')
+              .having(
+                (e) => e.failure.rawMessage,
+                'rawMessage',
+                contains('auth failed'),
+              ),
+        ),
+      );
+      expect(adapter.isConnected, isFalse);
+    });
+
+    test('凭据 test 失败（envelope ok:false code/message）→ AdapterConnectException 且不注册', () async {
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections/test') {
+          return _jsonResp({
+            'ok': false,
+            'error': {
+              'code': 'DB_ERROR',
+              'message': 'WRONGPASS invalid username-password pair',
+            },
+          }, 200);
+        }
+        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+      });
+      final adapter = RedisAdapter()..httpClient = client;
+      await expectLater(
+        adapter.connect(_conn()),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having(
+                (e) => e.failure.kind,
+                'kind',
+                ConnectionFailureKind.unknown,
+              )
+              .having((e) => e.failure.errorCode, 'errorCode', 'DB_ERROR')
+              .having(
+                (e) => e.failure.rawMessage,
+                'rawMessage',
+                contains('WRONGPASS invalid username-password pair'),
+              )
+              .having((e) => e.failure.target, 'target', '192.0.2.128:6379'),
+        ),
+      );
+      expect(
+        client.requests.any(
+          (r) => r.method == 'POST' && r.url.path == '/api/gw/connections',
+        ),
+        isFalse,
+      );
+      expect(adapter.isConnected, isFalse);
+    });
+
+    test('T12s wire：error_code=AUTH_DENIED → AdapterConnectException kind=authFailed', () async {
+      // T12c：server 草稿 test 失败响应加性新增顶层 `error_code`（snake_case），
+      // error 字符串字段原样保留 → kind 分型 authFailed、errorCode 非空。
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections/test') {
+          return _jsonResp({
+            'ok': false,
+            'error': 'WRONGPASS invalid username-password pair',
+            'error_code': 'AUTH_DENIED',
+            'elapsedMs': 12,
+          }, 200);
+        }
+        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+      });
+      final adapter = RedisAdapter()..httpClient = client;
+      await expectLater(
+        adapter.connect(_conn()),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having(
+                (e) => e.failure.kind,
+                'kind',
+                ConnectionFailureKind.authFailed,
+              )
+              .having((e) => e.failure.errorCode, 'errorCode', 'AUTH_DENIED')
+              .having(
+                (e) => e.failure.rawMessage,
+                'rawMessage',
+                contains('WRONGPASS invalid username-password pair'),
+              )
+              .having((e) => e.failure.target, 'target', '192.0.2.128:6379'),
+        ),
+      );
+      expect(
+        client.requests.any(
+          (r) => r.method == 'POST' && r.url.path == '/api/gw/connections',
+        ),
+        isFalse,
+      );
       expect(adapter.isConnected, isFalse);
     });
 

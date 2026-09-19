@@ -14,6 +14,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:dbmaster/models/tdengine_models.dart';
 import 'package:dbmaster/services/adapters/tdengine_adapter.dart';
@@ -21,18 +22,31 @@ import 'package:dbmaster/services/database_abstract.dart';
 import 'package:dbmaster/services/readonly_guard.dart';
 import 'package:dbmaster/services/server_connection.dart';
 
-/// 成功响应的 mock HTTP client（REST 形状——T29 TDengine 批次后 connect 走
-/// 网关端点，此响应会被判 ok:false 而短路；守卫在 readOnly=true 时于任何
-/// 请求前抛 → 不依赖网络/网关语义）。
-class _OkMockClient extends http.BaseClient {
+/// 网关 envelope 形状的 mock HTTP client（按路径分发，对齐
+/// tdengine_gateway_adapter_test 的 fake 形状）：connect 走网关协议——
+/// POST /api/gw/connections/test（草稿测试，{ok:true}）+ POST
+/// /api/gw/connections（现场注册，{serverConnId}）。connect 真实成功，
+/// 守卫用例在「已连接 + readOnly=true」状态下被测（守卫在方法首行抛，
+/// 不触达后续查询请求）。未识别端点 500 fail-loud。
+class _GatewayOkMockClient extends http.BaseClient {
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
-    return http.StreamedResponse(
-      Stream.fromIterable([
-        utf8.encode('{"code":0,"column_meta":[],"data":[],"rows":0}'),
-      ]),
-      200,
-    );
+    http.StreamedResponse json(Object body, [int status = 200]) =>
+        http.StreamedResponse(
+          Stream.value(utf8.encode(jsonEncode(body))),
+          status,
+          headers: const {'content-type': 'application/json'},
+        );
+    final path = request.url.path;
+    if (path == '/api/gw/connections/test') {
+      return json({'ok': true});
+    }
+    if (path == '/api/gw/connections') {
+      return json({'serverConnId': 'srv-td-ro'});
+    }
+    return json({
+      'error': {'code': 'X', 'message': 'unmapped endpoint'},
+    }, 500);
   }
 }
 
@@ -40,6 +54,8 @@ void main() {
   setUp(() {
     // T29 TDengine 批次：壳 connect 首行 _requireServerSession——无会话直接
     // StateError。注入 embedded 握手（同 tdengine_gateway_adapter_test）。
+    // mock prefs 供 connect 的映射查找/写回（connection_server_id_map）。
+    SharedPreferences.setMockInitialValues({});
     ServerConnection.resetForTesting();
     ServerConnection().connectEmbedded(
       port: 45674,
@@ -54,10 +70,11 @@ void main() {
     ServerConnection.resetForTesting();
   });
 
-  /// 构造一个 readOnly=true 的 TDengineAdapter（网关 connect 因 REST 形状
-  /// 响应短路返回 false，但 _currentConnection 已带 readOnly——守卫可发）。
+  /// 构造一个 readOnly=true 的 TDengineAdapter（fake 按网关 envelope 伪装
+  /// ——connect 真实成功：草稿 test → 现场注册 → _currentConnection 带
+  /// readOnly → 守卫可发）。
   Future<TDengineAdapter> roAdapter() async {
-    final adapter = TDengineAdapter(httpClient: _OkMockClient());
+    final adapter = TDengineAdapter(httpClient: _GatewayOkMockClient());
     await adapter.connect(DatabaseConnection(
       id: 'td_ro',
       name: 'TD RO',

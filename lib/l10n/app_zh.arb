@@ -695,6 +695,7 @@
     }
   },
   "executionStatusBarErrorHint": "点击结果子标签查看错误详情",
+  "statusBarConnectionErrorTooltip": "存在未处理的连接错误，点击查看",
   "toolbarExecutionPlan": "执行计划",
   "toolbarFormat": "格式化",
   "toolbarSave": "保存",
@@ -3841,5 +3842,24 @@
   "reportsByConnectionSection": "按连接分布",
   "reportsUnknownType": "未知报告类型——原始内容："
 ,
-  "reportsAnalyzeWithAi": "AI 分析"
+  "reportsAnalyzeWithAi": "AI 分析",
+  "connectFailureTitle": "无法连接",
+  "connectFailureFileLocked": "文件正被其他程序占用。请关闭占用该文件的程序后重试。",
+  "connectFailureFileNotFound": "文件不存在，可能已被移动或删除。",
+  "connectFailurePermissionDenied": "没有访问权限，请检查文件权限后重试。",
+  "connectFailureNotADatabase": "该文件不是有效的数据库文件。",
+  "connectFailureCorrupt": "数据库文件似乎已损坏。",
+  "connectFailureAuthFailed": "认证失败，请检查用户名和密码。",
+  "connectFailureUnreachable": "无法连接到服务器，请检查地址与网络。",
+  "connectFailureUnknown": "无法连接到数据库。",
+  "connectFailureRetry": "重试",
+  "connectFailureChooseFile": "重新选择文件",
+  "connectFailureCopyDetails": "复制详情",
+  "connectFailureTechnicalDetails": "技术详情",
+  "connectFailureErrorCode": "错误码",
+  "connectFailureStatement": "出错语句",
+  "connectFailureFile": "文件",
+  "connectFailureRawError": "原始异常",
+  "connectFailureLatestTooltip": "最近连接失败：{message}",
+  "@connectFailureLatestTooltip": {"placeholders": {"message": {"type": "String"}}}
 }

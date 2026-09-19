@@ -19,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:dbmaster/models/connection_failure.dart';
 import 'package:dbmaster/models/database_models.dart';
 import 'package:dbmaster/services/adapters/sqlserver_adapter.dart';
 import 'package:dbmaster/services/database_abstract.dart';
@@ -179,6 +180,91 @@ void main() {
           (jsonDecode(prefs.getString('connection_server_id_map')!) as Map)
               .cast<String, String>();
       expect(map['local_ss_1'], 'srv-new');
+    });
+
+    test('草稿 test 失败（envelope ok:false）→ AdapterConnectException 且不注册', () async {
+      var registered = false;
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections/test') {
+          return _jsonResp({
+            'ok': false,
+            'error': {
+              'code': 'DB_ERROR',
+              'message': 'Login failed for user sa',
+            },
+          }, 200);
+        }
+        if (req.method == 'POST' && req.url.path == '/api/gw/connections') {
+          registered = true;
+          return _jsonResp({'serverConnId': 'srv-x'}, 200);
+        }
+        return _listResponse({});
+      });
+      final adapter = SqlServerAdapter()..httpClient = client;
+      // 连接失败 UX 重构 T9b：失败不再吞掉（原 return false），解析
+      // envelope code/message 抛 typed AdapterConnectException。
+      await expectLater(
+        adapter.connect(_conn()),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having(
+                (e) => e.failure.kind,
+                'kind',
+                ConnectionFailureKind.unknown,
+              )
+              .having((e) => e.failure.errorCode, 'errorCode', 'DB_ERROR')
+              .having(
+                (e) => e.failure.rawMessage,
+                'rawMessage',
+                contains('Login failed for user sa'),
+              )
+              .having((e) => e.failure.target, 'target', '192.0.2.128:1433'),
+        ),
+      );
+      expect(registered, isFalse);
+      expect(adapter.isConnected, isFalse);
+    });
+
+    test('T12s wire：error_code=AUTH_DENIED → AdapterConnectException kind=authFailed', () async {
+      // T12c：server 草稿 test 失败响应加性新增顶层 `error_code`（snake_case），
+      // error 字符串字段原样保留 → kind 分型 authFailed、errorCode 非空。
+      var registered = false;
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections/test') {
+          return _jsonResp({
+            'ok': false,
+            'error': 'Login failed for user sa',
+            'error_code': 'AUTH_DENIED',
+            'elapsedMs': 12,
+          }, 200);
+        }
+        if (req.method == 'POST' && req.url.path == '/api/gw/connections') {
+          registered = true;
+          return _jsonResp({'serverConnId': 'srv-x'}, 200);
+        }
+        return _listResponse({});
+      });
+      final adapter = SqlServerAdapter()..httpClient = client;
+      await expectLater(
+        adapter.connect(_conn()),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having(
+                (e) => e.failure.kind,
+                'kind',
+                ConnectionFailureKind.authFailed,
+              )
+              .having((e) => e.failure.errorCode, 'errorCode', 'AUTH_DENIED')
+              .having(
+                (e) => e.failure.rawMessage,
+                'rawMessage',
+                contains('Login failed for user sa'),
+              )
+              .having((e) => e.failure.target, 'target', '192.0.2.128:1433'),
+        ),
+      );
+      expect(registered, isFalse);
+      expect(adapter.isConnected, isFalse);
     });
   });
 

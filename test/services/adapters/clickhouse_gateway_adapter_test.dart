@@ -3,7 +3,8 @@
 // =============================================================================
 // Mock HTTP 层 + ServerConnection 单例（embedded 握手注入），验证：
 // - connect：serverConnId 映射复用 / 草稿 test → 现场注册写回 / 失效重注册 /
-//   dbType 不匹配重注册 / 401 错误形状上抛；
+//   dbType 不匹配重注册 / 失败路径抛 AdapterConnectException（T9a：401 码
+//   保留/链保留、envelope map 与字符串两形状）；
 // - testConnection：单发 /api/gw/connections/test（草稿不落库）；
 // - executeQuery：SSE meta/rows/complete 聚合（位置数组→列名 map）、
 //   4xx 前置校验错误形状、请求形状（X-Execution-Id / timeoutMs / rowLimit /
@@ -24,6 +25,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:dbmaster/models/connection_failure.dart';
 import 'package:dbmaster/services/adapters/clickhouse_adapter.dart';
 import 'package:dbmaster/services/database_abstract.dart';
 import 'package:dbmaster/services/readonly_guard.dart';
@@ -233,7 +235,7 @@ void main() {
       expect(registered, isTrue);
     });
 
-    test('401（草稿 test 被拒）→ 错误形状上抛，不注册', () async {
+    test('401（草稿 test 被拒）→ AdapterConnectException（码保留/链保留），不注册', () async {
       var registered = false;
       final client = _RecordingClient((req) {
         if (req.url.path == '/api/gw/connections/test') {
@@ -252,15 +254,62 @@ void main() {
       await expectLater(
         adapter.connect(_conn()),
         throwsA(
-          isA<ClickhouseGatewayException>()
-              .having((e) => e.code, 'code', 'UNAUTHORIZED'),
+          isA<AdapterConnectException>()
+              .having(
+                (e) => e.failure.errorCode,
+                'errorCode',
+                'UNAUTHORIZED',
+              )
+              .having(
+                (e) => e.cause,
+                'cause',
+                isA<ClickhouseGatewayException>(),
+              ),
         ),
       );
       expect(registered, isFalse);
       expect(adapter.isConnected, isFalse);
     });
 
-    test('凭据错误（test ok!=true）→ connect false，不注册', () async {
+    test('凭据错误（test ok!=true + error map）→ AdapterConnectException 携带 envelope code', () async {
+      var registered = false;
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections/test') {
+          return _jsonResp({
+            'ok': false,
+            'error': {'code': 'DB_ERROR', 'message': 'user is denied'},
+          }, 200);
+        }
+        if (req.method == 'POST' && req.url.path == '/api/gw/connections') {
+          registered = true;
+          return _jsonResp({'serverConnId': 'srv-x'}, 200);
+        }
+        return _listResponse({});
+      });
+      final adapter = ClickhouseAdapter()..httpClient = client;
+      await expectLater(
+        adapter.connect(_conn()),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having(
+                (e) => e.failure.kind,
+                'kind',
+                ConnectionFailureKind.unknown,
+              )
+              .having((e) => e.failure.errorCode, 'errorCode', 'DB_ERROR')
+              .having(
+                (e) => e.failure.rawMessage,
+                'rawMessage',
+                contains('denied'),
+              )
+              .having((e) => e.failure.target, 'target', '192.0.2.128:9004'),
+        ),
+      );
+      expect(registered, isFalse);
+      expect(adapter.isConnected, isFalse);
+    });
+
+    test('凭据错误（test ok!=true，字符串 error）→ AdapterConnectException，不注册', () async {
       var registered = false;
       final client = _RecordingClient((req) {
         if (req.url.path == '/api/gw/connections/test') {
@@ -273,8 +322,55 @@ void main() {
         return _listResponse({});
       });
       final adapter = ClickhouseAdapter()..httpClient = client;
-      expect(await adapter.connect(_conn()), isFalse);
+      await expectLater(
+        adapter.connect(_conn()),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having((e) => e.failure.kind, 'kind', ConnectionFailureKind.unknown)
+              .having(
+                (e) => e.failure.rawMessage,
+                'rawMessage',
+                'connection refused',
+              )
+              .having((e) => e.failure.errorCode, 'errorCode', ''),
+        ),
+      );
       expect(registered, isFalse);
+      expect(adapter.isConnected, isFalse);
+    });
+
+    test('T12s wire：error_code=AUTH_DENIED → AdapterConnectException kind=authFailed', () async {
+      // T12c：server 草稿 test 失败响应加性新增顶层 `error_code`（snake_case），
+      // error 字符串字段原样保留 → kind 分型 authFailed、errorCode 非空。
+      var registered = false;
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections/test') {
+          return _jsonResp({
+            'ok': false,
+            'error': 'user is denied',
+            'error_code': 'AUTH_DENIED',
+            'elapsedMs': 12,
+          }, 200);
+        }
+        if (req.method == 'POST' && req.url.path == '/api/gw/connections') {
+          registered = true;
+          return _jsonResp({'serverConnId': 'srv-x'}, 200);
+        }
+        return _listResponse({});
+      });
+      final adapter = ClickhouseAdapter()..httpClient = client;
+      await expectLater(
+        adapter.connect(_conn()),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having((e) => e.failure.kind, 'kind', ConnectionFailureKind.authFailed)
+              .having((e) => e.failure.errorCode, 'errorCode', 'AUTH_DENIED')
+              .having((e) => e.failure.rawMessage, 'rawMessage', 'user is denied')
+              .having((e) => e.failure.target, 'target', '192.0.2.128:9004'),
+        ),
+      );
+      expect(registered, isFalse);
+      expect(adapter.isConnected, isFalse);
     });
   });
 

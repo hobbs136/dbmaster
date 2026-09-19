@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:dbmaster/models/connection_failure.dart';
 import 'package:dbmaster/models/database_models.dart';
 import 'package:dbmaster/services/adapters/sqlite_adapter.dart';
 import 'package:dbmaster/services/database_abstract.dart';
@@ -62,8 +63,22 @@ void main() {
         type: DatabaseType.sqlite,
       );
 
-      final result = await badAdapter.connect(connection);
-      expect(result, isFalse);
+      // 连接失败 UX 重构 T3：connect 失败不再 return false，改抛
+      // AdapterConnectException（Windows 非法文件名打不开 → CANTOPEN(14)，
+      // 断言深度与 sqlite_adapter_test 单测既有同款）。
+      await expectLater(
+        badAdapter.connect(connection),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having(
+                (e) => e.failure.kind,
+                'kind',
+                ConnectionFailureKind.fileNotFound,
+              )
+              .having((e) => e.failure.errorCode, 'errorCode', '14'),
+        ),
+      );
+      expect(badAdapter.isConnected, isFalse);
     });
   });
 

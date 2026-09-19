@@ -34,6 +34,7 @@ import '../providers/layout_preferences_provider.dart';
 import '../layout/effective_layout.dart';
 import '../l10n/app_localizations.dart';
 import '../organisms/connection/connection_dialog.dart';
+import '../organisms/connection/connect_failure_dialog.dart';
 import '../organisms/connection/error_boundary.dart';
 import '../organisms/connection/status_bar_widget.dart';
 import '../organisms/pro/pro_purchase_ui.dart';
@@ -43,6 +44,7 @@ import '../organisms/connection/command_palette.dart';
 import '../organisms/dialogs/shortcuts_dialog.dart';
 import '../organisms/dialogs/audit_log_dialog.dart';
 import '../models/connection_event.dart';
+import '../models/connection_failure.dart';
 import '../core/shortcuts/global_shortcuts_wrapper.dart';
 import '../core/commands/app_commands.dart';
 // 查询执行编排单一真相源（spec 040 Phase 2.1）
@@ -539,31 +541,70 @@ class _HomeScreenState extends State<HomeScreen> {
     await _connectSqlitePath(path);
   }
 
-  /// 连接 SQLite 文件路径（按钮与拖拽共用）：openSqliteFile + 选中 / 错误提示。
+  /// 连接 SQLite 文件路径（按钮与拖拽共用）：openSqliteFile + 选中 / 失败对话框。
   Future<void> _connectSqlitePath(String path) async {
-    final l10n = AppLocalizations.of(context)!;
     final provider = context.read<AppProvider>();
 
     final success = await provider.connection.openSqliteFile(path);
     if (!mounted) return;
 
     if (success) {
-      // 定位刚保存/复用的连接，在侧边栏选中
-      final conn = ConnectionProvider.findExistingSqlite(
-        provider.connection.savedConnections,
-        ConnectionProvider.normalizeSqlitePath(path),
-      );
-      if (conn != null) {
-        provider.sidebar.selectConnection(conn.id);
-      }
+      _selectSqliteConnection(provider, path);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.sqliteOpenError),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      _showSqliteConnectFailure(provider, path);
     }
+  }
+
+  /// 成功后定位刚保存/复用的连接，在侧边栏选中。
+  void _selectSqliteConnection(AppProvider provider, String path) {
+    final conn = ConnectionProvider.findExistingSqlite(
+      provider.connection.savedConnections,
+      ConnectionProvider.normalizeSqlitePath(path),
+    );
+    if (conn != null) {
+      provider.sidebar.selectConnection(conn.id);
+    }
+  }
+
+  /// 失败 → 结构化失败对话框（连接失败 UX 重构 T8，替代原固定文案 snackbar）。
+  ///
+  /// 重试复用同一条 openSqliteFile 路径（成功时顺带选中连接）；
+  /// latestFailure 取 provider 最新结构化失败供对话框原地更新；
+  /// 重新选择文件走 _openSqliteFile 自带的重入。
+  void _showSqliteConnectFailure(AppProvider provider, String path) {
+    final l10n = AppLocalizations.of(context)!;
+    // errorMessage 兼容面（T3）会被 _onProviderChange 兜底成原始异常的通用
+    // 错误弹窗，叠在本结构化对话框之上盖住重试动作——SQLite 打开失败路径
+    // 的失败展示已由 ConnectFailureDialog 接管，清掉兼容面避免双重弹窗
+    // （clearError 不影响 lastConnectFailure，结构化失败照常可用）。
+    provider.clearError();
+    final failure = provider.connection.lastConnectFailure;
+    // T3 契约：lastConnectFailure 与失败结果同生共死；null 仅防御性兜底。
+    unawaited(
+      ConnectFailureDialog.show(
+        context,
+        failure: failure ??
+            ConnectionFailure(
+              kind: ConnectionFailureKind.unknown,
+              errorCode: '',
+              target: path,
+              rawMessage: l10n.sqliteOpenError,
+              occurredAt: DateTime.now(),
+            ),
+        onRetry: () async {
+          final ok = await provider.connection.openSqliteFile(path);
+          if (ok) {
+            _selectSqliteConnection(provider, path);
+          } else {
+            // 重试失败同样由本对话框原地更新，压掉遗留通用弹窗兜底。
+            provider.clearError();
+          }
+          return ok;
+        },
+        onChooseFile: _openSqliteFile,
+        latestFailure: () => provider.connection.lastConnectFailure,
+      ),
+    );
   }
 
   // 拖拽打开 SQLite 文件 —— 取首个 SQLite 路径后连接

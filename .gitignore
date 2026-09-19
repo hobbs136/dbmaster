@@ -135,6 +135,7 @@ handoff.md
 /docs/tasks/
 /docs/test/archive/
 /docs/test/reports/
+/docs/test/unified_test_spec.md
 /docs/roadmap/
 /docs/bugs/
 /docs/perf/

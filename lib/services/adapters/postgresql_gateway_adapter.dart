@@ -69,6 +69,8 @@ import '../database_abstract.dart';
 import '../server_connection.dart';
 import '../schema_diff/table_dependency_sorter.dart';
 import '../sql_parser_service.dart';
+import '../../models/connection_failure.dart'
+    show AdapterConnectException, ConnectionFailure, gatewayEnvelopeFailure;
 import '../../models/database_models.dart';
 import '../../models/sql_script_exception.dart'
     show SqlScriptExecutionException;
@@ -241,23 +243,44 @@ class PostgreSQLAdapter extends DatabaseAdapter
       );
     }
 
-    // 2) 凭据草稿测试（对齐裸连接 connect 的「真连」语义——凭据错误时
-    //    connect 返回 false，而非注册成功把失败推迟到首次查询）。
-    final testResp = await _sendNoBody(
-      'POST',
-      '/api/gw/connections/test',
-      body: _draftBody(connection),
-    );
-    final testBody = jsonDecode(testResp.body) as Map<String, dynamic>;
-    if (testBody['ok'] != true) {
-      AppLogger.w(_tag, 'gateway credential test failed: ${testBody['error']}');
-      return false;
-    }
+    // 2)+3) 凭据草稿测试 + 现场注册。连接失败 UX 重构 T9b：测试失败
+    //    （envelope ok != true）与途中的网关异常不再吞掉（原 return false /
+    //    裸异常上抛），统一抛 AdapterConnectException——kind/errorCode 经
+    //    T1 纯函数 gatewayEnvelopeFailure 映射，cause 保留原始对象。
+    final target = '${connection.host}:${connection.port}';
+    try {
+      final testResp = await _sendNoBody(
+        'POST',
+        '/api/gw/connections/test',
+        body: _draftBody(connection),
+      );
+      final testBody = jsonDecode(testResp.body) as Map<String, dynamic>;
+      if (testBody['ok'] != true) {
+        AppLogger.w(
+          _tag,
+          'gateway credential test failed: ${testBody['error']}',
+        );
+        throw AdapterConnectException(
+          _envelopeFailure(testBody, target),
+          testBody['error'] ?? testBody,
+        );
+      }
 
-    // 3) 现场注册（凭据入 vault）+ 写回映射（删除连接的注销链路依赖它）。
-    final registered = await _registerConnection(connection);
-    await _rememberServerIdMapping(connection.id, registered);
-    _serverConnId = registered;
+      // 3) 现场注册（凭据入 vault）+ 写回映射（删除连接的注销链路依赖它）。
+      final registered = await _registerConnection(connection);
+      await _rememberServerIdMapping(connection.id, registered);
+      _serverConnId = registered;
+    } on PostgreSqlGatewayException catch (e) {
+      throw AdapterConnectException(
+        gatewayEnvelopeFailure(
+          code: e.code,
+          engineCode: e.engineCode,
+          message: e.message,
+          target: target,
+        ),
+        e,
+      );
+    }
     _currentSchema = 'public';
     return true;
   }
@@ -2074,6 +2097,27 @@ class PostgreSQLAdapter extends DatabaseAdapter
       // 非 JSON 错误体——保留 HTTP 概要。
     }
     return PostgreSqlGatewayException(code, message);
+  }
+
+  /// envelope 失败体 → [ConnectionFailure]（连接失败 UX 重构 T9b）。
+  ///
+  /// 映射走 T1 纯函数 [gatewayEnvelopeFailure]（kind 按 code 稳定码映射）；
+  /// error 字段缺失/类型异常时按 unknown 兜底（errorCode 空、message 取
+  /// error/响应整体的字符串形态）。T12c：顶层 `error_code` 稳定码
+  /// （snake_case 新键）优先于旧 `error.code`，缺省回落既有解析。
+  static ConnectionFailure _envelopeFailure(
+    Map<String, dynamic> body,
+    String target,
+  ) {
+    final err = body['error'];
+    final errMap =
+        err is Map<String, dynamic> ? err : const <String, dynamic>{};
+    return gatewayEnvelopeFailure(
+      code: body['error_code']?.toString() ?? errMap['code']?.toString(),
+      engineCode: errMap['engineCode']?.toString(),
+      message: (errMap['message'] ?? err ?? body).toString(),
+      target: target,
+    );
   }
 
   /// v4 uuid（执行取消句柄预置；server 端校验 uuid 合法性）。

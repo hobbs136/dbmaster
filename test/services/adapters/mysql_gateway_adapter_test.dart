@@ -3,7 +3,9 @@
 // =============================================================================
 // Mock HTTP 层 + ServerConnection 单例（embedded 握手注入），验证：
 // - connect：serverConnId 映射复用 / 草稿 test → 现场注册写回 / 失效重注册 /
-//   401 错误形状上抛；族成员 wire dbType（mariadb → 'mariadb'）；
+//   失败路径抛 AdapterConnectException（T9a：401 码保留/链保留、envelope
+//   map 与字符串两形状）；族成员 wire dbType（mariadb → 'mariadb'）；
+// - live（env 门控，MYSQL_LIVE_SKIP）：错误凭据连真实 MySQL → 结构化失败。
 // - executeQuery：SSE meta/rows/complete 聚合（位置数组→列名 map）、
 //   4xx 前置校验错误形状、请求形状（X-Execution-Id / timeoutMs / rowLimit /
 //   database 路由）；
@@ -17,16 +19,23 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:dbmaster/l10n/app_localizations.dart';
+import 'package:dbmaster/models/connection_failure.dart';
 import 'package:dbmaster/models/database_models.dart';
+import 'package:dbmaster/organisms/connection/connect_failure_dialog.dart';
 import 'package:dbmaster/services/adapters/mysql_adapter.dart';
 import 'package:dbmaster/services/database_abstract.dart';
+import 'package:dbmaster/services/embedded_server_service.dart';
 import 'package:dbmaster/services/readonly_guard.dart';
 import 'package:dbmaster/services/server_connection.dart';
+import '../../../integration_test/config/mysql_test_config.dart';
 
 /// 记录全部请求并按路径规则回放的客户端。
 class _RecordingClient extends http.BaseClient {
@@ -83,6 +92,25 @@ DatabaseConnection _conn({bool readOnly = false, int? timeoutSecs}) =>
 /// 网关注册表列表（id 集合可配）。
 http.StreamedResponse _listResponse(Set<String> ids) =>
     _jsonResp([for (final id in ids) {'id': id, 'dbType': 'mysql'}], 200);
+
+/// exe 同目录定位（发布形态：server 二进制随包；对齐
+/// helpers/ch_gateway_live_helper.dart，live 组前置用）。
+String? _besideExePath() {
+  final name = Platform.isWindows ? 'dbmaster-server.exe' : 'dbmaster-server';
+  final beside = File(
+    '${File(Platform.resolvedExecutable).parent.path}'
+    '${Platform.pathSeparator}$name',
+  );
+  return beside.existsSync() ? beside.path : null;
+}
+
+/// 空壳 HttpOverrides：继承基类默认 createHttpClient（返回真实 HttpClient）。
+///
+/// 文件内任一 testWidgets 注册即初始化 TestWidgetsFlutterBinding，其
+/// _MockHttpOverrides 会把 HttpOverrides.global 换成「永远返回空体 400」的
+/// mock，且 tester.runAsync 只逃逸 fake-async、不恢复 overrides——live 组的
+/// 真实网关请求必须包进本 override 的 zone 才能出真网络。
+class _RealHttpOverrides extends HttpOverrides {}
 
 void main() {
   setUp(() {
@@ -198,7 +226,7 @@ void main() {
       expect(map['local_mysql_1'], 'srv-new');
     });
 
-    test('401（草稿 test 被拒）→ 错误形状上抛，不注册', () async {
+    test('401（草稿 test 被拒）→ AdapterConnectException（码保留/链保留），不注册', () async {
       var registered = false;
       final client = _RecordingClient((req) {
         if (req.url.path == '/api/gw/connections/test') {
@@ -217,8 +245,115 @@ void main() {
       await expectLater(
         adapter.connect(_conn()),
         throwsA(
-          isA<MySqlGatewayException>()
-              .having((e) => e.code, 'code', 'UNAUTHORIZED'),
+          isA<AdapterConnectException>()
+              .having(
+                (e) => e.failure.errorCode,
+                'errorCode',
+                'UNAUTHORIZED',
+              )
+              .having((e) => e.cause, 'cause', isA<MySqlGatewayException>()),
+        ),
+      );
+      expect(registered, isFalse);
+      expect(adapter.isConnected, isFalse);
+    });
+
+    test('凭据错误（test ok!=true + error map）→ AdapterConnectException 携带 envelope code', () async {
+      var registered = false;
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections/test') {
+          return _jsonResp({
+            'ok': false,
+            'error': {'code': 'DB_ERROR', 'message': 'Access denied for user'},
+          }, 200);
+        }
+        if (req.method == 'POST' && req.url.path == '/api/gw/connections') {
+          registered = true;
+          return _jsonResp({'serverConnId': 'srv-x'}, 200);
+        }
+        return _listResponse({});
+      });
+      final adapter = MySQLAdapter()..httpClient = client;
+      await expectLater(
+        adapter.connect(_conn()),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having(
+                (e) => e.failure.kind,
+                'kind',
+                ConnectionFailureKind.unknown,
+              )
+              .having((e) => e.failure.errorCode, 'errorCode', 'DB_ERROR')
+              .having(
+                (e) => e.failure.rawMessage,
+                'rawMessage',
+                contains('Access denied'),
+              )
+              .having((e) => e.failure.target, 'target', '192.0.2.128:3306'),
+        ),
+      );
+      expect(registered, isFalse);
+      expect(adapter.isConnected, isFalse);
+    });
+
+    test('凭据错误（test ok!=true + error 字符串）→ AdapterConnectException（无稳定码）', () async {
+      // server 草稿 test 端点凭据失败的真实 wire 形状：HTTP 200 +
+      // `{ok:false, error:<字符串>}`（无稳定码 → errorCode=''）。
+      var registered = false;
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections/test') {
+          return _jsonResp({'ok': false, 'error': 'connection refused'}, 200);
+        }
+        if (req.method == 'POST' && req.url.path == '/api/gw/connections') {
+          registered = true;
+          return _jsonResp({'serverConnId': 'srv-x'}, 200);
+        }
+        return _listResponse({});
+      });
+      final adapter = MySQLAdapter()..httpClient = client;
+      await expectLater(
+        adapter.connect(_conn()),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having((e) => e.failure.rawMessage, 'rawMessage', 'connection refused')
+              .having((e) => e.failure.errorCode, 'errorCode', ''),
+        ),
+      );
+      expect(registered, isFalse);
+    });
+
+    test('T12s wire：error_code=AUTH_DENIED → AdapterConnectException kind=authFailed', () async {
+      // T12c：server 草稿 test 失败响应加性新增顶层 `error_code`（snake_case），
+      // error 字符串字段原样保留 → kind 分型 authFailed、errorCode 非空。
+      var registered = false;
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections/test') {
+          return _jsonResp({
+            'ok': false,
+            'error': 'Access denied for user',
+            'error_code': 'AUTH_DENIED',
+            'elapsedMs': 12,
+          }, 200);
+        }
+        if (req.method == 'POST' && req.url.path == '/api/gw/connections') {
+          registered = true;
+          return _jsonResp({'serverConnId': 'srv-x'}, 200);
+        }
+        return _listResponse({});
+      });
+      final adapter = MySQLAdapter()..httpClient = client;
+      await expectLater(
+        adapter.connect(_conn()),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having((e) => e.failure.kind, 'kind', ConnectionFailureKind.authFailed)
+              .having((e) => e.failure.errorCode, 'errorCode', 'AUTH_DENIED')
+              .having(
+                (e) => e.failure.rawMessage,
+                'rawMessage',
+                'Access denied for user',
+              )
+              .having((e) => e.failure.target, 'target', '192.0.2.128:3306'),
         ),
       );
       expect(registered, isFalse);
@@ -719,6 +854,205 @@ void main() {
       final noSsh = _sentBody(client2.requests
           .firstWhere((r) => r.url.path == '/api/gw/connections/test'));
       expect(noSsh.containsKey('ssh'), isFalse);
+    });
+  });
+
+  // ==========================================================================
+  // 连接失败 UX 重构 T9a · 真实库用例（env 门控，无环境按惯例 skip）。
+  //
+  // 前置（缺一即以可 grep 的 MYSQL_LIVE_SKIP 跳过，无假绿纪律）：
+  // - DBMASTER_SERVER_BIN（或 exe 同目录 dbmaster-server）——embedded server；
+  // - --dart-define=DBMASTER_MYSQL_HOST[/PORT/USER]（凭据不入库——密码在
+  //   用例内造错，真实凭据失败由 server 草稿 test 端点在线上产生）。
+  // 形态对齐 clickhouse_gateway_live_test.dart（Process.start 直启 +
+  // EmbeddedHandshake.parse；VM 环境无 path_provider 通道）。
+  // ==========================================================================
+  group('live：错误凭据连真实 MySQL（env 门控）', () {
+    Process? liveServer;
+    EmbeddedHandshake? handshake;
+    var liveReady = false;
+
+    setUpAll(() async {
+      if (!MySQLTestConfig.available) {
+        // ignore: avoid_print
+        print('MYSQL_LIVE_SKIP: DBMASTER_MYSQL_HOST 未配置');
+        return;
+      }
+      final binaryPath =
+          Platform.environment['DBMASTER_SERVER_BIN'] ?? _besideExePath();
+      if (binaryPath == null) {
+        // ignore: avoid_print
+        print('MYSQL_LIVE_SKIP: embedded server 不可得（设 DBMASTER_SERVER_BIN）');
+        return;
+      }
+      final dataDir = await Directory.systemTemp.createTemp('mysql_live_gw_');
+      final proc = await Process.start(
+        binaryPath,
+        ['--embedded', '--data-dir', dataDir.path],
+      );
+      liveServer = proc;
+      // stderr 必须立即持续排空（管道缓冲写满会阻塞握手，实锤见
+      // helpers/ch_gateway_live_helper.dart 注释）。
+      unawaited(proc.stderr.drain<void>());
+      final hs = await proc.stdout
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .map(EmbeddedHandshake.parse)
+          .firstWhere((h) => h != null, orElse: () => null)
+          .timeout(const Duration(seconds: 15), onTimeout: () => null);
+      if (hs == null) {
+        proc.kill(ProcessSignal.sigkill);
+        liveServer = null;
+        // ignore: avoid_print
+        print('MYSQL_LIVE_SKIP: embedded server 握手超时');
+        return;
+      }
+      handshake = hs;
+      liveReady = true;
+    });
+
+    tearDownAll(() {
+      liveServer?.kill(ProcessSignal.sigkill);
+      liveServer = null;
+      ServerConnection.resetForTesting();
+    });
+
+    // 真实 IO 必须（1）包进 tester.runAsync 逃逸 fake-async zone，（2）HTTP
+    // 再包进 _RealHttpOverrides zone——同文件任一 testWidgets 注册即初始化
+    // TestWidgetsFlutterBinding，其 _MockHttpOverrides 让全文件所有
+    // HttpClient 永远返回空体 HTTP 400，而 runAsync 不恢复 HttpOverrides。
+    // （postgresql_adapter_test.dart 的 live 用例只做了（1），其对 mock 400
+    // 不设防——见该文件遗留问题。）
+    testWidgets(
+      '错误凭据连真实 MySQL → AdapterConnectException（kind=authFailed/unknown + 原始消息非空）',
+      (tester) async {
+        if (!liveReady) return;
+        final adapter = MySQLAdapter();
+        AdapterConnectException? typed;
+        var skipReason = '';
+        await tester.runAsync(() async {
+          // TCP 预检：测试服务器近期可能离线——不可达按 env 门控惯例 skip。
+          try {
+            final sock = await Socket.connect(
+              MySQLTestConfig.host,
+              MySQLTestConfig.port,
+              timeout: const Duration(seconds: 3),
+            );
+            sock.destroy();
+          } on Exception catch (e) {
+            skipReason = 'MYSQL_LIVE_SKIP: MySQL 主机不可达'
+                '（${MySQLTestConfig.host}:${MySQLTestConfig.port}）: $e';
+            return;
+          }
+
+          // 外层 setUp 注入的是 fake 端口会话——恢复真实 embedded 握手。
+          ServerConnection.resetForTesting();
+          final hs = handshake!; // liveReady 仅在握手成功后置 true
+          ServerConnection().connectEmbedded(
+            port: hs.port,
+            accessToken: hs.accessToken,
+            refreshToken: hs.refreshToken,
+            installUuid: hs.installUuid,
+            version: hs.version,
+          );
+
+          try {
+            // runWithHttpOverrides 以 zone value 直注真实 override（裸
+            // HttpOverrides.runZoned 的 scope 会捕获 outer current=mock，
+            // 绕不开 mock）。
+            await HttpOverrides.runWithHttpOverrides<Future<void>>(
+              () async {
+                await adapter.connect(
+                  DatabaseConnection(
+                    id: 'live_mysql_wrongpw',
+                    name: 'MySQL Live WrongPw',
+                    type: DatabaseType.mysql,
+                    host: MySQLTestConfig.host,
+                    port: MySQLTestConfig.port,
+                    username: MySQLTestConfig.username.isEmpty
+                        ? 'root'
+                        : MySQLTestConfig.username,
+                    password:
+                        'wrong-password-${DateTime.now().millisecondsSinceEpoch}',
+                  ),
+                );
+              },
+              _RealHttpOverrides(),
+            );
+          } on AdapterConnectException catch (e) {
+            typed = e;
+          }
+        });
+        if (skipReason.isNotEmpty) {
+          // ignore: avoid_print
+          print(skipReason);
+          return;
+        }
+        expect(typed, isNotNull, reason: '错误凭据应抛 AdapterConnectException');
+        final failure = typed!.failure; // 上一行 expect 已确保非空
+
+        // server 有稳定码时 kind=authFailed（AUTH_DENIED）；旧 server/无码
+        // envelope 回落 unknown——errorCode 两种形态下均非空。
+        expect(
+          failure.kind == ConnectionFailureKind.authFailed ||
+              failure.kind == ConnectionFailureKind.unknown,
+          isTrue,
+          reason: '错误凭据分型应为 authFailed（T12s 稳定码）或 unknown（回落）',
+        );
+        expect(failure.errorCode, isNotEmpty);
+        expect(failure.rawMessage, isNotEmpty, reason: '原始引擎错误应保留供展示层分型');
+        expect(
+          failure.target,
+          '${MySQLTestConfig.host}:${MySQLTestConfig.port}',
+        );
+        expect(failure.occurredAt, isA<DateTime>());
+        expect(typed!.cause, isNotNull);
+        expect(adapter.isConnected, isFalse);
+        // ignore: avoid_print
+        print('MYSQL_LIVE_INFO: errorCode="${failure.errorCode}" '
+            'raw="${failure.rawMessage}"');
+      },
+    );
+  });
+
+  // ==========================================================================
+  // 连接失败 UX 重构 T9a × T5：结构化失败端到端呈现（widget 冒烟）。
+  //
+  // 真实库 live 用例因测试服务器离线按惯例 skip——此处用 envelope 失败的
+  // 确定性形状验证结构化字段（code/rawMessage/target）能经 T5 对话框到达
+  // 展示层。人话分型现状：T12c 起按 envelope 稳定码分型（AUTH_DENIED →
+  // authFailed、UNREACHABLE → unreachable；DB_ERROR 等未列码 → unknown）。
+  // 本组 mock 用 code='DB_ERROR'（非稳定码）→ 仍分型 unknown，人话行为
+  // connectFailureUnknown（兜底）；网关专属文案为后续波次裁决点（见 T9a 汇报）。
+  // ==========================================================================
+  group('T9a × T5：ConnectFailureDialog 呈现网关结构化失败（widget）', () {
+    testWidgets('envelope 失败字段进技术详情', (tester) async {
+      final failure = gatewayEnvelopeFailure(
+        code: 'DB_ERROR',
+        message: 'Access denied for user',
+        target: '192.168.3.128:3306',
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: ConnectFailureDialog(
+              failure: failure,
+              onRetry: () async => false,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 折叠态不渲染详情子树（含 code/target 等技术内容）——先展开。
+      await tester.tap(find.text('Technical Details'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('DB_ERROR'), findsOneWidget);
+      expect(find.textContaining('Access denied for user'), findsWidgets);
+      expect(find.text('192.168.3.128:3306'), findsOneWidget);
     });
   });
 

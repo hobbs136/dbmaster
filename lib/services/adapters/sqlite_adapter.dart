@@ -1,7 +1,9 @@
 // Phase E — dart:convert for JSON heuristic detection
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart' as sqflite;
+import '../../models/connection_failure.dart';
 import '../database_abstract.dart';
 import '../sqlite_alias_validator.dart';
 import '../../models/database_models.dart';
@@ -74,8 +76,8 @@ class SQLiteAdapter extends DatabaseAdapter
       );
 
       // 确保数据一致性和立即可见性
-      await _db!.execute('PRAGMA journal_mode = DELETE');
-      await _db!.execute('PRAGMA synchronous = FULL');
+      await _pragma('PRAGMA journal_mode = DELETE', target: connection.host);
+      await _pragma('PRAGMA synchronous = FULL', target: connection.host);
 
       _currentConnection = connection.copyWith(
         connected: true,
@@ -86,8 +88,58 @@ class SQLiteAdapter extends DatabaseAdapter
       return true;
     } catch (e) {
       AppLogger.e('SQLiteAdapter', 'SQLite 连接失败: ${connection.host}', e);
-      return false;
+      // 连接失败 UX 重构 T3：失败不再吞掉（原 return false），统一抛
+      // AdapterConnectException 供上层分型展示；PRAGMA 阶段的失败已在
+      // _pragma 内携带 offendingStatement，此处原样透传不二次包装。
+      if (e is AdapterConnectException) rethrow;
+      throw AdapterConnectException(
+        failureFromError(e, target: connection.host),
+        e,
+      );
     }
+  }
+
+  /// 连接期 PRAGMA 执行：失败时把出错语句注入结构化失败再抛出。
+  ///
+  /// 提取自 connect（连接失败 UX 重构 T3）：PRAGMA journal_mode = DELETE
+  /// 在文件被锁（BUSY/LOCKED）等场景失败时，offendingStatement 是 UI
+  /// 诊断的关键信息，由本 helper 在失败点就地标注。
+  Future<void> _pragma(String sql, {required String target}) async {
+    try {
+      await _db!.execute(sql);
+    } catch (e) {
+      throw AdapterConnectException(
+        failureFromError(e, statement: sql, target: target),
+        e,
+      );
+    }
+  }
+
+  /// 从 connect 失败的原始异常构造结构化失败描述（连接失败 UX 重构 T3）。
+  ///
+  /// 取码规则：sqflite 的 `DatabaseException` 族（含 ffi 实现抛出的
+  /// SqfliteFfiException）经 `getResultCode()` 取 SQLite 结果码——
+  /// sqflite_common_ffi 会把底层 package:sqlite3 的 SqliteException 全量
+  /// 包装成携带 resultCode 的该族异常，原始 sqlite3 异常不会逃逸到本层，
+  /// 故无需直接依赖仅作传递依赖的 package:sqlite3（直接 import 会产生
+  /// depend_on_referenced_packages 警告；SqfliteException 本身也未经公共
+  /// API 导出）。其余异常 kind=unknown、errorCode=''。[statement] 由失败点
+  /// 注入（PRAGMA helper）；[target] 为数据库文件路径。
+  @visibleForTesting
+  static ConnectionFailure failureFromError(
+    Object e, {
+    String? statement,
+    String? target,
+  }) {
+    final int? code = e is sqflite.DatabaseException ? e.getResultCode() : null;
+    return ConnectionFailure(
+      kind: sqliteKindFromResultCode(code),
+      errorCode: code?.toString() ?? '',
+      offendingStatement: statement,
+      target: target,
+      rawMessage: e.toString(),
+      occurredAt: DateTime.now(),
+    );
   }
 
   @override
@@ -1105,10 +1157,10 @@ class SQLiteAdapter extends DatabaseAdapter
   Future<List<String>> getJsonColumns(String tableName) async {
     if (!isConnected) return [];
     try {
-      final pragmaResult =
-          await _db!.rawQuery('PRAGMA table_info("$tableName")');
-      final columns =
-          pragmaResult.map((r) => r['name'].toString()).toList();
+      final pragmaResult = await _db!.rawQuery(
+        'PRAGMA table_info("$tableName")',
+      );
+      final columns = pragmaResult.map((r) => r['name'].toString()).toList();
 
       final jsonColumns = <String>[];
       for (final col in columns) {
@@ -1125,7 +1177,9 @@ class SQLiteAdapter extends DatabaseAdapter
   /// T032: 启发式检测结果集中的 JSON 列（不依赖表名）。
   /// 每列取前 5 个非空值，≥80% 可解析为 JSON 且以 {/[ 开头 → 标 'json_detected'。
   Map<String, String> _detectJsonColumns(
-      List<String> columns, List<Map<String, dynamic>> rows) {
+    List<String> columns,
+    List<Map<String, dynamic>> rows,
+  ) {
     final result = <String, String>{};
     if (columns.isEmpty || rows.isEmpty) return result;
 
@@ -1234,7 +1288,9 @@ class SQLiteAdapter extends DatabaseAdapter
     final results = await _db!.rawQuery('PRAGMA integrity_check;');
     final rows = results.map((r) => Map<String, dynamic>.from(r)).toList();
     return QueryResult(
-      columns: rows.isNotEmpty ? rows.first.keys.toList() : const ['integrity_check'],
+      columns: rows.isNotEmpty
+          ? rows.first.keys.toList()
+          : const ['integrity_check'],
       rows: rows,
       affectedRows: rows.length,
       executionTime: DateTime.now().difference(startTime).inMilliseconds,
@@ -1294,24 +1350,90 @@ class SQLiteAdapter extends DatabaseAdapter
   /// adapter 遍历它查当前值。
   static const _pragmaCatalog = <PragmaInfo>[
     // 性能
-    PragmaInfo(name: 'cache_size', category: PragmaCategory.performance, description: 'Number of pages in the in-memory page cache (negative = KiB)'),
-    PragmaInfo(name: 'mmap_size', category: PragmaCategory.performance, description: 'Maximum bytes of memory-mapped I/O'),
-    PragmaInfo(name: 'page_size', category: PragmaCategory.performance, description: 'Page size in bytes (power of 2)'),
-    PragmaInfo(name: 'temp_store', category: PragmaCategory.performance, description: 'Where temporary tables and indices are stored (0=default, 1=file, 2=memory)'),
+    PragmaInfo(
+      name: 'cache_size',
+      category: PragmaCategory.performance,
+      description:
+          'Number of pages in the in-memory page cache (negative = KiB)',
+    ),
+    PragmaInfo(
+      name: 'mmap_size',
+      category: PragmaCategory.performance,
+      description: 'Maximum bytes of memory-mapped I/O',
+    ),
+    PragmaInfo(
+      name: 'page_size',
+      category: PragmaCategory.performance,
+      description: 'Page size in bytes (power of 2)',
+    ),
+    PragmaInfo(
+      name: 'temp_store',
+      category: PragmaCategory.performance,
+      description:
+          'Where temporary tables and indices are stored (0=default, 1=file, 2=memory)',
+    ),
     // 持久性
-    PragmaInfo(name: 'synchronous', category: PragmaCategory.durability, description: 'FSync level (0=OFF, 1=NORMAL, 2=FULL, 3=EXTRA)'),
-    PragmaInfo(name: 'journal_mode', category: PragmaCategory.durability, description: 'Journal mode (DELETE/TRUNCATE/PERSIST/MEMORY/WAL/OFF)'),
-    PragmaInfo(name: 'wal_autocheckpoint', category: PragmaCategory.durability, description: 'WAL auto-checkpoint threshold in pages (0=disabled)'),
-    PragmaInfo(name: 'wal_checkpoint', category: PragmaCategory.durability, description: 'WAL checkpoint status (PASSIVE/FULL/RESTART/TRUNCATE)', writable: false),
+    PragmaInfo(
+      name: 'synchronous',
+      category: PragmaCategory.durability,
+      description: 'FSync level (0=OFF, 1=NORMAL, 2=FULL, 3=EXTRA)',
+    ),
+    PragmaInfo(
+      name: 'journal_mode',
+      category: PragmaCategory.durability,
+      description: 'Journal mode (DELETE/TRUNCATE/PERSIST/MEMORY/WAL/OFF)',
+    ),
+    PragmaInfo(
+      name: 'wal_autocheckpoint',
+      category: PragmaCategory.durability,
+      description: 'WAL auto-checkpoint threshold in pages (0=disabled)',
+    ),
+    PragmaInfo(
+      name: 'wal_checkpoint',
+      category: PragmaCategory.durability,
+      description: 'WAL checkpoint status (PASSIVE/FULL/RESTART/TRUNCATE)',
+      writable: false,
+    ),
     // 安全
-    PragmaInfo(name: 'foreign_keys', category: PragmaCategory.security, description: 'Enforce foreign key constraints (0=OFF, 1=ON)'),
-    PragmaInfo(name: 'recursive_triggers', category: PragmaCategory.security, description: 'Allow recursive trigger firing (0=OFF, 1=ON)'),
-    PragmaInfo(name: 'defer_foreign_keys', category: PragmaCategory.security, description: 'Defer FK enforcement until transaction commit (0=OFF, 1=ON)'),
+    PragmaInfo(
+      name: 'foreign_keys',
+      category: PragmaCategory.security,
+      description: 'Enforce foreign key constraints (0=OFF, 1=ON)',
+    ),
+    PragmaInfo(
+      name: 'recursive_triggers',
+      category: PragmaCategory.security,
+      description: 'Allow recursive trigger firing (0=OFF, 1=ON)',
+    ),
+    PragmaInfo(
+      name: 'defer_foreign_keys',
+      category: PragmaCategory.security,
+      description:
+          'Defer FK enforcement until transaction commit (0=OFF, 1=ON)',
+    ),
     // 调试
-    PragmaInfo(name: 'encoding', category: PragmaCategory.debug, description: 'Text encoding (UTF-8/UTF-16le/UTF-16be)', writable: false),
-    PragmaInfo(name: 'integrity_check', category: PragmaCategory.debug, description: 'Database integrity check result', writable: false),
-    PragmaInfo(name: 'application_id', category: PragmaCategory.debug, description: 'Application-specific database ID (32-bit integer)'),
-    PragmaInfo(name: 'user_version', category: PragmaCategory.debug, description: 'User-defined database version number (32-bit integer)'),
+    PragmaInfo(
+      name: 'encoding',
+      category: PragmaCategory.debug,
+      description: 'Text encoding (UTF-8/UTF-16le/UTF-16be)',
+      writable: false,
+    ),
+    PragmaInfo(
+      name: 'integrity_check',
+      category: PragmaCategory.debug,
+      description: 'Database integrity check result',
+      writable: false,
+    ),
+    PragmaInfo(
+      name: 'application_id',
+      category: PragmaCategory.debug,
+      description: 'Application-specific database ID (32-bit integer)',
+    ),
+    PragmaInfo(
+      name: 'user_version',
+      category: PragmaCategory.debug,
+      description: 'User-defined database version number (32-bit integer)',
+    ),
   ];
 
   @override

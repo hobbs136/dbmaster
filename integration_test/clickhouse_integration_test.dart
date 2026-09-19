@@ -9,6 +9,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:dbmaster/models/connection_failure.dart';
 import 'package:dbmaster/models/database_models.dart';
 import 'package:dbmaster/services/database_abstract.dart';
 import 'package:dbmaster/services/adapters/clickhouse_adapter.dart';
@@ -68,7 +69,8 @@ void main() {
       expect(adapter.isConnected, isTrue);
     });
 
-    testWidgets('错误凭据 → connect false（草稿 test 语义）', (tester) async {
+    testWidgets('错误凭据 → 抛 AdapterConnectException（草稿 test 语义）',
+        (tester) async {
       if (!chE2EReady) return;
       final bad = DatabaseConnection(
         id: 'test_ch_conn_bad',
@@ -79,8 +81,29 @@ void main() {
         username: 'wrong_user',
         password: 'wrong_password',
       );
-      final result = await adapter.connect(bad);
-      expect(result, isFalse);
+      // 连接失败 UX 重构 T9a：connect 失败不再 return false，改抛
+      // AdapterConnectException。server 有稳定码时 kind=authFailed
+      // （AUTH_DENIED）；旧 server/无码 envelope 回落 unknown——errorCode
+      // 两种形态下均非空。
+      await expectLater(
+        adapter.connect(bad),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having(
+                (e) =>
+                    e.failure.kind == ConnectionFailureKind.authFailed ||
+                    e.failure.kind == ConnectionFailureKind.unknown,
+                'kind',
+                isTrue,
+              )
+              .having((e) => e.failure.errorCode, 'errorCode', isNotEmpty)
+              .having(
+                (e) => e.failure.target,
+                'target',
+                '${ClickhouseTestConfig.host}:${ClickhouseTestConfig.port}',
+              ),
+        ),
+      );
       expect(adapter.isConnected, isFalse);
     });
 

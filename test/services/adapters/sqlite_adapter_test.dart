@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dbmaster/models/database_models.dart';
+import 'package:dbmaster/models/connection_failure.dart';
 import 'package:dbmaster/models/sql_script_exception.dart';
 import 'package:dbmaster/services/database_abstract.dart';
 import 'package:dbmaster/services/adapters/sqlite_adapter.dart';
@@ -80,8 +81,20 @@ void main() {
           type: DatabaseType.sqlite,
         );
 
-        final result = await adapter.connect(connection);
-        expect(result, isFalse);
+        // T3：connect 失败不再 return false，改抛 AdapterConnectException。
+        // 空 host 经 sqflite_ffi 路径重定向后无法打开 → CANTOPEN(14)。
+        await expectLater(
+          adapter.connect(connection),
+          throwsA(
+            isA<AdapterConnectException>()
+                .having(
+                  (e) => e.failure.kind,
+                  'kind',
+                  ConnectionFailureKind.fileNotFound,
+                )
+                .having((e) => e.failure.errorCode, 'errorCode', '14'),
+          ),
+        );
         expect(adapter.isConnected, isFalse);
       });
 
@@ -131,6 +144,191 @@ void main() {
       test('重复断开不应抛出异常', () async {
         await adapter.disconnect();
         expect(adapter.isConnected, isFalse);
+      });
+    });
+
+    // ========================================================================
+    // 连接失败结构化异常（连接失败 UX 重构 T3）
+    //
+    // 场景稳定性说明（Windows 实测）：
+    // - 「不存在的父目录路径」不可用作 fileNotFound 用例——sqflite_ffi 会
+    //   自动创建父目录并连接成功；空 host 与「父路径被普通文件占据」
+    //   才是稳定的 CANTOPEN(14)。
+    // - WAL + 并发读者是确定性复现 PRAGMA journal_mode = DELETE 失败
+    //   （BUSY 5 + offendingStatement）的手段，无需 env 门控。
+    // ========================================================================
+    group('连接失败结构化异常（T3）', () {
+      DatabaseConnection conn(String host, {String id = 't3'}) =>
+          DatabaseConnection(
+            id: id,
+            name: 'T3',
+            type: DatabaseType.sqlite,
+            host: host,
+            port: 0,
+          );
+
+      test('connect 父路径被普通文件占据 → fileNotFound(14) + target=路径', () async {
+        final blocker = File(
+          '${Directory.systemTemp.absolute.path}'
+          '${Platform.pathSeparator}dbmaster_t3_blocker_${DateTime.now().millisecondsSinceEpoch}.db',
+        );
+        await blocker.writeAsString('i am a file, not a directory');
+        addTearDown(() async {
+          if (await blocker.exists()) await blocker.delete();
+        });
+
+        await expectLater(
+          adapter.connect(conn('${blocker.path}${Platform.pathSeparator}x.db')),
+          throwsA(
+            isA<AdapterConnectException>()
+                .having(
+                  (e) => e.failure.kind,
+                  'kind',
+                  ConnectionFailureKind.fileNotFound,
+                )
+                .having((e) => e.failure.errorCode, 'errorCode', '14')
+                .having(
+                  (e) => e.failure.target,
+                  'target',
+                  '${blocker.path}${Platform.pathSeparator}x.db',
+                )
+                .having(
+                  (e) => e.failure.offendingStatement,
+                  'offendingStatement',
+                  isNull,
+                ),
+          ),
+        );
+        expect(adapter.isConnected, isFalse);
+      });
+
+      test('connect 非法库文件 → notADatabase(26)，cause 保留原始异常链', () async {
+        final garbage = File(
+          '${Directory.systemTemp.absolute.path}'
+          '${Platform.pathSeparator}dbmaster_t3_garbage_${DateTime.now().millisecondsSinceEpoch}.db',
+        );
+        await garbage.writeAsString(
+          'this is definitely not a sqlite database file',
+        );
+        addTearDown(() async {
+          if (await garbage.exists()) await garbage.delete();
+        });
+
+        await expectLater(
+          adapter.connect(conn(garbage.path)),
+          throwsA(
+            isA<AdapterConnectException>()
+                .having(
+                  (e) => e.failure.kind,
+                  'kind',
+                  ConnectionFailureKind.notADatabase,
+                )
+                .having((e) => e.failure.errorCode, 'errorCode', '26')
+                .having(
+                  (e) => e.failure.rawMessage,
+                  'rawMessage',
+                  contains('file is not a database'),
+                )
+                .having((e) => e.cause, 'cause', isA<Exception>()),
+          ),
+        );
+      });
+
+      test(
+        'connect WAL + 并发读者 → PRAGMA journal_mode = DELETE 失败（fileLocked 5 + 语句归因）',
+        () async {
+          final path =
+              '${Directory.systemTemp.absolute.path}'
+              '${Platform.pathSeparator}dbmaster_t3_wal_${DateTime.now().millisecondsSinceEpoch}.db';
+          final holder = SQLiteAdapter();
+          await holder.connect(conn(path, id: 't3_holder'));
+          await holder.setPragma('journal_mode', 'WAL');
+          // 读者开事务并保持 SHARED 锁：WAL→DELETE 切换需要独占，被阻塞 → BUSY(5)。
+          await holder.executeQuery('BEGIN');
+          await holder.executeQuery(
+            'CREATE TABLE IF NOT EXISTS t_probe_wal (id INTEGER PRIMARY KEY)',
+          );
+          await holder.executeQuery('SELECT COUNT(*) FROM t_probe_wal');
+          addTearDown(() => holder.disconnect());
+
+          await expectLater(
+            adapter.connect(conn(path)),
+            throwsA(
+              isA<AdapterConnectException>()
+                  .having(
+                    (e) => e.failure.kind,
+                    'kind',
+                    ConnectionFailureKind.fileLocked,
+                  )
+                  .having((e) => e.failure.errorCode, 'errorCode', '5')
+                  .having(
+                    (e) => e.failure.offendingStatement,
+                    'offendingStatement',
+                    'PRAGMA journal_mode = DELETE',
+                  ),
+            ),
+          );
+        },
+      );
+
+      test('failureFromError 非 sqflite 异常 → unknown + errorCode 空', () {
+        final failure = SQLiteAdapter.failureFromError(
+          Exception('boom'),
+          target: 'x.db',
+        );
+        expect(failure.kind, ConnectionFailureKind.unknown);
+        expect(failure.errorCode, isEmpty);
+        expect(failure.offendingStatement, isNull);
+        expect(failure.target, 'x.db');
+        expect(failure.rawMessage, contains('boom'));
+        expect(
+          failure.occurredAt.difference(DateTime.now()).inSeconds.abs(),
+          lessThan(60),
+        );
+      });
+
+      test('failureFromError 真实 DatabaseException → 取码 + statement 透传', () async {
+        // 1) 带 code 的真实异常：垃圾文件 connect 失败的 cause（code 26）。
+        final garbage = File(
+          '${Directory.systemTemp.absolute.path}'
+          '${Platform.pathSeparator}dbmaster_t3_garbage2_${DateTime.now().millisecondsSinceEpoch}.db',
+        );
+        await garbage.writeAsString('not a sqlite db at all');
+        addTearDown(() async {
+          if (await garbage.exists()) await garbage.delete();
+        });
+        Object? coded;
+        try {
+          await adapter.connect(conn(garbage.path));
+        } on AdapterConnectException catch (e) {
+          coded = e.cause;
+        }
+        expect(coded, isNotNull);
+
+        final codedFailure = SQLiteAdapter.failureFromError(
+          coded!,
+          statement: 'PRAGMA journal_mode = DELETE',
+          target: garbage.path,
+        );
+        expect(codedFailure.kind, ConnectionFailureKind.notADatabase);
+        expect(codedFailure.errorCode, '26');
+        expect(codedFailure.offendingStatement, 'PRAGMA journal_mode = DELETE');
+        expect(codedFailure.target, garbage.path);
+
+        // 2) 不带 code 的真实异常（查询错误）：ffi 未在 result 上带码 →
+        //    getResultCode() 为 null → kind=unknown、errorCode=''。
+        await adapter.connect(conn(dbPath));
+        addTearDown(adapter.disconnect);
+        Object? noCode;
+        try {
+          await adapter.executeQuery('SELECT * FROM t3_missing_table_xyz');
+        } catch (e) {
+          noCode = e;
+        }
+        expect(noCode, isNotNull);
+        final noCodeFailure = SQLiteAdapter.failureFromError(noCode!);
+        expect(noCodeFailure.kind, ConnectionFailureKind.unknown);
+        expect(noCodeFailure.errorCode, isEmpty);
       });
     });
 
@@ -1068,9 +1266,7 @@ INSERT INTO "test_script_fail" (id, data) VALUES (2, "never");
 
       test('isJsonColumn 对 JSON 文本列 → true（≥80% 可解析）', () async {
         await connect();
-        await adapter.executeQuery(
-          'CREATE TABLE t (id INT, data TEXT)',
-        );
+        await adapter.executeQuery('CREATE TABLE t (id INT, data TEXT)');
         // 插 5 行 JSON（100% 可解析 → 应检测为 JSON）
         for (final v in [
           '{"name":"a"}',
@@ -1089,9 +1285,7 @@ INSERT INTO "test_script_fail" (id, data) VALUES (2, "never");
 
       test('isJsonColumn 对纯文本列 → false', () async {
         await connect();
-        await adapter.executeQuery(
-          'CREATE TABLE t2 (id INT, note TEXT)',
-        );
+        await adapter.executeQuery('CREATE TABLE t2 (id INT, note TEXT)');
         for (final v in ['hello', 'world', 'plain', 'text', 'row']) {
           await adapter.executeQuery(
             "INSERT INTO t2 (id, note) VALUES (0, '$v')",
@@ -1103,9 +1297,7 @@ INSERT INTO "test_script_fail" (id, data) VALUES (2, "never");
 
       test('isJsonColumn 对 JSON 数组 → true', () async {
         await connect();
-        await adapter.executeQuery(
-          'CREATE TABLE t3 (id INT, arr TEXT)',
-        );
+        await adapter.executeQuery('CREATE TABLE t3 (id INT, arr TEXT)');
         for (final v in ['[1,2,3]', '[4,5]', '[6]', '[7,8]', '[9,10]']) {
           await adapter.executeQuery(
             "INSERT INTO t3 (id, arr) VALUES (0, '$v')",
@@ -1117,9 +1309,7 @@ INSERT INTO "test_script_fail" (id, data) VALUES (2, "never");
 
       test('isJsonColumn 混合（<80% JSON）→ false', () async {
         await connect();
-        await adapter.executeQuery(
-          'CREATE TABLE t4 (id INT, mixed TEXT)',
-        );
+        await adapter.executeQuery('CREATE TABLE t4 (id INT, mixed TEXT)');
         // 5 行里 1 行 JSON（20% < 80% 阈值）→ 不算 JSON 列
         await adapter.executeQuery(
           "INSERT INTO t4 (id, mixed) VALUES (0, 'not json')",
@@ -1142,9 +1332,7 @@ INSERT INTO "test_script_fail" (id, data) VALUES (2, "never");
 
       test('isJsonColumn 空列（全 NULL）→ false', () async {
         await connect();
-        await adapter.executeQuery(
-          'CREATE TABLE t5 (id INT, nullable TEXT)',
-        );
+        await adapter.executeQuery('CREATE TABLE t5 (id INT, nullable TEXT)');
         await adapter.executeQuery(
           "INSERT INTO t5 (id, nullable) VALUES (1, NULL)",
         );
@@ -1192,8 +1380,14 @@ INSERT INTO "test_script_fail" (id, data) VALUES (2, "never");
         final pragmas = await adapter.getPragmas();
         final jm = pragmas.firstWhere((p) => p.name == 'journal_mode');
         expect(jm.currentValue, isNotNull);
-        expect(['delete', 'wal', 'truncate', 'memory', 'persist', 'off'],
-            contains(jm.currentValue!.toLowerCase()));
+        expect([
+          'delete',
+          'wal',
+          'truncate',
+          'memory',
+          'persist',
+          'off',
+        ], contains(jm.currentValue!.toLowerCase()));
       });
 
       test('setPragma journal_mode → WAL 生效', () async {
@@ -1235,18 +1429,23 @@ INSERT INTO "test_script_fail" (id, data) VALUES (2, "never");
           readOnly: readOnly,
         );
         await adapter.connect(connection);
-        await adapter.executeQuery('CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT);');
+        await adapter.executeQuery(
+          'CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT);',
+        );
         await adapter.executeQuery("INSERT INTO t (v) VALUES ('a'), ('b');");
       }
 
-      test('vacuum() 连接后 → message=VACUUM completed + executionTime ≥ 0', () async {
-        await connect();
-        final result = await adapter.vacuum();
-        expect(result.message, 'VACUUM completed');
-        expect(result.columns, isEmpty);
-        expect(result.rows, isEmpty);
-        expect(result.executionTime, greaterThanOrEqualTo(0));
-      });
+      test(
+        'vacuum() 连接后 → message=VACUUM completed + executionTime ≥ 0',
+        () async {
+          await connect();
+          final result = await adapter.vacuum();
+          expect(result.message, 'VACUUM completed');
+          expect(result.columns, isEmpty);
+          expect(result.rows, isEmpty);
+          expect(result.executionTime, greaterThanOrEqualTo(0));
+        },
+      );
 
       test('vacuum() 未连接 → 抛异常（guardReadOnly fail-closed）', () async {
         // setUp 的 adapter 未 connect，_currentConnection 为 null → guardReadOnly
@@ -1291,18 +1490,21 @@ INSERT INTO "test_script_fail" (id, data) VALUES (2, "never");
       // .dart_tool/sqflite_common_ffi/databases/，而 VACUUM INTO 由底层 SQLite
       // C 库按 CWD 解析——两者不一致会让复制的库读不到。绝对路径让两处对齐。
       // ======================================================================
-      test('saveAs(destPath) 连接后 → 产出新文件 + message=VACUUM INTO completed', () async {
-        final destPath =
-            '${Directory.systemTemp.absolute.path}${Platform.pathSeparator}${dbPath}_copy.db';
-        addTearDown(() async {
-          final f = File(destPath);
-          if (await f.exists()) await f.delete();
-        });
-        await connect();
-        final result = await adapter.saveAs(destPath);
-        expect(result.message, 'VACUUM INTO completed');
-        expect(File(destPath).existsSync(), isTrue);
-      });
+      test(
+        'saveAs(destPath) 连接后 → 产出新文件 + message=VACUUM INTO completed',
+        () async {
+          final destPath =
+              '${Directory.systemTemp.absolute.path}${Platform.pathSeparator}${dbPath}_copy.db';
+          addTearDown(() async {
+            final f = File(destPath);
+            if (await f.exists()) await f.delete();
+          });
+          await connect();
+          final result = await adapter.saveAs(destPath);
+          expect(result.message, 'VACUUM INTO completed');
+          expect(File(destPath).existsSync(), isTrue);
+        },
+      );
 
       test('saveAs() 复制的库可被独立打开 + 数据一致', () async {
         final destPath =
@@ -1317,13 +1519,15 @@ INSERT INTO "test_script_fail" (id, data) VALUES (2, "never");
 
         // 新开一个 adapter 连目标库，验证数据一致
         final copy = SQLiteAdapter();
-        await copy.connect(DatabaseConnection(
-          id: 'test_sqlite_copy',
-          name: 'Copy',
-          type: DatabaseType.sqlite,
-          host: destPath,
-          port: 0,
-        ));
+        await copy.connect(
+          DatabaseConnection(
+            id: 'test_sqlite_copy',
+            name: 'Copy',
+            type: DatabaseType.sqlite,
+            host: destPath,
+            port: 0,
+          ),
+        );
         addTearDown(() async {
           if (copy.isConnected) await copy.disconnect();
         });
@@ -1437,10 +1641,7 @@ INSERT INTO "test_script_fail" (id, data) VALUES (2, "never");
         // main 通常是 seq 0
         expect(list.firstWhere((e) => e.name == 'main').seq, 0);
         // main 的 file 字段应为主库路径
-        expect(
-          list.firstWhere((e) => e.name == 'main').file,
-          isNotNull,
-        );
+        expect(list.firstWhere((e) => e.name == 'main').file, isNotNull);
       });
 
       test('attachDatabase 成功 → getDatabases 含 alias', () async {
@@ -1454,18 +1655,21 @@ INSERT INTO "test_script_fail" (id, data) VALUES (2, "never");
         expect(dbs, contains('archive'));
       });
 
-      test('attachDatabase 成功 → listAttachedDatabases 含 archive + file', () async {
-        await connect();
-        final attachedPath = await buildAttachedDb(
-          '${DateTime.now().millisecondsSinceEpoch}_attach2.db',
-        );
+      test(
+        'attachDatabase 成功 → listAttachedDatabases 含 archive + file',
+        () async {
+          await connect();
+          final attachedPath = await buildAttachedDb(
+            '${DateTime.now().millisecondsSinceEpoch}_attach2.db',
+          );
 
-        await adapter.attachDatabase(attachedPath, 'archive');
-        final list = await adapter.listAttachedDatabases();
-        final archive = list.firstWhere((e) => e.name == 'archive');
-        expect(archive.file, isNotNull);
-        expect(archive.seq, greaterThan(0));
-      });
+          await adapter.attachDatabase(attachedPath, 'archive');
+          final list = await adapter.listAttachedDatabases();
+          final archive = list.firstWhere((e) => e.name == 'archive');
+          expect(archive.file, isNotNull);
+          expect(archive.seq, greaterThan(0));
+        },
+      );
 
       test('attachDatabase 文件不存在 → SQLite 创建空库（不抛错）', () async {
         // SQLite 语义：ATTACH 不存在的文件会创建空库（与 CONNECT 行为一致）。
@@ -1535,10 +1739,7 @@ INSERT INTO "test_script_fail" (id, data) VALUES (2, "never");
 
       test('detachDatabase 不存在的 alias → 抛错', () async {
         await connect();
-        expect(
-          () => adapter.detachDatabase('ghost'),
-          throwsA(isA<Object>()),
-        );
+        expect(() => adapter.detachDatabase('ghost'), throwsA(isA<Object>()));
       });
 
       test('getTables(schemaName) 返回附加库的表（不是主库）', () async {
@@ -1596,17 +1797,11 @@ INSERT INTO "test_script_fail" (id, data) VALUES (2, "never");
       });
 
       test('未连接时 detachDatabase → 抛错', () async {
-        expect(
-          () => adapter.detachDatabase('archive'),
-          throwsA(isA<Object>()),
-        );
+        expect(() => adapter.detachDatabase('archive'), throwsA(isA<Object>()));
       });
 
       test('未连接时 listAttachedDatabases → 抛错', () async {
-        expect(
-          () => adapter.listAttachedDatabases(),
-          throwsA(isA<Object>()),
-        );
+        expect(() => adapter.listAttachedDatabases(), throwsA(isA<Object>()));
       });
 
       // ── C16 存量缺陷修复面：per-alias 元数据限定（columns/indexes/triggers）──
@@ -1622,7 +1817,10 @@ INSERT INTO "test_script_fail" (id, data) VALUES (2, "never");
           'archive_orders',
           schemaName: 'archive',
         );
-        expect(columns.map((c) => c.name), containsAll(['id', 'user_id', 'amount']));
+        expect(
+          columns.map((c) => c.name),
+          containsAll(['id', 'user_id', 'amount']),
+        );
         // 限定查询 main 表 → 附加库无此表 → 空列（未限定时恒查 main 是原缺陷）
         final wrongSide = await adapter.getTableColumns(
           'main_users',
@@ -1666,11 +1864,16 @@ INSERT INTO "test_script_fail" (id, data) VALUES (2, "never");
           'BEGIN SELECT 1; END',
         );
 
-        final archiveTriggers = await adapter.getTriggers(schemaName: 'archive');
+        final archiveTriggers = await adapter.getTriggers(
+          schemaName: 'archive',
+        );
         expect(archiveTriggers.map((t) => t.name), ['trg_guard']);
 
         final mainTriggers = await adapter.getTriggers();
-        expect(mainTriggers.map((t) => t.name), everyElement(isNot('trg_guard')));
+        expect(
+          mainTriggers.map((t) => t.name),
+          everyElement(isNot('trg_guard')),
+        );
       });
     });
   });

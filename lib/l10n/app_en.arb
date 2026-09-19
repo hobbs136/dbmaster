@@ -680,6 +680,7 @@
     }
   },
   "executionStatusBarErrorHint": "Click a result tab to see error details",
+  "statusBarConnectionErrorTooltip": "Unresolved connection errors. Click to view.",
   "toolbarExecutionPlan": "Execution Plan",
   "toolbarFormat": "Format",
   "toolbarSave": "Save",
@@ -6241,5 +6242,24 @@
   "reportsUnknownType": "Unknown report type — raw content:",
   "@reportsUnknownType": {"type": "text"}
 ,
-  "reportsAnalyzeWithAi": "Analyze with AI"
+  "reportsAnalyzeWithAi": "Analyze with AI",
+  "connectFailureTitle": "Connection Failed",
+  "connectFailureFileLocked": "The file is locked by another program. Close the program using it and try again.",
+  "connectFailureFileNotFound": "The file does not exist. It may have been moved or deleted.",
+  "connectFailurePermissionDenied": "Permission denied. Check file permissions and try again.",
+  "connectFailureNotADatabase": "The file is not a valid database file.",
+  "connectFailureCorrupt": "The database file appears to be corrupted.",
+  "connectFailureAuthFailed": "Authentication failed. Check the username and password.",
+  "connectFailureUnreachable": "Could not reach the server. Check the address and network.",
+  "connectFailureUnknown": "Could not connect to the database.",
+  "connectFailureRetry": "Retry",
+  "connectFailureChooseFile": "Choose Another File",
+  "connectFailureCopyDetails": "Copy Details",
+  "connectFailureTechnicalDetails": "Technical Details",
+  "connectFailureErrorCode": "Error Code",
+  "connectFailureStatement": "Statement",
+  "connectFailureFile": "File",
+  "connectFailureRawError": "Raw Error",
+  "connectFailureLatestTooltip": "Last connection failed: {message}",
+  "@connectFailureLatestTooltip": {"placeholders": {"message": {"type": "String"}}}
 }

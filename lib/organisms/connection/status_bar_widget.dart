@@ -7,6 +7,7 @@ import '../../theme/app_colors.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../models/database_models.dart';
+import '../../models/connection_failure.dart';
 import '../../services/database_abstract.dart'
     show SchemaAwareAdapter, PragmaAdapter;
 import '../../l10n/app_localizations.dart';
@@ -362,6 +363,8 @@ class StatusBarWidget extends StatelessWidget {
                 ),
               ),
               const _ErrorBadge(),
+              // T10 · 未处置连接失败指示点（与 _ErrorBadge 错误计数语义不同，不合并）。
+              const _ConnectionFailureDot(),
             ],
           ),
         );
@@ -398,6 +401,68 @@ class _ErrorBadge extends StatelessWidget {
     );
   }
 }
+
+/// T10 · 未处置连接失败指示点：任一连接存在未处置失败时显示 error 色点
+/// （14px 约束内，8px 视觉点 + 14px 命中区）。tooltip = 最新失败的人话
+/// 原因；点击 = 打开执行中心 + 处置全部失败。与 [_ErrorBadge]（执行中心
+/// 错误计数）并存、互不干扰。
+class _ConnectionFailureDot extends StatelessWidget {
+  const _ConnectionFailureDot();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AppProvider>(
+      builder: (context, provider, _) {
+        final failure = provider.connection.latestUnacknowledgedFailure;
+        if (failure == null) return const SizedBox.shrink();
+        final l10n = AppLocalizations.of(context)!;
+        return Tooltip(
+          message: l10n.connectFailureLatestTooltip(
+            _failurePlainMessage(l10n, failure.kind),
+          ),
+          child: InkWell(
+            key: const ValueKey('status_bar_connection_failure_dot'),
+            onTap: () {
+              final appProvider = context.read<AppProvider>();
+              appProvider.openExecutionCenter();
+              appProvider.connection.acknowledgeAllFailures();
+            },
+            borderRadius: BorderRadius.circular(AppDesignSystem.radiusMd),
+            child: SizedBox(
+              width: 14,
+              height: 14,
+              child: Center(
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: context.themeColors.error,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// T10 · 失败分型 → 人话消息（与 ConnectFailureDialog 同口径的展示边界
+/// 映射；rawMessage 未脱敏不进 tooltip）。
+String _failurePlainMessage(AppLocalizations l10n, ConnectionFailureKind kind) =>
+    switch (kind) {
+      ConnectionFailureKind.fileLocked => l10n.connectFailureFileLocked,
+      ConnectionFailureKind.fileNotFound => l10n.connectFailureFileNotFound,
+      ConnectionFailureKind.permissionDenied =>
+        l10n.connectFailurePermissionDenied,
+      ConnectionFailureKind.notADatabase => l10n.connectFailureNotADatabase,
+      ConnectionFailureKind.corrupt => l10n.connectFailureCorrupt,
+      ConnectionFailureKind.authFailed => l10n.connectFailureAuthFailed,
+      ConnectionFailureKind.unreachable => l10n.connectFailureUnreachable,
+      ConnectionFailureKind.unknown => l10n.connectFailureUnknown,
+    };
 
 /// 状态指示器（带动画脉冲效果）
 class _StatusIndicator extends StatefulWidget {

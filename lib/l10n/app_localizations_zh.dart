@@ -1963,6 +1963,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get executionStatusBarErrorHint => '点击结果子标签查看错误详情';
 
   @override
+  String get statusBarConnectionErrorTooltip => '存在未处理的连接错误，点击查看';
+
+  @override
   String get toolbarExecutionPlan => '执行计划';
 
   @override
@@ -9865,6 +9868,62 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get reportsAnalyzeWithAi => 'AI 分析';
+
+  @override
+  String get connectFailureTitle => '无法连接';
+
+  @override
+  String get connectFailureFileLocked => '文件正被其他程序占用。请关闭占用该文件的程序后重试。';
+
+  @override
+  String get connectFailureFileNotFound => '文件不存在，可能已被移动或删除。';
+
+  @override
+  String get connectFailurePermissionDenied => '没有访问权限，请检查文件权限后重试。';
+
+  @override
+  String get connectFailureNotADatabase => '该文件不是有效的数据库文件。';
+
+  @override
+  String get connectFailureCorrupt => '数据库文件似乎已损坏。';
+
+  @override
+  String get connectFailureAuthFailed => '认证失败，请检查用户名和密码。';
+
+  @override
+  String get connectFailureUnreachable => '无法连接到服务器，请检查地址与网络。';
+
+  @override
+  String get connectFailureUnknown => '无法连接到数据库。';
+
+  @override
+  String get connectFailureRetry => '重试';
+
+  @override
+  String get connectFailureChooseFile => '重新选择文件';
+
+  @override
+  String get connectFailureCopyDetails => '复制详情';
+
+  @override
+  String get connectFailureTechnicalDetails => '技术详情';
+
+  @override
+  String get connectFailureErrorCode => '错误码';
+
+  @override
+  String get connectFailureStatement => '出错语句';
+
+  @override
+  String get connectFailureFile => '文件';
+
+  @override
+  String get connectFailureRawError => '原始异常';
+
+  @override
+  String connectFailureLatestTooltip(String message) {
+    return '最近连接失败：$message';
+  }
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -11714,6 +11773,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get executionStatusBarErrorHint => '點擊結果子標籤查看錯誤詳情';
+
+  @override
+  String get statusBarConnectionErrorTooltip => '存在未處理的連線錯誤，點擊查看';
 
   @override
   String get toolbarExecutionPlan => '執行計畫';
@@ -17174,4 +17236,60 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get reportsAnalyzeWithAi => 'AI 分析';
+
+  @override
+  String get connectFailureTitle => '無法連線';
+
+  @override
+  String get connectFailureFileLocked => '檔案正被其他程式佔用。請關閉佔用該檔案的程式後重試。';
+
+  @override
+  String get connectFailureFileNotFound => '檔案不存在，可能已被移動或刪除。';
+
+  @override
+  String get connectFailurePermissionDenied => '沒有存取權限，請檢查檔案權限後重試。';
+
+  @override
+  String get connectFailureNotADatabase => '該檔案不是有效的資料庫檔案。';
+
+  @override
+  String get connectFailureCorrupt => '資料庫檔案似乎已損毀。';
+
+  @override
+  String get connectFailureAuthFailed => '認證失敗，請檢查使用者名稱與密碼。';
+
+  @override
+  String get connectFailureUnreachable => '無法連線到伺服器，請檢查位址與網路。';
+
+  @override
+  String get connectFailureUnknown => '無法連線到資料庫。';
+
+  @override
+  String get connectFailureRetry => '重試';
+
+  @override
+  String get connectFailureChooseFile => '重新選擇檔案';
+
+  @override
+  String get connectFailureCopyDetails => '複製詳情';
+
+  @override
+  String get connectFailureTechnicalDetails => '技術詳情';
+
+  @override
+  String get connectFailureErrorCode => '錯誤碼';
+
+  @override
+  String get connectFailureStatement => '出錯語句';
+
+  @override
+  String get connectFailureFile => '檔案';
+
+  @override
+  String get connectFailureRawError => '原始例外';
+
+  @override
+  String connectFailureLatestTooltip(String message) {
+    return '最近連線失敗：$message';
+  }
 }

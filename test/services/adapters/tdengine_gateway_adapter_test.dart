@@ -30,6 +30,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:dbmaster/models/connection_failure.dart';
 import 'package:dbmaster/models/tdengine_models.dart';
 import 'package:dbmaster/services/adapters/tdengine_gateway_adapter.dart';
 import 'package:dbmaster/services/database_abstract.dart';
@@ -241,7 +242,7 @@ void main() {
       expect(_sentBody(register)['dbType'], 'tdengine');
     });
 
-    test('草稿 test 失败 → connect 返回 false（不注册）', () async {
+    test('草稿 test 失败（error 非对象）→ AdapterConnectException 兜底且不注册', () async {
       final client = _RecordingClient((req) {
         if (req.url.path == '/api/gw/connections/test') {
           return _jsonResp({'ok': false, 'error': 'Authentication failure'}, 200);
@@ -252,13 +253,120 @@ void main() {
         return _jsonResp({'error': {'code': 'X', 'message': 'unmapped'}}, 500);
       });
       final adapter = TDengineAdapter()..httpClient = client;
-      expect(await adapter.connect(_conn()), isFalse);
+      // 连接失败 UX 重构 T9b：失败不再吞掉（原 return false）。error 为
+      // 字符串（非对象）→ unknown 兜底（errorCode 空），message 保留原文。
+      await expectLater(
+        adapter.connect(_conn()),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having(
+                (e) => e.failure.kind,
+                'kind',
+                ConnectionFailureKind.unknown,
+              )
+              .having((e) => e.failure.errorCode, 'errorCode', '')
+              .having(
+                (e) => e.failure.rawMessage,
+                'rawMessage',
+                contains('Authentication failure'),
+              ),
+        ),
+      );
       expect(
         client.requests.any(
           (r) => r.url.path == '/api/gw/connections' && r.method == 'POST',
         ),
         isFalse,
       );
+    });
+
+    test('草稿 test 失败（envelope ok:false code/message）→ AdapterConnectException 且不注册', () async {
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections/test') {
+          return _jsonResp({
+            'ok': false,
+            'error': {
+              'code': 'DB_ERROR',
+              'message': 'taosd authentication failed',
+            },
+          }, 200);
+        }
+        if (req.url.path == '/api/gw/connections' && req.method == 'GET') {
+          return _listResponse({});
+        }
+        return _jsonResp({'error': {'code': 'X', 'message': 'unmapped'}}, 500);
+      });
+      final adapter = TDengineAdapter()..httpClient = client;
+      await expectLater(
+        adapter.connect(_conn()),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having(
+                (e) => e.failure.kind,
+                'kind',
+                ConnectionFailureKind.unknown,
+              )
+              .having((e) => e.failure.errorCode, 'errorCode', 'DB_ERROR')
+              .having(
+                (e) => e.failure.rawMessage,
+                'rawMessage',
+                contains('taosd authentication failed'),
+              )
+              .having((e) => e.failure.target, 'target', '192.0.2.128:6041'),
+        ),
+      );
+      expect(
+        client.requests.any(
+          (r) => r.url.path == '/api/gw/connections' && r.method == 'POST',
+        ),
+        isFalse,
+      );
+      expect(adapter.isConnected, isFalse);
+    });
+
+    test('T12s wire：error_code=AUTH_DENIED → AdapterConnectException kind=authFailed', () async {
+      // T12c：server 草稿 test 失败响应加性新增顶层 `error_code`（snake_case），
+      // error 字符串字段原样保留 → kind 分型 authFailed、errorCode 非空。
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections/test') {
+          return _jsonResp({
+            'ok': false,
+            'error': 'taosd authentication failed',
+            'error_code': 'AUTH_DENIED',
+            'elapsedMs': 12,
+          }, 200);
+        }
+        if (req.url.path == '/api/gw/connections' && req.method == 'GET') {
+          return _listResponse({});
+        }
+        return _jsonResp({'error': {'code': 'X', 'message': 'unmapped'}}, 500);
+      });
+      final adapter = TDengineAdapter()..httpClient = client;
+      await expectLater(
+        adapter.connect(_conn()),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having(
+                (e) => e.failure.kind,
+                'kind',
+                ConnectionFailureKind.authFailed,
+              )
+              .having((e) => e.failure.errorCode, 'errorCode', 'AUTH_DENIED')
+              .having(
+                (e) => e.failure.rawMessage,
+                'rawMessage',
+                contains('taosd authentication failed'),
+              )
+              .having((e) => e.failure.target, 'target', '192.0.2.128:6041'),
+        ),
+      );
+      expect(
+        client.requests.any(
+          (r) => r.url.path == '/api/gw/connections' && r.method == 'POST',
+        ),
+        isFalse,
+      );
+      expect(adapter.isConnected, isFalse);
     });
 
     test('testConnection：成功 null / 失败错误串', () async {
@@ -692,7 +800,8 @@ void main() {
       expect(draft?['password'], 'my_secret_pass');
 
       // 密码 null → 空串上送（server validate_draft 拒空密码），不回退
-      // taosdata 默认。
+      // taosdata 默认。（T9b 起草稿 test 失败抛 AdapterConnectException——
+      // 断言照旧落在捕获的 draft body 上。）
       final nullPwClient = _RecordingClient((req) {
         if (req.url.path == '/api/gw/connections/test') {
           draft = _sentBody(req);
@@ -701,7 +810,10 @@ void main() {
         return _listResponse({});
       });
       final nullPwAdapter = TDengineAdapter()..httpClient = nullPwClient;
-      await nullPwAdapter.connect(_conn(password: null));
+      await expectLater(
+        nullPwAdapter.connect(_conn(password: null)),
+        throwsA(isA<AdapterConnectException>()),
+      );
       expect(draft?['password'], '');
       expect(draft?['password'], isNot('taosdata'));
     });

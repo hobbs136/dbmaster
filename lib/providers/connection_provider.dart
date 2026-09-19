@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/database_models.dart';
+import '../models/connection_event.dart';
+import '../models/connection_failure.dart';
 import '../services/database_service.dart';
 import '../services/sqlite_alias_validator.dart';
 import '../services/adapters/redis_adapter.dart';
@@ -21,7 +23,21 @@ class ConnectionProvider extends ChangeNotifier {
   final DatabaseService _dbService;
 
   ConnectionProvider({DatabaseService? dbService})
-    : _dbService = dbService ?? DatabaseService();
+    : _dbService = dbService ?? DatabaseService() {
+    // 连接失败 UX 重构 T10 · 意外断连感知：订阅 dbService 连接事件流，
+    // 维护每连接未处置失败（状态栏指示点 / 选择器失败态 / 树根状态点共用）。
+    _eventSubscription = _dbService.events.listen(
+      _onConnectionEvent,
+      onError: (Object error, StackTrace stackTrace) {
+        AppLogger.e(
+          'ConnectionProvider',
+          'Connection event stream error',
+          error,
+          stackTrace,
+        );
+      },
+    );
+  }
 
   /// C10 · port 层：连接语义（测试/注册/注销/连接态）统一经
   /// DbCapabilityPort 双形态路由——AdapterBacking = 现状本地直连，
@@ -47,6 +63,23 @@ class ConnectionProvider extends ChangeNotifier {
   bool _isConnecting = false;
   String? _errorMessage;
 
+  // 连接失败 UX 重构 T3：最近一次连接失败的结构化描述（与 _errorMessage
+  // 并行维护——后者为兼容保留，非连接路径仍在写）。
+  ConnectionFailure? _lastConnectFailure;
+
+  // 连接失败 UX 重构 T10：每连接未处置失败（connect 失败 / 意外断连）。
+  // key = 连接 id；重试成功清除，acknowledgeFailure 处置清除。
+  final Map<String, ConnectionFailure> _lastFailureByConnectionId = {};
+
+  // T10 · 用户主动断开标记：dbService 事件流的 ConnectionDisconnected
+  // 无法区分主动/意外，主动断开路径（disconnectConnection /
+  // disconnectAllConnections / deleteConnection）先打标记，由事件处理器
+  // 消费；无标记的断连按意外断连近似（精度说明见任务汇报）。
+  final Set<String> _manualDisconnectIds = {};
+
+  // T10 · 连接事件流订阅（dispose 时释放）。
+  StreamSubscription<ConnectionEvent>? _eventSubscription;
+
   // 每个连接独立的数据库缓存
   final Map<String, List<String>> _connectionDatabases = {};
   final Map<String, List<String>> _connectionNonEmptyDatabases = {};
@@ -54,7 +87,8 @@ class ConnectionProvider extends ChangeNotifier {
   final Map<String, Map<String, Database>> _databaseCache = {};
 
   // 每个数据库的表分页状态缓存（按连接/数据库）
-  final Map<String, Map<String, TablePaginationState>> _tablePaginationCache = {};
+  final Map<String, Map<String, TablePaginationState>> _tablePaginationCache =
+      {};
 
   // 是否显示空数据库（按连接）
   final Map<String, bool> _showEmptyDatabases = {};
@@ -69,7 +103,8 @@ class ConnectionProvider extends ChangeNotifier {
   final Map<String, ReplicationStatus?> _replicationStatusCache = {};
   final Map<String, Map<String, dynamic>?> _engineStatusCache = {};
   final Map<String, Timer> _processListTimers = {};
-  final Map<String, int> _processListIntervals = {}; // seconds, for UI highlight
+  final Map<String, int> _processListIntervals =
+      {}; // seconds, for UI highlight
 
   // Redis 信息缓存
   final Map<String, Map<String, String>> _redisServerInfoCache = {};
@@ -96,6 +131,87 @@ class ConnectionProvider extends ChangeNotifier {
   DbServer? get currentServer => _currentServer;
   Database? get currentDatabase => _currentDatabase;
   bool get isConnecting => _isConnecting;
+
+  /// 最近一次连接失败的结构化描述；成功连接后为 null（T3）。
+  ///
+  /// 连接失败的展示与诊断请用本 getter（按 kind 分型呈现）；
+  /// [errorMessage] 为兼容保留，新代码不要依赖其文本格式。
+  ConnectionFailure? get lastConnectFailure => _lastConnectFailure;
+
+  /// T10 · 单个连接的未处置连接失败（connect 失败 / 意外断连）；null = 无。
+  ///
+  /// 重试成功自动清除；[acknowledgeFailure] 用户处置清除。
+  ConnectionFailure? lastFailureFor(String connectionId) =>
+      _lastFailureByConnectionId[connectionId];
+
+  /// T10 · 是否存在任一连接的未处置失败（状态栏指示点的显示条件）。
+  bool get hasUnacknowledgedFailures => _lastFailureByConnectionId.isNotEmpty;
+
+  /// T10 · 最新一条未处置失败（状态栏 tooltip「最新人话」的取值来源）。
+  ConnectionFailure? get latestUnacknowledgedFailure {
+    ConnectionFailure? latest;
+    for (final failure in _lastFailureByConnectionId.values) {
+      if (latest == null || failure.occurredAt.isAfter(latest.occurredAt)) {
+        latest = failure;
+      }
+    }
+    return latest;
+  }
+
+  /// T10 · 处置（清除）单个连接的失败条目（幂等：无条目时为 no-op）。
+  void acknowledgeFailure(String connectionId) {
+    if (_lastFailureByConnectionId.remove(connectionId) != null) {
+      notifyListeners();
+    }
+  }
+
+  /// T10 · 处置全部未处置失败（状态栏指示点点击时调用）。
+  void acknowledgeAllFailures() {
+    if (_lastFailureByConnectionId.isEmpty) return;
+    _lastFailureByConnectionId.clear();
+    notifyListeners();
+  }
+
+  /// T10 · 连接事件 → 失败条目维护。
+  ///
+  /// - ConnectionEstablished（重试/后台重连成功）→ 清除该连接失败条目；
+  /// - ConnectionDisconnected → 有主动断开标记 = 用户主动断开（不产生
+  ///   失败态，顺带幂等清残留条目）；无标记 = 意外断连 → 记录失败条目。
+  void _onConnectionEvent(ConnectionEvent event) {
+    switch (event) {
+      case final ConnectionEstablished established:
+        _manualDisconnectIds.remove(established.connectionId);
+        if (_lastFailureByConnectionId.remove(established.connectionId) !=
+            null) {
+          notifyListeners();
+        }
+      case final ConnectionDisconnected disconnected:
+        if (_manualDisconnectIds.remove(disconnected.connectionId)) {
+          if (_lastFailureByConnectionId.remove(disconnected.connectionId) !=
+              null) {
+            notifyListeners();
+          }
+        } else {
+          final server = disconnected.server;
+          _lastFailureByConnectionId[disconnected.connectionId] =
+              ConnectionFailure(
+                kind: ConnectionFailureKind.unknown,
+                errorCode: '',
+                target: server == null ? null : '${server.host}:${server.port}',
+                rawMessage: 'Connection lost unexpectedly',
+                occurredAt: DateTime.now(),
+              );
+          notifyListeners();
+        }
+      default:
+        break;
+    }
+  }
+
+  /// 兼容保留的错误消息（非连接路径如保存/克隆/删除连接仍在写）。
+  ///
+  /// 连接失败请用 [lastConnectFailure]（结构化分型）；本 getter 为兼容
+  /// 保留（app_provider 镜像与 AI 面板仍消费），不加 @Deprecated。
   String? get errorMessage => _errorMessage;
   int get activeConnectionCount => _dbService.connectionCount;
   List<String> get connectedIds => _dbService.connectedIds;
@@ -170,7 +286,11 @@ class ConnectionProvider extends ChangeNotifier {
   }
 
   // Replace cached database entry (used after per-schema lazy loading updates)
-  void updateCachedDatabase(String connectionId, String databaseName, Database db) {
+  void updateCachedDatabase(
+    String connectionId,
+    String databaseName,
+    Database db,
+  ) {
     _databaseCache[connectionId]?[databaseName] = db;
   }
 
@@ -287,12 +407,18 @@ class ConnectionProvider extends ChangeNotifier {
       final allTables = dbInfo?.tables ?? <DbTable>[];
       final filtered = search == null || search.isEmpty
           ? allTables
-          : allTables.where((t) => t.name.toLowerCase().contains(search.toLowerCase())).toList();
+          : allTables
+                .where(
+                  (t) => t.name.toLowerCase().contains(search.toLowerCase()),
+                )
+                .toList();
 
       final total = filtered.length;
       final start = (page - 1) * pageSize;
       final end = start + pageSize > total ? total : start + pageSize;
-      final pageTables = start < total ? filtered.sublist(start, end) : <DbTable>[];
+      final pageTables = start < total
+          ? filtered.sublist(start, end)
+          : <DbTable>[];
 
       final current = _tablePaginationCache[connectionId]?[databaseName];
       final mergedTables = append && current != null
@@ -309,11 +435,18 @@ class ConnectionProvider extends ChangeNotifier {
       );
       notifyListeners();
     } catch (e) {
-      AppLogger.e('ConnectionProvider', 'Failed to load paginated tables for $cacheKey', e);
+      AppLogger.e(
+        'ConnectionProvider',
+        'Failed to load paginated tables for $cacheKey',
+        e,
+      );
     }
   }
 
-  TablePaginationState? getTablePaginationState(String connectionId, String databaseName) {
+  TablePaginationState? getTablePaginationState(
+    String connectionId,
+    String databaseName,
+  ) {
     return _tablePaginationCache[connectionId]?[databaseName];
   }
 
@@ -365,9 +498,14 @@ class ConnectionProvider extends ChangeNotifier {
           _savedConnections = list
               .where((e) {
                 final typeName = (e as Map<String, dynamic>)['type'] as String?;
-                final isSupported = typeName != null && DatabaseType.tryFromName(typeName) != null;
+                final isSupported =
+                    typeName != null &&
+                    DatabaseType.tryFromName(typeName) != null;
                 if (!isSupported) {
-                  AppLogger.w('ConnectionProvider', 'Skipping saved connection with unsupported type: $typeName');
+                  AppLogger.w(
+                    'ConnectionProvider',
+                    'Skipping saved connection with unsupported type: $typeName',
+                  );
                 }
                 return isSupported;
               })
@@ -644,6 +782,9 @@ class ConnectionProvider extends ChangeNotifier {
 
   Future<void> deleteConnection(String id) async {
     try {
+      // T10 · 主动断开标记 + 失败条目随删除清除（防僵尸条目）。
+      if (_dbService.hasConnection(id)) _manualDisconnectIds.add(id);
+      _lastFailureByConnectionId.remove(id);
       if (_dbService.hasConnection(id)) {
         await _dbService.disconnect(connectionId: id);
       }
@@ -706,8 +847,10 @@ class ConnectionProvider extends ChangeNotifier {
         password,
       );
       if (newId != null && newId != server.id) {
-        AppLogger.d('ConnectionProvider',
-          'mirrored connection ${server.id} → server $newId');
+        AppLogger.d(
+          'ConnectionProvider',
+          'mirrored connection ${server.id} → server $newId',
+        );
         // Remember the mapping so a later edit/delete can target the right row.
         await _rememberServerIdMapping(server.id, newId);
       }
@@ -751,7 +894,10 @@ class ConnectionProvider extends ChangeNotifier {
   /// Persist the local-id → server-id mapping in SharedPreferences so it
   /// survives app restarts (the server row persists too). `null` clears it.
   static const _serverIdMapKey = 'connection_server_id_map';
-  Future<void> _rememberServerIdMapping(String localId, String? serverId) async {
+  Future<void> _rememberServerIdMapping(
+    String localId,
+    String? serverId,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_serverIdMapKey);
@@ -834,7 +980,8 @@ class ConnectionProvider extends ChangeNotifier {
   Future<void> _mergeServerConnections() async {
     try {
       final msw = Stopwatch()..start();
-      final serverConns = await ConnectionSyncService.instance.listConnections();
+      final serverConns = await ConnectionSyncService.instance
+          .listConnections();
       AppLogger.d(
         'ConnectionProvider',
         'merge:listConnections ${msw.elapsedMilliseconds}ms (${serverConns.length} rows)',
@@ -846,14 +993,17 @@ class ConnectionProvider extends ChangeNotifier {
       // 启动卡顿，T29 走查）。
       final mappingDelta = <String, String>{};
       for (final sc in serverConns) {
-        final matches = _savedConnections.where((local) =>
-            local.name == sc.name &&
-            local.type == sc.type &&
-            local.host == sc.host);
+        final matches = _savedConnections.where(
+          (local) =>
+              local.name == sc.name &&
+              local.type == sc.type &&
+              local.host == sc.host,
+        );
         if (matches.isEmpty) {
           // New server-side connection not yet local — import it. Give it a
           // fresh local id but remember the server id mapping.
-          final localId = 'conn_${DateTime.now().millisecondsSinceEpoch}_${sc.id.substring(0, 8)}';
+          final localId =
+              'conn_${DateTime.now().millisecondsSinceEpoch}_${sc.id.substring(0, 8)}';
           final imported = sc.copyWith(id: localId);
           _savedConnections.add(imported);
           mappingDelta[localId] = sc.id;
@@ -1022,14 +1172,15 @@ class ConnectionProvider extends ChangeNotifier {
           (server.password == null || server.password!.isEmpty)) {
         final serverId = await _lookupServerIdMapping(server.id) ?? server.id;
         try {
-          final creds =
-              await ConnectionSyncService.instance.fetchCredentials(serverId);
+          final creds = await ConnectionSyncService.instance.fetchCredentials(
+            serverId,
+          );
           // Hydrate the in-memory server with plaintext for the adapter.
           final sshMode = creds.ssh?.authMode == 'privateKey'
               ? SshAuthMode.privateKey
               : (creds.ssh?.authMode == 'password'
-                  ? SshAuthMode.password
-                  : server.sshAuthMode);
+                    ? SshAuthMode.password
+                    : server.sshAuthMode);
           server = server.copyWith(
             password: creds.password.isNotEmpty ? creds.password : null,
             sshUsername: creds.ssh?.username ?? server.sshUsername,
@@ -1039,8 +1190,10 @@ class ConnectionProvider extends ChangeNotifier {
             sshPassphrase: creds.ssh?.passphrase ?? server.sshPassphrase,
           );
         } catch (e) {
-          AppLogger.w('ConnectionProvider',
-              'credential fetch failed; proceeding with local creds: $e');
+          AppLogger.w(
+            'ConnectionProvider',
+            'credential fetch failed; proceeding with local creds: $e',
+          );
         }
       }
       final connected = await _dbService.connect(server);
@@ -1109,12 +1262,30 @@ class ConnectionProvider extends ChangeNotifier {
 
       _isConnecting = false;
       _errorMessage = null;
+      _lastConnectFailure = null;
+      // T10 · 重试成功 → 清除该连接的未处置失败条目。
+      _lastFailureByConnectionId.remove(server.id);
       notifyListeners();
       return true;
     } catch (e) {
       AppLogger.e('ConnectionProvider', 'Connection error', e);
       _isConnecting = false;
       _errorMessage = e.toString();
+      // 连接失败 UX 重构 T3：typed failure 直接取异常携带的结构；非 typed
+      // （如取消路径的「数据库连接失败」）构造 unknown 兜底，保证
+      // lastConnectFailure 与失败结果同生共死。
+      final failure = e is AdapterConnectException
+          ? e.failure
+          : ConnectionFailure(
+              kind: ConnectionFailureKind.unknown,
+              errorCode: '',
+              target: '${server.host}:${server.port}',
+              rawMessage: e.toString(),
+              occurredAt: DateTime.now(),
+            );
+      _lastConnectFailure = failure;
+      // T10 · 与既有 _lastConnectFailure 一并写入每连接失败 map。
+      _lastFailureByConnectionId[server.id] = failure;
       notifyListeners();
       return false;
     }
@@ -1167,10 +1338,7 @@ class ConnectionProvider extends ChangeNotifier {
   }
 
   /// 为 SQLite 文件构造一个新的 [DbServer]（id 规则同连接表单模块）。
-  static DbServer buildSqliteServer(
-    String path, {
-    required DateTime now,
-  }) {
+  static DbServer buildSqliteServer(String path, {required DateTime now}) {
     return DbServer(
       id: 'sqlite_${now.millisecondsSinceEpoch}',
       name: sqliteDisplayName(path),
@@ -1225,8 +1393,7 @@ class ConnectionProvider extends ChangeNotifier {
   }
 
   /// 最近打开的 SQLite 文件（最多 8 条，最近在前）。
-  List<DbServer> get recentSqliteFiles =>
-      sortRecentSqlite(_savedConnections);
+  List<DbServer> get recentSqliteFiles => sortRecentSqlite(_savedConnections);
 
   /// 通过文件路径打开 SQLite 数据库：复用或新建保存的连接，再连接。
   /// 供拖拽打开与「Open SQLite File…」按钮调用；成功返回 true。
@@ -1238,6 +1405,14 @@ class ConnectionProvider extends ChangeNotifier {
     if (trimmed.isEmpty || !isSqliteFilePath(trimmed)) {
       final message = 'Not a supported SQLite file: $path';
       _errorMessage = message;
+      // T3：与 _errorMessage 同步写结构化失败（打开前置校验失败属
+      // unknown 型，无 target）。
+      _lastConnectFailure = ConnectionFailure(
+        kind: ConnectionFailureKind.unknown,
+        errorCode: '',
+        rawMessage: message,
+        occurredAt: DateTime.now(),
+      );
       AppLogger.w('ConnectionProvider', message);
       notifyListeners();
       return false;
@@ -1337,6 +1512,10 @@ class ConnectionProvider extends ChangeNotifier {
     final id = connectionId ?? _currentServer?.id;
     if (id == null) return;
 
+    // T10 · 主动断开标记：仅在有活跃底层连接时打（disconnect 早退不发
+    // 事件，避免标记泄漏误吞后续意外断连判定）。
+    if (_dbService.hasConnection(id)) _manualDisconnectIds.add(id);
+
     try {
       await _dbService.disconnect(connectionId: id);
     } catch (e) {
@@ -1387,6 +1566,8 @@ class ConnectionProvider extends ChangeNotifier {
   }
 
   Future<void> disconnectAllConnections() async {
+    // T10 · 全部标记为用户主动断开（逐连接事件由事件处理器消费）。
+    _manualDisconnectIds.addAll(_dbService.connectedIds);
     await _dbService.disconnectAll();
     _currentServer = null;
     _currentDatabase = null;
@@ -1453,11 +1634,7 @@ class ConnectionProvider extends ChangeNotifier {
   /// - 失败：`(false, errorKey)`，errorKey 是本地化错误 key（见 SqliteAliasValidator）
   ///   或 null（表示底层抛错，错误信息用 e.toString()，由 UI 层直接显示）。
   Future<({bool success, String? errorKey, String? errorDetail})>
-      attachDatabase(
-    String connectionId,
-    String path,
-    String alias,
-  ) async {
+  attachDatabase(String connectionId, String path, String alias) async {
     // 前置 alias 校验（UI 层应已校验，这里双保险）。
     final existing = _connectionDatabases[connectionId] ?? const [];
     final errKey = SqliteAliasValidator.validate(alias, existing: existing);
@@ -1789,10 +1966,8 @@ class ConnectionProvider extends ChangeNotifier {
     String dbName,
   ) => _redisDbKeyInfoCache[connectionId]?[dbName];
 
-  Map<String, dynamic>? getRedisTTLKeys(
-    String connectionId,
-    String dbName,
-  ) => _redisTTLKeysCache[connectionId]?[dbName];
+  Map<String, dynamic>? getRedisTTLKeys(String connectionId, String dbName) =>
+      _redisTTLKeysCache[connectionId]?[dbName];
 
   Map<String, dynamic>? getRedisDBStats(String connectionId, String dbName) =>
       _redisDBStatsCache[connectionId]?[dbName];
@@ -1974,6 +2149,13 @@ class ConnectionProvider extends ChangeNotifier {
       AppLogger.e('ConnectionProvider', '搜索 Redis Key 失败', e);
       return [];
     }
+  }
+
+  @override
+  void dispose() {
+    _eventSubscription?.cancel();
+    _eventSubscription = null;
+    super.dispose();
   }
 
   // Test-only hook to add a server to savedConnections without

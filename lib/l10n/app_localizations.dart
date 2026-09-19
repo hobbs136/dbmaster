@@ -3837,6 +3837,12 @@ abstract class AppLocalizations {
   /// **'Click a result tab to see error details'**
   String get executionStatusBarErrorHint;
 
+  /// No description provided for @statusBarConnectionErrorTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Unresolved connection errors. Click to view.'**
+  String get statusBarConnectionErrorTooltip;
+
   /// No description provided for @toolbarExecutionPlan.
   ///
   /// In en, this message translates to:
@@ -17800,6 +17806,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Analyze with AI'**
   String get reportsAnalyzeWithAi;
+
+  /// No description provided for @connectFailureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection Failed'**
+  String get connectFailureTitle;
+
+  /// No description provided for @connectFailureFileLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'The file is locked by another program. Close the program using it and try again.'**
+  String get connectFailureFileLocked;
+
+  /// No description provided for @connectFailureFileNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The file does not exist. It may have been moved or deleted.'**
+  String get connectFailureFileNotFound;
+
+  /// No description provided for @connectFailurePermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission denied. Check file permissions and try again.'**
+  String get connectFailurePermissionDenied;
+
+  /// No description provided for @connectFailureNotADatabase.
+  ///
+  /// In en, this message translates to:
+  /// **'The file is not a valid database file.'**
+  String get connectFailureNotADatabase;
+
+  /// No description provided for @connectFailureCorrupt.
+  ///
+  /// In en, this message translates to:
+  /// **'The database file appears to be corrupted.'**
+  String get connectFailureCorrupt;
+
+  /// No description provided for @connectFailureAuthFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication failed. Check the username and password.'**
+  String get connectFailureAuthFailed;
+
+  /// No description provided for @connectFailureUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reach the server. Check the address and network.'**
+  String get connectFailureUnreachable;
+
+  /// No description provided for @connectFailureUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not connect to the database.'**
+  String get connectFailureUnknown;
+
+  /// No description provided for @connectFailureRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get connectFailureRetry;
+
+  /// No description provided for @connectFailureChooseFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Another File'**
+  String get connectFailureChooseFile;
+
+  /// No description provided for @connectFailureCopyDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Details'**
+  String get connectFailureCopyDetails;
+
+  /// No description provided for @connectFailureTechnicalDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Technical Details'**
+  String get connectFailureTechnicalDetails;
+
+  /// No description provided for @connectFailureErrorCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Error Code'**
+  String get connectFailureErrorCode;
+
+  /// No description provided for @connectFailureStatement.
+  ///
+  /// In en, this message translates to:
+  /// **'Statement'**
+  String get connectFailureStatement;
+
+  /// No description provided for @connectFailureFile.
+  ///
+  /// In en, this message translates to:
+  /// **'File'**
+  String get connectFailureFile;
+
+  /// No description provided for @connectFailureRawError.
+  ///
+  /// In en, this message translates to:
+  /// **'Raw Error'**
+  String get connectFailureRawError;
+
+  /// No description provided for @connectFailureLatestTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Last connection failed: {message}'**
+  String connectFailureLatestTooltip(String message);
 }
 
 class _AppLocalizationsDelegate

@@ -48,6 +48,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../models/connection_failure.dart'
+    show AdapterConnectException, ConnectionFailure, gatewayEnvelopeFailure;
 import '../../models/database_models.dart';
 import '../../models/redis_function.dart';
 import '../../models/redis_geo_member.dart';
@@ -181,22 +183,45 @@ class RedisAdapter extends DatabaseAdapter
       AppLogger.w(_tag, 'mapped serverConnId $mapped invalid, re-registering');
     }
 
-    // 2) 凭据草稿测试（对齐旧版 connect 的「真连」语义）。
-    final testResp = await _sendNoBody(
-      'POST',
-      '/api/gw/connections/test',
-      body: _draftBody(connection),
-    );
-    final testBody = jsonDecode(testResp.body) as Map<String, dynamic>;
-    if (testBody['ok'] != true) {
-      AppLogger.w(_tag, 'gateway credential test failed: ${testBody['error']}');
-      return false;
-    }
+    // 2)+3) 凭据草稿测试 + 现场注册 + 写回映射。连接失败 UX 重构 T9b：
+    //    测试失败（envelope ok != true）与途中的网关异常不再吞掉（原
+    //    return false / 裸异常上抛），统一抛 AdapterConnectException——
+    //    kind/errorCode 经 T1 纯函数 gatewayEnvelopeFailure 映射，cause
+    //    保留原始对象。
+    final target = '${connection.host}:${connection.port}';
+    try {
+      final testResp = await _sendNoBody(
+        'POST',
+        '/api/gw/connections/test',
+        body: _draftBody(connection),
+      );
+      final testBody = jsonDecode(testResp.body) as Map<String, dynamic>;
+      if (testBody['ok'] != true) {
+        AppLogger.w(
+          _tag,
+          'gateway credential test failed: ${testBody['error']}',
+        );
+        throw AdapterConnectException(
+          _envelopeFailure(testBody, target),
+          testBody['error'] ?? testBody,
+        );
+      }
 
-    // 3) 现场注册 + 写回映射。
-    final registered = await _registerConnection(connection);
-    await _rememberServerIdMapping(connection.id, registered);
-    _serverConnId = registered;
+      // 3) 现场注册 + 写回映射。
+      final registered = await _registerConnection(connection);
+      await _rememberServerIdMapping(connection.id, registered);
+      _serverConnId = registered;
+    } on RedisGatewayException catch (e) {
+      throw AdapterConnectException(
+        gatewayEnvelopeFailure(
+          code: e.code,
+          engineCode: e.engineCode,
+          message: e.message,
+          target: target,
+        ),
+        e,
+      );
+    }
     _currentConnection = connection.copyWith(
       connected: true,
       connectedAt: DateTime.now(),
@@ -3082,6 +3107,27 @@ class RedisAdapter extends DatabaseAdapter
       // 非 JSON 错误体——保留 HTTP 概要。
     }
     return RedisGatewayException(code, message);
+  }
+
+  /// envelope 失败体 → [ConnectionFailure]（连接失败 UX 重构 T9b）。
+  ///
+  /// 映射走 T1 纯函数 [gatewayEnvelopeFailure]（kind 按 code 稳定码映射）；
+  /// error 字段缺失/类型异常时按 unknown 兜底（errorCode 空、message 取
+  /// error/响应整体的字符串形态）。T12c：顶层 `error_code` 稳定码
+  /// （snake_case 新键）优先于旧 `error.code`，缺省回落既有解析。
+  static ConnectionFailure _envelopeFailure(
+    Map<String, dynamic> body,
+    String target,
+  ) {
+    final err = body['error'];
+    final errMap =
+        err is Map<String, dynamic> ? err : const <String, dynamic>{};
+    return gatewayEnvelopeFailure(
+      code: body['error_code']?.toString() ?? errMap['code']?.toString(),
+      engineCode: errMap['engineCode']?.toString(),
+      message: (errMap['message'] ?? err ?? body).toString(),
+      target: target,
+    );
   }
 
   /// v4 uuid（执行取消句柄预置；server 端校验 uuid 合法性）。

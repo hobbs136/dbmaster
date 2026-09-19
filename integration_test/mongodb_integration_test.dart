@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:dbmaster/models/connection_failure.dart';
 import 'package:dbmaster/models/database_models.dart';
 import 'package:dbmaster/services/adapters/mongodb_adapter.dart';
 import 'package:dbmaster/services/database_abstract.dart';
@@ -90,8 +91,30 @@ void main() {
         database: MongoDBTestConfig.authDatabase,
       );
 
-      final result = await badAdapter.connect(connection);
-      expect(result, isFalse);
+      // 连接失败 UX 重构 T9b：connect 失败不再 return false，改抛
+      // AdapterConnectException。server 有稳定码时 kind=authFailed
+      // （AUTH_DENIED）；旧 server/无码 envelope 回落 unknown——errorCode
+      // 两种形态下均非空。
+      await expectLater(
+        badAdapter.connect(connection),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having(
+                (e) =>
+                    e.failure.kind == ConnectionFailureKind.authFailed ||
+                    e.failure.kind == ConnectionFailureKind.unknown,
+                'kind',
+                isTrue,
+              )
+              .having((e) => e.failure.errorCode, 'errorCode', isNotEmpty)
+              .having(
+                (e) => e.failure.target,
+                'target',
+                '${MongoDBTestConfig.host}:${MongoDBTestConfig.port}',
+              ),
+        ),
+      );
+      expect(badAdapter.isConnected, isFalse);
     });
 
     test('should test connection successfully', () async {

@@ -20,16 +20,26 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:dbmaster/l10n/app_localizations.dart';
+import 'package:dbmaster/models/connection_failure.dart';
 import 'package:dbmaster/models/database_models.dart';
+import 'package:dbmaster/organisms/connection/connect_failure_dialog.dart';
+import 'package:dbmaster/providers/theme_provider.dart';
 import 'package:dbmaster/services/adapters/postgresql_adapter.dart';
 import 'package:dbmaster/services/database_abstract.dart';
 import 'package:dbmaster/services/readonly_guard.dart';
 import 'package:dbmaster/services/server_connection.dart';
+
+import '../../../integration_test/config/postgresql_test_config.dart';
+import '../../helpers/pg_gateway_live_helper.dart';
 
 /// 记录全部请求并按路径规则回放的客户端。
 class _RecordingClient extends http.BaseClient {
@@ -86,6 +96,14 @@ DatabaseConnection _conn({bool readOnly = false, int? timeoutSecs}) =>
 /// 网关注册表列表（id 集合可配）。
 http.StreamedResponse _listResponse(Set<String> ids) =>
     _jsonResp([for (final id in ids) {'id': id, 'dbType': 'postgresql'}], 200);
+
+/// 空壳 HttpOverrides：继承基类默认 createHttpClient（返回真实 HttpClient）。
+///
+/// 文件内任一 testWidgets 注册即初始化 TestWidgetsFlutterBinding，其
+/// _MockHttpOverrides 会把 HttpOverrides.global 换成「永远返回空体 400」的
+/// mock，且 tester.runAsync 只逃逸 fake-async、不恢复 overrides——live 组的
+/// 真实网关请求必须包进本 override 的 zone 才能出真网络。
+class _RealHttpOverrides extends HttpOverrides {}
 
 void main() {
   setUp(() {
@@ -241,7 +259,7 @@ void main() {
       expect(registered, isTrue);
     });
 
-    test('401（草稿 test 被拒）→ 错误形状上抛，不注册', () async {
+    test('401（草稿 test 被拒）→ AdapterConnectException 携带网关错误码，不注册', () async {
       var registered = false;
       final client = _RecordingClient((req) {
         if (req.url.path == '/api/gw/connections/test') {
@@ -257,11 +275,112 @@ void main() {
         return _listResponse({});
       });
       final adapter = PostgreSQLAdapter()..httpClient = client;
+      // 连接失败 UX 重构 T9b：connect 途中的网关异常包装为 typed
+      // AdapterConnectException（code/message 经 gatewayEnvelopeFailure，
+      // 原始异常保留在 cause）。
       await expectLater(
         adapter.connect(_conn()),
         throwsA(
-          isA<PostgreSqlGatewayException>()
-              .having((e) => e.code, 'code', 'UNAUTHORIZED'),
+          isA<AdapterConnectException>()
+              .having((e) => e.failure.errorCode, 'errorCode', 'UNAUTHORIZED')
+              .having((e) => e.failure.rawMessage, 'rawMessage', 'bad token')
+              .having(
+                (e) => e.failure.target,
+                'target',
+                '192.0.2.128:5432',
+              )
+              .having((e) => e.cause, 'cause', isA<PostgreSqlGatewayException>()),
+        ),
+      );
+      expect(registered, isFalse);
+      expect(adapter.isConnected, isFalse);
+    });
+
+    test('草稿 test 失败（envelope ok:false）→ AdapterConnectException 且不注册', () async {
+      var registered = false;
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections/test') {
+          return _jsonResp({
+            'ok': false,
+            'error': {
+              'code': 'DB_ERROR',
+              'message': 'password authentication failed for user "postgres"',
+            },
+          }, 200);
+        }
+        if (req.method == 'POST' && req.url.path == '/api/gw/connections') {
+          registered = true;
+          return _jsonResp({'serverConnId': 'srv-x'}, 200);
+        }
+        return _listResponse({});
+      });
+      final adapter = PostgreSQLAdapter()..httpClient = client;
+      await expectLater(
+        adapter.connect(_conn()),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having(
+                (e) => e.failure.kind,
+                'kind',
+                ConnectionFailureKind.unknown,
+              )
+              .having((e) => e.failure.errorCode, 'errorCode', 'DB_ERROR')
+              .having(
+                (e) => e.failure.rawMessage,
+                'rawMessage',
+                contains('password authentication failed'),
+              )
+              .having(
+                (e) => e.failure.target,
+                'target',
+                '192.0.2.128:5432',
+              ),
+        ),
+      );
+      expect(registered, isFalse);
+      expect(adapter.isConnected, isFalse);
+    });
+
+    test('T12s wire：error_code=AUTH_DENIED → AdapterConnectException kind=authFailed', () async {
+      // T12c：server 草稿 test 失败响应加性新增顶层 `error_code`（snake_case），
+      // error 字符串字段原样保留 → kind 分型 authFailed、errorCode 非空。
+      var registered = false;
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections/test') {
+          return _jsonResp({
+            'ok': false,
+            'error': 'password authentication failed for user "postgres"',
+            'error_code': 'AUTH_DENIED',
+            'elapsedMs': 12,
+          }, 200);
+        }
+        if (req.method == 'POST' && req.url.path == '/api/gw/connections') {
+          registered = true;
+          return _jsonResp({'serverConnId': 'srv-x'}, 200);
+        }
+        return _listResponse({});
+      });
+      final adapter = PostgreSQLAdapter()..httpClient = client;
+      await expectLater(
+        adapter.connect(_conn()),
+        throwsA(
+          isA<AdapterConnectException>()
+              .having(
+                (e) => e.failure.kind,
+                'kind',
+                ConnectionFailureKind.authFailed,
+              )
+              .having((e) => e.failure.errorCode, 'errorCode', 'AUTH_DENIED')
+              .having(
+                (e) => e.failure.rawMessage,
+                'rawMessage',
+                contains('password authentication failed'),
+              )
+              .having(
+                (e) => e.failure.target,
+                'target',
+                '192.0.2.128:5432',
+              ),
         ),
       );
       expect(registered, isFalse);
@@ -660,5 +779,141 @@ void main() {
       expect(bodies[1].containsKey('database'), isFalse); // 重试无库
       expect(adapter.currentConnection?.database, isNull); // 记录已清
     });
+  });
+
+  // ==========================================================================
+  // 连接失败 UX 重构 T9b · live：错误凭据连真实 PG（env 门控，无环境 skip）。
+  //
+  // 前置：DBMASTER_SERVER_BIN（或 exe 同目录二进制，embedded server）+
+  // PG 真库（--dart-define=DBMASTER_PG_*，见
+  // integration_test/config/postgresql_test_config.dart）。前置不可得时以
+  // 可 grep 的 PG_LIVE_SKIP 打印并跳过（无假绿纪律）。
+  // ==========================================================================
+  group('live：错误凭据 → typed failure（真库经 embedded /api/gw）', () {
+    testWidgets(
+      '错误凭据 → AdapterConnectException（kind/errorCode 非空）+ 对话框结构化详情',
+      (tester) async {
+        if (!PostgreSQLTestConfig.available) {
+          // ignore: avoid_print
+          print('PG_LIVE_SKIP: 未配置 PG 真库（--dart-define=DBMASTER_PG_*）');
+          return;
+        }
+        ConnectionFailure? caught;
+        var skipReason = '';
+        await tester.runAsync(() async {
+          // 本文件 per-test setUp 注入的是 fake embedded 会话——清掉后
+          // 直启真 server（Process.start + 握手注入）。
+          ServerConnection.resetForTesting();
+          if (!await ensureEmbeddedServerForPgLive()) {
+            skipReason =
+                'PG_LIVE_SKIP: embedded server 不可得（构建 server 并设 '
+                'DBMASTER_SERVER_BIN）';
+            return;
+          }
+          try {
+            final adapter = PostgreSQLAdapter();
+            final wrong = DatabaseConnection(
+              id: 'live_pg_bad_1',
+              name: 'PG Live Wrong Creds',
+              type: DatabaseType.postgresql,
+              host: PostgreSQLTestConfig.host,
+              port: PostgreSQLTestConfig.port,
+              username: PostgreSQLTestConfig.username,
+              password: '${PostgreSQLTestConfig.password}_wrong',
+              database: PostgreSQLTestConfig.database,
+            );
+            try {
+              // runWithHttpOverrides 以 zone value 直注真实 override（裸
+              // HttpOverrides.runZoned 的 scope 会捕获 outer current=mock，
+              // 绕不开 mock）——本文件 testWidgets 注册的 _MockHttpOverrides
+              // 会让裸请求拿到空体 400，断言宽松时假绿（对齐 mysql live 组）。
+              await HttpOverrides.runWithHttpOverrides<Future<void>>(
+                () async {
+                  await adapter.connect(wrong);
+                  skipReason = '';
+                },
+                _RealHttpOverrides(),
+              );
+            } on AdapterConnectException catch (e) {
+              caught = e.failure;
+            }
+          } finally {
+            await stopEmbeddedServerForPgLive();
+          }
+        });
+        if (skipReason.isNotEmpty) {
+          // ignore: avoid_print
+          print(skipReason);
+          return;
+        }
+        // connect 成功返回（未抛）= 契约破坏，直接判红。
+        expect(caught, isNotNull,
+            reason: '错误凭据必须抛 AdapterConnectException（T9b typed 管道）');
+
+        final failure = caught!;
+        // live 实跑真库：T12s 起 server 对 PG 28P01 返回稳定码
+        // error_code=AUTH_DENIED → kind=authFailed。回落形状（unknown/空码）
+        // 已由上方 mock 组覆盖，live 组不再容忍——否则 mock 400 也假绿。
+        expect(
+          failure.kind,
+          ConnectionFailureKind.authFailed,
+          reason: '真实 PG 错误凭据（28P01）应分型 authFailed，'
+              '实测 kind=${failure.kind} errorCode=${failure.errorCode}',
+        );
+        expect(
+          failure.errorCode,
+          'AUTH_DENIED',
+          reason: '真实 PG 28P01 经 T12s server 应得 error_code=AUTH_DENIED，'
+              '实测 errorCode=${failure.errorCode}',
+        );
+        expect(failure.rawMessage, isNotEmpty);
+        expect(
+          failure.target,
+          '${PostgreSQLTestConfig.host}:${PostgreSQLTestConfig.port}',
+        );
+        // ignore: avoid_print
+        print('PG_LIVE_INFO: errorCode="${failure.errorCode}" '
+            'raw="${failure.rawMessage}"');
+
+        // widget 层：ConnectFailureDialog 携带该 live failure。headline 按
+        // kind 分型（authFailed 或 unknown 兜底，均为设计文案）；非兜底的
+        // 结构化信息（真实错误码 + 原始消息）经「Technical Details」直达 UI。
+        final themeProvider = ThemeProvider();
+        await themeProvider.load();
+        await tester.pumpWidget(
+          ChangeNotifierProvider<ThemeProvider>.value(
+            value: themeProvider,
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              locale: const Locale('en'),
+              home: ConnectFailureDialog(
+                failure: failure,
+                onRetry: () async => false,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        // 分型 headline：authFailed（新 server 稳定码）或 unknown（回落兜底），
+        // 两者均为设计文案（connectFailureAuthFailed / connectFailureUnknown）。
+        final unknownHeadline = find.text('Could not connect to the database.');
+        final authHeadline = find.text(
+          'Authentication failed. Check the username and password.',
+        );
+        expect(
+          unknownHeadline.evaluate().isNotEmpty ||
+              authHeadline.evaluate().isNotEmpty,
+          isTrue,
+          reason: 'headline 应为 authFailed 或 unknown 分型的设计文案',
+        );
+        // 展开技术详情 → 真实 envelope 错误码与原始消息可见（非兜底）。
+        await tester.tap(find.text('Technical Details'));
+        await tester.pumpAndSettle();
+        expect(find.text('Error Code'), findsOneWidget);
+        expect(find.text(failure.errorCode), findsWidgets);
+        expect(find.text('Raw Error'), findsOneWidget);
+      },
+    );
   });
 }

@@ -9,20 +9,26 @@ class ToastService {
   static final List<OverlayEntry> _overlays = [];
   static const Duration _defaultDuration = Duration(seconds: 3);
 
+  /// 连接失败 UX 重构 T10：error 类 toast 需持久可见，默认时长 3s → 8s
+  /// （仅 error；success/warning/info 保持 3s）。显式传 duration 仍可覆盖。
+  static const Duration _defaultErrorDuration = Duration(seconds: 8);
+
   static void show(
     BuildContext context, {
     required String message,
     ToastType type = ToastType.info,
-    Duration duration = _defaultDuration,
+    Duration? duration,
     Widget? action,
   }) {
+    final effectiveDuration = duration ??
+        (type == ToastType.error ? _defaultErrorDuration : _defaultDuration);
     final overlay = Overlay.of(context);
     late final OverlayEntry entry;
     entry = OverlayEntry(
       builder: (context) => _ToastWidget(
         message: message,
         type: type,
-        duration: duration,
+        duration: effectiveDuration,
         action: action,
         onDismiss: () => _removeOverlay(entry),
       ),
@@ -53,7 +59,7 @@ class ToastService {
       context,
       message: message,
       type: ToastType.success,
-      duration: duration ?? _defaultDuration,
+      duration: duration,
     );
   }
 
@@ -66,7 +72,7 @@ class ToastService {
       context,
       message: message,
       type: ToastType.error,
-      duration: duration ?? _defaultDuration,
+      duration: duration,
     );
   }
 
@@ -79,7 +85,7 @@ class ToastService {
       context,
       message: message,
       type: ToastType.warning,
-      duration: duration ?? _defaultDuration,
+      duration: duration,
     );
   }
 
@@ -88,7 +94,7 @@ class ToastService {
       context,
       message: message,
       type: ToastType.info,
-      duration: duration ?? _defaultDuration,
+      duration: duration,
     );
   }
 }

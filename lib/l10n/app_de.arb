@@ -248,6 +248,7 @@
     }
   },
   "executionStatusBarErrorHint": "Klicken Sie auf einen Ergebnis-Tab, um Fehlerdetails zu sehen",
+  "statusBarConnectionErrorTooltip": "Es gibt unbehandelte Verbindungsfehler. Zum Anzeigen klicken",
   "toolbarExecutionPlan": "Ausführungsplan",
   "toolbarFormat": "Formatieren",
   "toolbarSave": "Speichern",
@@ -3118,5 +3119,24 @@
   "reportsByConnectionSection": "Pro Verbindung",
   "reportsUnknownType": "Unbekannter Berichtstyp — Rohinhalt:"
 ,
-  "reportsAnalyzeWithAi": "Mit KI analysieren"
+  "reportsAnalyzeWithAi": "Mit KI analysieren",
+  "connectFailureTitle": "Verbindung fehlgeschlagen",
+  "connectFailureFileLocked": "Die Datei wird von einem anderen Programm verwendet. Schließen Sie das Programm, das sie verwendet, und versuchen Sie es erneut.",
+  "connectFailureFileNotFound": "Die Datei existiert nicht. Sie wurde möglicherweise verschoben oder gelöscht.",
+  "connectFailurePermissionDenied": "Zugriff verweigert. Überprüfen Sie die Dateiberechtigungen und versuchen Sie es erneut.",
+  "connectFailureNotADatabase": "Die Datei ist keine gültige Datenbankdatei.",
+  "connectFailureCorrupt": "Die Datenbankdatei scheint beschädigt zu sein.",
+  "connectFailureAuthFailed": "Authentifizierung fehlgeschlagen. Überprüfen Sie Benutzername und Passwort.",
+  "connectFailureUnreachable": "Der Server konnte nicht erreicht werden. Überprüfen Sie Adresse und Netzwerk.",
+  "connectFailureUnknown": "Verbindung zur Datenbank konnte nicht hergestellt werden.",
+  "connectFailureRetry": "Erneut versuchen",
+  "connectFailureChooseFile": "Andere Datei auswählen",
+  "connectFailureCopyDetails": "Details kopieren",
+  "connectFailureTechnicalDetails": "Technische Details",
+  "connectFailureErrorCode": "Fehlercode",
+  "connectFailureStatement": "Anweisung",
+  "connectFailureFile": "Datei",
+  "connectFailureRawError": "Originalfehler",
+  "connectFailureLatestTooltip": "Letzte Verbindung fehlgeschlagen: {message}",
+  "@connectFailureLatestTooltip": {"placeholders": {"message": {"type": "String"}}}
 }

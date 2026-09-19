@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import '../models/database_models.dart';
 import '../models/connection_event.dart';
+import '../models/connection_failure.dart';
 import '../models/dml_risk_models.dart';
 import '../models/redis_function.dart';
 import '../models/result_data_shape.dart';
@@ -208,6 +209,17 @@ class _ConnectionManager {
     _state.servers[server.id] = server.copyWith(connected: true);
   }
 
+  /// Test-only：覆写某数据库类型的 adapter 工厂（连接失败路径单测注入
+  /// stub adapter 用；连接失败 UX 重构 T3）。不还原会影响同实例后续连接，
+  /// 仅限单测文件内使用。
+  @visibleForTesting
+  void setAdapterFactoryForTest(
+    DatabaseType type,
+    DatabaseAdapter Function() factory,
+  ) {
+    _adapterFactories[type] = factory;
+  }
+
   // open-core Phase B — static final → 实例 late final，使 Mongo 工厂
   // 能闭包注入的集群策略（static lambda 无法捕获实例字段）。
   late final Map<DatabaseType, DatabaseAdapter Function()> _adapterFactories = {
@@ -293,7 +305,19 @@ class _ConnectionManager {
       }
 
       if (!success) {
-        throw Exception('数据库适配器连接失败');
+        // 连接失败 UX 重构 T3：契约上 adapter connect 失败应抛
+        // AdapterConnectException；网关族 adapter 尚未迁移（T9 范围），
+        // 仍 return false 的在此兜底转 typed，保证 Provider 收到的一定是 typed。
+        throw AdapterConnectException(
+          ConnectionFailure(
+            kind: ConnectionFailureKind.unknown,
+            errorCode: '',
+            target: '${server.host}:${server.port}',
+            rawMessage: '数据库适配器连接失败',
+            occurredAt: DateTime.now(),
+          ),
+          Exception('数据库适配器连接失败'),
+        );
       }
 
       adapter.onDisconnect = () => _handleAdapterDisconnect(server.id);
@@ -325,18 +349,32 @@ class _ConnectionManager {
         _state.activeConnectionId = null;
         _state.currentServer = null;
       }
-      if (e.toString().contains('packets out of order')) {
-        throw Exception('连接失败: 协议错误，请检查服务器地址和端口是否正确');
+      // 连接失败 UX 重构 T3：adapter 抛出的 typed failure 原样透传；
+      // 其余异常（SSH 隧道失败、网关族抛出的裸异常等）统一包装为
+      // AdapterConnectException(kind=unknown)，异常链经 cause 保留。
+      if (e is AdapterConnectException) {
+        rethrow;
       }
-      if (e.toString().contains('[RATE_LIMITED]')) {
+      var rawMessage = '连接失败: $e';
+      if (e.toString().contains('packets out of order')) {
+        rawMessage = '连接失败: 协议错误，请检查服务器地址和端口是否正确';
+      } else if (e.toString().contains('[RATE_LIMITED]')) {
         // 网关 per-user 限流（默认 600 req/min 滑动窗口）——连接本身是好的，
         // 独立文案防「连接失败」误导（限流根治配套：客户端重路径已批量化）。
-        throw Exception(
-          '网关限流：每分钟请求配额已用尽，请约 1 分钟后重试'
-          '（如频繁出现，可在 server 侧调高 DBMASTER_GW_RATE_LIMIT_PER_MIN）',
-        );
+        rawMessage =
+            '网关限流：每分钟请求配额已用尽，请约 1 分钟后重试'
+            '（如频繁出现，可在 server 侧调高 DBMASTER_GW_RATE_LIMIT_PER_MIN）';
       }
-      throw Exception('连接失败: $e');
+      throw AdapterConnectException(
+        ConnectionFailure(
+          kind: ConnectionFailureKind.unknown,
+          errorCode: '',
+          target: '${server.host}:${server.port}',
+          rawMessage: rawMessage,
+          occurredAt: DateTime.now(),
+        ),
+        e,
+      );
     } finally {
       _state.connectingIds.remove(server.id);
       _state.connectCompleters.remove(server.id);
@@ -3122,6 +3160,14 @@ class DatabaseService {
   @visibleForTesting
   void markConnectingForTest(String connectionId) =>
       _connMgr.markConnectingForTest(connectionId);
+
+  /// Test-only：覆写某数据库类型的 adapter 工厂（见 _ConnectionManager
+  /// 同名 hook 的说明；连接失败路径单测注入 stub adapter 用）。
+  @visibleForTesting
+  void setAdapterFactoryForTest(
+    DatabaseType type,
+    DatabaseAdapter Function() factory,
+  ) => _connMgr.setAdapterFactoryForTest(type, factory);
   bool isConnectionActive(String connectionId) =>
       _connMgr.isConnectionActive(connectionId);
   bool hasConnection(String connectionId) =>

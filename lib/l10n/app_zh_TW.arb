@@ -249,6 +249,7 @@
     }
   },
   "executionStatusBarErrorHint": "點擊結果子標籤查看錯誤詳情",
+  "statusBarConnectionErrorTooltip": "存在未處理的連線錯誤，點擊查看",
   "toolbarExecutionPlan": "執行計畫",
   "toolbarFormat": "格式化",
   "toolbarSave": "儲存",
@@ -3126,5 +3127,24 @@
   "reportsByConnectionSection": "按連線分佈",
   "reportsUnknownType": "未知報告類型——原始內容："
 ,
-  "reportsAnalyzeWithAi": "AI 分析"
+  "reportsAnalyzeWithAi": "AI 分析",
+  "connectFailureTitle": "無法連線",
+  "connectFailureFileLocked": "檔案正被其他程式佔用。請關閉佔用該檔案的程式後重試。",
+  "connectFailureFileNotFound": "檔案不存在，可能已被移動或刪除。",
+  "connectFailurePermissionDenied": "沒有存取權限，請檢查檔案權限後重試。",
+  "connectFailureNotADatabase": "該檔案不是有效的資料庫檔案。",
+  "connectFailureCorrupt": "資料庫檔案似乎已損毀。",
+  "connectFailureAuthFailed": "認證失敗，請檢查使用者名稱與密碼。",
+  "connectFailureUnreachable": "無法連線到伺服器，請檢查位址與網路。",
+  "connectFailureUnknown": "無法連線到資料庫。",
+  "connectFailureRetry": "重試",
+  "connectFailureChooseFile": "重新選擇檔案",
+  "connectFailureCopyDetails": "複製詳情",
+  "connectFailureTechnicalDetails": "技術詳情",
+  "connectFailureErrorCode": "錯誤碼",
+  "connectFailureStatement": "出錯語句",
+  "connectFailureFile": "檔案",
+  "connectFailureRawError": "原始例外",
+  "connectFailureLatestTooltip": "最近連線失敗：{message}",
+  "@connectFailureLatestTooltip": {"placeholders": {"message": {"type": "String"}}}
 }

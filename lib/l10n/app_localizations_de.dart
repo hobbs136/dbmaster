@@ -2037,6 +2037,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Klicken Sie auf einen Ergebnis-Tab, um Fehlerdetails zu sehen';
 
   @override
+  String get statusBarConnectionErrorTooltip =>
+      'Es gibt unbehandelte Verbindungsfehler. Zum Anzeigen klicken';
+
+  @override
   String get toolbarExecutionPlan => 'Ausführungsplan';
 
   @override
@@ -10148,4 +10152,68 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get reportsAnalyzeWithAi => 'Mit KI analysieren';
+
+  @override
+  String get connectFailureTitle => 'Verbindung fehlgeschlagen';
+
+  @override
+  String get connectFailureFileLocked =>
+      'Die Datei wird von einem anderen Programm verwendet. Schließen Sie das Programm, das sie verwendet, und versuchen Sie es erneut.';
+
+  @override
+  String get connectFailureFileNotFound =>
+      'Die Datei existiert nicht. Sie wurde möglicherweise verschoben oder gelöscht.';
+
+  @override
+  String get connectFailurePermissionDenied =>
+      'Zugriff verweigert. Überprüfen Sie die Dateiberechtigungen und versuchen Sie es erneut.';
+
+  @override
+  String get connectFailureNotADatabase =>
+      'Die Datei ist keine gültige Datenbankdatei.';
+
+  @override
+  String get connectFailureCorrupt =>
+      'Die Datenbankdatei scheint beschädigt zu sein.';
+
+  @override
+  String get connectFailureAuthFailed =>
+      'Authentifizierung fehlgeschlagen. Überprüfen Sie Benutzername und Passwort.';
+
+  @override
+  String get connectFailureUnreachable =>
+      'Der Server konnte nicht erreicht werden. Überprüfen Sie Adresse und Netzwerk.';
+
+  @override
+  String get connectFailureUnknown =>
+      'Verbindung zur Datenbank konnte nicht hergestellt werden.';
+
+  @override
+  String get connectFailureRetry => 'Erneut versuchen';
+
+  @override
+  String get connectFailureChooseFile => 'Andere Datei auswählen';
+
+  @override
+  String get connectFailureCopyDetails => 'Details kopieren';
+
+  @override
+  String get connectFailureTechnicalDetails => 'Technische Details';
+
+  @override
+  String get connectFailureErrorCode => 'Fehlercode';
+
+  @override
+  String get connectFailureStatement => 'Anweisung';
+
+  @override
+  String get connectFailureFile => 'Datei';
+
+  @override
+  String get connectFailureRawError => 'Originalfehler';
+
+  @override
+  String connectFailureLatestTooltip(String message) {
+    return 'Letzte Verbindung fehlgeschlagen: $message';
+  }
 }

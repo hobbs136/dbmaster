@@ -9,6 +9,7 @@ import '../../providers/app_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/server_connection_provider.dart';
 import '../../models/database_models.dart' hide QueryTab;
+import '../../models/connection_failure.dart';
 import '../../models/ai_tree_node_context.dart';
 import '../../models/table_maintenance_command.dart';
 import '../sidebar/mysql_engine_status_dialog.dart';
@@ -38,6 +39,7 @@ import '../../utils/index_dialect_names.dart';
 import 'tree_item.dart';
 import 'saved_queries/saved_queries_section.dart';
 import 'sidebar_current_connection.dart';
+import 'sidebar_connection_selector.dart';
 import 'sidebar_section.dart';
 import 'builders/tree_utils.dart';
 import '../../molecules/context_menu.dart';
@@ -444,6 +446,8 @@ class SidebarTree extends StatelessWidget {
         rightClickedNodeKey == 'conn:${server.id}' ||
         selectedNodeKey == 'conn:${server.id}';
     final isConnecting = provider.isConnectionConnecting(server.id);
+    // T10 · 未处置失败（connect 失败/意外断连）→ 树根状态点 error 态。
+    final unhandledFailure = provider.connection.lastFailureFor(server.id);
     var isExpanded = expandedItems.contains(server.id) && isConnected;
     final connectionDatabases = provider.getConnectionDatabases(server.id);
 
@@ -488,6 +492,7 @@ class SidebarTree extends StatelessWidget {
             server,
             isConnected,
             isConnected,
+            unhandledFailure: unhandledFailure,
           ),
           onTap: () {
             if (isConnected) {
@@ -614,13 +619,43 @@ class SidebarTree extends StatelessWidget {
     BuildContext context,
     DbServer server,
     bool isConnected,
-    bool isActive,
-  ) {
+    bool isActive, {
+    ConnectionFailure? unhandledFailure,
+  }) {
     // T051 — Server connection health indicator (T2.2).
     // Placeholder until M3 health engine: shows 🟢 when connected to server.
     final serverConnected = context
         .watch<ServerConnectionProvider>()
         .isConnected;
+    final colors = context.themeColors;
+    final l10n = AppLocalizations.of(context)!;
+    // T10 · 未处置失败 → 状态点 error 态（tooltip 为最新失败人话原因；
+    // 无失败时保持既有 current/connected/disconnect 三态不变）。
+    final String statusTooltip;
+    if (unhandledFailure != null) {
+      statusTooltip = l10n.connectFailureLatestTooltip(
+        SidebarConnectionSelector.failurePlainMessage(
+          l10n,
+          unhandledFailure.kind,
+        ),
+      );
+    } else if (isActive) {
+      statusTooltip = l10n.connectionCurrent;
+    } else if (isConnected) {
+      statusTooltip = l10n.connectionConnected;
+    } else {
+      statusTooltip = l10n.connectionDisconnect;
+    }
+    final Color statusDotColor;
+    if (unhandledFailure != null) {
+      statusDotColor = colors.error;
+    } else if (isActive) {
+      statusDotColor = colors.success;
+    } else if (isConnected) {
+      statusDotColor = colors.accentBlue;
+    } else {
+      statusDotColor = colors.textMuted.withValues(alpha: 0.5);
+    }
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -667,20 +702,12 @@ class SidebarTree extends StatelessWidget {
           ),
         ],
         Tooltip(
-          message: isActive
-              ? AppLocalizations.of(context)!.connectionCurrent
-              : isConnected
-              ? AppLocalizations.of(context)!.connectionConnected
-              : AppLocalizations.of(context)!.connectionDisconnect,
+          message: statusTooltip,
           child: Container(
             width: 10,
             height: 10,
             decoration: BoxDecoration(
-              color: isActive
-                  ? context.themeColors.success
-                  : isConnected
-                  ? context.themeColors.accentBlue
-                  : context.themeColors.textMuted.withValues(alpha: 0.5),
+              color: statusDotColor,
               shape: BoxShape.circle,
               border: Border.all(
                 color: context.themeColors.bgSecondary,

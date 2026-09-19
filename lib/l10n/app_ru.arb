@@ -247,6 +247,7 @@
     }
   },
   "executionStatusBarErrorHint": "Нажмите на вкладку результата, чтобы увидеть подробности ошибок",
+  "statusBarConnectionErrorTooltip": "Есть необработанные ошибки подключения. Нажмите для просмотра",
   "toolbarExecutionPlan": "План выполнения",
   "toolbarFormat": "Форматировать",
   "toolbarSave": "Сохранить",
@@ -3115,5 +3116,24 @@
   "reportsByConnectionSection": "По соединениям",
   "reportsUnknownType": "Неизвестный тип отчёта — исходное содержимое:"
 ,
-  "reportsAnalyzeWithAi": "Анализировать с ИИ"
+  "reportsAnalyzeWithAi": "Анализировать с ИИ",
+  "connectFailureTitle": "Ошибка подключения",
+  "connectFailureFileLocked": "Файл занят другой программой. Закройте программу, использующую этот файл, и повторите попытку.",
+  "connectFailureFileNotFound": "Файл не существует. Возможно, он был перемещён или удалён.",
+  "connectFailurePermissionDenied": "Доступ запрещён. Проверьте права доступа к файлу и повторите попытку.",
+  "connectFailureNotADatabase": "Файл не является допустимым файлом базы данных.",
+  "connectFailureCorrupt": "Файл базы данных повреждён.",
+  "connectFailureAuthFailed": "Ошибка аутентификации. Проверьте имя пользователя и пароль.",
+  "connectFailureUnreachable": "Не удалось подключиться к серверу. Проверьте адрес и сеть.",
+  "connectFailureUnknown": "Не удалось подключиться к базе данных.",
+  "connectFailureRetry": "Повторить",
+  "connectFailureChooseFile": "Выбрать другой файл",
+  "connectFailureCopyDetails": "Копировать подробности",
+  "connectFailureTechnicalDetails": "Технические подробности",
+  "connectFailureErrorCode": "Код ошибки",
+  "connectFailureStatement": "Инструкция",
+  "connectFailureFile": "Файл",
+  "connectFailureRawError": "Исходная ошибка",
+  "connectFailureLatestTooltip": "Последнее подключение завершилось ошибкой: {message}",
+  "@connectFailureLatestTooltip": {"placeholders": {"message": {"type": "String"}}}
 }

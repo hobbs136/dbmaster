@@ -2020,6 +2020,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Click a result tab to see error details';
 
   @override
+  String get statusBarConnectionErrorTooltip =>
+      'Unresolved connection errors. Click to view.';
+
+  @override
   String get toolbarExecutionPlan => 'Execution Plan';
 
   @override
@@ -10101,4 +10105,67 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsAnalyzeWithAi => 'Analyze with AI';
+
+  @override
+  String get connectFailureTitle => 'Connection Failed';
+
+  @override
+  String get connectFailureFileLocked =>
+      'The file is locked by another program. Close the program using it and try again.';
+
+  @override
+  String get connectFailureFileNotFound =>
+      'The file does not exist. It may have been moved or deleted.';
+
+  @override
+  String get connectFailurePermissionDenied =>
+      'Permission denied. Check file permissions and try again.';
+
+  @override
+  String get connectFailureNotADatabase =>
+      'The file is not a valid database file.';
+
+  @override
+  String get connectFailureCorrupt =>
+      'The database file appears to be corrupted.';
+
+  @override
+  String get connectFailureAuthFailed =>
+      'Authentication failed. Check the username and password.';
+
+  @override
+  String get connectFailureUnreachable =>
+      'Could not reach the server. Check the address and network.';
+
+  @override
+  String get connectFailureUnknown => 'Could not connect to the database.';
+
+  @override
+  String get connectFailureRetry => 'Retry';
+
+  @override
+  String get connectFailureChooseFile => 'Choose Another File';
+
+  @override
+  String get connectFailureCopyDetails => 'Copy Details';
+
+  @override
+  String get connectFailureTechnicalDetails => 'Technical Details';
+
+  @override
+  String get connectFailureErrorCode => 'Error Code';
+
+  @override
+  String get connectFailureStatement => 'Statement';
+
+  @override
+  String get connectFailureFile => 'File';
+
+  @override
+  String get connectFailureRawError => 'Raw Error';
+
+  @override
+  String connectFailureLatestTooltip(String message) {
+    return 'Last connection failed: $message';
+  }
 }
