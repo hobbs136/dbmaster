@@ -26,7 +26,8 @@
 //   ① completed + ```sql 围栏 → 展开态 finalReplyKey 渲染 + 复制剪贴板 =
 //   围栏 SQL 全文；② 折叠态或非 completed → finalReplyKey findsNothing
 //   （懒构建守护扩展）；③ 长回复不突破卡体 360 单滚动不变式；④ 0 步纯对话
-//   run 展开态回复可见。
+//   run 展开态回复可见；⑤ markdown 渲染（Fix-K）：散文段走 MarkdownBody，
+//   裸 ## / ** / 反引号不作为正文文本出现，围栏段复制语义保持。
 
 import 'dart:async';
 import 'dart:convert';
@@ -34,6 +35,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -1533,6 +1535,96 @@ void main() {
     expect(find.byKey(AgentTrajectoryCard.finalReplyKey), findsOneWidget);
     expect(find.text(answer), findsOneWidget);
     expect(find.byKey(AgentTrajectoryCard.stepRowKey(1)), findsNothing);
+  });
+
+  testWidgets('M1-⑤ markdown 渲染：散文段走 MarkdownBody、裸标记不再作为正文、围栏段复制保持', (
+    WidgetTester tester,
+  ) async {
+    // 用户实报形态（走查缺陷 Fix-K）：## 标题 / - **粗体**：值 / 行内 `code`
+    // 全部裸露；围栏段 = SQL 全文（复制语义走查已认可）。
+    const String sql = 'SELECT id, name FROM users WHERE id = 1';
+    String? clipText;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (
+          MethodCall call,
+        ) async {
+          switch (call.method) {
+            case 'Clipboard.setData':
+              final Map<dynamic, dynamic>? args =
+                  call.arguments as Map<dynamic, dynamic>?;
+              clipText = args?['text'] as String?;
+              return null;
+            case 'Clipboard.getData':
+              return clipText == null
+                  ? null
+                  : <String, dynamic>{'text': clipText};
+            default:
+              return null;
+          }
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+    final List<AiMessage> messages = <AiMessage>[
+      mkAnchor('run_md'),
+      ...mkStep(
+        'run_md',
+        1,
+        'execute_readonly_sql',
+        args: <String, dynamic>{'sql': sql},
+      ),
+      mkTerminal(
+        'run_md',
+        'completed',
+        steps: 1,
+        summaryText: 'Completed · 1 step(s)',
+        content:
+            '## 当前状态\n'
+            '- **连接**：postgresql\n'
+            '- 工具 `list_tables` 已执行\n'
+            '```sql\n'
+            '$sql\n'
+            '```\n'
+            '完成。',
+      ),
+    ];
+    await tester.pumpWidget(_wrap(AgentTrajectoryCard(runMessages: messages)));
+    await tester.pumpAndSettle();
+    // 折叠态零构建不变式不受 Fix-K 影响。
+    expect(find.byKey(AgentTrajectoryCard.finalReplyKey), findsNothing);
+    await tester.tap(find.byKey(AgentTrajectoryCard.headerKey));
+    await tester.pumpAndSettle();
+    expect(find.byKey(AgentTrajectoryCard.finalReplyKey), findsOneWidget);
+    // 散文段 = MarkdownBody（两个散文段：标题清单块 + 尾句；围栏段不经过它）。
+    expect(
+      find.descendant(
+        of: find.byKey(AgentTrajectoryCard.finalReplyKey),
+        matching: find.byType(MarkdownBody),
+      ),
+      findsNWidgets(2),
+    );
+    // 裸 markdown 标记不再作为正文文本出现（井号/星号/反引号被渲染消费）。
+    expect(find.text('## 当前状态'), findsNothing);
+    expect(find.text('**连接**：postgresql'), findsNothing);
+    expect(find.text('工具 `list_tables` 已执行'), findsNothing);
+    // 渲染产物：标题文字、清单项（粗体 + 正文拼合为可选中文本）、行内 code
+    // 并入段落文本。
+    expect(find.text('当前状态'), findsOneWidget);
+    expect(find.text('连接：postgresql'), findsOneWidget);
+    expect(find.text('工具 list_tables 已执行'), findsOneWidget);
+    expect(find.text('完成。'), findsOneWidget);
+    // 围栏段保持 _codeBlock 视觉与复制语义：步详情未展开 → 唯一复制钮 =
+    // 回复区围栏段；复制内容 = 围栏内 SQL 全文（非 markdown 加工文本）。
+    expect(find.text(sql), findsOneWidget);
+    await tester.tap(find.text('Copy'));
+    await tester.pump();
+    final ClipboardData? data = await Clipboard.getData('text/plain');
+    expect(data?.text, sql);
+    expect(find.text('Copied'), findsOneWidget);
+    // 推进 2s 让复制反馈复位定时器触发（避免 pending timer 断言）。
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.text('Copied'), findsNothing);
   });
 
   // ── T23：agent_plan 内嵌分支 + [查看失败边界] 接线 ─────────────────────────

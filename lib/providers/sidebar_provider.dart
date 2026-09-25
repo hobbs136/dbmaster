@@ -94,6 +94,12 @@ class SidebarProvider extends ChangeNotifier {
     if (_selectedConnectionId != connectionId) {
       _selectedConnectionId = connectionId;
       _expandedConnectionId = connectionId;
+      // 库选择隶属于连接（Fix-J 归属不变式）：换连接时旧库选择失效清空，
+      // 防 selectedDatabaseName 残留错挂新连接（张冠李戴）。配对调用点
+      // （树库节点 / 收藏 / 最近 / focus 定位）随后即以 selectDatabase 重设
+      // 新连接的库；裸 selectConnection 调用点（SQLite 打开成功定位 /
+      // 欢迎页连接芯片）正是本守卫的对象。
+      _selectedDatabaseName = null;
       notifyListeners();
     }
   }

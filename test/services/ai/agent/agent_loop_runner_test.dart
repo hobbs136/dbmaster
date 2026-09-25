@@ -259,6 +259,7 @@ class _Harness {
     DatabaseType dbType = DatabaseType.mysql,
     String connectionId = 'conn-1',
     bool readOnly = false,
+    String locale = 'en',
   }) : chat = _ChatScript(),
        gate = _ScriptedGate(),
        db = _DbSpy(),
@@ -344,10 +345,11 @@ class _Harness {
         dbType: ctxHolder.value.dbType,
         readOnly: ctxHolder.value.readOnly,
       ),
-      resolveChatConfig: () => const AgentChatConfig(
+      resolveChatConfig: () => AgentChatConfig(
         provider: 'DeepSeek',
         model: 'deepseek-chat',
         apiKey: 'test-key',
+        locale: locale,
       ),
       chat: chat.call,
       resolveMaxSteps: () async => maxSteps,
@@ -906,6 +908,69 @@ void main() {
         expect(seen.dbType, DatabaseType.mysql);
         expect(seen.readOnly, isFalse);
       }
+    });
+
+    test(
+      'Fix-J 提示词：缺 database 注入缺失引导（en）——指向顶部上下文芯片，'
+      '明确禁止指引侧栏树选库',
+      () async {
+        final h = _Harness();
+        h.ctxHolder.value = AgentRunContext(
+          runId: 'pending',
+          connectionId: 'conn-1',
+          connectionName: '测试连接',
+          databaseName: null,
+          dbType: DatabaseType.mysql,
+          readOnly: false,
+        );
+        h.chat.respond(_text('hi'));
+
+        await h.runner.start(uiPort: _noopUiPort, userMessage: '列出表');
+
+        final String prompt = h.chat.requests.first.systemPrompt ?? '';
+        expect(prompt, contains('database: -'), reason: '缺库如实呈现（AC7.4）');
+        expect(prompt, contains('Missing-context guidance'));
+        expect(prompt, contains('context chip'));
+        expect(prompt, contains('context picker'));
+        expect(
+          prompt,
+          contains('never direct the user to the sidebar tree'),
+          reason: '掐断「请先在侧边栏选中一个 database」误导指引',
+        );
+      },
+    );
+
+    test('Fix-J 提示词：缺 database 注入缺失引导（zh 双语同步）', () async {
+      final h = _Harness(locale: 'zh');
+      h.ctxHolder.value = AgentRunContext(
+        runId: 'pending',
+        connectionId: 'conn-1',
+        connectionName: '测试连接',
+        databaseName: null,
+        dbType: DatabaseType.mysql,
+        readOnly: false,
+      );
+      h.chat.respond(_text('hi'));
+
+      await h.runner.start(uiPort: _noopUiPort, userMessage: '列出表');
+
+      final String prompt = h.chat.requests.first.systemPrompt ?? '';
+      expect(prompt, contains('上下文缺失引导'));
+      expect(prompt, contains('上下文芯片'));
+      expect(prompt, contains('上下文选择器'));
+      expect(prompt, contains('不要指引用户去侧边栏树选库'));
+    });
+
+    test('Fix-J 提示词：database 已设置时不注入缺失引导（条件注入）', () async {
+      final h = _Harness(); // 默认快照 databaseName='db1'
+      h.chat.respond(_text('hi'));
+
+      await h.runner.start(uiPort: _noopUiPort, userMessage: '列出表');
+
+      final String prompt = h.chat.requests.first.systemPrompt ?? '';
+      expect(prompt, contains('database: db1'));
+      expect(prompt, isNot(contains('Missing-context guidance')));
+      expect(prompt, isNot(contains('context chip')));
     });
   });
 

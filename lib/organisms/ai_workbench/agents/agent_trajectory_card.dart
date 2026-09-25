@@ -42,6 +42,7 @@ import 'dart:math' show pi;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -1483,9 +1484,13 @@ class _AgentTrajectoryCardState extends State<AgentTrajectoryCard> {
   // ── 终局「模型回复」区（附录 2 M1）───────────────────────────────────────
 
   /// completed 终局的模型全文呈现（纯呈现面，无执行语义——不走 SQL 卡拦截
-  /// 层，门在 SQL 卡执行时自然生效，AC9.4 链路不变）：散文段 = SelectableText
-  /// 12 textSecondary（可选中全文）；围栏段 = 步 SQL 块同款视觉（[_codeBlock]，
-  /// 右上复制 2s 反馈）。
+  /// 层，门在 SQL 卡执行时自然生效，AC9.4 链路不变）：散文段 = [MarkdownBody]
+  /// 渲染（Fix-K：消费项目既有 flutter_markdown 管线，形态对齐经典面板
+  /// ai_message_item._buildMarkdownContent；`selectable: true` 保留可选中
+  /// 语义，`softLineBreak: true` 保持 Fix-A 以来的行级排版），样式见
+  /// [_finalReplyMarkdownStyle]（正文 12 textSecondary 本卡基调）；围栏段 =
+  /// 步 SQL 块同款视觉（[_codeBlock]，右上复制 2s 反馈）。[MarkdownBody]
+  /// 非滚动组件，卡体 360 单一滚动区不变式不受影响。
   Widget _buildFinalReply(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colors = context.themeColors;
@@ -1517,15 +1522,101 @@ class _AgentTrajectoryCardState extends State<AgentTrajectoryCard> {
                     onCopy: () => _copyFinalSegment(i, segments[i].text),
                   )
                 else
-                  SelectableText(
-                    segments[i].text,
-                    style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                  MarkdownBody(
+                    data: segments[i].text,
+                    selectable: true,
+                    softLineBreak: true,
+                    styleSheet: _finalReplyMarkdownStyle(context),
                   ),
               ],
             ],
           ),
         ),
       ],
+    );
+  }
+
+  /// 终局回复散文段的 Markdown 样式（Fix-K）：字段面沿用经典面板
+  /// ai_message_item.dart `_buildMarkdownContent` 的既有语汇（p/h1-h3/strong/
+  /// em/code/blockquote/listBullet/table*），数值收敛到本卡语境——正文 12
+  /// textSecondary（Fix-A 基调），标题 textPrimary 收缩档；行内/围栏代码向
+  /// [_codeBlock] 靠拢（codeBlockBg + mono 11 textPrimary），保证散文段内
+  /// 行内代码与围栏段观感一致。中性三档 token（§0.2），不新增视觉语言。
+  MarkdownStyleSheet _finalReplyMarkdownStyle(BuildContext context) {
+    final colors = context.themeColors;
+    return MarkdownStyleSheet(
+      p: TextStyle(fontSize: 12, color: colors.textSecondary, height: 1.5),
+      h1: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w700,
+        color: colors.textPrimary,
+      ),
+      h2: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        color: colors.textPrimary,
+      ),
+      h3: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: colors.textPrimary,
+      ),
+      h4: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: colors.textPrimary,
+      ),
+      h5: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: colors.textPrimary,
+      ),
+      h6: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: colors.textPrimary,
+      ),
+      strong: TextStyle(
+        fontWeight: FontWeight.bold,
+        color: colors.textSecondary,
+      ),
+      em: TextStyle(fontStyle: FontStyle.italic, color: colors.textSecondary),
+      del: TextStyle(
+        decoration: TextDecoration.lineThrough,
+        color: colors.textSecondary,
+      ),
+      code: TextStyle(
+        fontSize: 11,
+        fontFamily: AppDesignSystem.monoFontFamily,
+        fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
+        color: colors.textPrimary,
+        backgroundColor: colors.codeBlockBg,
+      ),
+      codeblockPadding: const EdgeInsets.all(AppDesignSystem.space2),
+      codeblockDecoration: BoxDecoration(
+        color: colors.codeBlockBg,
+        borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
+      ),
+      blockquote: TextStyle(
+        fontSize: 12,
+        color: colors.textSecondary,
+        fontStyle: FontStyle.italic,
+      ),
+      blockquoteDecoration: BoxDecoration(
+        border: Border(left: BorderSide(color: colors.borderStrong, width: 3)),
+      ),
+      listBullet: TextStyle(fontSize: 12, color: colors.textSecondary),
+      tableHead: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: colors.textSecondary,
+      ),
+      tableBody: TextStyle(fontSize: 11, color: colors.textSecondary),
+      tableBorder: TableBorder.all(color: colors.borderStrong, width: 1),
+      tableCellsPadding: const EdgeInsets.symmetric(
+        horizontal: AppDesignSystem.space1_5,
+        vertical: AppDesignSystem.space0_5,
+      ),
     );
   }
 

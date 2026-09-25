@@ -59,6 +59,40 @@ void main() {
         provider.selectConnection(null);
         expect(provider.selectedConnectionId, isNull);
       });
+
+      test('切换连接应清空已选数据库（Fix-J 归属不变式：库选择隶属于连接）', () {
+        provider.selectConnection('conn_1');
+        provider.selectDatabase('mydb');
+
+        provider.selectConnection('conn_2');
+
+        expect(
+          provider.selectedDatabaseName,
+          isNull,
+          reason: 'mydb 归属 conn_1，换连接后残留即张冠李戴',
+        );
+      });
+
+      test('重复选择同一连接保留已选数据库', () {
+        provider.selectConnection('conn_1');
+        provider.selectDatabase('mydb');
+
+        provider.selectConnection('conn_1');
+
+        expect(provider.selectedDatabaseName, 'mydb');
+      });
+
+      test('配对序列兼容：selectConnection 换连接后 selectDatabase 正常落新值'
+          '（树库节点 / 收藏 / 最近调用序）', () {
+        provider.selectConnection('conn_1');
+        provider.selectDatabase('db_a');
+
+        provider.selectConnection('conn_2');
+        provider.selectDatabase('db_b');
+
+        expect(provider.selectedConnectionId, 'conn_2');
+        expect(provider.selectedDatabaseName, 'db_b');
+      });
     });
 
     group('selectDatabase', () {

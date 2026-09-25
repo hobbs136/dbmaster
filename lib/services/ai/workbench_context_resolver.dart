@@ -66,10 +66,21 @@ WorkbenchContextValue resolveWorkbenchContext(AppProvider provider) {
   // 相同但来源标识为 sidebar，这正是两序差异的可观察面。
   final server = resolveSidebarCurrentConnection(provider);
   if (server != null) {
+    // 库级继承序（Fix-J）：侧栏树点选库（限归属本连接）→ 连接配置默认库 →
+    // 未绑定 tab 库。selectedDatabaseName 无自带归属字段，其归属连接由
+    // 配对调用点记录在 selectedConnectionId（树库节点 / 收藏 / 最近 / focus
+    // 定位均 selectConnection + selectDatabase 连调；selectConnection 换
+    // 连接即清库，归属记录随之可信）——归属不等于解析连接时放弃继承，
+    // 防「连接 A 的库错挂连接 B」（张冠李戴面：switchToConnection 全链路
+    // 不清侧栏选择态，clearSelection 生产零调用）。
+    final sidebar = provider.sidebar;
+    final String? ownedDatabase = sidebar.selectedConnectionId == server.id
+        ? sidebar.selectedDatabaseName
+        : null;
     return WorkbenchContextValue(
       connectionId: server.id,
       connectionName: server.name,
-      databaseName: server.database ?? tab?.databaseName,
+      databaseName: ownedDatabase ?? server.database ?? tab?.databaseName,
       source: WorkbenchContextSource.sidebar,
     );
   }

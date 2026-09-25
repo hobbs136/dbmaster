@@ -927,6 +927,9 @@ class _AgentSystemPrompt {
           : 'Current run context '
                 '(locked at run start, immutable for the whole run):',
       _contextLine(runCtx),
+      // Fix-J：缺 database 时注入缺口引导，指向真实可用路径（顶部上下文
+      // 芯片 → 选择器），掐断模型幻觉出的「请先在侧边栏选中一个 database」。
+      if (runCtx.databaseName == null) _missingDatabaseGuide(zh),
       '',
       zh ? _rulesZh() : _rulesEn(),
     ].join('\n');
@@ -942,6 +945,18 @@ class _AgentSystemPrompt {
     return '- locked connection: $conn · database: $db · dialect: '
         '${runCtx.dbType.name} · mode: $mode';
   }
+
+  /// 上下文缺失引导（Fix-J）：database 未设置（上方为 `-`）时的唯一正确
+  /// 指引 = 顶部上下文芯片 → 上下文选择器设置数据库；明确禁止指引用户去
+  /// 侧边栏树选库（侧栏树选库对芯片/agent 上下文不生效的误导曾实报）。
+  static String _missingDatabaseGuide(bool zh) => zh
+      ? '上下文缺失引导：database 为 - 表示未设置。若任务需要指定库，请指引'
+            '用户点顶部上下文芯片、在上下文选择器中设置数据库——不要指引用户'
+            '去侧边栏树选库。'
+      : 'Missing-context guidance: database "-" means unset. If the task '
+            'needs a specific database, direct the user to the context chip '
+            'at the top and set the database in the context picker — never '
+            'direct the user to the sidebar tree to pick a database.';
 
   /// 行为规则（zh）。规则 3 含 A1 兜底引导：目录无 submit_action_plan 时
   /// 写语句进回复文本、交用户走既有确认流（AC9.4 中间态）。
