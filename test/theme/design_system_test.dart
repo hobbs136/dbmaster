@@ -262,4 +262,17 @@ void main() {
       expect(AppDesignSystem.fontSizeDisplay, 24.0);
     });
   });
+
+  // agent 工作台批次布局 token（design-ai-agent-ui §7 提案表，T01 落地）——
+  // 数值逐字锁定 ui 规格 §7，改动前须走 ui-ux-designer 复核
+  group('AppDesignSystem agent 工作台批次布局 token（design-ai-agent-ui §7）', () {
+    test('六项布局 token 应有 ui 规格 §7 锁定值', () {
+      expect(AppDesignSystem.workbenchDenseRowHeight, 24.0); // §7-1
+      expect(AppDesignSystem.workbenchStageMinWidth, 480.0); // §7-2
+      expect(AppDesignSystem.artifactStripHeight, 32.0); // §7-3
+      expect(AppDesignSystem.workbenchStageTabMaxWidth, 200.0); // §7-4
+      expect(AppDesignSystem.artifactStripItemMaxWidth, 160.0); // §7-5
+      expect(AppDesignSystem.agentImpactLabelWidth, 104.0); // §7-6
+    });
+  });
 }

@@ -15,6 +15,7 @@ import '../services/adapters/mongodb_adapter.dart';
 import '../services/adapters/redis_adapter.dart';
 import '../services/readonly_guard.dart';
 import '../services/ai_quota_service.dart';
+import '../services/ai/ai_session_manager.dart';
 import '../models/pro_feature.dart';
 import '../models/sql_statement.dart';
 import '../models/tdengine_models.dart';
@@ -315,6 +316,9 @@ class AppProvider extends ChangeNotifier {
     TaskProvider? taskProvider,
     ConnectionProvider? connectionProvider,
     ProModule? proModule,
+    // Fix-H：测试存储隔离注入面（生产 null = AiPanelProvider 内部默认
+    // AiSessionManager，走真实 Documents/prefs 存储，行为不变）。
+    AiSessionManager? aiSessionManager,
   })  : connection = connectionProvider ??
             ConnectionProvider(
               dbService: DatabaseService(
@@ -331,6 +335,7 @@ class AppProvider extends ChangeNotifier {
       // Pro=完整工具循环 AiAgentService）。AppProvider 不直接 import
       // ai_agent_service.dart，使 OSS 构建可达图保持无 Pro 符号。
       agentFactory: this.proModule.createAgentRunner,
+      sessionManager: aiSessionManager,
     );
     _aiQuotaService = AiQuotaService(isPro: () async => _isProUnlocked);
     // 全免费客户端——试用已移除，无需初始化试用服务。

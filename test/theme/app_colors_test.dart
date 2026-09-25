@@ -278,6 +278,30 @@ void main() {
         ),
       );
     });
+
+    // textInverted 转发（agent 工作台批次，design-ai-agent-ui §7-7）——
+    // 零新色值：两主题都转发既有 AppDesignSystem.textInverted（#161616）
+    testWidgets('textInverted 应转发 AppDesignSystem.textInverted（两主题同值）', (
+      tester,
+    ) async {
+      Future<void> pumpTheme(ThemeData theme) => tester.pumpWidget(
+        // 换主题重泵必须带 key（同 borderSubtle 用例注释）
+        MaterialApp(
+          key: ValueKey(theme.brightness),
+          theme: theme,
+          home: Builder(
+            builder: (context) {
+              final colors = ThemeColors(context);
+              expect(colors.textInverted, AppDesignSystem.textInverted);
+              expect(colors.textInverted, const Color(0xFF161616));
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      await pumpTheme(AppTheme.darkTheme);
+      await pumpTheme(AppTheme.lightTheme);
+    });
   });
 
   // 语义色亮/暗双通道守卫（F-11，特性 046 T005）——

@@ -10203,4 +10203,536 @@ class AppLocalizationsRu extends AppLocalizations {
   String connectFailureLatestTooltip(String message) {
     return 'Последнее подключение завершилось ошибкой: $message';
   }
+
+  @override
+  String get workbenchTitle => 'ИИ-Workbench';
+
+  @override
+  String get workbenchEnter => 'Перейти в ИИ-Workbench';
+
+  @override
+  String get workbenchExit => 'Выйти из Workbench';
+
+  @override
+  String get workbenchCommandEnterWorkbench => 'Перейти в ИИ-Workbench';
+
+  @override
+  String get workbenchCommandExitWorkbench => 'Выйти из Workbench';
+
+  @override
+  String get workbenchContextSourceTab => 'Активная вкладка';
+
+  @override
+  String get workbenchContextSourceSidebar => 'Боковая панель';
+
+  @override
+  String get workbenchContextLock => 'Закрепить контекст';
+
+  @override
+  String get workbenchContextUnlock => 'Открепить контекст';
+
+  @override
+  String get workbenchContextUnset => 'Не задано';
+
+  @override
+  String get workbenchContextSetupGuide =>
+      'Подключитесь к базе данных, чтобы задать контекст ИИ';
+
+  @override
+  String get workbenchContextSwitchTip => 'Переключить контекст ИИ';
+
+  @override
+  String get workbenchContextPickerTitle => 'Задать контекст ИИ';
+
+  @override
+  String get workbenchContextPickerNewConnection => 'Новое подключение';
+
+  @override
+  String get workbenchContextPickerLoadingDatabases => 'Загрузка баз данных…';
+
+  @override
+  String get workbenchContextPickerNoDatabases =>
+      'Нет списка баз данных для этого подключения';
+
+  @override
+  String get workbenchContextPickerConnectionOnly =>
+      'Использовать только подключение';
+
+  @override
+  String get workbenchContextPickerConnectHint =>
+      'Подключитесь, чтобы получить список баз данных';
+
+  @override
+  String get workbenchSqlCardTitle => 'SQL';
+
+  @override
+  String workbenchSqlTypeBadge(String n) {
+    return '$n';
+  }
+
+  @override
+  String get workbenchSqlWriteBadge => 'Запись';
+
+  @override
+  String get workbenchActionOpenInClassic => 'Открыть в классическом режиме';
+
+  @override
+  String workbenchResultMeta(int rows, int ms) {
+    return '$rows строк · $ms мс';
+  }
+
+  @override
+  String get workbenchOpenInGrid => 'Открыть в сетке';
+
+  @override
+  String workbenchResultTruncated(int shown, int total) {
+    return 'Показаны первые $shown из $total строк';
+  }
+
+  @override
+  String workbenchEmptyResult(int rows, int ms) {
+    return '$rows строк · $ms мс';
+  }
+
+  @override
+  String get workbenchEmptyResultHint => 'Нет данных';
+
+  @override
+  String get workbenchErrorDetail => 'Технические подробности';
+
+  @override
+  String get workbenchLoadingState => 'Загрузка чата…';
+
+  @override
+  String get workbenchErrorNoContext =>
+      'Контекст базы данных не задан. Выберите подключение, чтобы выполнить этот SQL.';
+
+  @override
+  String get workbenchErrorSetupConnection => 'Настроить подключение';
+
+  @override
+  String get workbenchConfirmWriteTitle => 'Подтвердите операцию записи';
+
+  @override
+  String workbenchConfirmTarget(String connection, String database) {
+    return 'Цель: $connection · $database';
+  }
+
+  @override
+  String get workbenchStatsExport =>
+      'Экспортировать статистику использования (анонимный JSON)';
+
+  @override
+  String workbenchStatsExported(String path) {
+    return 'Статистика использования экспортирована в $path';
+  }
+
+  @override
+  String get workbenchNewSession => 'Новый разговор';
+
+  @override
+  String get workbenchSessionListTitle => 'Разговоры';
+
+  @override
+  String get workbenchErrorEmptySql => 'Нельзя выполнить пустую инструкцию';
+
+  @override
+  String get agentTrajectoryTitle => 'Траектория выполнения';
+
+  @override
+  String agentTrajectoryStep(String tool) {
+    return 'Шаг · $tool';
+  }
+
+  @override
+  String agentTrajectorySteps(int n, int max) {
+    return '$n/$max';
+  }
+
+  @override
+  String agentTrajectoryTokens(String n) {
+    return '$n tok';
+  }
+
+  @override
+  String get agentTrajectoryUnknown => 'Неизвестно';
+
+  @override
+  String get agentTrajectoryAwaiting => 'Ожидание';
+
+  @override
+  String get agentTrajectoryStatusRunning => 'Выполняется';
+
+  @override
+  String get agentTrajectoryCompleted => 'Завершено';
+
+  @override
+  String get agentTrajectoryExpandStep => 'Развернуть шаг';
+
+  @override
+  String get agentStepArgs => 'Аргументы';
+
+  @override
+  String get agentStepSql => 'SQL';
+
+  @override
+  String agentStepResultMeta(int rows, int cols, int ms) {
+    return '$rows строк · $cols столбцов · $ms мс';
+  }
+
+  @override
+  String get agentStepSnapshot => 'Снимок';
+
+  @override
+  String agentStepTruncated(int shown, int total) {
+    return 'Показаны первые $shown из $total строк';
+  }
+
+  @override
+  String get agentStepError => 'Ошибка';
+
+  @override
+  String get agentStepOpenInStage => 'Открыть на сцене';
+
+  @override
+  String get agentStepGateConfirmed => 'Подтверждено для этого запуска';
+
+  @override
+  String get agentStepGateSession =>
+      'Разрешено для этой сессии (это подключение)';
+
+  @override
+  String get agentStepBlocked => 'Заблокировано';
+
+  @override
+  String get agentStepRejected => 'Отклонено';
+
+  @override
+  String get agentConfirmReadTitle => 'Подтверждение объёмного чтения';
+
+  @override
+  String get agentConfirmScanRows => 'Оценка сканируемых строк';
+
+  @override
+  String agentConfirmEstimatedRows(String n) {
+    return '$n строк';
+  }
+
+  @override
+  String get agentConfirmScanShape => 'Характер сканирования';
+
+  @override
+  String get agentConfirmFullScan => 'Полное сканирование таблицы';
+
+  @override
+  String get agentConfirmNoIndex => 'Нет подходящего индекса';
+
+  @override
+  String get agentConfirmFullScanNoIndex =>
+      'Полное сканирование · нет подходящего индекса';
+
+  @override
+  String get agentConfirmIndexRow => 'Индексы';
+
+  @override
+  String get agentConfirmTablesRow => 'Сканируемые таблицы';
+
+  @override
+  String get agentConfirmSqlRow => 'SQL';
+
+  @override
+  String get agentConfirmAnalysisUnavailable =>
+      'Анализ недоступен · консервативное подтверждение';
+
+  @override
+  String get agentConfirmValueUnavailable => 'Недоступно';
+
+  @override
+  String get agentConfirmAllowSession => 'Разрешить на сессию';
+
+  @override
+  String get agentConfirmAllowSessionHint =>
+      'Дорогие операции чтения на этом подключении больше не будут запрашиваться до конца сессии';
+
+  @override
+  String get agentConfirmAllowOnce => 'Разрешить один раз';
+
+  @override
+  String get agentConfirmCancel => 'Отмена';
+
+  @override
+  String get agentConfirmResultAllowedOnce => 'Разрешено (один раз)';
+
+  @override
+  String get agentConfirmResultAllowedSession => 'Разрешено (на сессию)';
+
+  @override
+  String get agentConfirmResultCanceled => 'Отменено';
+
+  @override
+  String get agentConfirmResultCanceledByRun => 'Отменено (запуск остановлен)';
+
+  @override
+  String get agentStoppedByUser => 'Остановлено пользователем';
+
+  @override
+  String get agentStoppedByLimit => 'Лимит шагов';
+
+  @override
+  String agentStoppedByFailures(int n) {
+    return '$n сбоев';
+  }
+
+  @override
+  String get agentRunFailed => 'Запуск не удался';
+
+  @override
+  String get agentRunInterrupted => 'Прервано';
+
+  @override
+  String get agentStopping => 'Остановка';
+
+  @override
+  String get agentStopButton => 'Стоп';
+
+  @override
+  String agentStepLimitReached(int n) {
+    return 'Достигнут лимит шагов ($n)';
+  }
+
+  @override
+  String get agentContextRequired =>
+      'Контекст базы данных не задан. Выберите подключение для запуска инструментов данных.';
+
+  @override
+  String get agentContextSetup => 'Настроить контекст';
+
+  @override
+  String get agentMaxStepsSetting => 'Макс. шагов агента';
+
+  @override
+  String get agentL05ThresholdSetting => 'Порог строк для подтверждения чтения';
+
+  @override
+  String agentSessionTokens(String n) {
+    return 'Сессия $n tok';
+  }
+
+  @override
+  String agentTrajectoryStepsOnly(int n) {
+    return 'Шаги: $n';
+  }
+
+  @override
+  String get agentSettingsSection => 'Агент';
+
+  @override
+  String get agentPlanTitle => 'План действий';
+
+  @override
+  String agentPlanStatementCount(int n) {
+    return '$n инструкций';
+  }
+
+  @override
+  String get agentPlanImpactLabel => 'Влияние';
+
+  @override
+  String agentPlanEstimateRows(String n) {
+    return '$n строк';
+  }
+
+  @override
+  String get agentPlanEstimateUnavailable => 'Оценка недоступна';
+
+  @override
+  String get agentPlanRollbackLabel => 'Откат';
+
+  @override
+  String get agentPlanNoRollback =>
+      'Необратимо · автоматический откат отсутствует';
+
+  @override
+  String get agentPlanIrreversible => 'Необратимо';
+
+  @override
+  String agentPlanStepKind(String k) {
+    return 'Инструкция $k';
+  }
+
+  @override
+  String get agentPlanEstimateSourceExplain => 'Оценка EXPLAIN';
+
+  @override
+  String get agentPlanEstimateSourceCount => 'Точный подсчёт';
+
+  @override
+  String get agentPlanRollbackSourceModel => 'Предоставлено моделью';
+
+  @override
+  String get agentPlanRollbackSourceAuto => 'Выведен автоматически';
+
+  @override
+  String get agentPlanBoundaryTitle => 'Граница сбоя';
+
+  @override
+  String agentPlanBoundaryDone(int n) {
+    return 'Успешно $n';
+  }
+
+  @override
+  String agentPlanBoundaryFailed(int n) {
+    return 'Сбой $n';
+  }
+
+  @override
+  String agentPlanBoundaryRemaining(int n) {
+    return 'Пропущено $n';
+  }
+
+  @override
+  String agentPlanFailureReason(String error) {
+    return 'Причина сбоя: $error';
+  }
+
+  @override
+  String get agentPlanStatusPending => 'Ожидает одобрения';
+
+  @override
+  String get agentPlanStatusApproved => 'Одобрено';
+
+  @override
+  String agentPlanStatusExecuting(int n, int m) {
+    return 'Выполнение $n/$m';
+  }
+
+  @override
+  String get agentPlanStatusDone => 'Выполнено';
+
+  @override
+  String get agentPlanStatusPartialFailed => 'Частичный сбой';
+
+  @override
+  String get agentPlanStatusRollbackOffered => 'Откат предложен';
+
+  @override
+  String get agentPlanStatusRolledBack => 'Откат выполнен';
+
+  @override
+  String get agentPlanStatusRejected => 'Отклонено';
+
+  @override
+  String get agentPlanConsumedHint =>
+      'Этот план завершён и больше не может быть выполнен';
+
+  @override
+  String get agentPlanGenerateRollback => 'Сформировать план отката';
+
+  @override
+  String get agentPlanRollbackPendingHint => 'План отката ожидает одобрения';
+
+  @override
+  String get agentPlanRollbackBadge => 'План отката';
+
+  @override
+  String agentPlanRollbackOf(String id) {
+    return 'Откат плана $id';
+  }
+
+  @override
+  String get agentPlanApprove => 'Одобрить и выполнить';
+
+  @override
+  String get agentPlanReject => 'Отклонить';
+
+  @override
+  String get agentTrajectoryViewBoundary => 'Показать границу сбоя';
+
+  @override
+  String agentSuggestTitle(String action) {
+    return 'Предложение · $action';
+  }
+
+  @override
+  String get agentSuggestFocusSidebar => 'Показать в боковой панели';
+
+  @override
+  String get agentSuggestApply => 'Применить';
+
+  @override
+  String get agentSuggestDismiss => 'Игнорировать';
+
+  @override
+  String get agentSuggestBadgeNotApplied => 'Не выполнено';
+
+  @override
+  String get agentSuggestBadgeApplied => 'Применено';
+
+  @override
+  String get agentSuggestBadgeDismissed => 'Игнорировано';
+
+  @override
+  String get agentSuggestNotAppliedHint =>
+      'До применения без побочных эффектов';
+
+  @override
+  String get agentStageEmptyTitle => 'Сцена пуста';
+
+  @override
+  String get agentStageEmptyHint =>
+      'Результаты, диаграммы и редакторы, открытые ИИ, появятся здесь';
+
+  @override
+  String get agentStageToggle => 'Сцена';
+
+  @override
+  String get agentStageCollapse => 'Свернуть сцену';
+
+  @override
+  String get agentStageTabClose => 'Закрыть';
+
+  @override
+  String get agentStageTabPin => 'Закрепить в артефактах';
+
+  @override
+  String get agentStageTabUnpin => 'Открепить';
+
+  @override
+  String get agentStageTabDirty => 'Есть несохранённые изменения';
+
+  @override
+  String get agentStageChartMismatch =>
+      'Данные не подходят для этого типа диаграммы';
+
+  @override
+  String get agentStageErrorRetry => 'Повторить';
+
+  @override
+  String get agentStageTabGrid => 'Сетка';
+
+  @override
+  String get agentStageTabStructure => 'Структура';
+
+  @override
+  String get agentStageTabEditor => 'Редактор';
+
+  @override
+  String get agentStageTabChart => 'График';
+
+  @override
+  String get agentArtifactEmpty => 'Нет закреплённых артефактов';
+
+  @override
+  String get agentArtifactUnpinHint => 'Открепить (Del)';
+
+  @override
+  String get agentFinalReply => 'Ответ модели';
+
+  @override
+  String get agentPlanDmlHighBadge => 'Требует подтверждения';
+
+  @override
+  String agentPlanDmlHighTriggers(String triggers) {
+    return 'Триггеры: $triggers';
+  }
 }

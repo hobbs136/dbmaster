@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dbmaster/services/audit_log_service.dart';
+import 'package:dbmaster/services/ai/agent/agent_tool_catalog.dart';
 import 'package:dbmaster/models/audit_log_entry.dart';
 
 void main() {
@@ -461,6 +464,232 @@ void main() {
       expect(copy.success, isFalse);
       expect(copy.errorMessage, equals('Error'));
       expect(entry.sql, equals('SELECT 1')); // Original unchanged
+    });
+  });
+
+  group('recordAgentEvent', () {
+    late AuditLogService service;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      service = AuditLogService();
+      await service.initialize();
+      await service.clearLogs();
+    });
+
+    tearDown(() async {
+      await service.clearLogs();
+    });
+
+    test('全参数落档正确（含 planId 与枚举）', () async {
+      await service.recordAgentEvent(
+        connectionId: 'conn_agent',
+        connectionName: 'MySQL Local',
+        databaseName: 'test_db',
+        runId: 'run_001',
+        step: 3,
+        tool: 'execute_readonly_sql',
+        sql: 'SELECT * FROM users',
+        gateLevel: AgentGateLevel.l05,
+        gateDecision: AgentGateDecision.confirmed,
+        planId: 'plan_20260923_01',
+        success: true,
+      );
+
+      expect(service.entryCount, equals(1));
+      final entry = service.getRecentEntries().first;
+      expect(entry.connectionId, equals('conn_agent'));
+      expect(entry.connectionName, equals('MySQL Local'));
+      expect(entry.databaseName, equals('test_db'));
+      expect(entry.agentRunId, equals('run_001'));
+      expect(entry.agentStep, equals(3));
+      expect(entry.agentTool, equals('execute_readonly_sql'));
+      expect(entry.gateLevel, equals('l05')); // AgentGateLevel.name token
+      expect(entry.gateDecision, equals(AgentGateDecision.confirmed));
+      expect(entry.planId, equals('plan_20260923_01'));
+      expect(entry.sql, equals('SELECT * FROM users'));
+      expect(entry.success, isTrue);
+      expect(entry.errorMessage, isNull);
+    });
+
+    test('connectionId 无上下文用空串（语义写死）', () async {
+      await service.recordAgentEvent(
+        connectionId: '',
+        runId: 'run_ctx',
+        step: 1,
+        tool: 'get_current_context',
+        success: true,
+      );
+      expect(service.getRecentEntries().first.connectionId, equals(''));
+    });
+
+    test('sql 为 null（非数据类工具）→ 入档空串', () async {
+      await service.recordAgentEvent(
+        connectionId: 'conn_agent',
+        runId: 'run_002',
+        step: 1,
+        tool: 'list_tables',
+        gateLevel: AgentGateLevel.l0,
+        gateDecision: AgentGateDecision.allowed,
+        success: true,
+      );
+      expect(service.getRecentEntries().first.sql, equals(''));
+    });
+
+    test('拦截形态：blocked → success=false + 被拦语句脱敏后照落（AC13.1）',
+        () async {
+      await service.recordAgentEvent(
+        connectionId: 'conn_agent',
+        runId: 'run_003',
+        step: 2,
+        tool: 'execute_readonly_sql',
+        // 写语句走只读通道被拦；含敏感字面量，入档必须脱敏（NF2.5 复用）
+        sql: "UPDATE users SET password = 'supersecret' WHERE id = 1",
+        gateLevel: AgentGateLevel.l1,
+        gateDecision: AgentGateDecision.blocked,
+        success: false,
+        errorMessage: 'WRITE_REJECTED_READONLY_CHANNEL',
+      );
+
+      final entry = service.getRecentEntries().first;
+      expect(entry.gateDecision, equals(AgentGateDecision.blocked));
+      expect(entry.success, isFalse);
+      expect(entry.errorMessage, equals('WRITE_REJECTED_READONLY_CHANNEL'));
+      // 脱敏复用 AuditSqlSanitizer：字面量替换为 ***
+      expect(entry.sql,
+          equals("UPDATE users SET password = '***' WHERE id = 1"));
+    });
+
+    test('拦截形态：rejected_by_user → success=false + 被拦语句照落', () async {
+      await service.recordAgentEvent(
+        connectionId: 'conn_agent',
+        runId: 'run_004',
+        step: 4,
+        tool: 'execute_readonly_sql',
+        sql: 'SELECT * FROM huge_table',
+        gateLevel: AgentGateLevel.l05,
+        gateDecision: AgentGateDecision.rejectedByUser,
+        success: false,
+        errorMessage: 'GATE_REJECTED',
+      );
+
+      final entry = service.getRecentEntries().first;
+      expect(entry.gateDecision, equals(AgentGateDecision.rejectedByUser));
+      expect(entry.success, isFalse);
+      expect(entry.sql, equals('SELECT * FROM huge_table'));
+    });
+
+    test('会话放行短路形态：allowed_session + success=true', () async {
+      await service.recordAgentEvent(
+        connectionId: 'conn_agent',
+        runId: 'run_005',
+        step: 5,
+        tool: 'execute_readonly_sql',
+        sql: 'SELECT * FROM big',
+        gateLevel: AgentGateLevel.l05,
+        gateDecision: AgentGateDecision.allowedSession,
+        success: true,
+      );
+
+      final entry = service.getRecentEntries().first;
+      expect(entry.gateDecision, equals(AgentGateDecision.allowedSession));
+      expect(entry.success, isTrue);
+    });
+
+    test('sql 复用 500 字符截断（脱敏后截断）', () async {
+      final longSql =
+          'SELECT * FROM t WHERE note = ${'a' * 600}'; // 脱敏不动它，仅超长
+      await service.recordAgentEvent(
+        connectionId: 'conn_agent',
+        runId: 'run_006',
+        step: 1,
+        tool: 'execute_readonly_sql',
+        sql: longSql,
+        gateLevel: AgentGateLevel.l0,
+        gateDecision: AgentGateDecision.allowed,
+        success: true,
+      );
+
+      final entry = service.getRecentEntries().first;
+      expect(entry.sql.length, equals(503)); // 500 + '...'
+      expect(entry.sql.endsWith('...'), isTrue);
+      expect(entry.sql.startsWith(longSql.substring(0, 500)), isTrue);
+    });
+
+    test('与 recordQuery 共用同一 500 条上限（既有行为不回退）', () async {
+      for (int i = 0; i < 505; i++) {
+        await service.recordAgentEvent(
+          connectionId: 'conn_agent',
+          runId: 'r_$i',
+          step: i,
+          tool: 'list_tables',
+          success: true,
+        );
+      }
+
+      expect(service.entryCount, equals(500));
+      final entries = service.getRecentEntries(limit: 500);
+      expect(entries.any((e) => e.agentRunId == 'r_0'), isFalse); // 最旧逐出
+      expect(entries.any((e) => e.agentRunId == 'r_504'), isTrue); // 最新保留
+    });
+
+    test('agent 与经典记录共存的入档顺序', () async {
+      service.recordQuery(
+        connectionId: 'conn_classic',
+        sql: 'SELECT 1',
+        executionTime: const Duration(milliseconds: 5),
+        success: true,
+      );
+      // 同毫秒时间戳下倒序排序顺序不定（既有倒序测试同款 10ms 间隔）
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      await service.recordAgentEvent(
+        connectionId: 'conn_agent',
+        runId: 'run_mix',
+        step: 1,
+        tool: 'list_tables',
+        success: true,
+      );
+
+      expect(service.entryCount, equals(2));
+      final entries = service.getRecentEntries();
+      // 最新在前：agent 记录后落
+      expect(entries.first.agentRunId, equals('run_mix'));
+      expect(entries.first.agentTool, equals('list_tables'));
+      // 经典记录 agent 字段恒 null（互不串扰）
+      expect(entries.last.agentRunId, isNull);
+      expect(entries.last.gateDecision, isNull);
+      expect(entries.last.sql, equals('SELECT 1'));
+    });
+
+    test('防抖持久化后 prefs 内含 agent 字段（AC13.3 设置页可见的数据面）',
+        () async {
+      await service.recordAgentEvent(
+        connectionId: 'conn_agent',
+        runId: 'run_persist',
+        step: 7,
+        tool: 'execute_readonly_sql',
+        sql: 'SELECT * FROM users',
+        gateLevel: AgentGateLevel.l05,
+        gateDecision: AgentGateDecision.blocked,
+        success: false,
+        errorMessage: 'GATE_REJECTED',
+      );
+
+      // 防抖窗口 2s（_schedulePersist），等它落地后读原始存储验证
+      await Future<void>.delayed(const Duration(milliseconds: 2100));
+
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('audit_logs');
+      expect(raw, isNotNull);
+      final list = jsonDecode(raw!) as List<dynamic>;
+      expect(list, isNotEmpty);
+      final last = list.last as Map<String, dynamic>;
+      expect(last['agentRunId'], equals('run_persist'));
+      expect(last['agentStep'], equals(7));
+      expect(last['agentTool'], equals('execute_readonly_sql'));
+      expect(last['gateLevel'], equals('l05'));
+      expect(last['gateDecision'], equals('blocked')); // wire token
+      expect(last['success'], isFalse);
     });
   });
 }

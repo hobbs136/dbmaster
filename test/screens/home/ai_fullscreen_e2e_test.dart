@@ -5,8 +5,10 @@
 // 未覆盖真实交互路径（HomeScreen 4 层 Stack + 点 header maximize 按钮）。
 // 本文件按用户操作序列走完整路径：
 //   宽窗 → 打开 AI 面板（z0 停靠）→ 有连接（header 有全屏按钮）→
-//   点 header maximize → 断言全屏面板存在且铺满工作区 → 点 minimize 退出
+//   点 header maximize → 断言全屏内容存在且铺满工作区 → 点退出按钮退出
 //   → 断言回停靠。
+// T10（design D2，2026-09-22）：全屏分支改渲染 AiWorkbenchShell
+//（AI 全屏 = 工作台），退出走 shell 顶栏按钮（workbenchExit）。
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,6 +20,7 @@ import 'package:dbmaster/models/database_models.dart';
 import 'package:dbmaster/organisms/ai_panel/ai_mini_fab.dart';
 import 'package:dbmaster/organisms/ai_panel/ai_panel_overlay.dart';
 import 'package:dbmaster/organisms/ai_panel/ai_panel_widget.dart';
+import 'package:dbmaster/organisms/ai_workbench/ai_workbench_shell.dart';
 import 'package:dbmaster/organisms/pro/pro_purchase_ui.dart';
 import 'package:dbmaster/providers/app_provider.dart';
 import 'package:dbmaster/providers/approval_provider.dart';
@@ -100,7 +103,7 @@ void main() {
     return app;
   }
 
-  testWidgets('E2E-FS-001: 停靠面板点全屏 → 面板铺满工作区（不消失）', (tester) async {
+  testWidgets('E2E-FS-001: 停靠面板点全屏 → 工作台铺满工作区（不消失）', (tester) async {
     final app = await pumpHome(tester);
     final l10n = AppLocalizations.of(tester.element(find.byType(HomeScreen)))!;
 
@@ -109,41 +112,41 @@ void main() {
     final maximize = find.byTooltip(l10n.aiPanelFullscreen);
     expect(maximize, findsOneWidget, reason: '有连接时 header 应有全屏按钮');
 
-    // 操作：点全屏。
+    // 操作：点全屏（D2：进入 AI 工作台）。
     await tester.tap(maximize);
     await tester.pumpAndSettle();
 
-    // 断言：面板仍存在（不消失）且铺满工作区，不再是浮动窗。
+    // 断言：工作台存在（不消失）且铺满工作区，不再是浮动窗。
     expect(app.aiPanelFullscreen, isTrue);
-    final panel = find.byType(AiPanelWidget);
-    expect(panel, findsOneWidget, reason: '全屏后面板必须仍可见（用户报告消失）');
+    final shell = find.byType(AiWorkbenchShell);
+    expect(shell, findsOneWidget, reason: '全屏后工作台必须仍可见（用户报告消失）');
     expect(find.byType(AiPanelOverlay), findsNothing, reason: '全屏非浮动窗');
 
-    final size = tester.getSize(panel);
+    final size = tester.getSize(shell);
     expect(
       size,
       const Size(1400, 875),
-      reason: '全屏面板应铺满工作区（1400×900 视口减 25px 状态栏）',
+      reason: '工作台应铺满工作区（1400×900 视口减 25px 状态栏）',
     );
   });
 
-  testWidgets('E2E-FS-002: 全屏态点 minimize → 退出回停靠面板', (tester) async {
+  testWidgets('E2E-FS-002: 全屏态点退出按钮 → 退出回停靠面板', (tester) async {
     final app = await pumpHome(tester);
     final l10n = AppLocalizations.of(tester.element(find.byType(HomeScreen)))!;
 
     await tester.tap(find.byTooltip(l10n.aiPanelFullscreen));
     await tester.pumpAndSettle();
-    expect(find.byType(AiPanelWidget), findsOneWidget);
+    expect(find.byType(AiWorkbenchShell), findsOneWidget);
 
-    // 退出：全屏 header 的 minimize 按钮。
-    await tester.tap(find.byTooltip(l10n.aiPanelExitFullscreen));
+    // 退出：工作台顶栏退出按钮（workbenchExit tooltip）。
+    await tester.tap(find.byTooltip(l10n.workbenchExit));
     await tester.pumpAndSettle();
 
     expect(app.aiPanelFullscreen, isFalse);
     expect(
       find.byType(AiPanelWidget),
       findsOneWidget,
-      reason: '退出全屏应回到停靠面板，而非消失',
+      reason: '退出工作台应回到停靠面板，而非消失',
     );
     expect(find.byType(AiMiniFab), findsNothing, reason: '面板仍开，FAB 不出现');
   });
@@ -161,8 +164,8 @@ void main() {
 
     expect(app.aiPanelOpen, isTrue);
     expect(app.aiPanelFullscreen, isTrue);
-    final panel = find.byType(AiPanelWidget);
-    expect(panel, findsOneWidget, reason: 'FAB 直入全屏后面板必须可见');
-    expect(tester.getSize(panel), const Size(1400, 875));
+    final shell = find.byType(AiWorkbenchShell);
+    expect(shell, findsOneWidget, reason: 'FAB 直入全屏后工作台必须可见');
+    expect(tester.getSize(shell), const Size(1400, 875));
   });
 }

@@ -63,6 +63,23 @@ abstract class ISessionManager {
   List<AgentCheckpoint> getSessionCheckpoints(String sessionId);
 }
 
+/// 会话存储隔离覆盖（测试注入面，Fix-H）。
+///
+/// 生产缺省（不构造/不传）：消息/会话/收藏/检查点文件走
+/// `getApplicationDocumentsDirectory()`，prefs 键为裸名
+/// `ai_active_session_id`——行为与本加法之前逐字节一致。
+/// 传入后：文件落 [directory]（不存在则递归创建），prefs 键变为
+/// `<prefsPrefix>ai_active_session_id`，与生产存储面完全隔离。
+class AiSessionStorageOverride {
+  const AiSessionStorageOverride({this.directory, this.prefsPrefix});
+
+  /// 会话相关 JSON 文件的落地目录；null = 生产默认（应用 Documents 目录）。
+  final Directory? directory;
+
+  /// SharedPreferences 键前缀；null/'' = 裸键（生产默认）。
+  final String? prefsPrefix;
+}
+
 class AiSessionManager extends ChangeNotifier implements ISessionManager {
   final List<AiConversationSession> _sessions = [];
   AiConversationSession? _currentSession;
@@ -72,10 +89,12 @@ class AiSessionManager extends ChangeNotifier implements ISessionManager {
   final List<AiBookmark> _bookmarks = [];
   final Map<String, AgentCheckpoint> _checkpoints = {};
 
+  final AiSessionStorageOverride? _storageOverride;
   Directory? _docsDir;
   Timer? _persistDebounceTimer;
 
-  AiSessionManager();
+  AiSessionManager({AiSessionStorageOverride? storageOverride})
+    : _storageOverride = storageOverride;
 
   @override
   List<AiConversationSession> get sessions => List.unmodifiable(_sessions);
@@ -93,8 +112,22 @@ class AiSessionManager extends ChangeNotifier implements ISessionManager {
   }
 
   Future<void> _ensureInit() async {
-    _docsDir ??= await getApplicationDocumentsDirectory();
+    if (_docsDir != null) return;
+    final overrideDir = _storageOverride?.directory;
+    if (overrideDir != null) {
+      if (!await overrideDir.exists()) {
+        await overrideDir.create(recursive: true);
+      }
+      _docsDir = overrideDir;
+    } else {
+      _docsDir = await getApplicationDocumentsDirectory();
+    }
   }
+
+  /// 活动会话 id 的 prefs 键：生产裸名 `ai_active_session_id`；
+  /// 隔离注入时带 `<prefsPrefix>` 前缀（Fix-H）。
+  String get _activeSessionIdKey =>
+      '${_storageOverride?.prefsPrefix ?? ''}ai_active_session_id';
 
   void resetForTests() {
     _docsDir = null;
@@ -381,7 +414,7 @@ class AiSessionManager extends ChangeNotifier implements ISessionManager {
       }
 
       final prefs = await SharedPreferences.getInstance();
-      final activeId = prefs.getString('ai_active_session_id');
+      final activeId = prefs.getString(_activeSessionIdKey);
       if (activeId != null && _sessions.any((s) => s.id == activeId)) {
         _currentSession = _sessions.firstWhere((s) => s.id == activeId);
       } else {
@@ -421,9 +454,9 @@ class AiSessionManager extends ChangeNotifier implements ISessionManager {
   Future<void> _saveActiveSessionId() async {
     final prefs = await SharedPreferences.getInstance();
     if (_currentSession != null) {
-      await prefs.setString('ai_active_session_id', _currentSession!.id);
+      await prefs.setString(_activeSessionIdKey, _currentSession!.id);
     } else {
-      await prefs.remove('ai_active_session_id');
+      await prefs.remove(_activeSessionIdKey);
     }
   }
 

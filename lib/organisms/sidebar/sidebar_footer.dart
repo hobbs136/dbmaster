@@ -91,9 +91,15 @@ class SidebarFooter extends StatelessWidget {
               const SizedBox(width: AppDesignSystem.space2),
               _ActionButton(
                 icon: LucideIcons.sparkles,
-                tooltip: l10n.shortcutCategoryAi,
+                // design §3.1 再裁决：footer AI 键 = 进入 AI 工作台
+                //（setAiPanelOpen(true)+setAiPanelFullscreen(true) 组合）；
+                // dock 经典面板的开合保留 Ctrl+Shift+A 与面板自身按钮。
+                tooltip: l10n.workbenchEnter,
                 color: aiActive ? colors.accentBlue : colors.textSecondary,
-                onPressed: () => provider.toggleAiPanel(),
+                onPressed: () {
+                  provider.aiPanel.setAiPanelOpen(true);
+                  provider.aiPanel.setAiPanelFullscreen(true);
+                },
               ),
               _ActionButton(
                 icon: themeProvider.isDarkMode

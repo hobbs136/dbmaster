@@ -148,7 +148,9 @@ void main() {
             child: buildTestApp(
               SizedBox(
                 height: 800,
-                child: const AiPanelWidget(isFullscreen: true),
+                // D2 迁移：isFullscreen 参数已删（z2 全屏分支改渲染
+                // AiWorkbenchShell），此处验证面板本体可独立渲染。
+                child: const AiPanelWidget(),
               ),
               provider: appProvider,
             ),

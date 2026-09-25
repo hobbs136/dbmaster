@@ -1,3 +1,5 @@
+import 'dart:math';
+
 /// MongoDB 集成测试配置
 ///
 /// 凭据不随仓库分发（开源剥离）：连接参数经 `--dart-define=DBMASTER_MONGO_*`
@@ -48,7 +50,8 @@ class MongoDBTestConfig {
   /// 生成唯一测试数据库名，避免并行测试冲突
   static String generateTestDatabaseName() {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    return 'dbmaster_test_$timestamp';
+    final rand = Random().nextInt(0x10000).toRadixString(16).padLeft(4, '0');
+    return 'dbmaster_test_${timestamp}_$rand';
   }
 
   /// 生成唯一集合名前缀

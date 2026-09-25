@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -29,13 +31,12 @@ import 'ai_message_item.dart';
 import 'ai_conversation_list.dart';
 import 'ai_bookmark_panel.dart';
 import '../../l10n/app_localizations.dart';
-import '../../models/execution_result.dart';
-import '../../models/sql_statement.dart';
 import 'ai_settings_dialog.dart';
 
 import 'confirm_execute_dialog.dart';
 import 'ai_welcome_state.dart';
 import 'ai_slash_command_menu.dart';
+import 'ai_table_mention_menu.dart';
 import 'ai_skill_catalog_panel.dart';
 import 'ai_context_panel.dart';
 import '../../plugins/ai_skill_plugin.dart';
@@ -50,6 +51,28 @@ class _SendAiMessageIntent extends Intent {
   const _SendAiMessageIntent();
 }
 
+class _MentionNavigateIntent extends Intent {
+  final int offset;
+
+  const _MentionNavigateIntent(this.offset);
+}
+
+class _MentionAcceptIntent extends Intent {
+  const _MentionAcceptIntent();
+}
+
+class _MentionDismissIntent extends Intent {
+  const _MentionDismissIntent();
+}
+
+/// `@` 引用 token 定位结果：`@` 在文本中的偏移 + 已输入前缀。
+class _MentionToken {
+  final int atIndex;
+  final String prefix;
+
+  const _MentionToken(this.atIndex, this.prefix);
+}
+
 class AiInputArea extends StatefulWidget {
   final bool isSending;
   final ValueChanged<String> onSend;
@@ -57,6 +80,20 @@ class AiInputArea extends StatefulWidget {
   final VoidCallback onShowApiSettings;
   final ValueChanged<String> onSlashCommand;
   final bool isOverlay;
+
+  /// `@` 表引用开关（design-ai-workbench §4.7 / 决策 D13）。
+  /// 经典面板默认 false（经典输入区零行为变化）；工作台装配时传 true。
+  final bool enableTableMention;
+
+  /// `@` 表引用回调：输入触发 '@' 时由输入区调用，宿主返回当前上下文连接/库的表名候选。
+  /// 工作台实现：effectiveWorkbenchContext → dbService.getTables(connectionId, db)
+  /// （输入区侧已做 300ms 防抖）。连接/库取自 AppProvider.aiPanel 的当前选中上下文。
+  final Future<List<String>> Function(
+    String connectionId,
+    String databaseName,
+    String prefix,
+  )?
+  onTableMentionQuery;
 
   const AiInputArea({
     super.key,
@@ -66,6 +103,8 @@ class AiInputArea extends StatefulWidget {
     required this.onShowApiSettings,
     required this.onSlashCommand,
     this.isOverlay = false,
+    this.enableTableMention = false,
+    this.onTableMentionQuery,
   });
 
   @override
@@ -79,6 +118,15 @@ class _AiInputAreaState extends State<AiInputArea> {
   bool _showSlashCommands = false;
   String _slashCommandFilter = '';
 
+  // `@` 表引用状态（design-ai-workbench §4.7；enableTableMention=false 时全部不参与）
+  Timer? _mentionDebounce;
+  bool _showTableMentions = false;
+  String _mentionPrefix = '';
+  int _mentionAnchorOffset = -1;
+  List<String> _tableMentionCandidates = const [];
+  int _mentionHighlightIndex = 0;
+  int _mentionQueryGeneration = 0;
+
   @override
   void initState() {
     super.initState();
@@ -87,7 +135,16 @@ class _AiInputAreaState extends State<AiInputArea> {
   }
 
   @override
+  void didUpdateWidget(AiInputArea oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.enableTableMention && _showTableMentions) {
+      _closeTableMention();
+    }
+  }
+
+  @override
   void dispose() {
+    _mentionDebounce?.cancel();
     _inputController.dispose();
     _inputFocusNode.dispose();
     super.dispose();
@@ -110,7 +167,132 @@ class _AiInputAreaState extends State<AiInputArea> {
       _showSlashCommands = shouldShowSlash;
       _slashCommandFilter = newFilter;
     });
+
+    if (widget.enableTableMention) {
+      _updateTableMention(text, cursorPos);
+    }
   }
+
+  /// 定位光标左侧的 `@` 引用 token：`@` 必须位于文本开头或空白字符之后
+  /// （避免 user@example.com 这类误触发），且 `@` 与光标之间不含空白。
+  _MentionToken? _findMentionToken(String text, int cursorPos) {
+    if (cursorPos <= 0 || cursorPos > text.length) return null;
+    final int atIndex = text.lastIndexOf('@', cursorPos - 1);
+    if (atIndex < 0) return null;
+    if (atIndex > 0 && text.substring(atIndex - 1, atIndex).trim().isNotEmpty) {
+      return null;
+    }
+    final String prefix = text.substring(atIndex + 1, cursorPos);
+    if (prefix.contains(RegExp(r'\s'))) return null;
+    return _MentionToken(atIndex, prefix);
+  }
+
+  void _updateTableMention(String text, int cursorPos) {
+    final token = _findMentionToken(text, cursorPos);
+    if (token == null) {
+      _closeTableMention();
+      return;
+    }
+
+    setState(() {
+      _showTableMentions = true;
+      _mentionPrefix = token.prefix;
+      _mentionAnchorOffset = token.atIndex;
+      _mentionHighlightIndex = 0;
+    });
+
+    // 防抖 300ms 查询候选；等待期间先按旧候选做客户端前缀过滤展示。
+    _mentionDebounce?.cancel();
+    _mentionDebounce = Timer(const Duration(milliseconds: 300), () {
+      unawaited(_queryTableCandidates(token.prefix));
+    });
+  }
+
+  Future<void> _queryTableCandidates(String prefix) async {
+    if (!mounted) return;
+    final query = widget.onTableMentionQuery;
+    if (query == null) return;
+
+    final appProvider = context.read<AppProvider>();
+    final connectionId = appProvider.aiPanel.selectedConnectionId ?? '';
+    final databaseName = appProvider.aiPanel.selectedDatabaseName ?? '';
+
+    final int generation = ++_mentionQueryGeneration;
+    List<String> candidates;
+    try {
+      candidates = await query(connectionId, databaseName, prefix);
+    } catch (e) {
+      AppLogger.w('AiInputArea', 'table mention query failed: $e');
+      candidates = const [];
+    }
+
+    if (!mounted || generation != _mentionQueryGeneration) return;
+    if (!_showTableMentions) return;
+    setState(() {
+      _tableMentionCandidates = candidates;
+      _mentionHighlightIndex = 0;
+    });
+  }
+
+  void _closeTableMention() {
+    _mentionDebounce?.cancel();
+    if (!_showTableMentions) return;
+    setState(() {
+      _showTableMentions = false;
+      _tableMentionCandidates = const [];
+      _mentionAnchorOffset = -1;
+      _mentionHighlightIndex = 0;
+    });
+  }
+
+  void _moveMentionHighlight(int offset, int itemCount) {
+    if (itemCount == 0) return;
+    setState(() {
+      _mentionHighlightIndex = (_mentionHighlightIndex + offset).clamp(
+        0,
+        itemCount - 1,
+      );
+    });
+  }
+
+  void _acceptHighlightedMention(List<String> items) {
+    if (_mentionHighlightIndex < 0 || _mentionHighlightIndex >= items.length) {
+      return;
+    }
+    _onTableMentionSelected(items[_mentionHighlightIndex]);
+  }
+
+  /// 选中候选：把 `@前缀` 替换为 `@表名 `（保留 @ 引用标记 + 尾随空格续写），
+  /// 光标落在引用之后。尾随空格会使 token 失效，浮层随之关闭。
+  void _onTableMentionSelected(String tableName) {
+    _mentionDebounce?.cancel();
+    final text = _inputController.text;
+    final anchor = _mentionAnchorOffset;
+    if (anchor < 0 || anchor >= text.length) {
+      _closeTableMention();
+      return;
+    }
+    final cursorPos = _inputController.selection.baseOffset;
+    final int end = (cursorPos > anchor && cursorPos <= text.length)
+        ? cursorPos
+        : anchor + 1 + _mentionPrefix.length;
+    final String reference = '@$tableName ';
+    _inputController.value = TextEditingValue(
+      text: text.replaceRange(anchor, end, reference),
+      selection: TextSelection.collapsed(offset: anchor + reference.length),
+    );
+    setState(() {
+      _showTableMentions = false;
+      _mentionAnchorOffset = -1;
+      _mentionHighlightIndex = 0;
+    });
+  }
+
+  /// 当前可视候选集（与浮层过滤口径同源：AiTableMentionMenu.filterCandidates）。
+  List<String> get _activeMentionItems => AiTableMentionMenu.filterCandidates(
+    _tableMentionCandidates,
+    _mentionPrefix,
+  );
 
   void _onSlashCommandSelected(String action, String command) {
     _inputController.text = '';
@@ -352,24 +534,83 @@ class _AiInputAreaState extends State<AiInputArea> {
     );
   }
 
+  Widget _buildTableMentionOverlay() {
+    return Positioned(
+      left: AppDesignSystem.space3,
+      right: AppDesignSystem.space3,
+      bottom: 180,
+      child: CompositedTransformFollower(
+        link: _slashMenuLayerLink,
+        offset: const Offset(0, -8),
+        child: AiTableMentionMenu(
+          prefix: _mentionPrefix,
+          candidates: _tableMentionCandidates,
+          highlightIndex: _mentionHighlightIndex,
+          onTableSelected: _onTableMentionSelected,
+        ),
+      ),
+    );
+  }
+
+  /// Ctrl+Enter 发送恒在；`@` 浮层打开时叠加 ↑/↓ 选择、Enter 采纳、Esc 关闭。
+  Map<ShortcutActivator, Intent> _buildShortcuts(List<String> mentionItems) {
+    final shortcuts = <ShortcutActivator, Intent>{
+      const SingleActivator(LogicalKeyboardKey.enter, control: true):
+          const _SendAiMessageIntent(),
+    };
+    if (_showTableMentions && mentionItems.isNotEmpty) {
+      shortcuts[const SingleActivator(LogicalKeyboardKey.arrowUp)] =
+          const _MentionNavigateIntent(-1);
+      shortcuts[const SingleActivator(LogicalKeyboardKey.arrowDown)] =
+          const _MentionNavigateIntent(1);
+      shortcuts[const SingleActivator(LogicalKeyboardKey.enter)] =
+          const _MentionAcceptIntent();
+      shortcuts[const SingleActivator(LogicalKeyboardKey.escape)] =
+          const _MentionDismissIntent();
+    }
+    return shortcuts;
+  }
+
+  Map<Type, Action<Intent>> _buildActions(List<String> mentionItems) {
+    return {
+      _SendAiMessageIntent: CallbackAction<_SendAiMessageIntent>(
+        onInvoke: (_) {
+          if (!widget.isSending) {
+            _handleSend();
+          }
+          return null;
+        },
+      ),
+      if (_showTableMentions && mentionItems.isNotEmpty) ...{
+        _MentionNavigateIntent: CallbackAction<_MentionNavigateIntent>(
+          onInvoke: (intent) {
+            _moveMentionHighlight(intent.offset, mentionItems.length);
+            return null;
+          },
+        ),
+        _MentionAcceptIntent: CallbackAction<_MentionAcceptIntent>(
+          onInvoke: (_) {
+            _acceptHighlightedMention(mentionItems);
+            return null;
+          },
+        ),
+        _MentionDismissIntent: CallbackAction<_MentionDismissIntent>(
+          onInvoke: (_) {
+            _closeTableMention();
+            return null;
+          },
+        ),
+      },
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
+    final List<String> mentionItems = _activeMentionItems;
     return Shortcuts(
-      shortcuts: {
-        const SingleActivator(LogicalKeyboardKey.enter, control: true):
-            const _SendAiMessageIntent(),
-      },
+      shortcuts: _buildShortcuts(mentionItems),
       child: Actions(
-        actions: {
-          _SendAiMessageIntent: CallbackAction<_SendAiMessageIntent>(
-            onInvoke: (_) {
-              if (!widget.isSending) {
-                _handleSend();
-              }
-              return null;
-            },
-          ),
-        },
+        actions: _buildActions(mentionItems),
         child: Stack(
           children: [
             Container(
@@ -479,6 +720,8 @@ class _AiInputAreaState extends State<AiInputArea> {
               ),
             ),
             if (_showSlashCommands) _buildSlashCommandOverlay(),
+            if (_showTableMentions && widget.enableTableMention)
+              _buildTableMentionOverlay(),
           ],
         ),
       ),
@@ -487,12 +730,10 @@ class _AiInputAreaState extends State<AiInputArea> {
 }
 
 class AiPanelWidget extends StatefulWidget {
-  final bool isFullscreen;
   final bool isOverlay;
 
   const AiPanelWidget({
     super.key,
-    this.isFullscreen = false,
     this.isOverlay = false,
   });
 
@@ -954,9 +1195,10 @@ class AiPanelWidgetState extends State<AiPanelWidget>
     final provider = context.watch<AppProvider>();
     final selectedConnId = provider.aiPanel.selectedConnectionId;
     final connection = selectedConnId != null
-        ? provider.connection.savedConnections
-              .cast<DbServer?>()
-              .firstWhere((s) => s!.id == selectedConnId, orElse: () => null)
+        ? provider.connection.savedConnections.cast<DbServer?>().firstWhere(
+            (s) => s!.id == selectedConnId,
+            orElse: () => null,
+          )
         : null;
 
     return AiContextPanel(
@@ -1153,15 +1395,14 @@ class AiPanelWidgetState extends State<AiPanelWidget>
                   ),
                 ),
               const SizedBox(width: AppDesignSystem.space1),
-              // 全屏切换按钮
+              // 全屏/工作台切换按钮（D2 迁移：isFullscreen 参数已删，
+              // docked/overlay 两形态统一显示「进入全屏/工作台」入口）
               SizedBox(
                 width: 28,
                 height: 28,
                 child: IconButton(
-                  icon: Icon(
-                    widget.isFullscreen
-                        ? LucideIcons.minimize
-                        : LucideIcons.maximize,
+                  icon: const Icon(
+                    LucideIcons.maximize,
                     size: 14,
                   ),
                   color: context.themeColors.textMuted,
@@ -1173,9 +1414,7 @@ class AiPanelWidgetState extends State<AiPanelWidget>
                     provider.toggleAiPanelFullscreen();
                   },
                   padding: EdgeInsets.zero,
-                  tooltip: widget.isFullscreen
-                      ? l10n.aiPanelExitFullscreen
-                      : l10n.aiPanelFullscreen,
+                  tooltip: l10n.aiPanelFullscreen,
                 ),
               ),
             ],
@@ -2688,29 +2927,8 @@ class AiPanelWidgetState extends State<AiPanelWidget>
         ),
       );
 
-      // 更新标签页时使用 AI 面板的连接和数据库状态
-      final activeTabIndex = provider.activeTabIndex;
-      provider.updateTabSql(activeTabIndex, sql);
-      provider.updateTabConnection(activeTabIndex, connectionId);
-      provider.updateTabDatabase(activeTabIndex, databaseName);
-      // AI 应用 SQL = 显式设定 tab 上下文 → 绑定（方向 A）。
-      provider.bindTabContext(activeTabIndex);
-      final executionResults = [
-        ExecutionResult(
-          statement: SQLStatement(
-            index: 0,
-            sql: sql,
-            type: SQLType.select,
-            lineStart: 1,
-            lineEnd: 1,
-          ),
-          success: true,
-          data: results,
-          executionTime: Duration.zero,
-        ),
-      ];
-      provider.updateTabExecutionResults(activeTabIndex, executionResults);
-
+      // T04（design §6.3）：取消隐式写回——执行结果只在消息流呈现，
+      // 不再覆盖 activeTab 的 sql/connection/database/结果（AC7.2）。
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -2769,31 +2987,8 @@ class AiPanelWidgetState extends State<AiPanelWidget>
               ),
             );
 
-            final activeTabIndex = provider.activeTabIndex;
-            provider.updateTabSql(activeTabIndex, sql);
-            provider.updateTabConnection(activeTabIndex, connectionId);
-            provider.updateTabDatabase(activeTabIndex, databaseName);
-            // AI 应用 SQL = 显式设定 tab 上下文 → 绑定（方向 A）。
-            provider.bindTabContext(activeTabIndex);
-            final executionResults = [
-              ExecutionResult(
-                statement: SQLStatement(
-                  index: 0,
-                  sql: sql,
-                  type: SQLType.select,
-                  lineStart: 1,
-                  lineEnd: 1,
-                ),
-                success: true,
-                data: results,
-                executionTime: Duration.zero,
-              ),
-            ];
-            provider.updateTabExecutionResults(
-              activeTabIndex,
-              executionResults,
-            );
-
+            // T04（design §6.3）：取消隐式写回——同上，DDL 确认后执行的结果
+            // 只在消息流呈现，不写 activeTab（AC7.2）。
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

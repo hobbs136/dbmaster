@@ -15,7 +15,7 @@ import 'package:provider/provider.dart';
 import 'package:dbmaster/l10n/app_localizations.dart';
 import 'package:dbmaster/organisms/ai_panel/ai_mini_fab.dart';
 import 'package:dbmaster/organisms/ai_panel/ai_panel_overlay.dart';
-import 'package:dbmaster/organisms/ai_panel/ai_panel_widget.dart';
+import 'package:dbmaster/organisms/ai_workbench/ai_workbench_shell.dart';
 import 'package:dbmaster/organisms/execution_center/execution_center_panel.dart';
 import 'package:dbmaster/providers/app_provider.dart';
 import 'package:dbmaster/providers/execution_center_provider.dart';
@@ -197,7 +197,8 @@ void main() {
     });
 
     testWidgets('shown when AI fullscreen', (tester) async {
-      // C23 走查反馈修复：全屏 = 真铺满（AiPanelWidget 直铺），非浮动窗
+      // C23 走查反馈修复：全屏 = 真铺满（z2 直铺），非浮动窗。
+      // T10（D2）：全屏分支改渲染 AiWorkbenchShell（AI 全屏 = 工作台）。
       final app = AppProvider()
         ..toggleAiPanel()
         ..setAiPanelFullscreen(true);
@@ -207,7 +208,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
       expect(find.byType(AiPanelOverlay), findsNothing);
-      expect(find.byType(AiPanelWidget), findsOneWidget);
+      expect(find.byType(AiWorkbenchShell), findsOneWidget);
     });
 
     testWidgets('shown when AI degraded to overlay (narrow)', (tester) async {

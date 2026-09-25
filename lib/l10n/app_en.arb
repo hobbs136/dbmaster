@@ -6261,5 +6261,783 @@
   "connectFailureFile": "File",
   "connectFailureRawError": "Raw Error",
   "connectFailureLatestTooltip": "Last connection failed: {message}",
-  "@connectFailureLatestTooltip": {"placeholders": {"message": {"type": "String"}}}
+  "@connectFailureLatestTooltip": {"placeholders": {"message": {"type": "String"}}},
+  "workbenchTitle": "AI Workbench",
+  "@workbenchTitle": {
+    "description": "Title of the AI Workbench mode"
+  },
+  "workbenchEnter": "Enter AI Workbench",
+  "@workbenchEnter": {
+    "description": "Action to enter the AI Workbench mode"
+  },
+  "workbenchExit": "Exit Workbench",
+  "@workbenchExit": {
+    "description": "Action to exit the AI Workbench back to the classic layout"
+  },
+  "workbenchCommandEnterWorkbench": "Enter AI Workbench",
+  "@workbenchCommandEnterWorkbench": {
+    "description": "Command palette display name for entering the AI Workbench"
+  },
+  "workbenchCommandExitWorkbench": "Exit Workbench",
+  "@workbenchCommandExitWorkbench": {
+    "description": "Command palette display name for exiting the AI Workbench"
+  },
+  "workbenchContextSourceTab": "Active tab",
+  "@workbenchContextSourceTab": {
+    "description": "Context chip source label: context resolved from the active tab"
+  },
+  "workbenchContextSourceSidebar": "Sidebar",
+  "@workbenchContextSourceSidebar": {
+    "description": "Context chip source label: context resolved from the sidebar selection"
+  },
+  "workbenchContextLock": "Lock context",
+  "@workbenchContextLock": {
+    "description": "Action to lock the workbench context so it stops following tab/sidebar changes"
+  },
+  "workbenchContextUnlock": "Unlock context",
+  "@workbenchContextUnlock": {
+    "description": "Action to unlock the workbench context and resume following"
+  },
+  "workbenchContextUnset": "Not set",
+  "@workbenchContextUnset": {
+    "description": "Context chip state when no connection/database is available"
+  },
+  "workbenchContextSetupGuide": "Connect to a database to set the AI context",
+  "@workbenchContextSetupGuide": {
+    "description": "Guide text shown with the unset context chip; tapping opens the connection dialog"
+  },
+  "workbenchContextSwitchTip": "Switch AI context",
+  "@workbenchContextSwitchTip": {
+    "description": "Tooltip on the context chip body; tapping opens the context picker (R2)"
+  },
+  "workbenchContextPickerTitle": "Set AI context",
+  "@workbenchContextPickerTitle": {
+    "description": "Title of the workbench context picker dialog (R2)"
+  },
+  "workbenchContextPickerNewConnection": "New connection",
+  "@workbenchContextPickerNewConnection": {
+    "description": "Secondary exit in the context picker: create a new connection (R2)"
+  },
+  "workbenchContextPickerLoadingDatabases": "Loading databases…",
+  "@workbenchContextPickerLoadingDatabases": {
+    "description": "Right column loading state in the context picker (R2)"
+  },
+  "workbenchContextPickerNoDatabases": "No database list for this connection",
+  "@workbenchContextPickerNoDatabases": {
+    "description": "Right column empty state when the database list is empty (R2)"
+  },
+  "workbenchContextPickerConnectionOnly": "Use connection only",
+  "@workbenchContextPickerConnectionOnly": {
+    "description": "Lock the context to the connection without a database (R2)"
+  },
+  "workbenchContextPickerConnectHint": "Connect to list databases",
+  "@workbenchContextPickerConnectHint": {
+    "description": "Right column hint shown before a connection is picked (R2)"
+  },
+  "workbenchSqlCardTitle": "SQL",
+  "@workbenchSqlCardTitle": {
+    "description": "Title of the SQL tool card"
+  },
+  "workbenchSqlTypeBadge": "{n}",
+  "@workbenchSqlTypeBadge": {
+    "description": "Statement type badge on the SQL card (SELECT, INSERT, ...)",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "workbenchSqlWriteBadge": "Write",
+  "@workbenchSqlWriteBadge": {
+    "description": "Danger badge marking data-modifying SQL on the SQL card"
+  },
+  "workbenchActionOpenInClassic": "Open in Classic",
+  "@workbenchActionOpenInClassic": {
+    "description": "Card action that opens the SQL/results in a new classic-mode query tab"
+  },
+  "workbenchResultMeta": "{rows} rows · {ms} ms",
+  "@workbenchResultMeta": {
+    "description": "Collapsed result-table card metadata: row count and execution time",
+    "placeholders": {
+      "rows": {
+        "type": "int"
+      },
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
+  "workbenchOpenInGrid": "Open in Grid",
+  "@workbenchOpenInGrid": {
+    "description": "Result card action that opens the full result set in a classic grid tab (only when rows exceed the snapshot limit)"
+  },
+  "workbenchResultTruncated": "Showing first {shown} of {total} rows",
+  "@workbenchResultTruncated": {
+    "description": "Footer note on the result card when the snapshot shows fewer rows than the full result set",
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "workbenchEmptyResult": "{rows} rows · {ms} ms",
+  "@workbenchEmptyResult": {
+    "description": "Metadata line of the empty result state (0 rows and execution time)",
+    "placeholders": {
+      "rows": {
+        "type": "int"
+      },
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
+  "workbenchEmptyResultHint": "No data returned",
+  "@workbenchEmptyResultHint": {
+    "description": "Centered hint on the empty result card"
+  },
+  "workbenchErrorDetail": "Technical details",
+  "@workbenchErrorDetail": {
+    "description": "Collapsible technical details section title on the error card"
+  },
+  "workbenchLoadingState": "Loading conversation…",
+  "@workbenchLoadingState": {
+    "description": "Label for the session history loading skeleton state"
+  },
+  "workbenchErrorNoContext": "No database context is set. Choose a connection to run this SQL.",
+  "@workbenchErrorNoContext": {
+    "description": "Card error message when execution is attempted with no available context"
+  },
+  "workbenchErrorSetupConnection": "Set Up Connection",
+  "@workbenchErrorSetupConnection": {
+    "description": "Exit action on the no-context error card, opens the connection dialog"
+  },
+  "workbenchConfirmWriteTitle": "Confirm Write Operation",
+  "@workbenchConfirmWriteTitle": {
+    "description": "Title for the write SQL confirmation dialog raised from the AI Workbench"
+  },
+  "workbenchConfirmTarget": "Target: {connection} · {database}",
+  "@workbenchConfirmTarget": {
+    "description": "Target connection/database row shown in the write confirmation dialog",
+    "placeholders": {
+      "connection": {
+        "type": "String"
+      },
+      "database": {
+        "type": "String"
+      }
+    }
+  },
+  "workbenchStatsExport": "Export usage statistics (anonymous JSON)",
+  "@workbenchStatsExport": {
+    "description": "Settings dialog entry that exports local workbench usage statistics"
+  },
+  "workbenchStatsExported": "Usage statistics exported to {path}",
+  "@workbenchStatsExported": {
+    "description": "Success feedback after the usage statistics file is saved",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "workbenchNewSession": "New session",
+  "@workbenchNewSession": {
+    "description": "Action to create a new conversation in the workbench session rail"
+  },
+  "workbenchSessionListTitle": "Sessions",
+  "@workbenchSessionListTitle": {
+    "description": "Header title of the workbench session rail"
+  },
+  "workbenchErrorEmptySql": "Cannot execute an empty statement",
+  "@workbenchErrorEmptySql": {
+    "description": "Error message when execution is attempted with an empty statement"
+  },
+  "agentTrajectoryTitle": "Run Trajectory",
+  "@agentTrajectoryTitle": {
+    "description": "Header title of the agent run trajectory card"
+  },
+  "agentTrajectoryStep": "Step · {tool}",
+  "@agentTrajectoryStep": {
+    "description": "Accessibility label for one trajectory step row, carrying the tool name",
+    "placeholders": {
+      "tool": {
+        "type": "String"
+      }
+    }
+  },
+  "agentTrajectorySteps": "{n}/{max}",
+  "@agentTrajectorySteps": {
+    "description": "Header step counter of the trajectory card (steps used of the step budget)",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "agentTrajectoryTokens": "{n} tok",
+  "@agentTrajectoryTokens": {
+    "description": "Header token counter of the trajectory card; n is the pre-formatted compact token count (e.g. 18.4k)",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "agentTrajectoryUnknown": "Unknown",
+  "@agentTrajectoryUnknown": {
+    "description": "Fallback status chip label when the run status cannot be determined"
+  },
+  "agentTrajectoryAwaiting": "Awaiting",
+  "@agentTrajectoryAwaiting": {
+    "description": "Status chip label while the run waits for a user decision; also the pending chip of the read confirmation card"
+  },
+  "agentTrajectoryStatusRunning": "Running",
+  "@agentTrajectoryStatusRunning": {
+    "description": "Status chip label while the agent run is executing"
+  },
+  "agentTrajectoryCompleted": "Completed",
+  "@agentTrajectoryCompleted": {
+    "description": "Status chip label when the run finished normally"
+  },
+  "agentTrajectoryExpandStep": "Expand step details",
+  "@agentTrajectoryExpandStep": {
+    "description": "Tooltip and accessibility label for expanding one step's details in the trajectory card"
+  },
+  "agentStepArgs": "Arguments",
+  "@agentStepArgs": {
+    "description": "Field label of the non-SQL arguments row in a step detail"
+  },
+  "agentStepSql": "SQL",
+  "@agentStepSql": {
+    "description": "Field label of the SQL row in a step detail"
+  },
+  "agentStepResultMeta": "{rows} rows · {cols} cols · {ms} ms",
+  "@agentStepResultMeta": {
+    "description": "Result metadata line in a step detail: row count, column count and duration",
+    "placeholders": {
+      "rows": {
+        "type": "int"
+      },
+      "cols": {
+        "type": "int"
+      },
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
+  "agentStepSnapshot": "Snapshot",
+  "@agentStepSnapshot": {
+    "description": "Field label of the result snapshot row in a step detail"
+  },
+  "agentStepTruncated": "Showing first {shown} of {total} rows",
+  "@agentStepTruncated": {
+    "description": "Footer note under a step result snapshot truncated to the first rows",
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "agentStepError": "Error",
+  "@agentStepError": {
+    "description": "Field label of the error row in a step detail"
+  },
+  "agentStepOpenInStage": "Open in Stage",
+  "@agentStepOpenInStage": {
+    "description": "Step detail action that opens the full result in the workbench stage (shown when rows exceed the snapshot limit)"
+  },
+  "agentStepGateConfirmed": "Confirmed for this run",
+  "@agentStepGateConfirmed": {
+    "description": "Tooltip on the shield marker of a step the user confirmed for this run"
+  },
+  "agentStepGateSession": "Allowed for this session (this connection)",
+  "@agentStepGateSession": {
+    "description": "Tooltip on the shield marker of a step allowed for the whole session on this connection"
+  },
+  "agentStepBlocked": "Blocked",
+  "@agentStepBlocked": {
+    "description": "Short label beside the shield-x marker of a step rejected by the permission gate"
+  },
+  "agentStepRejected": "Rejected",
+  "@agentStepRejected": {
+    "description": "Short label beside the ban marker of a step rejected by the user"
+  },
+  "agentConfirmReadTitle": "Costly Read Confirmation",
+  "@agentConfirmReadTitle": {
+    "description": "Title of the L0.5 high-cost read confirmation card"
+  },
+  "agentConfirmScanRows": "Estimated scan rows",
+  "@agentConfirmScanRows": {
+    "description": "Field label of the estimated row scan count on the read confirmation card"
+  },
+  "agentConfirmEstimatedRows": "{n} rows",
+  "@agentConfirmEstimatedRows": {
+    "description": "Value of the estimated scan rows field; n is the pre-formatted row estimate",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "agentConfirmScanShape": "Scan pattern",
+  "@agentConfirmScanShape": {
+    "description": "Field label of the scan shape row on the read confirmation card"
+  },
+  "agentConfirmFullScan": "Full table scan",
+  "@agentConfirmFullScan": {
+    "description": "Scan shape value when the query scans the whole table"
+  },
+  "agentConfirmNoIndex": "No usable index",
+  "@agentConfirmNoIndex": {
+    "description": "Scan shape value when no usable index covers the query"
+  },
+  "agentConfirmFullScanNoIndex": "Full table scan · no usable index",
+  "@agentConfirmFullScanNoIndex": {
+    "description": "Combined scan shape value when both signals hit"
+  },
+  "agentConfirmIndexRow": "Indexes",
+  "@agentConfirmIndexRow": {
+    "description": "Field label of the index summary row on the read confirmation card"
+  },
+  "agentConfirmTablesRow": "Tables scanned",
+  "@agentConfirmTablesRow": {
+    "description": "Field label of the scanned tables row on the read confirmation card"
+  },
+  "agentConfirmSqlRow": "SQL",
+  "@agentConfirmSqlRow": {
+    "description": "Field label of the SQL block on the read confirmation card"
+  },
+  "agentConfirmAnalysisUnavailable": "Analysis unavailable · confirming conservatively",
+  "@agentConfirmAnalysisUnavailable": {
+    "description": "Scan shape value when pre-execution analysis failed and the card falls back to the conservative confirmation (fail-closed)"
+  },
+  "agentConfirmValueUnavailable": "Unavailable",
+  "@agentConfirmValueUnavailable": {
+    "description": "Placeholder value when an analysis field such as the row estimate is unavailable"
+  },
+  "agentConfirmAllowSession": "Allow for this session",
+  "@agentConfirmAllowSession": {
+    "description": "Checkbox label that, when checked, applies the primary allow action to the whole session on this connection"
+  },
+  "agentConfirmAllowSessionHint": "High-cost reads on this connection will not ask again for the rest of this session",
+  "@agentConfirmAllowSessionHint": {
+    "description": "Tooltip explaining the scope of the session allow checkbox"
+  },
+  "agentConfirmAllowOnce": "Allow once",
+  "@agentConfirmAllowOnce": {
+    "description": "Primary action approving this single high-cost read"
+  },
+  "agentConfirmCancel": "Cancel",
+  "@agentConfirmCancel": {
+    "description": "Secondary action rejecting this high-cost read"
+  },
+  "agentConfirmResultAllowedOnce": "Allowed (this time)",
+  "@agentConfirmResultAllowedOnce": {
+    "description": "Conclusion row after the user approved this single read"
+  },
+  "agentConfirmResultAllowedSession": "Allowed (this session)",
+  "@agentConfirmResultAllowedSession": {
+    "description": "Conclusion row after the user approved reads for the whole session"
+  },
+  "agentConfirmResultCanceled": "Canceled",
+  "@agentConfirmResultCanceled": {
+    "description": "Conclusion row after the user canceled the confirmation"
+  },
+  "agentConfirmResultCanceledByRun": "Canceled (run stopped)",
+  "@agentConfirmResultCanceledByRun": {
+    "description": "Conclusion row when the run was stopped while awaiting this confirmation"
+  },
+  "agentStoppedByUser": "Stopped by user",
+  "@agentStoppedByUser": {
+    "description": "Terminal status chip label when the user stopped the run"
+  },
+  "agentStoppedByLimit": "Step limit",
+  "@agentStoppedByLimit": {
+    "description": "Terminal status chip label when the run stopped because the step budget was exhausted"
+  },
+  "agentStoppedByFailures": "{n} failures",
+  "@agentStoppedByFailures": {
+    "description": "Terminal status chip label when consecutive tool failures stopped the run; n is the consecutive failure count",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "agentRunFailed": "Run failed",
+  "@agentRunFailed": {
+    "description": "Terminal status chip label when the run failed with a provider error"
+  },
+  "agentRunInterrupted": "Interrupted",
+  "@agentRunInterrupted": {
+    "description": "Terminal status chip label of a run whose end message is missing (e.g. the app exited mid-run)"
+  },
+  "agentStopping": "Stopping",
+  "@agentStopping": {
+    "description": "Status chip label while a stop has been requested and the current step is finishing"
+  },
+  "agentStopButton": "Stop",
+  "@agentStopButton": {
+    "description": "Button that requests stopping the running agent loop"
+  },
+  "agentStepLimitReached": "Step limit reached ({n})",
+  "@agentStepLimitReached": {
+    "description": "Run summary when the configured maximum step count was reached; n is the step limit",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "agentContextRequired": "No database context is set. Choose a connection to run data tools.",
+  "@agentContextRequired": {
+    "description": "Guidance shown when a data tool is called without a locked workbench context"
+  },
+  "agentContextSetup": "Set Up Context",
+  "@agentContextSetup": {
+    "description": "Exit action on the context-required guidance, opens the workbench context picker"
+  },
+  "agentMaxStepsSetting": "Agent max steps",
+  "@agentMaxStepsSetting": {
+    "description": "Settings row label for the maximum number of agent steps per run"
+  },
+  "agentL05ThresholdSetting": "Read confirm row threshold",
+  "@agentL05ThresholdSetting": {
+    "description": "Settings row label for the row threshold above which high-cost reads require confirmation"
+  },
+  "agentSessionTokens": "Session {n} tok",
+  "@agentSessionTokens": {
+    "description": "Session-level token chip; n is the pre-formatted cumulative token count of all runs in the session",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "agentTrajectoryStepsOnly": "Steps: {n}",
+  "@agentTrajectoryStepsOnly": {
+    "description": "Step count on a trajectory card in the interrupted state; shows the count without the configured maximum",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "agentSettingsSection": "Agent",
+  "@agentSettingsSection": {
+    "description": "Section header label for the agent settings group in the settings dialog"
+  },
+  "agentPlanTitle": "Action Plan",
+  "@agentPlanTitle": {
+    "description": "Title of the action plan block embedded in the trajectory card"
+  },
+  "agentPlanStatementCount": "{n} statements",
+  "@agentPlanStatementCount": {
+    "description": "Statement count shown in the plan block header; n is the number of statements in the plan",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "agentPlanImpactLabel": "Impact",
+  "@agentPlanImpactLabel": {
+    "description": "Field label of the per-step impact row (estimated affected rows)"
+  },
+  "agentPlanEstimateRows": "{n} rows",
+  "@agentPlanEstimateRows": {
+    "description": "Value of the impact row when an estimate exists; n is the pre-formatted row estimate",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "agentPlanEstimateUnavailable": "Estimate unavailable",
+  "@agentPlanEstimateUnavailable": {
+    "description": "Value of the impact row when no row estimate is available (shown instead of 0 or blank)"
+  },
+  "agentPlanRollbackLabel": "Rollback",
+  "@agentPlanRollbackLabel": {
+    "description": "Field label of the per-step rollback row"
+  },
+  "agentPlanNoRollback": "Irreversible · no automatic rollback",
+  "@agentPlanNoRollback": {
+    "description": "Value of the rollback row when the statement has no rollback SQL and is declared irreversible"
+  },
+  "agentPlanIrreversible": "Irreversible",
+  "@agentPlanIrreversible": {
+    "description": "Badge marking a statement as irreversible (no automatic rollback available)"
+  },
+  "agentPlanStepKind": "{k} statement",
+  "@agentPlanStepKind": {
+    "description": "Accessibility label of the statement-type badge; k is the raw kind code (e.g. DML, DDL) displayed verbatim on the badge",
+    "placeholders": {
+      "k": {
+        "type": "String"
+      }
+    }
+  },
+  "agentPlanEstimateSourceExplain": "EXPLAIN estimate",
+  "@agentPlanEstimateSourceExplain": {
+    "description": "Source annotation appended to the impact row when the estimate came from an EXPLAIN-based analysis"
+  },
+  "agentPlanEstimateSourceCount": "Exact count",
+  "@agentPlanEstimateSourceCount": {
+    "description": "Source annotation appended to the impact row when the estimate came from an exact count query"
+  },
+  "agentPlanRollbackSourceModel": "Provided by model",
+  "@agentPlanRollbackSourceModel": {
+    "description": "Source annotation when the rollback SQL was provided by the model"
+  },
+  "agentPlanRollbackSourceAuto": "Auto-derived",
+  "@agentPlanRollbackSourceAuto": {
+    "description": "Source annotation when the rollback SQL was auto-derived by the executor"
+  },
+  "agentPlanBoundaryTitle": "Failure boundary",
+  "@agentPlanBoundaryTitle": {
+    "description": "Section title of the failure boundary area shown when the plan partially failed"
+  },
+  "agentPlanBoundaryDone": "Done {n}",
+  "@agentPlanBoundaryDone": {
+    "description": "Summary count of statements that completed successfully; n is the done count",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "agentPlanBoundaryFailed": "Failed {n}",
+  "@agentPlanBoundaryFailed": {
+    "description": "Summary count of statements that failed; n is the failed count",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "agentPlanBoundaryRemaining": "Skipped {n}",
+  "@agentPlanBoundaryRemaining": {
+    "description": "Summary count of statements skipped after the failure; n is the skipped count",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "agentPlanFailureReason": "Failure reason: {error}",
+  "@agentPlanFailureReason": {
+    "description": "Failure reason row under the boundary summary; error is the plan-level error summary",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "agentPlanStatusPending": "Pending approval",
+  "@agentPlanStatusPending": {
+    "description": "Status chip label while the plan awaits user approval"
+  },
+  "agentPlanStatusApproved": "Approved",
+  "@agentPlanStatusApproved": {
+    "description": "Status chip label after the user approved the plan"
+  },
+  "agentPlanStatusExecuting": "Running {n}/{m}",
+  "@agentPlanStatusExecuting": {
+    "description": "Status chip label while the plan executes; n is the number of finished statements and m the total",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "m": {
+        "type": "int"
+      }
+    }
+  },
+  "agentPlanStatusDone": "Executed",
+  "@agentPlanStatusDone": {
+    "description": "Status chip label when every statement executed successfully"
+  },
+  "agentPlanStatusPartialFailed": "Partial failure",
+  "@agentPlanStatusPartialFailed": {
+    "description": "Status chip label when the plan stopped on a failing statement"
+  },
+  "agentPlanStatusRollbackOffered": "Rollback pending",
+  "@agentPlanStatusRollbackOffered": {
+    "description": "Status chip label when a rollback plan has been generated and awaits approval"
+  },
+  "agentPlanStatusRolledBack": "Rolled back",
+  "@agentPlanStatusRolledBack": {
+    "description": "Status chip label when the rollback plan finished successfully"
+  },
+  "agentPlanStatusRejected": "Rejected",
+  "@agentPlanStatusRejected": {
+    "description": "Status chip label when the user rejected the plan"
+  },
+  "agentPlanConsumedHint": "This plan is finalized and can no longer be executed",
+  "@agentPlanConsumedHint": {
+    "description": "Hint line on a finalized plan stating it can no longer be executed (duplicate-execution guard)"
+  },
+  "agentPlanGenerateRollback": "Generate Rollback Plan",
+  "@agentPlanGenerateRollback": {
+    "description": "Action that generates a rollback plan from the completed statements; clicking only requests it, never executes"
+  },
+  "agentPlanRollbackPendingHint": "Rollback plan awaiting approval",
+  "@agentPlanRollbackPendingHint": {
+    "description": "Hint line under a rollbackOffered plan pointing to the rollback plan awaiting approval"
+  },
+  "agentPlanRollbackBadge": "Rollback plan",
+  "@agentPlanRollbackBadge": {
+    "description": "Tooltip on the icon marking this plan as a rollback plan"
+  },
+  "agentPlanRollbackOf": "Rollback of {id}",
+  "@agentPlanRollbackOf": {
+    "description": "Line under the header of a rollback plan referencing the plan it rolls back; id is the source plan id",
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "agentPlanApprove": "Approve & Run",
+  "@agentPlanApprove": {
+    "description": "Primary action approving the plan and executing its statements"
+  },
+  "agentPlanReject": "Reject",
+  "@agentPlanReject": {
+    "description": "Secondary action rejecting the plan"
+  },
+  "agentTrajectoryViewBoundary": "View failure boundary",
+  "@agentTrajectoryViewBoundary": {
+    "description": "Report-row action that scrolls to the failure boundary of a partially failed plan"
+  },
+  "agentSuggestTitle": "Suggestion · {action}",
+  "@agentSuggestTitle": {
+    "description": "Title of the cross-classic suggestion card; action is the localized action name (e.g. Open in Classic)",
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "agentSuggestFocusSidebar": "Reveal in Sidebar",
+  "@agentSuggestFocusSidebar": {
+    "description": "Suggestion action that reveals and focuses the target in the sidebar"
+  },
+  "agentSuggestApply": "Apply",
+  "@agentSuggestApply": {
+    "description": "Primary action applying the suggestion (the verb is intentionally 'apply', not 'execute')"
+  },
+  "agentSuggestDismiss": "Ignore",
+  "@agentSuggestDismiss": {
+    "description": "Secondary action ignoring the suggestion"
+  },
+  "agentSuggestBadgeNotApplied": "Not executed",
+  "@agentSuggestBadgeNotApplied": {
+    "description": "Status chip label of a suggestion not applied yet (always visible before the decision)"
+  },
+  "agentSuggestBadgeApplied": "Applied",
+  "@agentSuggestBadgeApplied": {
+    "description": "Status chip label after the suggestion was applied"
+  },
+  "agentSuggestBadgeDismissed": "Ignored",
+  "@agentSuggestBadgeDismissed": {
+    "description": "Status chip label after the suggestion was ignored"
+  },
+  "agentSuggestNotAppliedHint": "No side effects until applied",
+  "@agentSuggestNotAppliedHint": {
+    "description": "Tooltip on the not-applied chip stating the suggestion causes no side effects until applied"
+  },
+  "agentStageEmptyTitle": "Stage is empty",
+  "@agentStageEmptyTitle": {
+    "description": "Empty-state title of the workbench stage when no tab is open"
+  },
+  "agentStageEmptyHint": "Results, charts, or editors opened by AI appear here",
+  "@agentStageEmptyHint": {
+    "description": "Empty-state hint of the workbench stage"
+  },
+  "agentStageToggle": "Stage",
+  "@agentStageToggle": {
+    "description": "Label of the artifact-strip toggle that shows the stage"
+  },
+  "agentStageCollapse": "Collapse Stage",
+  "@agentStageCollapse": {
+    "description": "Label of the artifact-strip toggle that collapses the stage"
+  },
+  "agentStageTabClose": "Close",
+  "@agentStageTabClose": {
+    "description": "Menu item and tooltip for closing a stage tab"
+  },
+  "agentStageTabPin": "Pin to Artifacts",
+  "@agentStageTabPin": {
+    "description": "Context-menu item that pins a stage tab into the artifact strip"
+  },
+  "agentStageTabUnpin": "Unpin",
+  "@agentStageTabUnpin": {
+    "description": "Context-menu item that unpins a stage tab from the artifact strip"
+  },
+  "agentStageTabDirty": "Unsaved changes",
+  "@agentStageTabDirty": {
+    "description": "Tooltip on the dot marking a stage editor tab with unsaved changes"
+  },
+  "agentStageChartMismatch": "Data does not fit this chart type",
+  "@agentStageChartMismatch": {
+    "description": "Inline error when the result data does not fit the requested chart type"
+  },
+  "agentStageErrorRetry": "Retry",
+  "@agentStageErrorRetry": {
+    "description": "Retry action on a stage tab whose content failed to load"
+  },
+  "agentStageTabGrid": "Grid",
+  "@agentStageTabGrid": {
+    "description": "Type label of a stage tab showing a result grid"
+  },
+  "agentStageTabStructure": "Structure",
+  "@agentStageTabStructure": {
+    "description": "Type label of a stage tab showing a table structure card"
+  },
+  "agentStageTabEditor": "Editor",
+  "@agentStageTabEditor": {
+    "description": "Type label of a stage tab showing a SQL editor slot"
+  },
+  "agentStageTabChart": "Chart",
+  "@agentStageTabChart": {
+    "description": "Type label of a stage tab showing a chart"
+  },
+  "agentArtifactEmpty": "No pinned artifacts",
+  "@agentArtifactEmpty": {
+    "description": "Empty-state text of the artifact strip when nothing is pinned"
+  },
+  "agentArtifactUnpinHint": "Unpin (Delete)",
+  "@agentArtifactUnpinHint": {
+    "description": "Tooltip on an artifact item's remove button (the Delete key unpins too)"
+  },
+  "agentFinalReply": "Model reply",
+  "@agentFinalReply": {
+    "description": "Section label above the model's final reply text in an expanded completed trajectory card"
+  },
+  "agentPlanDmlHighBadge": "Needs confirmation",
+  "@agentPlanDmlHighBadge": {
+    "description": "Badge on an action-plan step whose static DML risk tier is high; approving the plan explicitly covers this step"
+  },
+  "agentPlanDmlHighTriggers": "Triggers: {triggers}",
+  "@agentPlanDmlHighTriggers": {
+    "description": "Summary line under a high-risk plan step listing its DML risk triggers; triggers is a comma-separated list of technical trigger identifiers (not localized, same as the classic warning banner)",
+    "placeholders": {
+      "triggers": {
+        "type": "String"
+      }
+    }
+  }
 }

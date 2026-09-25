@@ -8,7 +8,6 @@ import 'package:highlight/languages/json.dart';
 import 'package:highlight/languages/javascript.dart';
 import '../../models/database_models.dart';
 import '../../models/ai_message_type.dart';
-import '../../models/schema_analyzer/impact_report.dart';
 import '../../models/query_optimizer/execution_plan.dart';
 import '../../theme/app_colors.dart';
 import '../../l10n/app_localizations.dart';
@@ -18,6 +17,10 @@ import '../../utils/message_time_formatter.dart';
 import '../../providers/app_provider.dart';
 import '../../plugins/ai_skill_plugin.dart' show AiSkillEnvelope;
 import 'ai_result_renderer.dart';
+import 'widgets/schema_impact_card.dart';
+import 'widgets/tool_card_shell.dart';
+import 'widgets/tool_content_view.dart';
+import 'widgets/tool_group_view.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../query_optimizer/query_plan_visualizer.dart';
@@ -789,9 +792,9 @@ class AiMessageItem extends StatelessWidget {
       return _buildMergedToolCard(context);
     }
     if (message.type == AiMessageType.toolCall) {
-      return _ZoomableToolContainer(
+      return ToolCardShell(
         toolName: message.toolName ?? '',
-        child: _ToolContentView(
+        child: ToolContentView(
           arguments: message.toolArguments != null
               ? const JsonEncoder.withIndent(
                   '  ',
@@ -806,9 +809,9 @@ class AiMessageItem extends StatelessWidget {
       // 工具组 - 多个工具合并显示
       if (message.toolResultData != null &&
           message.toolResultData!['isToolGroup'] == true) {
-        return _ZoomableToolContainer(
+        return ToolCardShell(
           toolName: 'tool_group',
-          child: _ToolGroupView(
+          child: ToolGroupView(
             toolCount: message.toolResultData!['toolCount'] as int? ?? 0,
             tools:
                 (message.toolResultData!['tools'] as List<dynamic>?)
@@ -820,9 +823,9 @@ class AiMessageItem extends StatelessWidget {
       // Schema Impact Analysis 特殊渲染
       if (message.toolName == 'analyze_schema_impact' &&
           message.toolResultData != null) {
-        return _ZoomableToolContainer(
+        return ToolCardShell(
           toolName: message.toolName ?? '',
-          child: _SchemaImpactCard(data: message.toolResultData!),
+          child: SchemaImpactCard(data: message.toolResultData!),
         );
       }
       // Query Optimizer 特殊渲染
@@ -831,7 +834,7 @@ class AiMessageItem extends StatelessWidget {
         try {
           final report = _parsePerformanceReport(message.toolResultData!);
           if (report != null) {
-            return _ZoomableToolContainer(
+            return ToolCardShell(
               toolName: message.toolName ?? '',
               child: QueryPlanVisualizer(report: report),
             );
@@ -840,9 +843,9 @@ class AiMessageItem extends StatelessWidget {
           // 解析失败，回退到默认显示
         }
       }
-      return _ZoomableToolContainer(
+      return ToolCardShell(
         toolName: message.toolName ?? '',
-        child: _ToolContentView(
+        child: ToolContentView(
           arguments: null,
           result: message.content,
           isCall: false,
@@ -1035,9 +1038,9 @@ class AiMessageItem extends StatelessWidget {
     // Schema Impact Analysis 特殊渲染
     if (message.toolName == 'analyze_schema_impact' &&
         message.toolResultData != null) {
-      return _ZoomableToolContainer(
+      return ToolCardShell(
         toolName: message.toolName ?? '',
-        child: _SchemaImpactCard(data: message.toolResultData!),
+        child: SchemaImpactCard(data: message.toolResultData!),
       );
     }
     // Query Optimizer 特殊渲染
@@ -1046,7 +1049,7 @@ class AiMessageItem extends StatelessWidget {
       try {
         final report = _parsePerformanceReport(message.toolResultData!);
         if (report != null) {
-          return _ZoomableToolContainer(
+          return ToolCardShell(
             toolName: message.toolName ?? '',
             child: QueryPlanVisualizer(report: report),
           );
@@ -1060,9 +1063,9 @@ class AiMessageItem extends StatelessWidget {
         ? const JsonEncoder.withIndent('  ').convert(message.toolArguments)
         : null;
 
-    return _ZoomableToolContainer(
+    return ToolCardShell(
       toolName: message.toolName ?? '',
-      child: _ToolContentView(
+      child: ToolContentView(
         arguments: arguments,
         result: message.content,
         isCall: false,
@@ -1324,325 +1327,6 @@ class _TokenChip extends StatelessWidget {
   }
 }
 
-/// 可缩放的工具容器 - 将工具卡片包装在一个可整体缩放的大卡片中
-class _ZoomableToolContainer extends StatefulWidget {
-  final String toolName;
-  final Widget child;
-
-  const _ZoomableToolContainer({required this.toolName, required this.child});
-
-  @override
-  State<_ZoomableToolContainer> createState() => _ZoomableToolContainerState();
-}
-
-class _ZoomableToolContainerState extends State<_ZoomableToolContainer> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final isOverlay = context.watch<AppProvider>().isAiPanelOverlay;
-
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: isOverlay ? Colors.transparent : context.themeColors.bgTertiary,
-        borderRadius: BorderRadius.circular(AppDesignSystem.radiusMd),
-        border: Border.all(
-          color: isOverlay
-              ? context.themeColors.borderSubtle
-              : context.themeColors.borderLight,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 标题栏
-          InkWell(
-            onTap: () => setState(() => _expanded = !_expanded),
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(AppDesignSystem.radiusMd),
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDesignSystem.space3,
-                vertical: AppDesignSystem.space2,
-              ),
-              decoration: BoxDecoration(
-                color: context.themeColors.bgSecondary.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.vertical(
-                  top: const Radius.circular(AppDesignSystem.radiusMd),
-                  bottom: _expanded
-                      ? Radius.zero
-                      : const Radius.circular(AppDesignSystem.radiusMd),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    LucideIcons.wrench,
-                    size: 16,
-                    color: context.themeColors.accentPurple,
-                  ),
-                  const SizedBox(width: AppDesignSystem.space2),
-                  Expanded(
-                    child: Text(
-                      widget.toolName == 'tool_group'
-                          ? AppLocalizations.of(context)!.toolGroupTitle
-                          : AppLocalizations.of(
-                              context,
-                            )!.toolCallTitle(widget.toolName),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: context.themeColors.textSecondary,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Icon(
-                    _expanded ? LucideIcons.chevronUp : LucideIcons.chevronDown,
-                    size: 18,
-                    color: context.themeColors.textMuted,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // 内容区域
-          if (_expanded)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              child: widget.child,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 工具内容展示组件 - 纯内容展示，不含标题栏和折叠功能
-class _ToolContentView extends StatelessWidget {
-  final String? arguments;
-  final String? result;
-  final bool isCall;
-
-  const _ToolContentView({this.arguments, this.result, required this.isCall});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (arguments != null) ...[
-          _buildToolSection(
-            context,
-            title: AppLocalizations.of(context)!.toolParamLabel,
-            icon: LucideIcons.logIn,
-            content: arguments!,
-            isDark: isDark,
-          ),
-          const SizedBox(height: AppDesignSystem.space2),
-        ],
-        if (result != null && result!.isNotEmpty)
-          _buildToolSection(
-            context,
-            title: AppLocalizations.of(context)!.toolResultLabel,
-            icon: LucideIcons.squareTerminal,
-            content: result!,
-            isDark: isDark,
-          ),
-      ],
-    );
-  }
-
-  Widget _buildToolSection(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required String content,
-    required bool isDark,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: context.themeColors.codeBlockBg,
-        borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
-        border: Border.all(color: context.themeColors.borderLight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 12, color: context.themeColors.textMuted),
-              const SizedBox(width: AppDesignSystem.space1_5),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: context.themeColors.textMuted,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDesignSystem.space1_5),
-          SelectableText(
-            content,
-            style: TextStyle(
-              fontFamily: AppDesignSystem.monoFontFamily,
-
-              fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
-              fontSize: 11,
-              color: context.themeColors.textPrimary,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 工具组视图 - 显示多个工具的参数和结果
-class _ToolGroupView extends StatelessWidget {
-  final int toolCount;
-  final List<Map<String, dynamic>> tools;
-
-  const _ToolGroupView({required this.toolCount, required this.tools});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // 工具数量统计
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: context.themeColors.bgSecondary.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
-            border: Border.all(color: context.themeColors.borderLight),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                LucideIcons.wandSparkles,
-                size: 14,
-                color: context.themeColors.accentPurple,
-              ),
-              const SizedBox(width: AppDesignSystem.space2),
-              Text(
-                AppLocalizations.of(context)!.toolGroupSummary(toolCount),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: context.themeColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppDesignSystem.space3),
-        // 每个工具的详细内容
-        ...tools.asMap().entries.map((entry) {
-          final index = entry.key;
-          final tool = entry.value;
-          final toolName = tool['toolName'] as String? ?? 'unknown';
-          final arguments = tool['toolArguments'] as Map<String, dynamic>?;
-          final result = tool['result'] as String? ?? '';
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (index > 0) const Divider(height: 16, thickness: 0.5),
-              _buildToolSection(
-                context,
-                title: AppLocalizations.of(
-                  context,
-                )!.toolGroupItemTitle(index + 1, toolName),
-                icon: LucideIcons.wrench,
-                content: arguments != null
-                    ? const JsonEncoder.withIndent('  ').convert(arguments)
-                    : AppLocalizations.of(context)!.toolNoParams,
-                isDark: isDark,
-              ),
-              const SizedBox(height: AppDesignSystem.space1_5),
-              _buildToolSection(
-                context,
-                title: AppLocalizations.of(context)!.toolResultLabel,
-                icon: LucideIcons.squareTerminal,
-                content: result,
-                isDark: isDark,
-              ),
-            ],
-          );
-        }),
-      ],
-    );
-  }
-
-  Widget _buildToolSection(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required String content,
-    required bool isDark,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: context.themeColors.codeBlockBg,
-        borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
-        border: Border.all(color: context.themeColors.borderLight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 12, color: context.themeColors.textMuted),
-              const SizedBox(width: AppDesignSystem.space1_5),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: context.themeColors.textMuted,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDesignSystem.space1_5),
-          SelectableText(
-            content,
-            style: TextStyle(
-              fontFamily: AppDesignSystem.monoFontFamily,
-
-              fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
-              fontSize: 11,
-              color: context.themeColors.textPrimary,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _CopyFeedbackButton extends StatefulWidget {
   final String text;
   final Color color;
@@ -1705,538 +1389,6 @@ class _CopyFeedbackButtonState extends State<_CopyFeedbackButton> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Schema Impact Analysis 结果卡片
-class _SchemaImpactCard extends StatefulWidget {
-  final Map<String, dynamic> data;
-
-  const _SchemaImpactCard({required this.data});
-
-  @override
-  State<_SchemaImpactCard> createState() => _SchemaImpactCardState();
-}
-
-class _SchemaImpactCardState extends State<_SchemaImpactCard> {
-  bool _showRollback = false;
-
-  RiskLevel _parseRiskLevel(String? level) {
-    switch (level?.toLowerCase()) {
-      case 'low':
-        return RiskLevel.low;
-      case 'medium':
-        return RiskLevel.medium;
-      case 'high':
-        return RiskLevel.high;
-      case 'critical':
-        return RiskLevel.critical;
-      default:
-        return RiskLevel.low;
-    }
-  }
-
-  Color _getRiskColor(RiskLevel level) {
-    switch (level) {
-      case RiskLevel.low:
-        return context.themeColors.success;
-      case RiskLevel.medium:
-        return context.themeColors.warning;
-      case RiskLevel.high:
-        return Colors.orange;
-      case RiskLevel.critical:
-        return context.themeColors.error;
-    }
-  }
-
-  IconData _getRiskIcon(RiskLevel level) {
-    switch (level) {
-      case RiskLevel.low:
-        return LucideIcons.circleCheckBig;
-      case RiskLevel.medium:
-        return LucideIcons.info;
-      case RiskLevel.high:
-        return LucideIcons.triangleAlert;
-      case RiskLevel.critical:
-        return LucideIcons.circleAlert;
-    }
-  }
-
-  String _getRiskLabel(RiskLevel level) {
-    final l10n = AppLocalizations.of(context)!;
-    switch (level) {
-      case RiskLevel.low:
-        return l10n.schemaImpactRiskLow;
-      case RiskLevel.medium:
-        return l10n.schemaImpactRiskMedium;
-      case RiskLevel.high:
-        return l10n.schemaImpactRiskHigh;
-      case RiskLevel.critical:
-        return l10n.schemaImpactRiskCritical;
-    }
-  }
-
-  IconData _getObjectTypeIcon(String type) {
-    switch (type.toLowerCase()) {
-      case 'view':
-        return LucideIcons.eye;
-      case 'procedure':
-        return LucideIcons.functionSquare;
-      case 'function':
-        return LucideIcons.code;
-      case 'trigger':
-        return LucideIcons.zap;
-      case 'foreignkey':
-      case 'foreign_key':
-        return LucideIcons.link;
-      case 'index':
-      case 'index_':
-        return LucideIcons.arrowUpDown;
-      case 'constraint':
-        return LucideIcons.gavel;
-      default:
-        return LucideIcons.circle;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final riskLevel = _parseRiskLevel(widget.data['riskLevel'] as String?);
-    final riskColor = _getRiskColor(riskLevel);
-    final ddlType = widget.data['ddlType'] as String? ?? 'DDL';
-    final targetTable =
-        widget.data['targetTable'] as String? ??
-        AppLocalizations.of(context)!.commonUnknown;
-    final affectedObjects =
-        (widget.data['affectedObjects'] as List<dynamic>? ?? [])
-            .cast<Map<String, dynamic>>();
-    final warnings = (widget.data['warnings'] as List<dynamic>? ?? [])
-        .cast<String>();
-    final recommendations =
-        (widget.data['recommendations'] as List<dynamic>? ?? []).cast<String>();
-    final rollbackData = widget.data['rollbackScript'] as Map<String, dynamic>?;
-    final requiresConfirmation =
-        widget.data['requiresConfirmation'] as bool? ?? false;
-    final hasDataLossRisk = widget.data['hasDataLossRisk'] as bool? ?? false;
-    final isOverlay = context.watch<AppProvider>().isAiPanelOverlay;
-
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: isOverlay ? Colors.transparent : context.themeColors.bgTertiary,
-        borderRadius: BorderRadius.circular(AppDesignSystem.radiusMd),
-        border: Border.all(color: riskColor.withValues(alpha: 0.5), width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 标题栏
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDesignSystem.space3,
-              vertical: AppDesignSystem.space2_5,
-            ),
-            decoration: BoxDecoration(
-              color: riskColor.withValues(alpha: 0.08),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(AppDesignSystem.radiusMd),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(_getRiskIcon(riskLevel), size: 18, color: riskColor),
-                const SizedBox(width: AppDesignSystem.space2),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.schemaImpactTitle,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: context.themeColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: AppDesignSystem.space0_5),
-                      Text(
-                        AppLocalizations.of(
-                          context,
-                        )!.schemaImpactSubtitle(targetTable, ddlType),
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: context.themeColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppDesignSystem.space2,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: riskColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(
-                      AppDesignSystem.radiusSm,
-                    ),
-                  ),
-                  child: Text(
-                    _getRiskLabel(riskLevel),
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: riskColor,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // 数据丢失风险警告
-          if (hasDataLossRisk) ...[
-            Container(
-              margin: const EdgeInsets.all(10),
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: context.themeColors.error.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
-                border: Border.all(
-                  color: context.themeColors.error.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    LucideIcons.trash2,
-                    size: 16,
-                    color: context.themeColors.error,
-                  ),
-                  const SizedBox(width: AppDesignSystem.space2),
-                  Expanded(
-                    child: Text(
-                      AppLocalizations.of(context)!.schemaImpactDataLossWarning,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: context.themeColors.error,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          // 受影响对象
-          if (affectedObjects.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
-              child: Text(
-                AppLocalizations.of(
-                  context,
-                )!.schemaImpactAffectedObjects(affectedObjects.length),
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: context.themeColors.textSecondary,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: affectedObjects.map((obj) {
-                  final type = obj['type'] as String? ?? 'object';
-                  final name =
-                      obj['name'] as String? ??
-                      AppLocalizations.of(context)!.commonUnknown;
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppDesignSystem.space2,
-                      vertical: AppDesignSystem.space1,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.themeColors.bgSecondary,
-                      borderRadius: BorderRadius.circular(
-                        AppDesignSystem.radiusSm,
-                      ),
-                      border: Border.all(
-                        color: context.themeColors.borderSubtle,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _getObjectTypeIcon(type),
-                          size: 12,
-                          color: context.themeColors.textMuted,
-                        ),
-                        const SizedBox(width: AppDesignSystem.space1),
-                        Text(
-                          name,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: context.themeColors.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-
-          // 警告
-          if (warnings.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-              child: Text(
-                AppLocalizations.of(
-                  context,
-                )!.schemaImpactWarnings(warnings.length),
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: context.themeColors.warning,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: warnings.map((warning) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          LucideIcons.triangleAlert,
-                          size: 12,
-                          color: context.themeColors.warning,
-                        ),
-                        const SizedBox(width: AppDesignSystem.space1_5),
-                        Expanded(
-                          child: Text(
-                            warning,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: context.themeColors.textSecondary,
-                              height: 1.3,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-
-          // 推荐
-          if (recommendations.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-              child: Text(
-                AppLocalizations.of(context)!.schemaImpactRecommendations,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: context.themeColors.success,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: recommendations.map((rec) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          LucideIcons.lightbulb,
-                          size: 12,
-                          color: context.themeColors.success,
-                        ),
-                        const SizedBox(width: AppDesignSystem.space1_5),
-                        Expanded(
-                          child: Text(
-                            rec,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: context.themeColors.textSecondary,
-                              height: 1.3,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-
-          // 回滚脚本
-          if (rollbackData != null) ...[
-            const SizedBox(height: AppDesignSystem.space2_5),
-            InkWell(
-              onTap: () => setState(() => _showRollback = !_showRollback),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppDesignSystem.space3,
-                  vertical: AppDesignSystem.space1_5,
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      _showRollback
-                          ? LucideIcons.chevronUp
-                          : LucideIcons.chevronDown,
-                      size: 16,
-                      color: context.themeColors.accentPurple,
-                    ),
-                    const SizedBox(width: AppDesignSystem.space1_5),
-                    Text(
-                      _showRollback
-                          ? AppLocalizations.of(
-                              context,
-                            )!.schemaImpactHideRollbackScript
-                          : AppLocalizations.of(
-                              context,
-                            )!.schemaImpactShowRollbackScript,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: context.themeColors.accentPurple,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (_showRollback) ...[
-              Container(
-                margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: context.themeColors.bgSecondary,
-                  borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
-                  border: Border.all(
-                    color: context.themeColors.borderSubtle,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (rollbackData['description'] != null)
-                      Text(
-                        rollbackData['description'] as String,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: context.themeColors.textMuted,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    const SizedBox(height: AppDesignSystem.space1_5),
-                    SelectableText(
-                      rollbackData['rollbackDdl'] as String? ??
-                          AppLocalizations.of(
-                            context,
-                          )!.schemaImpactNoRollbackAvailable,
-                      style: TextStyle(
-                        fontFamily: AppDesignSystem.monoFontFamily,
-
-                        fontFamilyFallback:
-                            AppDesignSystem.monoFontFamilyFallback,
-                        fontSize: 11,
-                        color: context.themeColors.textPrimary,
-                        height: 1.4,
-                      ),
-                    ),
-                    if (rollbackData['requiresDataBackup'] == true) ...[
-                      const SizedBox(height: AppDesignSystem.space1_5),
-                      Row(
-                        children: [
-                          Icon(
-                            LucideIcons.databaseBackup,
-                            size: 12,
-                            color: context.themeColors.warning,
-                          ),
-                          const SizedBox(width: AppDesignSystem.space1),
-                          Text(
-                            AppLocalizations.of(
-                              context,
-                            )!.schemaImpactBackupRequired,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: context.themeColors.warning,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ],
-
-          // 需要确认提示
-          if (requiresConfirmation) ...[
-            Container(
-              margin: const EdgeInsets.all(10),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: context.themeColors.error.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
-                border: Border.all(
-                  color: context.themeColors.error.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    LucideIcons.shield,
-                    size: 16,
-                    color: context.themeColors.error,
-                  ),
-                  const SizedBox(width: AppDesignSystem.space2),
-                  Expanded(
-                    child: Text(
-                      AppLocalizations.of(
-                        context,
-                      )!.schemaImpactConfirmationRequired,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: context.themeColors.error,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          const SizedBox(height: AppDesignSystem.space2_5),
-        ],
       ),
     );
   }

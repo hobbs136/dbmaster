@@ -1,7 +1,7 @@
 name: dbmaster
 description: "DbMaster - AI增强数据库管理客户端"
 publish_to: 'none'
-version: 0.0.1+1
+version: 0.3.0+3
 repository: https://github.com/hobbs136/dbmaster
 issue_tracker: https://github.com/hobbs136/dbmaster/issues
 

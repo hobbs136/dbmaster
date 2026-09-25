@@ -80,6 +80,11 @@ class AppDesignSystem {
   /// 淡色边框（白 15%，可辨识 → outline）
   static const Color borderLight = Color(0x26FFFFFF);
 
+  /// 强边框（白 36%，叠暗底合成 ≈ #707070，3.29:1）——AI 工作台工具卡
+  /// 唯一独立达 3:1 的边界机制（design-ai-workbench §8【一】，工作台专用）。
+  /// 消费一律经 ThemeColors.borderStrong 按主题分发；borderLight 全域值不动。
+  static const Color borderStrong = Color(0x5CFFFFFF);
+
   /// 结构性分隔线（白 10%，面板/区块边界，可辨识）
   static const Color divider = Color(0x1AFFFFFF);
 
@@ -188,6 +193,10 @@ class AppDesignSystem {
 
   /// 亮色边框（Slate-300 → outline）
   static const Color borderLightColorLight = Color(0xFFCBD5E1);
+
+  /// 亮色强边框（#7C8CA3，亮底 3.42:1）——AI 工作台工具卡专用
+  /// （design-ai-workbench §8【一】），经 ThemeColors.borderStrong 亮色分支引用。
+  static const Color borderStrongLight = Color(0xFF7C8CA3);
 
   /// 亮色结构性分隔线（Slate-300，可辨识）
   static const Color dividerLight = Color(0xFFCBD5E1);
@@ -421,6 +430,80 @@ class AppDesignSystem {
 
   /// 编辑器/工作区舒适最小宽度——面板降级阈值（plan §3.2）
   static const double minWorkspaceComfortWidth = 480.0;
+
+  // AI 工作台布局 token（design-ai-workbench §8【二】，工作台专用）。
+  // 原「M2 预留不落地（C-6）」的 workbenchStageMinWidth / artifactStripHeight
+  // 已由 agent 工作台批次正式落地（design-ai-agent-ui §7，见下方区块）。
+  /// AI 工作台对话列最小宽度
+  static const double workbenchChatMinWidth = 360.0;
+
+  /// AI 工作台对话列最大宽度（超出居中；M2 舞台进场后失效改固定 360，C-1 不堵死）
+  static const double workbenchChatMaxWidth = 760.0;
+
+  /// AI 工作台会话栏宽度（<900 断点收成 44 = sidebarCollapsedWidth）
+  static const double workbenchSessionListWidth = 240.0;
+
+  /// AI 工作台输入区（composer）最小高度
+  static const double workbenchComposerMinHeight = 80.0;
+
+  /// AI 工作台输入区（composer）最大高度
+  static const double workbenchComposerMaxHeight = 200.0;
+
+  /// AI 工作台输入框最小行数
+  static const int workbenchComposerInputMinLines = 1;
+
+  /// AI 工作台输入框最大高度
+  static const double workbenchComposerInputMaxHeight = 132.0;
+
+  /// AI 工作台工具卡 header 高度（恒显；折叠态总高 36）
+  static const double toolCardHeaderHeight = 34.0;
+
+  /// AI 工作台工具卡内容区高度上限（超出内部滚动；经典面板 ai_result_renderer 的 400 不动）
+  static const double toolCardContentMaxHeight = 360.0;
+
+  // ==================== AI 工作台（design-ai-workbench §8【二】） ====================
+  /// 工具卡快照行数上限 N（NF1.4）。值由性能探针定值
+  /// （integration_test/perf/tool_card_probe_test.dart；gate：P95 ≤ 8ms 保持/放宽、
+  /// > 16.7ms 减半 20→10→5，下限 5 上限 50；内存判据：卡数翻倍 RSS 增量不超线性）。
+  /// R1 复跑结论（2026-09-22，profile）：N=10——N=20 P95 47.90/43.38ms（两次）
+  /// 减半，N=10 P95 10.62/15.70ms（两次）∈ (8, 16.7] 保持；数据摘要见 design §8 注记。
+  static const int toolCardSnapshotRows = 10;
+
+  // R2 上下文选择器（design-ai-workbench §4.2 R2 修订 2026-09-22，T18）。
+  /// 上下文选择器内容区总宽（连接栏 200 固定 + 库栏 Expanded）
+  static const double workbenchContextPickerWidth = 440.0;
+
+  /// 上下文选择器连接栏（master）固定宽
+  static const double workbenchContextPickerConnListWidth = 200.0;
+
+  /// 上下文选择器行高（分组头 26 = itemHeight - 6，不加 token）
+  static const double workbenchContextPickerItemHeight = 32.0;
+
+  /// 上下文选择器列表最大高（10 行，超出内滚）
+  static const double workbenchContextPickerListMaxHeight = 320.0;
+
+  // ==================== agent 工作台批次（design-ai-agent-ui §7） ====================
+  // A1/A2 agent loop UI 任务的取值来源；数值逐字锁定 ui 规格 §7 提案表，不得改动。
+
+  /// agent 工作台卡内单行数据行统一行高（agent 工作台批次，ui 规格 §7-1）
+  static const double workbenchDenseRowHeight = 24.0;
+
+  /// agent 工作台舞台列最小宽度（agent 工作台批次，ui 规格 §7-2）
+  static const double workbenchStageMinWidth = 480.0;
+
+  /// 产物条高度（agent 工作台批次，ui 规格 §7-3）
+  static const double artifactStripHeight = 32.0;
+
+  /// 舞台 tab 标签上限宽（agent 工作台批次，ui 规格 §7-4；
+  /// 不反向作为经典 tab 既有硬编码的宿主——ui 规格 §9-C-15 排除）
+  static const double workbenchStageTabMaxWidth = 200.0;
+
+  /// 产物项标签上限宽（agent 工作台批次，ui 规格 §7-5）
+  static const double artifactStripItemMaxWidth = 160.0;
+
+  /// 影响分析 / 计划块的标签列宽（agent 工作台批次，ui 规格 §7-6）
+  static const double agentImpactLabelWidth = 104.0;
+
   // ==================== 响应式断点 - Responsive Breakpoints（plan §3.3）====================
   /// 屏幕宽度分档断点——所有响应式判断的 single source of truth。
   /// `ResponsiveHelper` / `HomeScreen` / 布局组件统一引用，禁止散落硬编码。

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dbmaster/providers/ai_config_provider.dart';
+import 'package:dbmaster/services/workbench_usage_stats_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -169,9 +170,7 @@ void main() {
 
         expect(
           p2.getBaseUrl('Gemini'),
-          equals(
-            'https://generativelanguage.googleapis.com/v1beta/openai',
-          ),
+          equals('https://generativelanguage.googleapis.com/v1beta/openai'),
         );
       });
 
@@ -185,9 +184,7 @@ void main() {
 
         expect(
           p2.getBaseUrl('Google Gemini'),
-          equals(
-            'https://generativelanguage.googleapis.com/v1beta/openai',
-          ),
+          equals('https://generativelanguage.googleapis.com/v1beta/openai'),
         );
       });
 
@@ -202,6 +199,82 @@ void main() {
         expect(
           p2.getBaseUrl('Gemini'),
           equals('https://my-gemini-proxy.example.com/v1'),
+        );
+      });
+    });
+
+    group('aiKeyConfigured 投影（R8 字段 5，design §6.4 / P1-1）', () {
+      // 统计单例跨用例共享，组内自复位；写穿链挂起写盘在 tearDown 冲掉。
+      setUp(() {
+        WorkbenchUsageStatsService.instance.resetForTesting();
+      });
+
+      tearDown(() async {
+        await WorkbenchUsageStatsService.instance.flushForTesting();
+      });
+
+      test('保存含非空 apiKey 的配置 → 导出 aiKeyConfigured == true', () async {
+        await provider.save(
+          provider: 'DeepSeek',
+          model: 'deepseek-chat',
+          configs: {
+            'DeepSeek': {'apiKey': 'sk-test-123'},
+          },
+        );
+
+        expect(
+          WorkbenchUsageStatsService.instance
+              .exportJson(appVersion: '0.0.0-test')
+              .aiKeyConfigured,
+          isTrue,
+          reason: 'P1-1：保存 key 后统计导出 aiKeyConfigured 必须为 true',
+        );
+      });
+
+      test('保存无 apiKey 的配置 → 不置位', () async {
+        await provider.save(
+          provider: 'DeepSeek',
+          model: 'deepseek-chat',
+          configs: {
+            'DeepSeek': {'baseUrl': 'https://example.com/v1'},
+          },
+        );
+
+        expect(
+          WorkbenchUsageStatsService.instance
+              .exportJson(appVersion: '0.0.0-test')
+              .aiKeyConfigured,
+          isFalse,
+        );
+      });
+
+      test('空态 load（无持久化 key）→ 不置位', () async {
+        final p2 = AiConfigProvider();
+        await p2.load();
+
+        expect(
+          WorkbenchUsageStatsService.instance
+              .exportJson(appVersion: '0.0.0-test')
+              .aiKeyConfigured,
+          isFalse,
+        );
+      });
+
+      test('load 恢复出非空 key 状态（存量安装路径）→ 置位', () async {
+        // secure storage 通道在测试环境不可用 → provider 降级保留内存态
+        // apiKey（见 load() 内 catch 注释）；内存态非空即投影置位。
+        SharedPreferences.setMockInitialValues({
+          'ai_api_configs': '{"DeepSeek": {"apiKey": "sk-legacy"}}',
+        });
+        final p2 = AiConfigProvider();
+        await p2.load();
+
+        expect(
+          WorkbenchUsageStatsService.instance
+              .exportJson(appVersion: '0.0.0-test')
+              .aiKeyConfigured,
+          isTrue,
+          reason: '存量安装（早已配置 key）启动 load 后同样置位',
         );
       });
     });

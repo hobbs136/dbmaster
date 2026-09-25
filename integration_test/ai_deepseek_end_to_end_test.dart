@@ -5,6 +5,8 @@ import 'package:dbmaster/providers/app_provider.dart';
 import 'package:dbmaster/services/database_abstract.dart';
 import 'package:dbmaster/services/ai_session_orchestrator.dart';
 
+import 'helpers/ai_session_isolation_helper.dart';
+
 /// DeepSeek 端到端验证
 /// 配置 AppProvider + AiConfig + Mock Adapter，通过 Orchestrator 调用 DeepSeek API
 /// 运行方式：
@@ -50,7 +52,11 @@ void main() {
         return;
       }
 
-      final provider = AppProvider();
+      // Fix-H：注入存储隔离 manager——本文件不调 setMockInitialValues，
+      // ensureSession/sendUserMessage 的持久化此前可写用户真实存储。
+      final provider = AppProvider(
+        aiSessionManager: createIsolatedAiSessionManager(),
+      );
       AppProvider.devBypassGates = true; // 集成测试测全功能，绕过 Free/Pro 门禁
 
       // 1. 配置 DeepSeek provider / model / apiKey

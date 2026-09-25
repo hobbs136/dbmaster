@@ -87,6 +87,10 @@ class ThemeColors {
       ? AppDesignSystem.textDisabled
       : AppDesignSystem.textDisabledLight;
 
+  /// 反色文本（填充底/勾选框前景，agent 工作台批次，ui 规格 §7-7）——
+  /// 转发既有 AppDesignSystem.textInverted：零新色值，两主题同值。
+  Color get textInverted => AppDesignSystem.textInverted;
+
   // Border colors
   Color get borderColor => Theme.of(_ctx).colorScheme.outline;
   Color get borderLight => _isDark
@@ -98,6 +102,12 @@ class ThemeColors {
   Color get borderSubtle => _isDark
       ? AppDesignSystem.borderDefault
       : AppDesignSystem.borderLightColorLight.withValues(alpha: 0.5);
+
+  /// 强边框（AI 工作台工具卡边界，design-ai-workbench §8【一】，工作台专用）——
+  /// 唯一消费入口：暗 = borderStrong（白 36% 低透明叠层），亮 = borderStrongLight。
+  Color get borderStrong => _isDark
+      ? AppDesignSystem.borderStrong
+      : AppDesignSystem.borderStrongLight;
 
   Color get dividerColor => Theme.of(_ctx).dividerColor;
 

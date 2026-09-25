@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/ai_models.dart';
+import '../services/workbench_usage_stats_service.dart';
 
 class AiConfigProvider extends ChangeNotifier {
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
@@ -143,6 +144,10 @@ class AiConfigProvider extends ChangeNotifier {
       }
     }
 
+    // R8 字段 5 投影（design-ai-workbench §6.4）：启动恢复后 key 状态非空
+    // 同样置位——覆盖「早已配置 key 的存量安装」（不止当次保存的会话）。
+    _projectAiKeyConfigured();
+
     // 加载持久化的模型列表
     final modelListsJson = prefs.getString('ai_fetched_model_lists');
     if (modelListsJson != null && modelListsJson.isNotEmpty) {
@@ -208,6 +213,20 @@ class AiConfigProvider extends ChangeNotifier {
     }
   }
 
+  /// R8 字段 5 投影（design-ai-workbench §6.4）：任一 provider 的 apiKey
+  /// 状态非空 → 统计服务单向置位（AC8.1 五类事件的第五类接线）。
+  /// [WorkbenchUsageStatsService.setAiKeyConfigured] 幂等且单向（已置位后
+  /// 零额外落盘）；其写穿链会先 await 统计服务自身的启动读盘再覆盖写，
+  /// 与本 provider 的初始化顺序无关，时序安全。
+  void _projectAiKeyConfigured() {
+    final bool hasKey = _aiApiConfigs.values.any(
+      (config) => (config['apiKey'] ?? '').isNotEmpty,
+    );
+    if (hasKey) {
+      WorkbenchUsageStatsService.instance.setAiKeyConfigured(true);
+    }
+  }
+
   /// 完整保存（保存所有配置并持久化）
   Future<void> save({
     required String provider,
@@ -217,6 +236,8 @@ class AiConfigProvider extends ChangeNotifier {
     _selectedAiProvider = provider;
     _selectedAiModel = model;
     _aiApiConfigs = configs;
+    // 保存落点即投影点（design §6.4「key 状态首次非空」）。
+    _projectAiKeyConfigured();
     await _persist();
     notifyListeners();
   }

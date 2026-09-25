@@ -1,0 +1,644 @@
+// ============================================================================
+// MySQL AI Workbench End-to-End Integration Tests (T15, design §11.2)
+// Tests: Real MySQL server + real AppProvider + real gateway adapter +
+//        AiWorkbenchShell UI driving (gold-standard pattern:
+//        mysql_sidebar_menu_e2e_test.dart)
+// Cases: R5 result card content == real seed data / R6 write-confirm cancel
+//        leaves DB untouched (confirm path applies) / R7 open-in-classic tab
+// Target: real MySQL via DBMASTER_MYSQL_* (see config/mysql_test_config.dart);
+//        MySQL family needs the embedded dbmaster server session
+//        (helpers/mysql_gateway_e2e_helper.dart, DBMASTER_SERVER_BIN).
+// ============================================================================
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:integration_test/integration_test.dart';
+import 'package:provider/provider.dart';
+
+import 'package:dbmaster/l10n/app_localizations.dart';
+import 'package:dbmaster/models/ai_message_type.dart';
+import 'package:dbmaster/models/database_models.dart' hide QueryTab;
+import 'package:dbmaster/organisms/ai_workbench/ai_workbench_shell.dart';
+import 'package:dbmaster/organisms/ai_workbench/cards/result_snapshot_table.dart';
+import 'package:dbmaster/organisms/ai_workbench/cards/result_table_card.dart';
+import 'package:dbmaster/organisms/ai_workbench/cards/sql_tool_card.dart';
+import 'package:dbmaster/organisms/ai_workbench/workbench_card_payload.dart';
+import 'package:dbmaster/organisms/ai_workbench/workbench_context_picker.dart';
+import 'package:dbmaster/organisms/ai_panel/confirm_execute_dialog.dart';
+import 'package:dbmaster/providers/app_provider.dart';
+import 'package:dbmaster/services/adapters/mysql_adapter.dart';
+import 'package:dbmaster/services/database_abstract.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'config/mysql_test_config.dart';
+import 'helpers/ai_session_isolation_helper.dart';
+import 'helpers/mysql_gateway_e2e_helper.dart';
+
+void main() {
+
+  // T29：MySQL 族网关壳硬依赖 dbmaster server 会话（embedded 前置，D6）。
+  // 二进制不可得 / DBMASTER_MYSQL_* 未提供时全组以可 grep 的
+  // MYSQL_E2E_SKIP 跳过（FR-011 无假绿纪律），setUp 同步早退。
+  bool mysqlE2EGatewayReady = false;
+  setUpAll(() async {
+    mysqlE2EGatewayReady = await ensureEmbeddedServerForMysqlE2E();
+    if (mysqlE2EGatewayReady && !MySQLTestConfig.available) {
+      // ignore: avoid_print
+      print('MYSQL_E2E_SKIP: DBMASTER_MYSQL_* 未通过 --dart-define 提供'
+          '（开源剥离默认凭据，缺参即跳过）');
+      mysqlE2EGatewayReady = false;
+    }
+  });
+
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  group('MySQL Workbench E2E', () {
+    late AppProvider appProvider;
+    late MySQLAdapter adapter;
+    late String testDbName;
+    late DbServer server;
+
+    const connectionLabel = 'MySQL Workbench E2E';
+    const seedTable = 'wb_seed';
+
+    setUp(() async {
+      if (!mysqlE2EGatewayReady) return; // 无环境：整组跳过（标记已打印）
+      adapter = MySQLAdapter();
+      testDbName = MySQLTestConfig.generateTestDatabaseName();
+
+      // 1. 种子专用 adapter 连接（金标准模式：先建库种数，再连 provider，
+      //    使其数据库列表已含测试库）。
+      final dbConn = DatabaseConnection(
+        id: 'seed_${testDbName.hashCode}',
+        name: 'Seed Connection',
+        type: DatabaseType.mysql,
+        host: MySQLTestConfig.host,
+        port: MySQLTestConfig.port,
+        username: MySQLTestConfig.username,
+        password: MySQLTestConfig.password,
+      );
+      await adapter.connect(dbConn);
+      await adapter.createDatabase(testDbName);
+      await adapter.useDatabase(testDbName);
+      // 列名刻意避开 PII 敏感关键词（name/username 等）：executeQuery facade
+      // 对 SELECT 结果做 PII 脱敏，敏感列名会触发值改写干扰「快照 == 种子」
+      // 断言（id/label 不命中启发式，值不命中正则，原样透传）。
+      await adapter.createTable(seedTable, [
+        DbColumn(
+          name: 'id',
+          type: 'INT',
+          isPrimaryKey: true,
+          isNullable: false,
+        ),
+        DbColumn(name: 'label', type: 'VARCHAR(100)', isNullable: false),
+      ]);
+      await adapter.executeQuery(
+        "INSERT INTO `$seedTable` (id, label) VALUES (1, 'alpha'), (2, 'beta')",
+      );
+
+      // 2. 真实 AppProvider 连接（真实 DatabaseService + 网关壳 adapter）。
+      // Fix-H：注入存储隔离 manager——本文件不调 setMockInitialValues，
+      // 真机模式下 ensureSession/addAiMessage 的会话文件 + active-id prefs
+      // 此前直写用户真实存储（污染缺陷波及点），现落临时目录 + 前缀键。
+      appProvider = AppProvider(
+        aiSessionManager: createIsolatedAiSessionManager(),
+      );
+      AppProvider.devBypassGates = true; // 集成测试测全功能，绕过 Free/Pro 门禁
+      // 会话引导（T15 根因修复）：真实 AppProvider 的会话来自
+      // initialize() → sessionManager.load()（恢复持久会话）或用户首条消息
+      // 的 ensureSession（workbench_chat_view._sendMessage）。裸构造的
+      // provider 两者都没有，_currentSession == null 时 addAiMessage 被
+      // AiSessionManager 静默丢弃（种子消息进不了渲染流 → SQL 卡不渲染）。
+      // 与 test/organisms/ai_workbench/ 下全部种子用例同款前置。
+      appProvider.aiPanel.ensureSession();
+      server = DbServer(
+        id: 'mysql_workbench_e2e_${testDbName.hashCode}',
+        name: connectionLabel,
+        type: DatabaseType.mysql,
+        host: MySQLTestConfig.host,
+        port: MySQLTestConfig.port,
+        username: MySQLTestConfig.username,
+        password: MySQLTestConfig.password,
+      );
+      await appProvider.connection.saveConnection(server);
+      final connected = await appProvider.connectToServer(server);
+      expect(connected, isTrue, reason: 'Failed to connect to MySQL');
+      await appProvider.refreshDatabases();
+
+      // 3. 工作台上下文：显式开一个绑定上下文的 query tab（openQueryTab 默认
+      //    bindContext: true）——resolveWorkbenchContext 继承序「活动 tab 优先」
+      //    的真实形态；该 tab 同时充当 R7 的「既有 tab」。
+      await appProvider.openQueryTab(server.id, testDbName, sql: 'SELECT 1');
+    });
+
+    tearDown(() async {
+      try {
+        await adapter.executeQuery('DROP DATABASE IF EXISTS `$testDbName`');
+      } catch (_) {}
+      try {
+        await adapter.disconnect();
+      } catch (_) {}
+      try {
+        await appProvider.disconnectConnection(connectionId: server.id);
+      } catch (_) {}
+      // 清理跨用例的 SharedPreferences 键（含工作台统计存储键）。
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('saved_queries');
+        await prefs.remove('recent_tables');
+        await prefs.remove('sidebar_favorite_tables');
+        await prefs.remove('connection_groups');
+        await prefs.remove('workbench_stats_v1');
+      } catch (_) {}
+      try {
+        appProvider.dispose();
+      } catch (_) {}
+    });
+
+    // ----------------------------------------------------------------------
+    // Helpers
+    // ----------------------------------------------------------------------
+    Widget buildTestApp() {
+      return ChangeNotifierProvider<AppProvider>.value(
+        value: appProvider,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: const Scaffold(body: AiWorkbenchShell()),
+        ),
+      );
+    }
+
+    /// 泵工作台壳（真实入口语义：aiPanelOpen + aiPanelFullscreen = 进入
+    /// 工作台，z2 全屏态宿主渲染 AiWorkbenchShell——与 z2 层同一组件）。
+    Future<void> pumpWorkbench(WidgetTester tester) async {
+      // 视口加高（金标准先例）：卡的 header/动作钮在消息列表底部，默认
+      // 600 高的视口下 tap 派生 Offset 可能落在折叠区外不命中。
+      tester.view.physicalSize = const Size(1280, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      appProvider.setAiPanelOpen(true);
+      appProvider.setAiPanelFullscreen(true);
+      await tester.pumpWidget(buildTestApp());
+      await tester.pumpAndSettle(const Duration(seconds: 2));
+    }
+
+    /// 模拟「AI 产出 SQL」：消息流落入带 code 块的 AI 消息——
+    /// WorkbenchCardHost 的 code 拦截路径渲染为 SQL 卡（design §4.4 ②，
+    /// 与真实 AI 回复同一渲染层路径）。
+    void addAiSqlMessage(String sql) {
+      appProvider.addAiMessage(
+        AiMessage(
+          id: 'ai_sql_${DateTime.now().millisecondsSinceEpoch}',
+          isUser: false,
+          content: 'Here is the SQL for your request.',
+          timestamp: DateTime.now(),
+          code: sql,
+          status: AiMessageStatus.completed,
+        ),
+      );
+    }
+
+    /// 真实执行是网络往返，不排帧——轮询 provider 消息流直到条件成立。
+    Future<bool> waitUntil(
+      WidgetTester tester,
+      bool Function() predicate, {
+      Duration timeout = const Duration(seconds: 30),
+    }) async {
+      final deadline = DateTime.now().add(timeout);
+      while (!predicate()) {
+        if (DateTime.now().isAfter(deadline)) return false;
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      return true;
+    }
+
+    /// 最近一条工作台结果卡 payload（执行编排落卡面）。
+    WorkbenchResultCardPayload? lastResultCardPayload() {
+      for (final message in appProvider.aiMessages.reversed) {
+        final raw = message.toolResultData?['workbench'];
+        if (raw is Map) {
+          final payload = WorkbenchResultCardPayload.fromJson(
+            Map<String, dynamic>.from(raw),
+          );
+          if (payload != null) return payload;
+        }
+      }
+      return null;
+    }
+
+    /// 最近一条工作台错误卡 payload（失败不静默面；排障用）。
+    WorkbenchErrorCardPayload? lastErrorCardPayload() {
+      for (final message in appProvider.aiMessages.reversed) {
+        final raw = message.toolResultData?['workbench'];
+        if (raw is Map) {
+          final error = WorkbenchErrorCardPayload.fromJson(
+            Map<String, dynamic>.from(raw),
+          );
+          if (error != null) return error;
+        }
+      }
+      return null;
+    }
+
+    /// 直查种子表指定行的 label（seed adapter 独立会话，绕开被测 UI 链路）。
+    Future<String> readLabel(int id) async {
+      await adapter.useDatabase(testDbName);
+      final result = await adapter.executeQuery(
+        'SELECT label FROM `$seedTable` WHERE id = $id',
+      );
+      expect(result.rows, isNotEmpty, reason: 'readLabel($id) 应有结果行');
+      return result.rows.first['label'].toString();
+    }
+
+    // ----------------------------------------------------------------------
+    // R5 结果卡：工作台执行 SELECT → 卡内行数/耗时/列名与快照行 == 真实数据
+    // ----------------------------------------------------------------------
+    testWidgets(
+      'R5 workbench execute SELECT lands result card matching real seed data',
+      (tester) async {
+        if (!mysqlE2EGatewayReady) {
+          return;
+        }
+        await pumpWorkbench(tester);
+
+        const sql = 'SELECT id, label FROM wb_seed ORDER BY id ASC';
+        addAiSqlMessage(sql);
+        await tester.pumpAndSettle(const Duration(seconds: 1));
+
+        // SQL 卡出现（code 拦截路径），经 UI 驱动真实「执行」按钮。
+        final executeButton = find.byKey(SqlToolCard.executeButtonKey);
+        expect(executeButton, findsOneWidget, reason: 'SQL 卡应渲染执行按钮');
+        await tester.ensureVisible(executeButton);
+        await tester.tap(executeButton);
+
+        // 真库往返：等结果卡消息落流（失败则抓错误卡原文）。
+        final landed = await waitUntil(tester, () =>
+            lastResultCardPayload() != null || lastErrorCardPayload() != null);
+        expect(
+          landed,
+          isTrue,
+          reason: '执行应落卡（错误卡原文：${lastErrorCardPayload()?.detail}）',
+        );
+        await tester.pumpAndSettle(const Duration(seconds: 2));
+
+        final payload = lastResultCardPayload();
+        expect(payload, isNotNull, reason: 'SELECT 执行应落结果卡（非错误卡）');
+        // 断言「功能真生效」：卡数据 == 种子真实数据，不是控件出现就算。
+        expect(payload!.rowCount, 2, reason: '行数 == 种子真实行数');
+        expect(payload.durationMs, greaterThanOrEqualTo(0), reason: '耗时存在');
+        expect(payload.columns, ['id', 'label'], reason: '列名 == 种子列序');
+        expect(payload.snapshotRows.length, 2);
+        expect(payload.snapshotRows[0]['id'].toString(), '1');
+        expect(payload.snapshotRows[0]['label'].toString(), 'alpha');
+        expect(payload.snapshotRows[1]['id'].toString(), '2');
+        expect(payload.snapshotRows[1]['label'].toString(), 'beta');
+        expect(payload.isTruncated, isFalse, reason: '2 行 < N 不截断');
+
+        // 渲染面：折叠元信息 `2 rows · N ms`。
+        final cardFinder = find.byType(ResultTableCard);
+        expect(cardFinder, findsOneWidget);
+        expect(
+          find.descendant(
+            of: cardFinder,
+            matching: find.textContaining(RegExp(r'^2 rows · \d+ ms$')),
+          ),
+          findsOneWidget,
+          reason: '折叠元信息应显示真实行数与耗时',
+        );
+
+        // 展开卡：内嵌快照表渲染种子真实列名与行内容。
+        await tester.tap(find.byKey(ResultTableCard.headerKey));
+        await tester.pumpAndSettle(const Duration(seconds: 1));
+        expect(
+          find.descendant(
+            of: cardFinder,
+            matching: find.byType(ResultSnapshotTable),
+          ),
+          findsOneWidget,
+          reason: '展开态渲染快照表',
+        );
+        expect(
+          find.descendant(of: cardFinder, matching: find.text('label')),
+          findsAtLeastNWidgets(1),
+          reason: '快照表表头含真实列名 label',
+        );
+        expect(
+          find.descendant(of: cardFinder, matching: find.text('alpha')),
+          findsOneWidget,
+          reason: '快照行内容 == 种子真实数据 alpha',
+        );
+        expect(
+          find.descendant(of: cardFinder, matching: find.text('beta')),
+          findsOneWidget,
+          reason: '快照行内容 == 种子真实数据 beta',
+        );
+      },
+    );
+
+    // ----------------------------------------------------------------------
+    // R6 写确认取消：确认框取消 → 重查数据未变；确认路径 → 重查已变更
+    // ----------------------------------------------------------------------
+    testWidgets(
+      'R6 write confirm: cancel leaves data unchanged, confirm applies UPDATE',
+      (tester) async {
+        if (!mysqlE2EGatewayReady) {
+          return;
+        }
+        await pumpWorkbench(tester);
+
+        // WHERE + LIMIT：DML 风险拦截零触发（updateWithoutWhere/critical、
+        // dmlWithoutLimit/high 均不命中），确认流只剩工作台 gate #1——
+        // 本用例的被测对象正是 T13 的写确认编排。
+        const sql = "UPDATE wb_seed SET label = 'gamma' WHERE id = 1 LIMIT 1";
+        addAiSqlMessage(sql);
+        await tester.pumpAndSettle(const Duration(seconds: 1));
+
+        // 写徽标（classifier 判定真生效的 e2e 形态）。
+        expect(
+          find.byKey(SqlToolCard.writeBadgeKey),
+          findsOneWidget,
+          reason: 'UPDATE 应判写并渲染危险徽标',
+        );
+
+        // —— 取消路径 ——
+        await tester.tap(find.byKey(SqlToolCard.executeButtonKey));
+        await tester.pump();
+        await tester.pumpAndSettle(const Duration(milliseconds: 500));
+
+        // 写确认框出现（gate #1，AC6.1）：SQL 全文 + 目标连接/库行（AC6.5）。
+        final dialogFinder = find.byType(ConfirmExecuteDialog);
+        expect(dialogFinder, findsOneWidget, reason: '写 SQL 执行必弹确认');
+        expect(find.descendant(of: dialogFinder, matching: find.text(sql)),
+            findsOneWidget, reason: '确认框含 SQL 全文');
+        expect(
+          find.descendant(
+            of: dialogFinder,
+            matching: find.textContaining('Target:'),
+          ),
+          findsOneWidget,
+          reason: '确认框含目标连接/库行（AC6.5）',
+        );
+
+        await tester.tap(
+          find.descendant(
+            of: dialogFinder,
+            matching: find.widgetWithText(TextButton, 'Cancel'),
+          ),
+        );
+        await tester.pumpAndSettle(const Duration(seconds: 2));
+        expect(
+          find.byType(ConfirmExecuteDialog),
+          findsNothing,
+          reason: '取消后确认框关闭',
+        );
+
+        // 重查数据库：数据未变（AC6.2 零执行，真库形态）。
+        expect(await readLabel(1), 'alpha', reason: '取消后数据库零变化');
+        expect(
+          lastResultCardPayload(),
+          isNull,
+          reason: '取消后不应有任何结果卡（零执行）',
+        );
+
+        // —— 确认路径（对照组）——
+        await tester.tap(find.byKey(SqlToolCard.executeButtonKey));
+        await tester.pump();
+        await tester.pumpAndSettle(const Duration(milliseconds: 500));
+        expect(
+          find.byType(ConfirmExecuteDialog),
+          findsOneWidget,
+          reason: '再次执行仍需确认（cancel 不入会话放行集）',
+        );
+        await tester.tap(
+          find.descendant(
+            of: find.byType(ConfirmExecuteDialog),
+            matching: find.widgetWithText(ElevatedButton, 'Confirm Execute'),
+          ),
+        );
+
+        final landed = await waitUntil(tester, () =>
+            lastResultCardPayload() != null || lastErrorCardPayload() != null);
+        expect(
+          landed,
+          isTrue,
+          reason: '确认后执行应落卡（错误卡原文：${lastErrorCardPayload()?.detail}）',
+        );
+        await tester.pumpAndSettle(const Duration(seconds: 2));
+
+        final payload = lastResultCardPayload();
+        expect(payload, isNotNull, reason: '确认路径应落结果卡（非错误卡）');
+        expect(payload!.sql, sql, reason: '结果卡携带被执行的 SQL');
+
+        // 重查数据库：已变更（对照组）。
+        expect(await readLabel(1), 'gamma', reason: '确认后数据库已变更');
+        expect(await readLabel(2), 'beta', reason: 'WHERE 限定未误伤其它行');
+      },
+    );
+
+    // ----------------------------------------------------------------------
+    // R7 互跳：卡「在经典中打开」→ 新 tab 参数 == 送出内容，既有 tab 前后一致
+    // ----------------------------------------------------------------------
+    testWidgets(
+      'R7 open in classic opens new tab with exact sql/context, existing tab untouched',
+      (tester) async {
+        if (!mysqlE2EGatewayReady) {
+          return;
+        }
+        await pumpWorkbench(tester);
+
+        // 既有 tab 基线（setUp 打开的上下文 tab）。
+        final tabsBefore = appProvider.tab.tabs.toList();
+        expect(tabsBefore, isNotEmpty);
+        final existingTab = tabsBefore.last;
+        final existingId = existingTab.id;
+        final existingSql = existingTab.sql;
+        final existingConnectionId = existingTab.connectionId;
+        final existingDatabaseName = existingTab.databaseName;
+
+        const sql = 'SELECT id, label FROM wb_seed WHERE id = 2';
+        addAiSqlMessage(sql);
+        await tester.pumpAndSettle(const Duration(seconds: 1));
+
+        // 经 UI 驱动卡「在经典中打开」按钮。
+        final openButton = find.byKey(SqlToolCard.openInClassicButtonKey);
+        expect(openButton, findsOneWidget);
+        await tester.ensureVisible(openButton);
+        await tester.tap(openButton);
+        await tester.pumpAndSettle(const Duration(seconds: 2));
+
+        // 新 tab 落位：不覆盖既有 tab（AC7.1），参数 == 送出内容（AC7.3）。
+        expect(
+          appProvider.tab.tabs.length,
+          tabsBefore.length + 1,
+          reason: 'AC7.1 互跳落新 tab，不覆盖既有 tab',
+        );
+        final newTab = appProvider.tab.tabs.last;
+        expect(newTab.sql, sql, reason: 'AC7.3 新 tab sql == 送出内容');
+        expect(
+          newTab.connectionId,
+          server.id,
+          reason: '新 tab connectionId == 工作台生效上下文连接',
+        );
+        expect(
+          newTab.databaseName,
+          testDbName,
+          reason: '新 tab databaseName == 工作台生效上下文库',
+        );
+        expect(
+          appProvider.tab.activeTab?.id,
+          newTab.id,
+          reason: 'activeTab 应切换到新 tab',
+        );
+
+        // 既有 tab 前后一致（AC7.1 对照面）。
+        final survivors =
+            appProvider.tab.tabs.where((t) => t.id == existingId).toList();
+        expect(survivors, isNotEmpty, reason: '既有 tab 仍存在');
+        final survivor = survivors.first;
+        expect(survivor.sql, existingSql, reason: '既有 tab sql 未被改写');
+        expect(
+          survivor.connectionId,
+          existingConnectionId,
+          reason: '既有 tab connectionId 未被改写',
+        );
+        expect(
+          survivor.databaseName,
+          existingDatabaseName,
+          reason: '既有 tab databaseName 未被改写',
+        );
+
+        // 互跳出口语义：退出工作台全屏（落点可见）。
+        expect(
+          appProvider.aiPanelFullscreen,
+          isFalse,
+          reason: '互跳后应退出工作台全屏',
+        );
+      },
+    );
+
+    // ----------------------------------------------------------------------
+    // R2-3 上下文选择器（T18 欠账，design-ai-workbench §4.2 R2 / AC3.7 形态）：
+    // 未设置态 → 点开 WorkbenchContextPicker → 真实连接流程选连接 → 选库
+    // 「选择即锁定」→ lock/selected* 同步 → 真实 SELECT 走通执行路径证明
+    // 「未设置上下文」拦截解除。
+    // ----------------------------------------------------------------------
+    testWidgets(
+      'R2-3 context picker: real connect locks context and lifts unset-context guard',
+      (tester) async {
+        if (!mysqlE2EGatewayReady) {
+          return;
+        }
+
+        // 1. 驱动到真实未设置态（全部走真实 facade 路径）：关掉 setUp 的
+        //    上下文 tab（activeTab 源清零）+ 断开连接（currentServer 源清零；
+        //    侧栏选中本组从未设置）。三源全空 → resolver 返回 none →
+        //    芯片渲染未设置态。断开同时让选择器的选连接动作走完整真实
+        //    connectToServer 流程（而非复用既有连接）。
+        await appProvider.tab.forceCloseTab(0);
+        await appProvider.disconnectConnection(connectionId: server.id);
+        await pumpWorkbench(tester);
+
+        expect(appProvider.aiPanel.workbenchContextLock, isNull,
+            reason: '前置：无锁定');
+        expect(
+          find.byKey(const ValueKey('workbench_context_chip_setup')),
+          findsOneWidget,
+          reason: '三源全空时芯片应渲染未设置态（选择引导出口）',
+        );
+        expect(appProvider.aiPanel.selectedConnectionId, isNull,
+            reason: '未设置态下 AI 生效上下文连接为空（preflight 拦截前置）');
+        expect(appProvider.aiPanel.selectedDatabaseName, isNull,
+            reason: '未设置态下 AI 生效上下文库为空');
+
+        // 2. 点未设置态的「选择已有连接」出口 → 打开上下文选择器。
+        await tester.tap(
+          find.byKey(const ValueKey('workbench_context_chip_setup')),
+        );
+        await tester.pumpAndSettle(const Duration(seconds: 2));
+        expect(find.byType(WorkbenchContextPicker), findsOneWidget);
+
+        // 3. 点连接行 → 真实连接流程（adapter 已断开 → picker 内真实
+        //    connectToServer + 真实 getDatabases 网关往返）。
+        await tester.tap(
+          find.byKey(ValueKey('workbench_context_picker_conn_${server.id}')),
+        );
+        // 真库往返不排帧：轮询等测试库行出现在库栏。
+        final dbRowLoaded = await waitUntil(
+          tester,
+          () => find
+              .byKey(ValueKey('workbench_context_picker_db_$testDbName'))
+              .evaluate()
+              .isNotEmpty,
+        );
+        expect(dbRowLoaded, isTrue,
+            reason: '选连接后应装载出含测试库的真实数据库列表');
+
+        // 4. 点测试库行 →「选择即锁定」→ picker 关闭。
+        final dbRow =
+            find.byKey(ValueKey('workbench_context_picker_db_$testDbName'));
+        await tester.ensureVisible(dbRow);
+        await tester.tap(dbRow);
+        await tester.pumpAndSettle(const Duration(seconds: 2));
+        expect(find.byType(WorkbenchContextPicker), findsNothing,
+            reason: '选择即锁定后选择器应关闭');
+
+        // 5. 锁定断言：lock == (connId, db)，芯片渲染锁定态。
+        final lock = appProvider.aiPanel.workbenchContextLock;
+        expect(lock, isNotNull, reason: '选库应落 workbench.context 锁定');
+        expect(lock?.connectionId, server.id, reason: '锁定连接 == 所选连接');
+        expect(lock?.databaseName, testDbName, reason: '锁定库 == 所选库');
+        expect(
+          find.byKey(const ValueKey('workbench_context_chip_locked_badge')),
+          findsOneWidget,
+          reason: '芯片应渲染锁定态徽标',
+        );
+
+        // 6. selected* 同步（芯片 §5.1 管道把锁定值写为 AI 生效上下文）。
+        //    这两个字段正是 chat view _preflight 的上下文入参——由 null 变
+        //    为锁定值即「未设置上下文」拦截解除的直接判据。
+        final synced = await waitUntil(
+          tester,
+          () =>
+              appProvider.aiPanel.selectedConnectionId == server.id &&
+              appProvider.aiPanel.selectedDatabaseName == testDbName,
+        );
+        expect(synced, isTrue,
+            reason: '锁定后同步管道应写 selectedConnectionId/DatabaseName');
+
+        // 7. 守卫解除的端到端证明：R5 同款执行路径。此刻 tab 与 currentServer
+        //    均已清空，执行时上下文只能来自锁定快照——真实 SELECT 落
+        //    结果卡且数据 == 种子，即全链路（lock → 执行上下文复核 → 网关
+        //    真库往返）走通。
+        const sql = 'SELECT id, label FROM wb_seed ORDER BY id ASC';
+        addAiSqlMessage(sql);
+        await tester.pumpAndSettle(const Duration(seconds: 1));
+        final executeButton = find.byKey(SqlToolCard.executeButtonKey);
+        expect(executeButton, findsOneWidget, reason: 'SQL 卡应渲染执行按钮');
+        await tester.ensureVisible(executeButton);
+        await tester.tap(executeButton);
+
+        final landed = await waitUntil(tester, () =>
+            lastResultCardPayload() != null || lastErrorCardPayload() != null);
+        expect(
+          landed,
+          isTrue,
+          reason: '锁定上下文下执行应落卡（错误卡原文：'
+              '${lastErrorCardPayload()?.detail}）',
+        );
+        await tester.pumpAndSettle(const Duration(seconds: 2));
+
+        final payload = lastResultCardPayload();
+        expect(payload, isNotNull,
+            reason: 'SELECT 应落结果卡（非错误卡）——守卫解除端到端成立');
+        expect(payload!.rowCount, 2, reason: '行数 == 种子真实行数');
+        expect(payload.columns, ['id', 'label'], reason: '列名 == 种子列序');
+        expect(payload.snapshotRows[0]['label'].toString(), 'alpha');
+        expect(payload.snapshotRows[1]['label'].toString(), 'beta');
+        expect(find.byType(ResultTableCard), findsOneWidget);
+      },
+    );
+  });
+}

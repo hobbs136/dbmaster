@@ -9924,6 +9924,522 @@ class AppLocalizationsZh extends AppLocalizations {
   String connectFailureLatestTooltip(String message) {
     return '最近连接失败：$message';
   }
+
+  @override
+  String get workbenchTitle => 'AI 工作台';
+
+  @override
+  String get workbenchEnter => '进入 AI 工作台';
+
+  @override
+  String get workbenchExit => '退出工作台';
+
+  @override
+  String get workbenchCommandEnterWorkbench => '进入 AI 工作台';
+
+  @override
+  String get workbenchCommandExitWorkbench => '退出工作台';
+
+  @override
+  String get workbenchContextSourceTab => '活动标签页';
+
+  @override
+  String get workbenchContextSourceSidebar => '侧边栏';
+
+  @override
+  String get workbenchContextLock => '锁定上下文';
+
+  @override
+  String get workbenchContextUnlock => '解锁上下文';
+
+  @override
+  String get workbenchContextUnset => '未设置';
+
+  @override
+  String get workbenchContextSetupGuide => '连接数据库以设置 AI 上下文';
+
+  @override
+  String get workbenchContextSwitchTip => '切换 AI 上下文';
+
+  @override
+  String get workbenchContextPickerTitle => '设置 AI 上下文';
+
+  @override
+  String get workbenchContextPickerNewConnection => '新建连接';
+
+  @override
+  String get workbenchContextPickerLoadingDatabases => '正在加载数据库…';
+
+  @override
+  String get workbenchContextPickerNoDatabases => '此连接无数据库列表';
+
+  @override
+  String get workbenchContextPickerConnectionOnly => '仅使用连接';
+
+  @override
+  String get workbenchContextPickerConnectHint => '连接后可列出数据库';
+
+  @override
+  String get workbenchSqlCardTitle => 'SQL';
+
+  @override
+  String workbenchSqlTypeBadge(String n) {
+    return '$n';
+  }
+
+  @override
+  String get workbenchSqlWriteBadge => '写入';
+
+  @override
+  String get workbenchActionOpenInClassic => '在经典模式中打开';
+
+  @override
+  String workbenchResultMeta(int rows, int ms) {
+    return '$rows 行 · $ms 毫秒';
+  }
+
+  @override
+  String get workbenchOpenInGrid => '在网格中打开';
+
+  @override
+  String workbenchResultTruncated(int shown, int total) {
+    return '显示前 $shown 行，共 $total 行';
+  }
+
+  @override
+  String workbenchEmptyResult(int rows, int ms) {
+    return '$rows 行 · $ms 毫秒';
+  }
+
+  @override
+  String get workbenchEmptyResultHint => '未返回数据';
+
+  @override
+  String get workbenchErrorDetail => '技术详情';
+
+  @override
+  String get workbenchLoadingState => '正在加载会话…';
+
+  @override
+  String get workbenchErrorNoContext => '未设置数据库上下文。请选择一个连接来执行此 SQL。';
+
+  @override
+  String get workbenchErrorSetupConnection => '设置连接';
+
+  @override
+  String get workbenchConfirmWriteTitle => '确认写操作';
+
+  @override
+  String workbenchConfirmTarget(String connection, String database) {
+    return '目标：$connection · $database';
+  }
+
+  @override
+  String get workbenchStatsExport => '导出使用统计（匿名 JSON）';
+
+  @override
+  String workbenchStatsExported(String path) {
+    return '使用统计已导出至 $path';
+  }
+
+  @override
+  String get workbenchNewSession => '新建会话';
+
+  @override
+  String get workbenchSessionListTitle => '会话';
+
+  @override
+  String get workbenchErrorEmptySql => '无法执行空语句';
+
+  @override
+  String get agentTrajectoryTitle => '运行轨迹';
+
+  @override
+  String agentTrajectoryStep(String tool) {
+    return '步骤 · $tool';
+  }
+
+  @override
+  String agentTrajectorySteps(int n, int max) {
+    return '$n/$max';
+  }
+
+  @override
+  String agentTrajectoryTokens(String n) {
+    return '$n tok';
+  }
+
+  @override
+  String get agentTrajectoryUnknown => '未知';
+
+  @override
+  String get agentTrajectoryAwaiting => '等待确认';
+
+  @override
+  String get agentTrajectoryStatusRunning => '运行中';
+
+  @override
+  String get agentTrajectoryCompleted => '已完成';
+
+  @override
+  String get agentTrajectoryExpandStep => '展开步骤详情';
+
+  @override
+  String get agentStepArgs => '参数';
+
+  @override
+  String get agentStepSql => 'SQL';
+
+  @override
+  String agentStepResultMeta(int rows, int cols, int ms) {
+    return '$rows 行 · $cols 列 · $ms 毫秒';
+  }
+
+  @override
+  String get agentStepSnapshot => '快照';
+
+  @override
+  String agentStepTruncated(int shown, int total) {
+    return '仅显示前 $shown 行，共 $total 行';
+  }
+
+  @override
+  String get agentStepError => '错误';
+
+  @override
+  String get agentStepOpenInStage => '在舞台中打开';
+
+  @override
+  String get agentStepGateConfirmed => '本次运行已确认';
+
+  @override
+  String get agentStepGateSession => '本会话内已允许（此连接）';
+
+  @override
+  String get agentStepBlocked => '已拦截';
+
+  @override
+  String get agentStepRejected => '已拒绝';
+
+  @override
+  String get agentConfirmReadTitle => '高代价读取确认';
+
+  @override
+  String get agentConfirmScanRows => '估算扫描行数';
+
+  @override
+  String agentConfirmEstimatedRows(String n) {
+    return '$n 行';
+  }
+
+  @override
+  String get agentConfirmScanShape => '扫描形态';
+
+  @override
+  String get agentConfirmFullScan => '全表扫描';
+
+  @override
+  String get agentConfirmNoIndex => '无可用索引';
+
+  @override
+  String get agentConfirmFullScanNoIndex => '全表扫描 · 无可用索引';
+
+  @override
+  String get agentConfirmIndexRow => '索引';
+
+  @override
+  String get agentConfirmTablesRow => '扫描表';
+
+  @override
+  String get agentConfirmSqlRow => 'SQL';
+
+  @override
+  String get agentConfirmAnalysisUnavailable => '分析不可用 · 保守确认';
+
+  @override
+  String get agentConfirmValueUnavailable => '不可用';
+
+  @override
+  String get agentConfirmAllowSession => '本次会话内允许';
+
+  @override
+  String get agentConfirmAllowSessionHint => '此连接上的高代价读取在本会话剩余时间内不再询问';
+
+  @override
+  String get agentConfirmAllowOnce => '本次允许';
+
+  @override
+  String get agentConfirmCancel => '取消';
+
+  @override
+  String get agentConfirmResultAllowedOnce => '已允许（本次）';
+
+  @override
+  String get agentConfirmResultAllowedSession => '已允许（本会话）';
+
+  @override
+  String get agentConfirmResultCanceled => '已取消';
+
+  @override
+  String get agentConfirmResultCanceledByRun => '已取消（运行已停止）';
+
+  @override
+  String get agentStoppedByUser => '用户已停止';
+
+  @override
+  String get agentStoppedByLimit => '达到步骤上限';
+
+  @override
+  String agentStoppedByFailures(int n) {
+    return '失败 $n 次';
+  }
+
+  @override
+  String get agentRunFailed => '运行失败';
+
+  @override
+  String get agentRunInterrupted => '已中断';
+
+  @override
+  String get agentStopping => '正在停止';
+
+  @override
+  String get agentStopButton => '停止';
+
+  @override
+  String agentStepLimitReached(int n) {
+    return '已达步骤上限（$n）';
+  }
+
+  @override
+  String get agentContextRequired => '尚未设置数据库上下文。请先选择连接，再运行数据工具。';
+
+  @override
+  String get agentContextSetup => '设置上下文';
+
+  @override
+  String get agentMaxStepsSetting => '智能体最大步骤数';
+
+  @override
+  String get agentL05ThresholdSetting => '读取确认行数阈值';
+
+  @override
+  String agentSessionTokens(String n) {
+    return '会话 $n tok';
+  }
+
+  @override
+  String agentTrajectoryStepsOnly(int n) {
+    return '步骤：$n';
+  }
+
+  @override
+  String get agentSettingsSection => '智能体';
+
+  @override
+  String get agentPlanTitle => '行动计划';
+
+  @override
+  String agentPlanStatementCount(int n) {
+    return '$n 条语句';
+  }
+
+  @override
+  String get agentPlanImpactLabel => '影响';
+
+  @override
+  String agentPlanEstimateRows(String n) {
+    return '$n 行';
+  }
+
+  @override
+  String get agentPlanEstimateUnavailable => '估算不可用';
+
+  @override
+  String get agentPlanRollbackLabel => '回退';
+
+  @override
+  String get agentPlanNoRollback => '不可逆 · 无自动回退';
+
+  @override
+  String get agentPlanIrreversible => '不可逆';
+
+  @override
+  String agentPlanStepKind(String k) {
+    return '$k 语句';
+  }
+
+  @override
+  String get agentPlanEstimateSourceExplain => 'EXPLAIN 估算';
+
+  @override
+  String get agentPlanEstimateSourceCount => '精确计数';
+
+  @override
+  String get agentPlanRollbackSourceModel => '由模型提供';
+
+  @override
+  String get agentPlanRollbackSourceAuto => '自动推导';
+
+  @override
+  String get agentPlanBoundaryTitle => '失败边界';
+
+  @override
+  String agentPlanBoundaryDone(int n) {
+    return '已完成 $n';
+  }
+
+  @override
+  String agentPlanBoundaryFailed(int n) {
+    return '失败 $n';
+  }
+
+  @override
+  String agentPlanBoundaryRemaining(int n) {
+    return '已跳过 $n';
+  }
+
+  @override
+  String agentPlanFailureReason(String error) {
+    return '失败原因：$error';
+  }
+
+  @override
+  String get agentPlanStatusPending => '待批准';
+
+  @override
+  String get agentPlanStatusApproved => '已批准';
+
+  @override
+  String agentPlanStatusExecuting(int n, int m) {
+    return '执行中 $n/$m';
+  }
+
+  @override
+  String get agentPlanStatusDone => '已执行';
+
+  @override
+  String get agentPlanStatusPartialFailed => '部分失败';
+
+  @override
+  String get agentPlanStatusRollbackOffered => '待回退';
+
+  @override
+  String get agentPlanStatusRolledBack => '已回退';
+
+  @override
+  String get agentPlanStatusRejected => '已拒绝';
+
+  @override
+  String get agentPlanConsumedHint => '该计划已终结，无法再次执行';
+
+  @override
+  String get agentPlanGenerateRollback => '生成回退计划';
+
+  @override
+  String get agentPlanRollbackPendingHint => '回退计划待批准';
+
+  @override
+  String get agentPlanRollbackBadge => '回退计划';
+
+  @override
+  String agentPlanRollbackOf(String id) {
+    return '$id 的回退计划';
+  }
+
+  @override
+  String get agentPlanApprove => '批准并执行';
+
+  @override
+  String get agentPlanReject => '拒绝';
+
+  @override
+  String get agentTrajectoryViewBoundary => '查看失败边界';
+
+  @override
+  String agentSuggestTitle(String action) {
+    return '建议 · $action';
+  }
+
+  @override
+  String get agentSuggestFocusSidebar => '在侧边栏中显示';
+
+  @override
+  String get agentSuggestApply => '应用';
+
+  @override
+  String get agentSuggestDismiss => '忽略';
+
+  @override
+  String get agentSuggestBadgeNotApplied => '未执行';
+
+  @override
+  String get agentSuggestBadgeApplied => '已应用';
+
+  @override
+  String get agentSuggestBadgeDismissed => '已忽略';
+
+  @override
+  String get agentSuggestNotAppliedHint => '应用前不会产生副作用';
+
+  @override
+  String get agentStageEmptyTitle => '舞台为空';
+
+  @override
+  String get agentStageEmptyHint => 'AI 打开的结果、图表或编辑器会显示在这里';
+
+  @override
+  String get agentStageToggle => '舞台';
+
+  @override
+  String get agentStageCollapse => '收起舞台';
+
+  @override
+  String get agentStageTabClose => '关闭';
+
+  @override
+  String get agentStageTabPin => '固定到产物条';
+
+  @override
+  String get agentStageTabUnpin => '取消固定';
+
+  @override
+  String get agentStageTabDirty => '有未保存的更改';
+
+  @override
+  String get agentStageChartMismatch => '数据不适用于此图表类型';
+
+  @override
+  String get agentStageErrorRetry => '重试';
+
+  @override
+  String get agentStageTabGrid => '网格';
+
+  @override
+  String get agentStageTabStructure => '结构';
+
+  @override
+  String get agentStageTabEditor => '编辑器';
+
+  @override
+  String get agentStageTabChart => '图表';
+
+  @override
+  String get agentArtifactEmpty => '暂无固定产物';
+
+  @override
+  String get agentArtifactUnpinHint => '取消固定（Delete）';
+
+  @override
+  String get agentFinalReply => '模型回复';
+
+  @override
+  String get agentPlanDmlHighBadge => '需要确认';
+
+  @override
+  String agentPlanDmlHighTriggers(String triggers) {
+    return '触发条件：$triggers';
+  }
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -17291,5 +17807,521 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   @override
   String connectFailureLatestTooltip(String message) {
     return '最近連線失敗：$message';
+  }
+
+  @override
+  String get workbenchTitle => 'AI 工作台';
+
+  @override
+  String get workbenchEnter => '進入 AI 工作台';
+
+  @override
+  String get workbenchExit => '退出工作台';
+
+  @override
+  String get workbenchCommandEnterWorkbench => '進入 AI 工作台';
+
+  @override
+  String get workbenchCommandExitWorkbench => '退出工作台';
+
+  @override
+  String get workbenchContextSourceTab => '活動標籤頁';
+
+  @override
+  String get workbenchContextSourceSidebar => '側邊欄';
+
+  @override
+  String get workbenchContextLock => '鎖定上下文';
+
+  @override
+  String get workbenchContextUnlock => '解鎖上下文';
+
+  @override
+  String get workbenchContextUnset => '未設定';
+
+  @override
+  String get workbenchContextSetupGuide => '連線資料庫以設定 AI 上下文';
+
+  @override
+  String get workbenchContextSwitchTip => '切換 AI 上下文';
+
+  @override
+  String get workbenchContextPickerTitle => '設定 AI 上下文';
+
+  @override
+  String get workbenchContextPickerNewConnection => '新增連線';
+
+  @override
+  String get workbenchContextPickerLoadingDatabases => '正在載入資料庫…';
+
+  @override
+  String get workbenchContextPickerNoDatabases => '此連線沒有資料庫清單';
+
+  @override
+  String get workbenchContextPickerConnectionOnly => '僅使用連線';
+
+  @override
+  String get workbenchContextPickerConnectHint => '連線後可列出資料庫';
+
+  @override
+  String get workbenchSqlCardTitle => 'SQL';
+
+  @override
+  String workbenchSqlTypeBadge(String n) {
+    return '$n';
+  }
+
+  @override
+  String get workbenchSqlWriteBadge => '寫入';
+
+  @override
+  String get workbenchActionOpenInClassic => '在經典模式中開啟';
+
+  @override
+  String workbenchResultMeta(int rows, int ms) {
+    return '$rows 列 · $ms 毫秒';
+  }
+
+  @override
+  String get workbenchOpenInGrid => '在網格中開啟';
+
+  @override
+  String workbenchResultTruncated(int shown, int total) {
+    return '顯示前 $shown 列，共 $total 列';
+  }
+
+  @override
+  String workbenchEmptyResult(int rows, int ms) {
+    return '$rows 列 · $ms 毫秒';
+  }
+
+  @override
+  String get workbenchEmptyResultHint => '未傳回資料';
+
+  @override
+  String get workbenchErrorDetail => '技術詳情';
+
+  @override
+  String get workbenchLoadingState => '正在載入對話…';
+
+  @override
+  String get workbenchErrorNoContext => '未設定資料庫上下文。請選擇一個連線來執行此 SQL。';
+
+  @override
+  String get workbenchErrorSetupConnection => '設定連線';
+
+  @override
+  String get workbenchConfirmWriteTitle => '確認寫入操作';
+
+  @override
+  String workbenchConfirmTarget(String connection, String database) {
+    return '目標：$connection · $database';
+  }
+
+  @override
+  String get workbenchStatsExport => '匯出使用統計（匿名 JSON）';
+
+  @override
+  String workbenchStatsExported(String path) {
+    return '使用統計已匯出至 $path';
+  }
+
+  @override
+  String get workbenchNewSession => '新增對話';
+
+  @override
+  String get workbenchSessionListTitle => '對話';
+
+  @override
+  String get workbenchErrorEmptySql => '無法執行空語句';
+
+  @override
+  String get agentTrajectoryTitle => '執行軌跡';
+
+  @override
+  String agentTrajectoryStep(String tool) {
+    return '步驟 · $tool';
+  }
+
+  @override
+  String agentTrajectorySteps(int n, int max) {
+    return '$n/$max';
+  }
+
+  @override
+  String agentTrajectoryTokens(String n) {
+    return '$n tok';
+  }
+
+  @override
+  String get agentTrajectoryUnknown => '未知';
+
+  @override
+  String get agentTrajectoryAwaiting => '等待確認';
+
+  @override
+  String get agentTrajectoryStatusRunning => '執行中';
+
+  @override
+  String get agentTrajectoryCompleted => '已完成';
+
+  @override
+  String get agentTrajectoryExpandStep => '展開步驟詳情';
+
+  @override
+  String get agentStepArgs => '參數';
+
+  @override
+  String get agentStepSql => 'SQL';
+
+  @override
+  String agentStepResultMeta(int rows, int cols, int ms) {
+    return '$rows 列 · $cols 欄 · $ms 毫秒';
+  }
+
+  @override
+  String get agentStepSnapshot => '快照';
+
+  @override
+  String agentStepTruncated(int shown, int total) {
+    return '僅顯示前 $shown 列，共 $total 列';
+  }
+
+  @override
+  String get agentStepError => '錯誤';
+
+  @override
+  String get agentStepOpenInStage => '在舞台中開啟';
+
+  @override
+  String get agentStepGateConfirmed => '本次執行已確認';
+
+  @override
+  String get agentStepGateSession => '本對話內已允許（此連線）';
+
+  @override
+  String get agentStepBlocked => '已攔截';
+
+  @override
+  String get agentStepRejected => '已拒絕';
+
+  @override
+  String get agentConfirmReadTitle => '高成本讀取確認';
+
+  @override
+  String get agentConfirmScanRows => '估算掃描列數';
+
+  @override
+  String agentConfirmEstimatedRows(String n) {
+    return '$n 列';
+  }
+
+  @override
+  String get agentConfirmScanShape => '掃描形態';
+
+  @override
+  String get agentConfirmFullScan => '全表掃描';
+
+  @override
+  String get agentConfirmNoIndex => '無可用索引';
+
+  @override
+  String get agentConfirmFullScanNoIndex => '全表掃描 · 無可用索引';
+
+  @override
+  String get agentConfirmIndexRow => '索引';
+
+  @override
+  String get agentConfirmTablesRow => '掃描資料表';
+
+  @override
+  String get agentConfirmSqlRow => 'SQL';
+
+  @override
+  String get agentConfirmAnalysisUnavailable => '分析不可用 · 保守確認';
+
+  @override
+  String get agentConfirmValueUnavailable => '不可用';
+
+  @override
+  String get agentConfirmAllowSession => '本對話內允許';
+
+  @override
+  String get agentConfirmAllowSessionHint => '此連線上的高成本讀取在本對話剩餘時間內不再詢問';
+
+  @override
+  String get agentConfirmAllowOnce => '本次允許';
+
+  @override
+  String get agentConfirmCancel => '取消';
+
+  @override
+  String get agentConfirmResultAllowedOnce => '已允許（本次）';
+
+  @override
+  String get agentConfirmResultAllowedSession => '已允許（本對話）';
+
+  @override
+  String get agentConfirmResultCanceled => '已取消';
+
+  @override
+  String get agentConfirmResultCanceledByRun => '已取消（執行已停止）';
+
+  @override
+  String get agentStoppedByUser => '使用者已停止';
+
+  @override
+  String get agentStoppedByLimit => '達到步驟上限';
+
+  @override
+  String agentStoppedByFailures(int n) {
+    return '失敗 $n 次';
+  }
+
+  @override
+  String get agentRunFailed => '執行失敗';
+
+  @override
+  String get agentRunInterrupted => '已中斷';
+
+  @override
+  String get agentStopping => '正在停止';
+
+  @override
+  String get agentStopButton => '停止';
+
+  @override
+  String agentStepLimitReached(int n) {
+    return '已達步驟上限（$n）';
+  }
+
+  @override
+  String get agentContextRequired => '尚未設定資料庫上下文。請先選擇連線，再執行資料工具。';
+
+  @override
+  String get agentContextSetup => '設定上下文';
+
+  @override
+  String get agentMaxStepsSetting => '智慧代理最大步驟數';
+
+  @override
+  String get agentL05ThresholdSetting => '讀取確認列數閾值';
+
+  @override
+  String agentSessionTokens(String n) {
+    return '對話 $n tok';
+  }
+
+  @override
+  String agentTrajectoryStepsOnly(int n) {
+    return '步驟：$n';
+  }
+
+  @override
+  String get agentSettingsSection => '智慧代理';
+
+  @override
+  String get agentPlanTitle => '行動計劃';
+
+  @override
+  String agentPlanStatementCount(int n) {
+    return '$n 條語句';
+  }
+
+  @override
+  String get agentPlanImpactLabel => '影響';
+
+  @override
+  String agentPlanEstimateRows(String n) {
+    return '$n 列';
+  }
+
+  @override
+  String get agentPlanEstimateUnavailable => '估算不可用';
+
+  @override
+  String get agentPlanRollbackLabel => '回退';
+
+  @override
+  String get agentPlanNoRollback => '不可逆 · 無自動回退';
+
+  @override
+  String get agentPlanIrreversible => '不可逆';
+
+  @override
+  String agentPlanStepKind(String k) {
+    return '$k 語句';
+  }
+
+  @override
+  String get agentPlanEstimateSourceExplain => 'EXPLAIN 估算';
+
+  @override
+  String get agentPlanEstimateSourceCount => '精確計數';
+
+  @override
+  String get agentPlanRollbackSourceModel => '由模型提供';
+
+  @override
+  String get agentPlanRollbackSourceAuto => '自動推導';
+
+  @override
+  String get agentPlanBoundaryTitle => '失敗邊界';
+
+  @override
+  String agentPlanBoundaryDone(int n) {
+    return '已完成 $n';
+  }
+
+  @override
+  String agentPlanBoundaryFailed(int n) {
+    return '失敗 $n';
+  }
+
+  @override
+  String agentPlanBoundaryRemaining(int n) {
+    return '已跳過 $n';
+  }
+
+  @override
+  String agentPlanFailureReason(String error) {
+    return '失敗原因：$error';
+  }
+
+  @override
+  String get agentPlanStatusPending => '待批准';
+
+  @override
+  String get agentPlanStatusApproved => '已批准';
+
+  @override
+  String agentPlanStatusExecuting(int n, int m) {
+    return '執行中 $n/$m';
+  }
+
+  @override
+  String get agentPlanStatusDone => '已執行';
+
+  @override
+  String get agentPlanStatusPartialFailed => '部分失敗';
+
+  @override
+  String get agentPlanStatusRollbackOffered => '待回退';
+
+  @override
+  String get agentPlanStatusRolledBack => '已回退';
+
+  @override
+  String get agentPlanStatusRejected => '已拒絕';
+
+  @override
+  String get agentPlanConsumedHint => '該計劃已終結，無法再次執行';
+
+  @override
+  String get agentPlanGenerateRollback => '產生回退計劃';
+
+  @override
+  String get agentPlanRollbackPendingHint => '回退計劃待批准';
+
+  @override
+  String get agentPlanRollbackBadge => '回退計劃';
+
+  @override
+  String agentPlanRollbackOf(String id) {
+    return '$id 的回退計劃';
+  }
+
+  @override
+  String get agentPlanApprove => '批准並執行';
+
+  @override
+  String get agentPlanReject => '拒絕';
+
+  @override
+  String get agentTrajectoryViewBoundary => '檢視失敗邊界';
+
+  @override
+  String agentSuggestTitle(String action) {
+    return '建議 · $action';
+  }
+
+  @override
+  String get agentSuggestFocusSidebar => '在側邊欄中顯示';
+
+  @override
+  String get agentSuggestApply => '套用';
+
+  @override
+  String get agentSuggestDismiss => '忽略';
+
+  @override
+  String get agentSuggestBadgeNotApplied => '未執行';
+
+  @override
+  String get agentSuggestBadgeApplied => '已套用';
+
+  @override
+  String get agentSuggestBadgeDismissed => '已忽略';
+
+  @override
+  String get agentSuggestNotAppliedHint => '套用前不會產生副作用';
+
+  @override
+  String get agentStageEmptyTitle => '舞台為空';
+
+  @override
+  String get agentStageEmptyHint => 'AI 開啟的結果、圖表或編輯器會顯示在這裡';
+
+  @override
+  String get agentStageToggle => '舞台';
+
+  @override
+  String get agentStageCollapse => '收合舞台';
+
+  @override
+  String get agentStageTabClose => '關閉';
+
+  @override
+  String get agentStageTabPin => '釘選到產物條';
+
+  @override
+  String get agentStageTabUnpin => '取消釘選';
+
+  @override
+  String get agentStageTabDirty => '有未儲存的變更';
+
+  @override
+  String get agentStageChartMismatch => '資料不適用於此圖表類型';
+
+  @override
+  String get agentStageErrorRetry => '重試';
+
+  @override
+  String get agentStageTabGrid => '表格';
+
+  @override
+  String get agentStageTabStructure => '結構';
+
+  @override
+  String get agentStageTabEditor => '編輯器';
+
+  @override
+  String get agentStageTabChart => '圖表';
+
+  @override
+  String get agentArtifactEmpty => '暫無釘選產物';
+
+  @override
+  String get agentArtifactUnpinHint => '取消釘選（Delete）';
+
+  @override
+  String get agentFinalReply => '模型回覆';
+
+  @override
+  String get agentPlanDmlHighBadge => '需要確認';
+
+  @override
+  String agentPlanDmlHighTriggers(String triggers) {
+    return '觸發條件：$triggers';
   }
 }

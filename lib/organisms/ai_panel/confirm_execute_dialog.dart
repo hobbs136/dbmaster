@@ -12,11 +12,20 @@ class ConfirmExecuteDialog extends StatelessWidget {
   final String? warningReason;
   final AppLocalizations l10n;
 
+  /// 目标连接名（AC6.5「影响可见」：工作台执行确认展示目标行；null = 调用
+  /// 方未提供（经典路径零改动））。
+  final String? targetConnection;
+
+  /// 目标库名（同上）。
+  final String? targetDatabase;
+
   const ConfirmExecuteDialog({
     super.key,
     required this.command,
     this.warningReason,
     required this.l10n,
+    this.targetConnection,
+    this.targetDatabase,
   });
 
   bool get isDangerous => warningReason != null && warningReason!.isNotEmpty;
@@ -47,6 +56,33 @@ class ConfirmExecuteDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 目标连接/库展示行（AC6.5，T13 加法改动：仅调用方提供时渲染）。
+          if (targetConnection != null || targetDatabase != null)
+            Padding(
+              padding: EdgeInsets.only(bottom: AppDesignSystem.space2),
+              child: Row(
+                children: [
+                  Icon(
+                    LucideIcons.database,
+                    size: 14,
+                    color: context.themeColors.textSecondary,
+                  ),
+                  const SizedBox(width: AppDesignSystem.space2),
+                  Expanded(
+                    child: Text(
+                      l10n.workbenchConfirmTarget(
+                        targetConnection ?? '—',
+                        targetDatabase ?? '—',
+                      ),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.themeColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           if (isDangerous)
             Container(
               padding: EdgeInsets.all(AppDesignSystem.space2),

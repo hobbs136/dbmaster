@@ -16,6 +16,8 @@ import 'package:dbmaster/organisms/pro/pro_purchase_ui.dart';
 import 'package:dbmaster/providers/app_provider.dart';
 import 'package:dbmaster/providers/locale_provider.dart';
 import 'package:dbmaster/providers/theme_provider.dart';
+import 'package:dbmaster/services/query_settings_service.dart';
+import 'package:dbmaster/services/workbench_usage_stats_service.dart';
 import 'package:dbmaster/theme/app_theme.dart';
 import 'package:dbmaster/utils/app_logger.dart';
 import 'package:dbmaster/services/update_service.dart';
@@ -89,18 +91,21 @@ void main() {
               ],
               supportedLocales: AppLocalizations.supportedLocales,
               theme: AppTheme.light(theme.accentColorValue),
-              home: Builder(
-                builder: (context) {
-                  return TextButton(
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (_) => const SettingsDialog(),
-                      );
-                    },
-                    child: const Text('Open Settings'),
-                  );
-                },
+              // Scaffold：导出成功 SnackBar 需要 Scaffold 承载（root messenger）。
+              home: Scaffold(
+                body: Builder(
+                  builder: (context) {
+                    return TextButton(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (_) => const SettingsDialog(),
+                        );
+                      },
+                      child: const Text('Open Settings'),
+                    );
+                  },
+                ),
               ),
             );
           },
@@ -648,6 +653,264 @@ void main() {
         find.text(l10n.updateGoDownload),
         findsOneWidget,
         reason: '有新版时应出现「前往下载」',
+      );
+    });
+  });
+
+  // ===========================================================================
+  // T14：AI 工作台使用统计导出入口（R8 / design §4.5）——AI 页。
+  // 写盘步骤经 SettingsDialog.debugSaveFileOverride 注入（fake async 区不推进
+  // 真 IO，同日志区块用例注释）；保存对话框本体（FilePicker）是平台插件不进
+  // 测试路径，写盘内容/取消语义由此处断言。
+  // ===========================================================================
+  group('MAN-SET: AI 工作台使用统计导出（T14）', () {
+    setUp(() {
+      WorkbenchUsageStatsService.instance.resetForTesting();
+      SettingsDialog.debugSaveFileOverride = null;
+    });
+
+    tearDown(() {
+      SettingsDialog.debugSaveFileOverride = null;
+      WorkbenchUsageStatsService.instance.resetForTesting();
+    });
+
+    testWidgets('入口存在于 AI 设置页（AC8.3）', (tester) async {
+      await pumpSettingsDialog(tester);
+      final l10n = l10nOf(tester);
+
+      await openPage(tester, l10n.settingsNavAi);
+
+      expect(
+        find.text(l10n.workbenchStatsExport),
+        findsOneWidget,
+        reason: 'AI 页应含「导出使用统计（匿名 JSON）」入口行',
+      );
+    });
+
+    testWidgets('一键导出：写盘内容 = schema 对象 + 成功 SnackBar', (tester) async {
+      // 造统计内存态，验证导出内容反映真实计数。
+      WorkbenchUsageStatsService.instance
+        ..recordEntry()
+        ..recordSession()
+        ..recordCard(WorkbenchCardKindStat.sqlCard)
+        ..recordOp(WorkbenchOpClass.ddlPerm)
+        ..setAiKeyConfigured(true);
+
+      String? capturedFileName;
+      String? capturedContents;
+      const savedPath = '/tmp/fake/dbmaster-workbench-stats.json';
+      SettingsDialog.debugSaveFileOverride = (fileName, contents) async {
+        capturedFileName = fileName;
+        capturedContents = contents;
+        return savedPath;
+      };
+
+      await pumpSettingsDialog(tester);
+      final l10n = l10nOf(tester);
+      await openPage(tester, l10n.settingsNavAi);
+
+      await tester.tap(find.text(l10n.workbenchStatsExport));
+      await tester.pumpAndSettle();
+
+      // 默认文件名含日期（自决项）。
+      final DateTime now = DateTime.now();
+      final String expectedDate =
+          '${now.year}-'
+          '${now.month.toString().padLeft(2, '0')}-'
+          '${now.day.toString().padLeft(2, '0')}';
+      expect(
+        capturedFileName,
+        'dbmaster-workbench-stats-$expectedDate.json',
+        reason: '默认文件名应为 dbmaster-workbench-stats-<日期>.json',
+      );
+
+      // 导出文件内容 = schema 对象（AC8.1/8.2 复核面；T28 起 schema 3）。
+      final Map<String, dynamic> decoded =
+          jsonDecode(capturedContents!) as Map<String, dynamic>;
+      expect(decoded['schema'], 3);
+      expect(
+        decoded['appVersion'],
+        UpdateService.instance.appVersion.split('+').first,
+        reason: 'appVersion 应取 UpdateService 当前版本（+build 号剥离）',
+      );
+      expect(decoded['exportedAt'], isA<String>());
+      final Map<String, dynamic> metrics =
+          decoded['metrics'] as Map<String, dynamic>;
+      expect(
+        (metrics['dailyEntries'] as Map).containsKey(
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}',
+        ),
+        isTrue,
+        reason: 'dailyEntries 应含今天键',
+      );
+      expect(metrics['weeklySessions'], isNotEmpty);
+      expect(metrics['toolCards'], {'sqlCard': 1});
+      expect(metrics['ops'], {'ddlPerm': 1});
+      expect(metrics['aiKeyConfigured'], isTrue);
+
+      expect(
+        find.text(l10n.workbenchStatsExported(savedPath)),
+        findsOneWidget,
+        reason: '导出成功应提示目标路径',
+      );
+    });
+
+    testWidgets('用户取消保存：不报错、无成功 SnackBar', (tester) async {
+      SettingsDialog.debugSaveFileOverride = (fileName, contents) async => null;
+
+      await pumpSettingsDialog(tester);
+      final l10n = l10nOf(tester);
+      await openPage(tester, l10n.settingsNavAi);
+
+      await tester.tap(find.text(l10n.workbenchStatsExport));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+  });
+
+  // ===========================================================================
+  // T16：Agent 设置两行（D16）——AI 页「Agent」分区。
+  // 值经 QuerySettingsService（T02）异步读写：步数上限 clamp 1-100（默认 25）、
+  // L0.5 行阈值 clamp 1,000-1,000,000（默认 10,000）。提交后回显合法值；
+  // 非数字回退上一合法值；修改仅持久化（后续运行生效，无即时推送）。
+  // ===========================================================================
+  group('MAN-SET: Agent 设置两行（T16）', () {
+    Future<void> openAiPage(WidgetTester tester) async {
+      await openPage(tester, l10nOf(tester).settingsNavAi);
+    }
+
+    String fieldValue(WidgetTester tester, Key inputKey) {
+      final field = tester.widget<TextField>(find.byKey(inputKey));
+      return field.controller?.text ?? '';
+    }
+
+    testWidgets('分区标题与两行标签走 l10n，数值输入共两个', (tester) async {
+      await pumpSettingsDialog(tester);
+      final l10n = l10nOf(tester);
+      await openAiPage(tester);
+
+      expect(
+        find.text(l10n.agentSettingsSection),
+        findsOneWidget,
+        reason: 'AI 页应含 Agent 分区标题（T03 key）',
+      );
+      expect(find.text(l10n.agentMaxStepsSetting), findsOneWidget);
+      expect(find.text(l10n.agentL05ThresholdSetting), findsOneWidget);
+      expect(
+        find.byType(TextField),
+        findsNWidgets(2),
+        reason: 'Agent 分区两行数值输入',
+      );
+    });
+
+    testWidgets('默认值回显：25 / 10000', (tester) async {
+      await pumpSettingsDialog(tester);
+      await openAiPage(tester);
+
+      expect(
+        fieldValue(tester, const ValueKey('agent_max_steps_input')),
+        equals('25'),
+      );
+      expect(
+        fieldValue(tester, const ValueKey('agent_l05_threshold_input')),
+        equals('10000'),
+      );
+    });
+
+    testWidgets('修改步数上限写经 T02 setter 并持久化（重启后保持）', (tester) async {
+      await pumpSettingsDialog(tester);
+      await openAiPage(tester);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('agent_max_steps_input')),
+        '40',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      // 全新 service 实例 = 重启后的读取路径（服务无内存态，值在 prefs）。
+      final stored = await QuerySettingsService().getAgentMaxSteps();
+      expect(stored, equals(40));
+    });
+
+    testWidgets('步数越界 clamp 回显并持久化（9999 → 100）', (tester) async {
+      await pumpSettingsDialog(tester);
+      await openAiPage(tester);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('agent_max_steps_input')),
+        '9999',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(
+        fieldValue(tester, const ValueKey('agent_max_steps_input')),
+        equals('100'),
+        reason: '提交后应回显 clamp 到上限的合法值',
+      );
+      final stored = await QuerySettingsService().getAgentMaxSteps();
+      expect(stored, equals(QuerySettingsService.maxAgentMaxSteps));
+    });
+
+    testWidgets('修改 L0.5 行阈值写经 T02 setter 并持久化（重启后保持）', (tester) async {
+      await pumpSettingsDialog(tester);
+      await openAiPage(tester);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('agent_l05_threshold_input')),
+        '50000',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      final stored = await QuerySettingsService().getAgentL05RowThreshold();
+      expect(stored, equals(50000));
+    });
+
+    testWidgets('阈值低于下限 clamp 回显（500 → 1000）', (tester) async {
+      await pumpSettingsDialog(tester);
+      await openAiPage(tester);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('agent_l05_threshold_input')),
+        '500',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(
+        fieldValue(tester, const ValueKey('agent_l05_threshold_input')),
+        equals('1000'),
+        reason: '低于下限应回显 clamp 到 minAgentL05RowThreshold 的值',
+      );
+      final stored = await QuerySettingsService().getAgentL05RowThreshold();
+      expect(stored, equals(QuerySettingsService.minAgentL05RowThreshold));
+    });
+
+    testWidgets('非数字输入回退上一合法值，不写 prefs', (tester) async {
+      await pumpSettingsDialog(tester);
+      await openAiPage(tester);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('agent_max_steps_input')),
+        'not-a-number',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(
+        fieldValue(tester, const ValueKey('agent_max_steps_input')),
+        equals('25'),
+        reason: '校验失败应回退默认合法值',
+      );
+      final stored = await QuerySettingsService().getAgentMaxSteps();
+      expect(
+        stored,
+        equals(QuerySettingsService.defaultAgentMaxSteps),
+        reason: '非法输入不应写入 prefs',
       );
     });
   });

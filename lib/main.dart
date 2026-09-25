@@ -22,6 +22,7 @@ import 'services/embedded_server_service.dart';
 import 'services/error_reporter.dart';
 import 'services/server_connection.dart';
 import 'services/telemetry_service.dart';
+import 'services/workbench_usage_stats_service.dart';
 import 'theme/app_theme.dart';
 import 'providers/locale_provider.dart';
 import 'providers/layout_preferences_provider.dart';
@@ -82,6 +83,11 @@ Future<void> main() async {
   } catch (e, st) {
     AppLogger.e('main', 'Telemetry init failed (non-fatal)', e, st);
   }
+
+  // AI 工作台本地使用统计：启动读盘 + 滚动裁剪（design-ai-workbench §7.7）。
+  // fire-and-forget：load 内部吞错永不抛出，失败非致命，不阻塞启动序列，
+  // 不影响上方 Provider 初始化顺序纪律（Provider 在 runApp 的 build 内创建）。
+  unawaited(WorkbenchUsageStatsService.instance.load());
 
   // U12 模式持久化：用户显式登录过远程 server（preferred_mode == 'remote'）
   // 时，跳过 embedded 自动拉起、改为恢复远程会话——否则打包版每次启动都

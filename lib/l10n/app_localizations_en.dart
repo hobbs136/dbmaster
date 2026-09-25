@@ -10168,4 +10168,529 @@ class AppLocalizationsEn extends AppLocalizations {
   String connectFailureLatestTooltip(String message) {
     return 'Last connection failed: $message';
   }
+
+  @override
+  String get workbenchTitle => 'AI Workbench';
+
+  @override
+  String get workbenchEnter => 'Enter AI Workbench';
+
+  @override
+  String get workbenchExit => 'Exit Workbench';
+
+  @override
+  String get workbenchCommandEnterWorkbench => 'Enter AI Workbench';
+
+  @override
+  String get workbenchCommandExitWorkbench => 'Exit Workbench';
+
+  @override
+  String get workbenchContextSourceTab => 'Active tab';
+
+  @override
+  String get workbenchContextSourceSidebar => 'Sidebar';
+
+  @override
+  String get workbenchContextLock => 'Lock context';
+
+  @override
+  String get workbenchContextUnlock => 'Unlock context';
+
+  @override
+  String get workbenchContextUnset => 'Not set';
+
+  @override
+  String get workbenchContextSetupGuide =>
+      'Connect to a database to set the AI context';
+
+  @override
+  String get workbenchContextSwitchTip => 'Switch AI context';
+
+  @override
+  String get workbenchContextPickerTitle => 'Set AI context';
+
+  @override
+  String get workbenchContextPickerNewConnection => 'New connection';
+
+  @override
+  String get workbenchContextPickerLoadingDatabases => 'Loading databases…';
+
+  @override
+  String get workbenchContextPickerNoDatabases =>
+      'No database list for this connection';
+
+  @override
+  String get workbenchContextPickerConnectionOnly => 'Use connection only';
+
+  @override
+  String get workbenchContextPickerConnectHint => 'Connect to list databases';
+
+  @override
+  String get workbenchSqlCardTitle => 'SQL';
+
+  @override
+  String workbenchSqlTypeBadge(String n) {
+    return '$n';
+  }
+
+  @override
+  String get workbenchSqlWriteBadge => 'Write';
+
+  @override
+  String get workbenchActionOpenInClassic => 'Open in Classic';
+
+  @override
+  String workbenchResultMeta(int rows, int ms) {
+    return '$rows rows · $ms ms';
+  }
+
+  @override
+  String get workbenchOpenInGrid => 'Open in Grid';
+
+  @override
+  String workbenchResultTruncated(int shown, int total) {
+    return 'Showing first $shown of $total rows';
+  }
+
+  @override
+  String workbenchEmptyResult(int rows, int ms) {
+    return '$rows rows · $ms ms';
+  }
+
+  @override
+  String get workbenchEmptyResultHint => 'No data returned';
+
+  @override
+  String get workbenchErrorDetail => 'Technical details';
+
+  @override
+  String get workbenchLoadingState => 'Loading conversation…';
+
+  @override
+  String get workbenchErrorNoContext =>
+      'No database context is set. Choose a connection to run this SQL.';
+
+  @override
+  String get workbenchErrorSetupConnection => 'Set Up Connection';
+
+  @override
+  String get workbenchConfirmWriteTitle => 'Confirm Write Operation';
+
+  @override
+  String workbenchConfirmTarget(String connection, String database) {
+    return 'Target: $connection · $database';
+  }
+
+  @override
+  String get workbenchStatsExport => 'Export usage statistics (anonymous JSON)';
+
+  @override
+  String workbenchStatsExported(String path) {
+    return 'Usage statistics exported to $path';
+  }
+
+  @override
+  String get workbenchNewSession => 'New session';
+
+  @override
+  String get workbenchSessionListTitle => 'Sessions';
+
+  @override
+  String get workbenchErrorEmptySql => 'Cannot execute an empty statement';
+
+  @override
+  String get agentTrajectoryTitle => 'Run Trajectory';
+
+  @override
+  String agentTrajectoryStep(String tool) {
+    return 'Step · $tool';
+  }
+
+  @override
+  String agentTrajectorySteps(int n, int max) {
+    return '$n/$max';
+  }
+
+  @override
+  String agentTrajectoryTokens(String n) {
+    return '$n tok';
+  }
+
+  @override
+  String get agentTrajectoryUnknown => 'Unknown';
+
+  @override
+  String get agentTrajectoryAwaiting => 'Awaiting';
+
+  @override
+  String get agentTrajectoryStatusRunning => 'Running';
+
+  @override
+  String get agentTrajectoryCompleted => 'Completed';
+
+  @override
+  String get agentTrajectoryExpandStep => 'Expand step details';
+
+  @override
+  String get agentStepArgs => 'Arguments';
+
+  @override
+  String get agentStepSql => 'SQL';
+
+  @override
+  String agentStepResultMeta(int rows, int cols, int ms) {
+    return '$rows rows · $cols cols · $ms ms';
+  }
+
+  @override
+  String get agentStepSnapshot => 'Snapshot';
+
+  @override
+  String agentStepTruncated(int shown, int total) {
+    return 'Showing first $shown of $total rows';
+  }
+
+  @override
+  String get agentStepError => 'Error';
+
+  @override
+  String get agentStepOpenInStage => 'Open in Stage';
+
+  @override
+  String get agentStepGateConfirmed => 'Confirmed for this run';
+
+  @override
+  String get agentStepGateSession =>
+      'Allowed for this session (this connection)';
+
+  @override
+  String get agentStepBlocked => 'Blocked';
+
+  @override
+  String get agentStepRejected => 'Rejected';
+
+  @override
+  String get agentConfirmReadTitle => 'Costly Read Confirmation';
+
+  @override
+  String get agentConfirmScanRows => 'Estimated scan rows';
+
+  @override
+  String agentConfirmEstimatedRows(String n) {
+    return '$n rows';
+  }
+
+  @override
+  String get agentConfirmScanShape => 'Scan pattern';
+
+  @override
+  String get agentConfirmFullScan => 'Full table scan';
+
+  @override
+  String get agentConfirmNoIndex => 'No usable index';
+
+  @override
+  String get agentConfirmFullScanNoIndex => 'Full table scan · no usable index';
+
+  @override
+  String get agentConfirmIndexRow => 'Indexes';
+
+  @override
+  String get agentConfirmTablesRow => 'Tables scanned';
+
+  @override
+  String get agentConfirmSqlRow => 'SQL';
+
+  @override
+  String get agentConfirmAnalysisUnavailable =>
+      'Analysis unavailable · confirming conservatively';
+
+  @override
+  String get agentConfirmValueUnavailable => 'Unavailable';
+
+  @override
+  String get agentConfirmAllowSession => 'Allow for this session';
+
+  @override
+  String get agentConfirmAllowSessionHint =>
+      'High-cost reads on this connection will not ask again for the rest of this session';
+
+  @override
+  String get agentConfirmAllowOnce => 'Allow once';
+
+  @override
+  String get agentConfirmCancel => 'Cancel';
+
+  @override
+  String get agentConfirmResultAllowedOnce => 'Allowed (this time)';
+
+  @override
+  String get agentConfirmResultAllowedSession => 'Allowed (this session)';
+
+  @override
+  String get agentConfirmResultCanceled => 'Canceled';
+
+  @override
+  String get agentConfirmResultCanceledByRun => 'Canceled (run stopped)';
+
+  @override
+  String get agentStoppedByUser => 'Stopped by user';
+
+  @override
+  String get agentStoppedByLimit => 'Step limit';
+
+  @override
+  String agentStoppedByFailures(int n) {
+    return '$n failures';
+  }
+
+  @override
+  String get agentRunFailed => 'Run failed';
+
+  @override
+  String get agentRunInterrupted => 'Interrupted';
+
+  @override
+  String get agentStopping => 'Stopping';
+
+  @override
+  String get agentStopButton => 'Stop';
+
+  @override
+  String agentStepLimitReached(int n) {
+    return 'Step limit reached ($n)';
+  }
+
+  @override
+  String get agentContextRequired =>
+      'No database context is set. Choose a connection to run data tools.';
+
+  @override
+  String get agentContextSetup => 'Set Up Context';
+
+  @override
+  String get agentMaxStepsSetting => 'Agent max steps';
+
+  @override
+  String get agentL05ThresholdSetting => 'Read confirm row threshold';
+
+  @override
+  String agentSessionTokens(String n) {
+    return 'Session $n tok';
+  }
+
+  @override
+  String agentTrajectoryStepsOnly(int n) {
+    return 'Steps: $n';
+  }
+
+  @override
+  String get agentSettingsSection => 'Agent';
+
+  @override
+  String get agentPlanTitle => 'Action Plan';
+
+  @override
+  String agentPlanStatementCount(int n) {
+    return '$n statements';
+  }
+
+  @override
+  String get agentPlanImpactLabel => 'Impact';
+
+  @override
+  String agentPlanEstimateRows(String n) {
+    return '$n rows';
+  }
+
+  @override
+  String get agentPlanEstimateUnavailable => 'Estimate unavailable';
+
+  @override
+  String get agentPlanRollbackLabel => 'Rollback';
+
+  @override
+  String get agentPlanNoRollback => 'Irreversible · no automatic rollback';
+
+  @override
+  String get agentPlanIrreversible => 'Irreversible';
+
+  @override
+  String agentPlanStepKind(String k) {
+    return '$k statement';
+  }
+
+  @override
+  String get agentPlanEstimateSourceExplain => 'EXPLAIN estimate';
+
+  @override
+  String get agentPlanEstimateSourceCount => 'Exact count';
+
+  @override
+  String get agentPlanRollbackSourceModel => 'Provided by model';
+
+  @override
+  String get agentPlanRollbackSourceAuto => 'Auto-derived';
+
+  @override
+  String get agentPlanBoundaryTitle => 'Failure boundary';
+
+  @override
+  String agentPlanBoundaryDone(int n) {
+    return 'Done $n';
+  }
+
+  @override
+  String agentPlanBoundaryFailed(int n) {
+    return 'Failed $n';
+  }
+
+  @override
+  String agentPlanBoundaryRemaining(int n) {
+    return 'Skipped $n';
+  }
+
+  @override
+  String agentPlanFailureReason(String error) {
+    return 'Failure reason: $error';
+  }
+
+  @override
+  String get agentPlanStatusPending => 'Pending approval';
+
+  @override
+  String get agentPlanStatusApproved => 'Approved';
+
+  @override
+  String agentPlanStatusExecuting(int n, int m) {
+    return 'Running $n/$m';
+  }
+
+  @override
+  String get agentPlanStatusDone => 'Executed';
+
+  @override
+  String get agentPlanStatusPartialFailed => 'Partial failure';
+
+  @override
+  String get agentPlanStatusRollbackOffered => 'Rollback pending';
+
+  @override
+  String get agentPlanStatusRolledBack => 'Rolled back';
+
+  @override
+  String get agentPlanStatusRejected => 'Rejected';
+
+  @override
+  String get agentPlanConsumedHint =>
+      'This plan is finalized and can no longer be executed';
+
+  @override
+  String get agentPlanGenerateRollback => 'Generate Rollback Plan';
+
+  @override
+  String get agentPlanRollbackPendingHint => 'Rollback plan awaiting approval';
+
+  @override
+  String get agentPlanRollbackBadge => 'Rollback plan';
+
+  @override
+  String agentPlanRollbackOf(String id) {
+    return 'Rollback of $id';
+  }
+
+  @override
+  String get agentPlanApprove => 'Approve & Run';
+
+  @override
+  String get agentPlanReject => 'Reject';
+
+  @override
+  String get agentTrajectoryViewBoundary => 'View failure boundary';
+
+  @override
+  String agentSuggestTitle(String action) {
+    return 'Suggestion · $action';
+  }
+
+  @override
+  String get agentSuggestFocusSidebar => 'Reveal in Sidebar';
+
+  @override
+  String get agentSuggestApply => 'Apply';
+
+  @override
+  String get agentSuggestDismiss => 'Ignore';
+
+  @override
+  String get agentSuggestBadgeNotApplied => 'Not executed';
+
+  @override
+  String get agentSuggestBadgeApplied => 'Applied';
+
+  @override
+  String get agentSuggestBadgeDismissed => 'Ignored';
+
+  @override
+  String get agentSuggestNotAppliedHint => 'No side effects until applied';
+
+  @override
+  String get agentStageEmptyTitle => 'Stage is empty';
+
+  @override
+  String get agentStageEmptyHint =>
+      'Results, charts, or editors opened by AI appear here';
+
+  @override
+  String get agentStageToggle => 'Stage';
+
+  @override
+  String get agentStageCollapse => 'Collapse Stage';
+
+  @override
+  String get agentStageTabClose => 'Close';
+
+  @override
+  String get agentStageTabPin => 'Pin to Artifacts';
+
+  @override
+  String get agentStageTabUnpin => 'Unpin';
+
+  @override
+  String get agentStageTabDirty => 'Unsaved changes';
+
+  @override
+  String get agentStageChartMismatch => 'Data does not fit this chart type';
+
+  @override
+  String get agentStageErrorRetry => 'Retry';
+
+  @override
+  String get agentStageTabGrid => 'Grid';
+
+  @override
+  String get agentStageTabStructure => 'Structure';
+
+  @override
+  String get agentStageTabEditor => 'Editor';
+
+  @override
+  String get agentStageTabChart => 'Chart';
+
+  @override
+  String get agentArtifactEmpty => 'No pinned artifacts';
+
+  @override
+  String get agentArtifactUnpinHint => 'Unpin (Delete)';
+
+  @override
+  String get agentFinalReply => 'Model reply';
+
+  @override
+  String get agentPlanDmlHighBadge => 'Needs confirmation';
+
+  @override
+  String agentPlanDmlHighTriggers(String triggers) {
+    return 'Triggers: $triggers';
+  }
 }

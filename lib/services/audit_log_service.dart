@@ -5,6 +5,7 @@ import '../models/audit_log_entry.dart';
 import '../models/export_audit_entry.dart';
 import '../utils/app_logger.dart';
 import '../utils/audit_sql_sanitizer.dart';
+import 'ai/agent/agent_tool_catalog.dart';
 
 /// Service for recording and querying query audit logs
 /// Stores logs locally using SharedPreferences (JSON format)
@@ -67,6 +68,13 @@ class AuditLogService {
               success: e.success,
               errorMessage: e.errorMessage,
               isWriteQuery: e.isWriteQuery,
+              // T07 加法：agent 扩展字段随修复重建透传（旧档全 null，零行为变化）。
+              agentRunId: e.agentRunId,
+              agentStep: e.agentStep,
+              agentTool: e.agentTool,
+              gateLevel: e.gateLevel,
+              gateDecision: e.gateDecision,
+              planId: e.planId,
             );
             repaired = true;
           }
@@ -145,6 +153,68 @@ class AuditLogService {
     _entries.add(entry);
 
     // Remove old entries if exceeding max
+    if (_entries.length > _maxEntries) {
+      _entries.removeAt(0);
+    }
+
+    _schedulePersist();
+  }
+
+  /// Agent 工具调用审计统一入口（design-ai-agent.md §4.7 签名原文；D13 裁决②）。
+  ///
+  /// 每次 tool_call 至少落一条——含门拦（[AgentGateDecision.blocked]）与人拒
+  /// （[AgentGateDecision.rejectedByUser]）的**拦截尝试**（AC13.1）：此时
+  /// [success] 传 false、[sql] 传被拦语句（本方法内部照常脱敏 + 截断，§5.3）。
+  /// 计划执行逐语句各落一条并以 [planId] 串联，审计链按
+  /// `(planId, step, timestamp)` 还原顺序（AC11.2）。
+  ///
+  /// - [connectionId] 无上下文运行用空串 `''`（语义写死，§4.7）；
+  /// - [sql] 仅数据/计划类工具有，其余传 null（入档为空串，不改既有非空语义）；
+  /// - [gateLevel] 为 [AgentGateLevel] 枚举，入库转 `.name` token
+  ///   （models 层不反向 import 目录，见 `AuditLogEntry.gateLevel` 注释）；
+  /// - 入档 `executionTime` 为零值（签名无耗时语义）、`isWriteQuery` 恒 false
+  ///   （写形态经 planId / gateLevel 推导，签名锁定不含该参数）；
+  /// - 与 [recordQuery] 共用同一 [_maxEntries] 上限与 [_schedulePersist] 防抖，
+  ///   持久化失败仅记日志、不抛出（审计写失败不阻断工具执行路径）；
+  /// - 不提供任何「关闭 agent 审计」入口（AC13.4 结构面）。
+  Future<void> recordAgentEvent({
+    required String connectionId,
+    String? connectionName,
+    String? databaseName,
+    required String runId,
+    required int step,
+    required String tool,
+    String? sql,
+    AgentGateLevel? gateLevel,
+    AgentGateDecision? gateDecision,
+    String? planId,
+    required bool success,
+    String? errorMessage,
+  }) async {
+    await initialize();
+    final entry = AuditLogEntry(
+      id: 'audit_${DateTime.now().millisecondsSinceEpoch}_${_entries.length}',
+      timestamp: DateTime.now(),
+      connectionId: connectionId,
+      connectionName: connectionName,
+      databaseName: databaseName,
+      sql: sql == null ? '' : _truncateSql(AuditSqlSanitizer.sanitize(sql)),
+      executionTime: Duration.zero,
+      rowCount: null,
+      success: success,
+      errorMessage: errorMessage,
+      isWriteQuery: false,
+      agentRunId: runId,
+      agentStep: step,
+      agentTool: tool,
+      gateLevel: gateLevel?.name,
+      gateDecision: gateDecision,
+      planId: planId,
+    );
+
+    _entries.add(entry);
+
+    // Remove old entries if exceeding max（与 recordQuery 同一上限，agent 不旁路）
     if (_entries.length > _maxEntries) {
       _entries.removeAt(0);
     }

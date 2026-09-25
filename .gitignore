@@ -132,6 +132,7 @@ handoff.md
 .zcode/
 
 # 内部工作文档（开源仓库不入库，磁盘保留仅本地使用）
+/docs/
 /docs/tasks/
 /docs/test/archive/
 /docs/test/reports/

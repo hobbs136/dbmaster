@@ -81,12 +81,14 @@ List<Command> buildCommands(AppLocalizations l10n, CommandBuilders handlers) {
     ),
     Command(
       id: 'toggle_ai_panel_fullscreen',
-      label: '${l10n.commandToggleAiPanel} (Fullscreen)',
+      // D2 迁移（design §3.1）：显示名换工作台文案，id 不改（快捷键三处
+      // 同步纪律之外的面不动）。
+      label: l10n.workbenchCommandEnterWorkbench,
       description: l10n.commandDescToggleAiPanel,
       icon: LucideIcons.maximize,
       category: l10n.shortcutCategoryView,
       shortcut: 'Ctrl+Shift+G',
-      keywords: ['AI', 'fullscreen', 'panel'],
+      keywords: ['AI', 'workbench', 'fullscreen', 'panel'],
       execute: (context) => handlers.onToggleAiFullscreen(),
     ),
     Command(

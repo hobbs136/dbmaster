@@ -6,7 +6,13 @@ class AiConversationSession {
   final List<String> messageIds;
   final String? parentSessionId;
   final bool isArchived;
-  final Map<String, dynamic>? metadata;
+
+  /// 会话级扩展数据（design-ai-workbench §4.3，T08 起使用）。
+  /// 非 final：AiSessionManager 无整 map 更新/初始化路径，工作台锁定
+  /// （workbench.contextLock 等 workbench.context* 键）由 AiPanelProvider
+  /// 就地初始化写入——写入模式与 addMessage 就地变更 messageIds 同款，
+  /// 持久化仍走会话既有 toJson/fromJson 序列化路径。
+  Map<String, dynamic>? metadata;
   final String? goalSummary;
   final int userMessageCount;
   final DateTime? lastSummarizedAt;

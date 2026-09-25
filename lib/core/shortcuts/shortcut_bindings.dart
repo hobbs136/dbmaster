@@ -117,7 +117,9 @@ final shortcutBindings = <ShortcutBinding>[
       shift: true,
       key: 'A'),
   ShortcutBinding(
-      label: (l) => l.shortcutToggleAiFullscreen,
+      // D2 迁移（design §3.1）：键与处理器不变（Ctrl+Shift+G 走
+      // toggleAiPanelFullscreen），展示名换工作台文案。
+      label: (l) => l.workbenchCommandEnterWorkbench,
       category: (l) => l.shortcutCategoryView,
       control: true,
       shift: true,

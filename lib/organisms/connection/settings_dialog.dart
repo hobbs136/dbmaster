@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -8,9 +12,11 @@ import '../../providers/app_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/query_settings_service.dart';
 import '../../services/safety/safety_finding.dart' show Severity;
 import '../../services/server_connection.dart';
 import '../../services/update_service.dart';
+import '../../services/workbench_usage_stats_service.dart';
 import '../../utils/app_logger.dart';
 import '../../utils/open_directory.dart';
 import '../pro/pro_purchase_ui.dart';
@@ -23,12 +29,63 @@ enum _SettingsPage { appearance, ai, query, language, security, about }
 class SettingsDialog extends StatefulWidget {
   const SettingsDialog({super.key});
 
+  /// 测试注入口（对齐 UpdateService.testHttpClient 惯例）：非 null 时替代
+  /// 「FilePicker 保存对话框 + 写盘」步骤——widget 测试的 fake async 区不推进
+  /// 真 IO（见 settings_dialog_test.dart 日志区块用例注释）。参数为
+  /// (默认文件名, JSON 内容)，返回用户确认的目标路径；返回 null = 用户取消。
+  /// 生产路径恒为 null。
+  @visibleForTesting
+  static Future<String?> Function(String fileName, String contents)?
+  debugSaveFileOverride;
+
   @override
   State<SettingsDialog> createState() => _SettingsDialogState();
 }
 
 class _SettingsDialogState extends State<SettingsDialog> {
   _SettingsPage _page = _SettingsPage.appearance;
+
+  // T16（D16）：Agent 运行族设置两行（AI 页分区）。值存 QuerySettingsService
+  // （T02，与编辑器 SafetyConfig 分立），读写均为异步 → controller 持有于
+  // State：initState 先填默认值，加载完成后回填；提交 clamp 后回显合法值，
+  // 非数字回退上一合法值。修改仅持久化，对后续 agent 运行生效，不做运行中
+  // 热更新（AC2.1/AC8.7）。
+  final QuerySettingsService _agentSettingsService = QuerySettingsService();
+  late final TextEditingController _agentMaxStepsController;
+  late final TextEditingController _agentL05ThresholdController;
+  int _agentMaxSteps = QuerySettingsService.defaultAgentMaxSteps;
+  int _agentL05RowThreshold = QuerySettingsService.defaultAgentL05RowThreshold;
+
+  @override
+  void initState() {
+    super.initState();
+    _agentMaxStepsController = TextEditingController(
+      text: _agentMaxSteps.toString(),
+    );
+    _agentL05ThresholdController = TextEditingController(
+      text: _agentL05RowThreshold.toString(),
+    );
+    unawaited(_loadAgentSettings());
+  }
+
+  Future<void> _loadAgentSettings() async {
+    final int maxSteps = await _agentSettingsService.getAgentMaxSteps();
+    final int threshold = await _agentSettingsService.getAgentL05RowThreshold();
+    if (!mounted) return;
+    setState(() {
+      _agentMaxSteps = maxSteps;
+      _agentL05RowThreshold = threshold;
+      _agentMaxStepsController.text = maxSteps.toString();
+      _agentL05ThresholdController.text = threshold.toString();
+    });
+  }
+
+  @override
+  void dispose() {
+    _agentMaxStepsController.dispose();
+    _agentL05ThresholdController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -375,8 +432,259 @@ class _SettingsDialogState extends State<SettingsDialog> {
             provider.setAutoExecuteSql(value);
           },
         ),
+        const SizedBox(height: AppDesignSystem.space4),
+        _buildUsageStatsExportSection(context),
+        const SizedBox(height: AppDesignSystem.space4),
+        _buildAgentSettingsSection(context),
       ],
     );
+  }
+
+  /// AI 工作台使用统计导出行（R8 / design §4.5，T14）：匿名 JSON 一键导出。
+  /// 整行可点（沿本文件 nav/主题卡的 InkWell 惯例），导出路径由用户经既有
+  /// 文件保存对话框指定，不写死。
+  Widget _buildUsageStatsExportSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      decoration: BoxDecoration(
+        color: context.themeColors.bgTertiary,
+        borderRadius: BorderRadius.circular(AppDesignSystem.radiusMd),
+        border: Border.all(color: context.themeColors.borderColor),
+      ),
+      child: InkWell(
+        onTap: () => _exportWorkbenchUsageStats(context),
+        borderRadius: BorderRadius.circular(AppDesignSystem.radiusMd),
+        child: Padding(
+          padding: const EdgeInsets.all(AppDesignSystem.space3),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: context.themeColors.accentBlue.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppDesignSystem.radiusMd),
+                ),
+                child: Icon(
+                  LucideIcons.chartLine,
+                  color: context.themeColors.accentBlue,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: AppDesignSystem.space3),
+              Expanded(
+                child: Text(
+                  l10n.workbenchStatsExport,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: context.themeColors.textPrimary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppDesignSystem.space3),
+              Icon(
+                LucideIcons.download,
+                size: 16,
+                color: context.themeColors.textSecondary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 使用统计一键导出（AC8.3）：`WorkbenchUsageStatsService.exportJson` →
+  /// `toJson()` → 既有文件保存对话框模式写盘（同 `_exportLogs`：FilePicker
+  /// saveFile，用户指定路径）→ 成功 SnackBar。用户取消保存静默返回不报错；
+  /// 写盘失败记日志静默降级（统计是旁路数据，service 同款纪律）。
+  Future<void> _exportWorkbenchUsageStats(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final String contents = const JsonEncoder.withIndent('  ').convert(
+        WorkbenchUsageStatsService.instance
+            .exportJson(
+              appVersion: UpdateService.instance.appVersion.split('+').first,
+            )
+            .toJson(),
+      );
+      final String fileName = _workbenchStatsExportFileName(DateTime.now());
+      final Future<String?> Function(String, String)? saveOverride =
+          SettingsDialog.debugSaveFileOverride;
+      final String? dest = saveOverride != null
+          ? await saveOverride(fileName, contents)
+          : await _saveWorkbenchStatsFile(fileName, contents);
+      if (dest == null || dest.isEmpty) return; // 用户取消保存：静默返回
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.workbenchStatsExported(dest))),
+        );
+      }
+    } catch (e) {
+      AppLogger.e('Settings', 'Workbench stats export failed', e);
+    }
+  }
+
+  /// 既有文件保存对话框模式（`_exportLogs` 同款）：FilePicker.saveFile 让用户
+  /// 指定路径，取消返回 null；确认后写盘并返回目标路径。
+  Future<String?> _saveWorkbenchStatsFile(
+    String fileName,
+    String contents,
+  ) async {
+    final String? dest = await FilePicker.platform.saveFile(
+      fileName: fileName,
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+    if (dest == null || dest.isEmpty) return null;
+    await File(dest).writeAsString(contents);
+    return dest;
+  }
+
+  /// 导出默认文件名（含日期；仅作保存对话框初始名，路径由用户指定）。
+  String _workbenchStatsExportFileName(DateTime now) {
+    final String month = now.month.toString().padLeft(2, '0');
+    final String day = now.day.toString().padLeft(2, '0');
+    return 'dbmaster-workbench-stats-${now.year}-$month-$day.json';
+  }
+
+  /// Agent 设置分区（T16 / D16）：AI 工作台 agent 运行参数两行——步数上限
+  /// （clamp 1-100，默认 25）与 L0.5 读确认行阈值（clamp 1,000-1,000,000，
+  /// 默认 10,000）。写经 QuerySettingsService setter（T02），仅持久化——
+  /// 修改后对后续运行生效，无运行中热更新（AC2.1/AC8.7）；不加任何
+  /// 「关闭审计」类开关（AC13.4 禁项）。
+  Widget _buildAgentSettingsSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(context, l10n.agentSettingsSection),
+        Container(
+          decoration: BoxDecoration(
+            color: context.themeColors.bgTertiary,
+            borderRadius: BorderRadius.circular(AppDesignSystem.radiusMd),
+            border: Border.all(color: context.themeColors.borderColor),
+          ),
+          child: Column(
+            children: [
+              _buildAgentNumericRow(
+                context,
+                inputKey: const ValueKey('agent_max_steps_input'),
+                label: l10n.agentMaxStepsSetting,
+                controller: _agentMaxStepsController,
+                onSubmitted: _submitAgentMaxSteps,
+              ),
+              _buildSafetyRuleDivider(context),
+              _buildAgentNumericRow(
+                context,
+                inputKey: const ValueKey('agent_l05_threshold_input'),
+                label: l10n.agentL05ThresholdSetting,
+                controller: _agentL05ThresholdController,
+                onSubmitted: _submitAgentL05Threshold,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 分区内数值行（沿安全阈值行语汇：标签 + 紧凑数值框）；ValueKey 供
+  /// widget 测试定位（同 accent_dot 钩子惯例）。
+  Widget _buildAgentNumericRow(
+    BuildContext context, {
+    required Key inputKey,
+    required String label,
+    required TextEditingController controller,
+    required Future<void> Function(String value) onSubmitted,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 12, 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: context.themeColors.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppDesignSystem.space3),
+          SizedBox(
+            width: 100,
+            child: TextField(
+              key: inputKey,
+              controller: controller,
+              keyboardType: TextInputType.number,
+              style: TextStyle(
+                fontSize: 13,
+                color: context.themeColors.textPrimary,
+              ),
+              decoration: InputDecoration(
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppDesignSystem.space2,
+                  vertical: AppDesignSystem.space1_5,
+                ),
+                filled: true,
+                fillColor: context.themeColors.bgQuaternary,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onSubmitted: (value) => unawaited(onSubmitted(value)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 步数上限提交：非数字回退上一合法值；越界 clamp 后回显合法值（T02
+  /// setter 内部同样 clamp，双保险幂等）。
+  Future<void> _submitAgentMaxSteps(String raw) async {
+    final int? parsed = int.tryParse(raw.trim());
+    if (parsed == null) {
+      setState(() => _agentMaxStepsController.text = _agentMaxSteps.toString());
+      return;
+    }
+    final int clamped = parsed.clamp(
+      QuerySettingsService.minAgentMaxSteps,
+      QuerySettingsService.maxAgentMaxSteps,
+    );
+    await _agentSettingsService.setAgentMaxSteps(clamped);
+    if (!mounted) return;
+    setState(() {
+      _agentMaxSteps = clamped;
+      _agentMaxStepsController.text = clamped.toString();
+    });
+  }
+
+  /// L0.5 行阈值提交：语义同 `_submitAgentMaxSteps`（阈值 clamp 范围
+  /// 1,000-1,000,000）。
+  Future<void> _submitAgentL05Threshold(String raw) async {
+    final int? parsed = int.tryParse(raw.trim());
+    if (parsed == null) {
+      setState(
+        () => _agentL05ThresholdController.text = _agentL05RowThreshold
+            .toString(),
+      );
+      return;
+    }
+    final int clamped = parsed.clamp(
+      QuerySettingsService.minAgentL05RowThreshold,
+      QuerySettingsService.maxAgentL05RowThreshold,
+    );
+    await _agentSettingsService.setAgentL05RowThreshold(clamped);
+    if (!mounted) return;
+    setState(() {
+      _agentL05RowThreshold = clamped;
+      _agentL05ThresholdController.text = clamped.toString();
+    });
   }
 
   Widget _buildQueryPage(BuildContext context, AppProvider provider) {

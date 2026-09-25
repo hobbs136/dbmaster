@@ -17914,6 +17914,930 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Last connection failed: {message}'**
   String connectFailureLatestTooltip(String message);
+
+  /// Title of the AI Workbench mode
+  ///
+  /// In en, this message translates to:
+  /// **'AI Workbench'**
+  String get workbenchTitle;
+
+  /// Action to enter the AI Workbench mode
+  ///
+  /// In en, this message translates to:
+  /// **'Enter AI Workbench'**
+  String get workbenchEnter;
+
+  /// Action to exit the AI Workbench back to the classic layout
+  ///
+  /// In en, this message translates to:
+  /// **'Exit Workbench'**
+  String get workbenchExit;
+
+  /// Command palette display name for entering the AI Workbench
+  ///
+  /// In en, this message translates to:
+  /// **'Enter AI Workbench'**
+  String get workbenchCommandEnterWorkbench;
+
+  /// Command palette display name for exiting the AI Workbench
+  ///
+  /// In en, this message translates to:
+  /// **'Exit Workbench'**
+  String get workbenchCommandExitWorkbench;
+
+  /// Context chip source label: context resolved from the active tab
+  ///
+  /// In en, this message translates to:
+  /// **'Active tab'**
+  String get workbenchContextSourceTab;
+
+  /// Context chip source label: context resolved from the sidebar selection
+  ///
+  /// In en, this message translates to:
+  /// **'Sidebar'**
+  String get workbenchContextSourceSidebar;
+
+  /// Action to lock the workbench context so it stops following tab/sidebar changes
+  ///
+  /// In en, this message translates to:
+  /// **'Lock context'**
+  String get workbenchContextLock;
+
+  /// Action to unlock the workbench context and resume following
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock context'**
+  String get workbenchContextUnlock;
+
+  /// Context chip state when no connection/database is available
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get workbenchContextUnset;
+
+  /// Guide text shown with the unset context chip; tapping opens the connection dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to a database to set the AI context'**
+  String get workbenchContextSetupGuide;
+
+  /// Tooltip on the context chip body; tapping opens the context picker (R2)
+  ///
+  /// In en, this message translates to:
+  /// **'Switch AI context'**
+  String get workbenchContextSwitchTip;
+
+  /// Title of the workbench context picker dialog (R2)
+  ///
+  /// In en, this message translates to:
+  /// **'Set AI context'**
+  String get workbenchContextPickerTitle;
+
+  /// Secondary exit in the context picker: create a new connection (R2)
+  ///
+  /// In en, this message translates to:
+  /// **'New connection'**
+  String get workbenchContextPickerNewConnection;
+
+  /// Right column loading state in the context picker (R2)
+  ///
+  /// In en, this message translates to:
+  /// **'Loading databases…'**
+  String get workbenchContextPickerLoadingDatabases;
+
+  /// Right column empty state when the database list is empty (R2)
+  ///
+  /// In en, this message translates to:
+  /// **'No database list for this connection'**
+  String get workbenchContextPickerNoDatabases;
+
+  /// Lock the context to the connection without a database (R2)
+  ///
+  /// In en, this message translates to:
+  /// **'Use connection only'**
+  String get workbenchContextPickerConnectionOnly;
+
+  /// Right column hint shown before a connection is picked (R2)
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to list databases'**
+  String get workbenchContextPickerConnectHint;
+
+  /// Title of the SQL tool card
+  ///
+  /// In en, this message translates to:
+  /// **'SQL'**
+  String get workbenchSqlCardTitle;
+
+  /// Statement type badge on the SQL card (SELECT, INSERT, ...)
+  ///
+  /// In en, this message translates to:
+  /// **'{n}'**
+  String workbenchSqlTypeBadge(String n);
+
+  /// Danger badge marking data-modifying SQL on the SQL card
+  ///
+  /// In en, this message translates to:
+  /// **'Write'**
+  String get workbenchSqlWriteBadge;
+
+  /// Card action that opens the SQL/results in a new classic-mode query tab
+  ///
+  /// In en, this message translates to:
+  /// **'Open in Classic'**
+  String get workbenchActionOpenInClassic;
+
+  /// Collapsed result-table card metadata: row count and execution time
+  ///
+  /// In en, this message translates to:
+  /// **'{rows} rows · {ms} ms'**
+  String workbenchResultMeta(int rows, int ms);
+
+  /// Result card action that opens the full result set in a classic grid tab (only when rows exceed the snapshot limit)
+  ///
+  /// In en, this message translates to:
+  /// **'Open in Grid'**
+  String get workbenchOpenInGrid;
+
+  /// Footer note on the result card when the snapshot shows fewer rows than the full result set
+  ///
+  /// In en, this message translates to:
+  /// **'Showing first {shown} of {total} rows'**
+  String workbenchResultTruncated(int shown, int total);
+
+  /// Metadata line of the empty result state (0 rows and execution time)
+  ///
+  /// In en, this message translates to:
+  /// **'{rows} rows · {ms} ms'**
+  String workbenchEmptyResult(int rows, int ms);
+
+  /// Centered hint on the empty result card
+  ///
+  /// In en, this message translates to:
+  /// **'No data returned'**
+  String get workbenchEmptyResultHint;
+
+  /// Collapsible technical details section title on the error card
+  ///
+  /// In en, this message translates to:
+  /// **'Technical details'**
+  String get workbenchErrorDetail;
+
+  /// Label for the session history loading skeleton state
+  ///
+  /// In en, this message translates to:
+  /// **'Loading conversation…'**
+  String get workbenchLoadingState;
+
+  /// Card error message when execution is attempted with no available context
+  ///
+  /// In en, this message translates to:
+  /// **'No database context is set. Choose a connection to run this SQL.'**
+  String get workbenchErrorNoContext;
+
+  /// Exit action on the no-context error card, opens the connection dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Set Up Connection'**
+  String get workbenchErrorSetupConnection;
+
+  /// Title for the write SQL confirmation dialog raised from the AI Workbench
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Write Operation'**
+  String get workbenchConfirmWriteTitle;
+
+  /// Target connection/database row shown in the write confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Target: {connection} · {database}'**
+  String workbenchConfirmTarget(String connection, String database);
+
+  /// Settings dialog entry that exports local workbench usage statistics
+  ///
+  /// In en, this message translates to:
+  /// **'Export usage statistics (anonymous JSON)'**
+  String get workbenchStatsExport;
+
+  /// Success feedback after the usage statistics file is saved
+  ///
+  /// In en, this message translates to:
+  /// **'Usage statistics exported to {path}'**
+  String workbenchStatsExported(String path);
+
+  /// Action to create a new conversation in the workbench session rail
+  ///
+  /// In en, this message translates to:
+  /// **'New session'**
+  String get workbenchNewSession;
+
+  /// Header title of the workbench session rail
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions'**
+  String get workbenchSessionListTitle;
+
+  /// Error message when execution is attempted with an empty statement
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot execute an empty statement'**
+  String get workbenchErrorEmptySql;
+
+  /// Header title of the agent run trajectory card
+  ///
+  /// In en, this message translates to:
+  /// **'Run Trajectory'**
+  String get agentTrajectoryTitle;
+
+  /// Accessibility label for one trajectory step row, carrying the tool name
+  ///
+  /// In en, this message translates to:
+  /// **'Step · {tool}'**
+  String agentTrajectoryStep(String tool);
+
+  /// Header step counter of the trajectory card (steps used of the step budget)
+  ///
+  /// In en, this message translates to:
+  /// **'{n}/{max}'**
+  String agentTrajectorySteps(int n, int max);
+
+  /// Header token counter of the trajectory card; n is the pre-formatted compact token count (e.g. 18.4k)
+  ///
+  /// In en, this message translates to:
+  /// **'{n} tok'**
+  String agentTrajectoryTokens(String n);
+
+  /// Fallback status chip label when the run status cannot be determined
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get agentTrajectoryUnknown;
+
+  /// Status chip label while the run waits for a user decision; also the pending chip of the read confirmation card
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting'**
+  String get agentTrajectoryAwaiting;
+
+  /// Status chip label while the agent run is executing
+  ///
+  /// In en, this message translates to:
+  /// **'Running'**
+  String get agentTrajectoryStatusRunning;
+
+  /// Status chip label when the run finished normally
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get agentTrajectoryCompleted;
+
+  /// Tooltip and accessibility label for expanding one step's details in the trajectory card
+  ///
+  /// In en, this message translates to:
+  /// **'Expand step details'**
+  String get agentTrajectoryExpandStep;
+
+  /// Field label of the non-SQL arguments row in a step detail
+  ///
+  /// In en, this message translates to:
+  /// **'Arguments'**
+  String get agentStepArgs;
+
+  /// Field label of the SQL row in a step detail
+  ///
+  /// In en, this message translates to:
+  /// **'SQL'**
+  String get agentStepSql;
+
+  /// Result metadata line in a step detail: row count, column count and duration
+  ///
+  /// In en, this message translates to:
+  /// **'{rows} rows · {cols} cols · {ms} ms'**
+  String agentStepResultMeta(int rows, int cols, int ms);
+
+  /// Field label of the result snapshot row in a step detail
+  ///
+  /// In en, this message translates to:
+  /// **'Snapshot'**
+  String get agentStepSnapshot;
+
+  /// Footer note under a step result snapshot truncated to the first rows
+  ///
+  /// In en, this message translates to:
+  /// **'Showing first {shown} of {total} rows'**
+  String agentStepTruncated(int shown, int total);
+
+  /// Field label of the error row in a step detail
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get agentStepError;
+
+  /// Step detail action that opens the full result in the workbench stage (shown when rows exceed the snapshot limit)
+  ///
+  /// In en, this message translates to:
+  /// **'Open in Stage'**
+  String get agentStepOpenInStage;
+
+  /// Tooltip on the shield marker of a step the user confirmed for this run
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed for this run'**
+  String get agentStepGateConfirmed;
+
+  /// Tooltip on the shield marker of a step allowed for the whole session on this connection
+  ///
+  /// In en, this message translates to:
+  /// **'Allowed for this session (this connection)'**
+  String get agentStepGateSession;
+
+  /// Short label beside the shield-x marker of a step rejected by the permission gate
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked'**
+  String get agentStepBlocked;
+
+  /// Short label beside the ban marker of a step rejected by the user
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected'**
+  String get agentStepRejected;
+
+  /// Title of the L0.5 high-cost read confirmation card
+  ///
+  /// In en, this message translates to:
+  /// **'Costly Read Confirmation'**
+  String get agentConfirmReadTitle;
+
+  /// Field label of the estimated row scan count on the read confirmation card
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated scan rows'**
+  String get agentConfirmScanRows;
+
+  /// Value of the estimated scan rows field; n is the pre-formatted row estimate
+  ///
+  /// In en, this message translates to:
+  /// **'{n} rows'**
+  String agentConfirmEstimatedRows(String n);
+
+  /// Field label of the scan shape row on the read confirmation card
+  ///
+  /// In en, this message translates to:
+  /// **'Scan pattern'**
+  String get agentConfirmScanShape;
+
+  /// Scan shape value when the query scans the whole table
+  ///
+  /// In en, this message translates to:
+  /// **'Full table scan'**
+  String get agentConfirmFullScan;
+
+  /// Scan shape value when no usable index covers the query
+  ///
+  /// In en, this message translates to:
+  /// **'No usable index'**
+  String get agentConfirmNoIndex;
+
+  /// Combined scan shape value when both signals hit
+  ///
+  /// In en, this message translates to:
+  /// **'Full table scan · no usable index'**
+  String get agentConfirmFullScanNoIndex;
+
+  /// Field label of the index summary row on the read confirmation card
+  ///
+  /// In en, this message translates to:
+  /// **'Indexes'**
+  String get agentConfirmIndexRow;
+
+  /// Field label of the scanned tables row on the read confirmation card
+  ///
+  /// In en, this message translates to:
+  /// **'Tables scanned'**
+  String get agentConfirmTablesRow;
+
+  /// Field label of the SQL block on the read confirmation card
+  ///
+  /// In en, this message translates to:
+  /// **'SQL'**
+  String get agentConfirmSqlRow;
+
+  /// Scan shape value when pre-execution analysis failed and the card falls back to the conservative confirmation (fail-closed)
+  ///
+  /// In en, this message translates to:
+  /// **'Analysis unavailable · confirming conservatively'**
+  String get agentConfirmAnalysisUnavailable;
+
+  /// Placeholder value when an analysis field such as the row estimate is unavailable
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get agentConfirmValueUnavailable;
+
+  /// Checkbox label that, when checked, applies the primary allow action to the whole session on this connection
+  ///
+  /// In en, this message translates to:
+  /// **'Allow for this session'**
+  String get agentConfirmAllowSession;
+
+  /// Tooltip explaining the scope of the session allow checkbox
+  ///
+  /// In en, this message translates to:
+  /// **'High-cost reads on this connection will not ask again for the rest of this session'**
+  String get agentConfirmAllowSessionHint;
+
+  /// Primary action approving this single high-cost read
+  ///
+  /// In en, this message translates to:
+  /// **'Allow once'**
+  String get agentConfirmAllowOnce;
+
+  /// Secondary action rejecting this high-cost read
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get agentConfirmCancel;
+
+  /// Conclusion row after the user approved this single read
+  ///
+  /// In en, this message translates to:
+  /// **'Allowed (this time)'**
+  String get agentConfirmResultAllowedOnce;
+
+  /// Conclusion row after the user approved reads for the whole session
+  ///
+  /// In en, this message translates to:
+  /// **'Allowed (this session)'**
+  String get agentConfirmResultAllowedSession;
+
+  /// Conclusion row after the user canceled the confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Canceled'**
+  String get agentConfirmResultCanceled;
+
+  /// Conclusion row when the run was stopped while awaiting this confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Canceled (run stopped)'**
+  String get agentConfirmResultCanceledByRun;
+
+  /// Terminal status chip label when the user stopped the run
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped by user'**
+  String get agentStoppedByUser;
+
+  /// Terminal status chip label when the run stopped because the step budget was exhausted
+  ///
+  /// In en, this message translates to:
+  /// **'Step limit'**
+  String get agentStoppedByLimit;
+
+  /// Terminal status chip label when consecutive tool failures stopped the run; n is the consecutive failure count
+  ///
+  /// In en, this message translates to:
+  /// **'{n} failures'**
+  String agentStoppedByFailures(int n);
+
+  /// Terminal status chip label when the run failed with a provider error
+  ///
+  /// In en, this message translates to:
+  /// **'Run failed'**
+  String get agentRunFailed;
+
+  /// Terminal status chip label of a run whose end message is missing (e.g. the app exited mid-run)
+  ///
+  /// In en, this message translates to:
+  /// **'Interrupted'**
+  String get agentRunInterrupted;
+
+  /// Status chip label while a stop has been requested and the current step is finishing
+  ///
+  /// In en, this message translates to:
+  /// **'Stopping'**
+  String get agentStopping;
+
+  /// Button that requests stopping the running agent loop
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get agentStopButton;
+
+  /// Run summary when the configured maximum step count was reached; n is the step limit
+  ///
+  /// In en, this message translates to:
+  /// **'Step limit reached ({n})'**
+  String agentStepLimitReached(int n);
+
+  /// Guidance shown when a data tool is called without a locked workbench context
+  ///
+  /// In en, this message translates to:
+  /// **'No database context is set. Choose a connection to run data tools.'**
+  String get agentContextRequired;
+
+  /// Exit action on the context-required guidance, opens the workbench context picker
+  ///
+  /// In en, this message translates to:
+  /// **'Set Up Context'**
+  String get agentContextSetup;
+
+  /// Settings row label for the maximum number of agent steps per run
+  ///
+  /// In en, this message translates to:
+  /// **'Agent max steps'**
+  String get agentMaxStepsSetting;
+
+  /// Settings row label for the row threshold above which high-cost reads require confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Read confirm row threshold'**
+  String get agentL05ThresholdSetting;
+
+  /// Session-level token chip; n is the pre-formatted cumulative token count of all runs in the session
+  ///
+  /// In en, this message translates to:
+  /// **'Session {n} tok'**
+  String agentSessionTokens(String n);
+
+  /// Step count on a trajectory card in the interrupted state; shows the count without the configured maximum
+  ///
+  /// In en, this message translates to:
+  /// **'Steps: {n}'**
+  String agentTrajectoryStepsOnly(int n);
+
+  /// Section header label for the agent settings group in the settings dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Agent'**
+  String get agentSettingsSection;
+
+  /// Title of the action plan block embedded in the trajectory card
+  ///
+  /// In en, this message translates to:
+  /// **'Action Plan'**
+  String get agentPlanTitle;
+
+  /// Statement count shown in the plan block header; n is the number of statements in the plan
+  ///
+  /// In en, this message translates to:
+  /// **'{n} statements'**
+  String agentPlanStatementCount(int n);
+
+  /// Field label of the per-step impact row (estimated affected rows)
+  ///
+  /// In en, this message translates to:
+  /// **'Impact'**
+  String get agentPlanImpactLabel;
+
+  /// Value of the impact row when an estimate exists; n is the pre-formatted row estimate
+  ///
+  /// In en, this message translates to:
+  /// **'{n} rows'**
+  String agentPlanEstimateRows(String n);
+
+  /// Value of the impact row when no row estimate is available (shown instead of 0 or blank)
+  ///
+  /// In en, this message translates to:
+  /// **'Estimate unavailable'**
+  String get agentPlanEstimateUnavailable;
+
+  /// Field label of the per-step rollback row
+  ///
+  /// In en, this message translates to:
+  /// **'Rollback'**
+  String get agentPlanRollbackLabel;
+
+  /// Value of the rollback row when the statement has no rollback SQL and is declared irreversible
+  ///
+  /// In en, this message translates to:
+  /// **'Irreversible · no automatic rollback'**
+  String get agentPlanNoRollback;
+
+  /// Badge marking a statement as irreversible (no automatic rollback available)
+  ///
+  /// In en, this message translates to:
+  /// **'Irreversible'**
+  String get agentPlanIrreversible;
+
+  /// Accessibility label of the statement-type badge; k is the raw kind code (e.g. DML, DDL) displayed verbatim on the badge
+  ///
+  /// In en, this message translates to:
+  /// **'{k} statement'**
+  String agentPlanStepKind(String k);
+
+  /// Source annotation appended to the impact row when the estimate came from an EXPLAIN-based analysis
+  ///
+  /// In en, this message translates to:
+  /// **'EXPLAIN estimate'**
+  String get agentPlanEstimateSourceExplain;
+
+  /// Source annotation appended to the impact row when the estimate came from an exact count query
+  ///
+  /// In en, this message translates to:
+  /// **'Exact count'**
+  String get agentPlanEstimateSourceCount;
+
+  /// Source annotation when the rollback SQL was provided by the model
+  ///
+  /// In en, this message translates to:
+  /// **'Provided by model'**
+  String get agentPlanRollbackSourceModel;
+
+  /// Source annotation when the rollback SQL was auto-derived by the executor
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-derived'**
+  String get agentPlanRollbackSourceAuto;
+
+  /// Section title of the failure boundary area shown when the plan partially failed
+  ///
+  /// In en, this message translates to:
+  /// **'Failure boundary'**
+  String get agentPlanBoundaryTitle;
+
+  /// Summary count of statements that completed successfully; n is the done count
+  ///
+  /// In en, this message translates to:
+  /// **'Done {n}'**
+  String agentPlanBoundaryDone(int n);
+
+  /// Summary count of statements that failed; n is the failed count
+  ///
+  /// In en, this message translates to:
+  /// **'Failed {n}'**
+  String agentPlanBoundaryFailed(int n);
+
+  /// Summary count of statements skipped after the failure; n is the skipped count
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped {n}'**
+  String agentPlanBoundaryRemaining(int n);
+
+  /// Failure reason row under the boundary summary; error is the plan-level error summary
+  ///
+  /// In en, this message translates to:
+  /// **'Failure reason: {error}'**
+  String agentPlanFailureReason(String error);
+
+  /// Status chip label while the plan awaits user approval
+  ///
+  /// In en, this message translates to:
+  /// **'Pending approval'**
+  String get agentPlanStatusPending;
+
+  /// Status chip label after the user approved the plan
+  ///
+  /// In en, this message translates to:
+  /// **'Approved'**
+  String get agentPlanStatusApproved;
+
+  /// Status chip label while the plan executes; n is the number of finished statements and m the total
+  ///
+  /// In en, this message translates to:
+  /// **'Running {n}/{m}'**
+  String agentPlanStatusExecuting(int n, int m);
+
+  /// Status chip label when every statement executed successfully
+  ///
+  /// In en, this message translates to:
+  /// **'Executed'**
+  String get agentPlanStatusDone;
+
+  /// Status chip label when the plan stopped on a failing statement
+  ///
+  /// In en, this message translates to:
+  /// **'Partial failure'**
+  String get agentPlanStatusPartialFailed;
+
+  /// Status chip label when a rollback plan has been generated and awaits approval
+  ///
+  /// In en, this message translates to:
+  /// **'Rollback pending'**
+  String get agentPlanStatusRollbackOffered;
+
+  /// Status chip label when the rollback plan finished successfully
+  ///
+  /// In en, this message translates to:
+  /// **'Rolled back'**
+  String get agentPlanStatusRolledBack;
+
+  /// Status chip label when the user rejected the plan
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected'**
+  String get agentPlanStatusRejected;
+
+  /// Hint line on a finalized plan stating it can no longer be executed (duplicate-execution guard)
+  ///
+  /// In en, this message translates to:
+  /// **'This plan is finalized and can no longer be executed'**
+  String get agentPlanConsumedHint;
+
+  /// Action that generates a rollback plan from the completed statements; clicking only requests it, never executes
+  ///
+  /// In en, this message translates to:
+  /// **'Generate Rollback Plan'**
+  String get agentPlanGenerateRollback;
+
+  /// Hint line under a rollbackOffered plan pointing to the rollback plan awaiting approval
+  ///
+  /// In en, this message translates to:
+  /// **'Rollback plan awaiting approval'**
+  String get agentPlanRollbackPendingHint;
+
+  /// Tooltip on the icon marking this plan as a rollback plan
+  ///
+  /// In en, this message translates to:
+  /// **'Rollback plan'**
+  String get agentPlanRollbackBadge;
+
+  /// Line under the header of a rollback plan referencing the plan it rolls back; id is the source plan id
+  ///
+  /// In en, this message translates to:
+  /// **'Rollback of {id}'**
+  String agentPlanRollbackOf(String id);
+
+  /// Primary action approving the plan and executing its statements
+  ///
+  /// In en, this message translates to:
+  /// **'Approve & Run'**
+  String get agentPlanApprove;
+
+  /// Secondary action rejecting the plan
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get agentPlanReject;
+
+  /// Report-row action that scrolls to the failure boundary of a partially failed plan
+  ///
+  /// In en, this message translates to:
+  /// **'View failure boundary'**
+  String get agentTrajectoryViewBoundary;
+
+  /// Title of the cross-classic suggestion card; action is the localized action name (e.g. Open in Classic)
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestion · {action}'**
+  String agentSuggestTitle(String action);
+
+  /// Suggestion action that reveals and focuses the target in the sidebar
+  ///
+  /// In en, this message translates to:
+  /// **'Reveal in Sidebar'**
+  String get agentSuggestFocusSidebar;
+
+  /// Primary action applying the suggestion (the verb is intentionally 'apply', not 'execute')
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get agentSuggestApply;
+
+  /// Secondary action ignoring the suggestion
+  ///
+  /// In en, this message translates to:
+  /// **'Ignore'**
+  String get agentSuggestDismiss;
+
+  /// Status chip label of a suggestion not applied yet (always visible before the decision)
+  ///
+  /// In en, this message translates to:
+  /// **'Not executed'**
+  String get agentSuggestBadgeNotApplied;
+
+  /// Status chip label after the suggestion was applied
+  ///
+  /// In en, this message translates to:
+  /// **'Applied'**
+  String get agentSuggestBadgeApplied;
+
+  /// Status chip label after the suggestion was ignored
+  ///
+  /// In en, this message translates to:
+  /// **'Ignored'**
+  String get agentSuggestBadgeDismissed;
+
+  /// Tooltip on the not-applied chip stating the suggestion causes no side effects until applied
+  ///
+  /// In en, this message translates to:
+  /// **'No side effects until applied'**
+  String get agentSuggestNotAppliedHint;
+
+  /// Empty-state title of the workbench stage when no tab is open
+  ///
+  /// In en, this message translates to:
+  /// **'Stage is empty'**
+  String get agentStageEmptyTitle;
+
+  /// Empty-state hint of the workbench stage
+  ///
+  /// In en, this message translates to:
+  /// **'Results, charts, or editors opened by AI appear here'**
+  String get agentStageEmptyHint;
+
+  /// Label of the artifact-strip toggle that shows the stage
+  ///
+  /// In en, this message translates to:
+  /// **'Stage'**
+  String get agentStageToggle;
+
+  /// Label of the artifact-strip toggle that collapses the stage
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse Stage'**
+  String get agentStageCollapse;
+
+  /// Menu item and tooltip for closing a stage tab
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get agentStageTabClose;
+
+  /// Context-menu item that pins a stage tab into the artifact strip
+  ///
+  /// In en, this message translates to:
+  /// **'Pin to Artifacts'**
+  String get agentStageTabPin;
+
+  /// Context-menu item that unpins a stage tab from the artifact strip
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get agentStageTabUnpin;
+
+  /// Tooltip on the dot marking a stage editor tab with unsaved changes
+  ///
+  /// In en, this message translates to:
+  /// **'Unsaved changes'**
+  String get agentStageTabDirty;
+
+  /// Inline error when the result data does not fit the requested chart type
+  ///
+  /// In en, this message translates to:
+  /// **'Data does not fit this chart type'**
+  String get agentStageChartMismatch;
+
+  /// Retry action on a stage tab whose content failed to load
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get agentStageErrorRetry;
+
+  /// Type label of a stage tab showing a result grid
+  ///
+  /// In en, this message translates to:
+  /// **'Grid'**
+  String get agentStageTabGrid;
+
+  /// Type label of a stage tab showing a table structure card
+  ///
+  /// In en, this message translates to:
+  /// **'Structure'**
+  String get agentStageTabStructure;
+
+  /// Type label of a stage tab showing a SQL editor slot
+  ///
+  /// In en, this message translates to:
+  /// **'Editor'**
+  String get agentStageTabEditor;
+
+  /// Type label of a stage tab showing a chart
+  ///
+  /// In en, this message translates to:
+  /// **'Chart'**
+  String get agentStageTabChart;
+
+  /// Empty-state text of the artifact strip when nothing is pinned
+  ///
+  /// In en, this message translates to:
+  /// **'No pinned artifacts'**
+  String get agentArtifactEmpty;
+
+  /// Tooltip on an artifact item's remove button (the Delete key unpins too)
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin (Delete)'**
+  String get agentArtifactUnpinHint;
+
+  /// Section label above the model's final reply text in an expanded completed trajectory card
+  ///
+  /// In en, this message translates to:
+  /// **'Model reply'**
+  String get agentFinalReply;
+
+  /// Badge on an action-plan step whose static DML risk tier is high; approving the plan explicitly covers this step
+  ///
+  /// In en, this message translates to:
+  /// **'Needs confirmation'**
+  String get agentPlanDmlHighBadge;
+
+  /// Summary line under a high-risk plan step listing its DML risk triggers; triggers is a comma-separated list of technical trigger identifiers (not localized, same as the classic warning banner)
+  ///
+  /// In en, this message translates to:
+  /// **'Triggers: {triggers}'**
+  String agentPlanDmlHighTriggers(String triggers);
 }
 
 class _AppLocalizationsDelegate

@@ -484,10 +484,9 @@ class AiPanelOverlayState extends State<AiPanelOverlay> {
                                 onDragEnd: _persistGeometry,
                               ),
                               const Expanded(
-                                child: AiPanelWidget(
-                                  isFullscreen: true,
-                                  isOverlay: true,
-                                ),
+                                // D2 迁移：isFullscreen 参数已删（z2 全屏
+                                // 分支改渲染 AiWorkbenchShell）。
+                                child: AiPanelWidget(isOverlay: true),
                               ),
                             ],
                           ),

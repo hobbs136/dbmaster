@@ -1,5 +1,8 @@
 // ExplainFullScanRule 单测（第三阶段 T4）。
 // mock getExplainPlan 返回构造的 MySQL EXPLAIN 行数据。
+// ⚠️ 双接线点：本规则有两个消费方（编辑器 SafetyReviewService 与 agent 门
+// AgentGateAnalysis，T05）——agent 侧阈值独立注入（默认 10,000，分立是有意
+// 设计），真库门簇用例见 integration_test/agent_gate_l05_real_db_test.dart。
 
 import 'dart:async';
 

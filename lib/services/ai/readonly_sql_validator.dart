@@ -11,6 +11,8 @@
 /// - PRAGMA 仅对 SQLite 开放且仅只读名单（PRAGMA 可改库级状态）。
 library;
 
+import 'sql_literal_mask.dart' show maskSqlLiteralsAndComments;
+
 /// 校验结果：allowed 为 true 放行；否则 reason 说明拒绝原因（模型可读）。
 class ReadonlySqlCheck {
   const ReadonlySqlCheck.ok() : allowed = true, reason = null;
@@ -167,58 +169,8 @@ class ReadonlySqlValidator {
   /// 把 SQL 中的字符串字面量 / 引号标识符 / 注释内容替换为等长空格，
   /// 使后续结构扫描（分号 / 关键词）不受字面量与注释内容干扰——
   /// 否则 `WHERE note = 'please delete me'` 或 `/* ; */` 会误伤/漏判。
-  static String _maskLiterals(String sql) {
-    final buf = StringBuffer();
-    var i = 0;
-    while (i < sql.length) {
-      final ch = sql[i];
-      if (ch == "'" || ch == '"' || ch == '`') {
-        var j = i + 1;
-        while (j < sql.length) {
-          if (sql[j] == ch) {
-            // 引号转义（'' / "" / ``）仍在字面量内
-            if (j + 1 < sql.length && sql[j + 1] == ch) {
-              j += 2;
-              continue;
-            }
-            break;
-          }
-          if (sql[j] == r'\' && ch != '`' && j + 1 < sql.length) {
-            j += 2; // 反斜杠转义
-            continue;
-          }
-          j++;
-        }
-        buf.write(ch);
-        for (var k = i + 1; k < j && k < sql.length; k++) {
-          buf.write(' ');
-        }
-        if (j < sql.length) buf.write(ch);
-        i = j + 1;
-      } else if (ch == '-' && i + 1 < sql.length && sql[i + 1] == '-') {
-        var j = i;
-        while (j < sql.length && sql[j] != '\n') {
-          j++;
-        }
-        for (var k = i; k < j; k++) {
-          buf.write(' ');
-        }
-        i = j;
-      } else if (ch == '/' && i + 1 < sql.length && sql[i + 1] == '*') {
-        var j = i + 2;
-        while (j + 1 < sql.length && !(sql[j] == '*' && sql[j + 1] == '/')) {
-          j++;
-        }
-        final end = j + 1 < sql.length ? j + 2 : sql.length;
-        for (var k = i; k < end; k++) {
-          buf.write(' ');
-        }
-        i = end;
-      } else {
-        buf.write(ch);
-        i++;
-      }
-    }
-    return buf.toString();
-  }
+  ///
+  /// 实现已提取为共享纯函数 [maskSqlLiteralsAndComments]（Fix-G：AC4.4
+  /// 库级限定名扫描复用同一实现）；默认参数下行为与原逐字节一致。
+  static String _maskLiterals(String sql) => maskSqlLiteralsAndComments(sql);
 }
