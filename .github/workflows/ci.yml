@@ -1,0 +1,90 @@
+# Minimal CI for dbmaster-flutter.
+#
+# analyze job (ubuntu-latest), two gates on `dart analyze lib/`:
+#   1. Hard gate — fail only on ERROR-level findings.
+#      NOTE: the task spec wrote `--no-fatal-warnings --no-fatal-infos`, but the
+#      current Dart SDK rejects the negated form ("Cannot negate option
+#      --no-fatal-infos", exit 64; verified locally on the pinned SDK).
+#      `--no-fatal-infos` is also the default, so the equivalent, working
+#      command is `dart analyze --no-fatal-warnings` (infos non-fatal by
+#      default; baseline 7 warnings / 142 infos must keep passing).
+#   2. Soft gate — total finding count from `--format=machine` must stay at or
+#      below the baseline. The baseline is a review-controlled variable that
+#      moves with batches: update BASELINE_COUNT deliberately, never let the
+#      count creep past it silently.
+#
+# test job: full `flutter test` (unit/widget tests under test/;
+# integration_test/ is NOT part of `flutter test` and needs real DBs — out of
+# scope here by design).
+#
+# Platform fallback: the test job is believed platform-neutral (no platform
+# pins in test/, 4 Platform.isWindows uses are binary-name adaptive, and the
+# only native dependency sqlite3 FFI is covered by libsqlite3-dev). If the
+# first ubuntu run still fails on platform-related issues, switch the test
+# job's runs-on to windows-latest (public repo — no billing concern).
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: analyze (ubuntu-latest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      - name: Hard gate — no analyzer errors in lib/
+        run: dart analyze --no-fatal-warnings lib/
+
+      - name: Soft gate — analyzer finding count <= baseline
+        run: |
+          # Baseline at CI adoption (2026-10-04): 149 findings (0E/7W/142I).
+          # 基线随批更新：this number is review-controlled and moves with
+          # future batches — raise/lower it deliberately in review, and the
+          # job failure names the actual count vs the baseline.
+          BASELINE_COUNT=149
+          count=$(dart analyze --format=machine lib/ | grep -c . || true)
+          echo "analyzer findings: ${count} (baseline ${BASELINE_COUNT})"
+          if [ "${count}" -gt "${BASELINE_COUNT}" ]; then
+            echo "::error::analyzer findings ${count} exceed baseline ${BASELINE_COUNT} (baseline moves with batches — update deliberately)"
+            exit 1
+          fi
+
+  test:
+    name: test (ubuntu-latest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # sqlite3 FFI (the only native dependency of test/) resolves against the
+      # system SQLite; libsqlite3-dev provides the shared library on ubuntu.
+      - name: Install libsqlite3-dev
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      - name: flutter test (full unit/widget suite)
+        run: flutter test
