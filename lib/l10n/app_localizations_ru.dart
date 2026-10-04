@@ -10263,6 +10263,17 @@ class AppLocalizationsRu extends AppLocalizations {
       'Подключитесь, чтобы получить список баз данных';
 
   @override
+  String get agentStoppedByContext =>
+      'Остановлено: требуется контекст базы данных';
+
+  @override
+  String get workbenchContextNoDatabase => 'Нет базы данных';
+
+  @override
+  String get workbenchContextChangeWhileRunning =>
+      'Вступит в силу при следующем запуске — активный агент сохранит исходный контекст.';
+
+  @override
   String get workbenchSqlCardTitle => 'SQL';
 
   @override
@@ -10277,12 +10288,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String get workbenchActionOpenInClassic => 'Открыть в классическом режиме';
 
   @override
+  String get workbenchActionSaveAsQuery => 'Сохранить как запрос';
+
+  @override
+  String get workbenchSaveQuerySelectConnection =>
+      'Выберите подключение, чтобы сохранить этот запрос';
+
+  @override
   String workbenchResultMeta(int rows, int ms) {
     return '$rows строк · $ms мс';
   }
-
-  @override
-  String get workbenchOpenInGrid => 'Открыть в сетке';
 
   @override
   String workbenchResultTruncated(int shown, int total) {
@@ -10332,6 +10347,30 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get workbenchSessionListTitle => 'Разговоры';
+
+  @override
+  String get workbenchSessionExportMenu => 'Экспортировать разговор…';
+
+  @override
+  String get workbenchSessionExportTitle => 'Экспорт ИИ-разговора';
+
+  @override
+  String get workbenchSessionExportHint =>
+      'Файл содержит весь разговор для целей диагностики. Если включены данные результатов запросов, он может содержать конфиденциальные производственные данные — проверьте файл перед отправкой.';
+
+  @override
+  String get workbenchSessionExportIncludeData =>
+      'Включить данные результатов запросов';
+
+  @override
+  String workbenchSessionExportSuccess(String path) {
+    return 'Разговор экспортирован: $path';
+  }
+
+  @override
+  String workbenchSessionExportFailed(String error) {
+    return 'Не удалось экспортировать разговор: $error';
+  }
 
   @override
   String get workbenchErrorEmptySql => 'Нельзя выполнить пустую инструкцию';
@@ -10689,6 +10728,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get agentStageCollapse => 'Свернуть сцену';
 
   @override
+  String get agentStageReopenClosedTab => 'Открыть закрытую вкладку заново';
+
+  @override
   String get agentStageTabClose => 'Закрыть';
 
   @override
@@ -10735,4 +10777,233 @@ class AppLocalizationsRu extends AppLocalizations {
   String agentPlanDmlHighTriggers(String triggers) {
     return 'Триггеры: $triggers';
   }
+
+  @override
+  String get commandAiMemoryManager => 'Управление памятью ИИ';
+
+  @override
+  String get commandDescAiMemoryManager =>
+      'Просмотр и управление сведениями, которые запоминает ИИ-помощник';
+
+  @override
+  String get aiMemoryTitle => 'Память ИИ';
+
+  @override
+  String get aiMemoryGlobalSection => 'Глобальные';
+
+  @override
+  String get aiMemoryConnectionSection => 'Текущее подключение';
+
+  @override
+  String get aiMemoryAdd => 'Добавить запись';
+
+  @override
+  String get aiMemoryEdit => 'Изменить запись';
+
+  @override
+  String get aiMemoryDelete => 'Удалить запись';
+
+  @override
+  String get aiMemorySubjectLabel => 'Тема (необязательно)';
+
+  @override
+  String get aiMemorySubjectHint => 'напр. orders.status';
+
+  @override
+  String get aiMemoryContentLabel => 'Содержимое';
+
+  @override
+  String get aiMemoryContentRequired => 'Содержимое не может быть пустым';
+
+  @override
+  String get aiMemorySave => 'Сохранить';
+
+  @override
+  String get aiMemoryEmpty => 'Записей пока нет';
+
+  @override
+  String get aiMemoryNoConnectionSelected =>
+      'Выберите подключение, чтобы управлять его записями';
+
+  @override
+  String get aiMemoryNoSubject => 'Без темы';
+
+  @override
+  String get aiMemorySourceAgent => 'Агент';
+
+  @override
+  String get aiMemorySourceManual => 'Вручную';
+
+  @override
+  String get aiMemoryDeleteTitle => 'Удалить эту запись?';
+
+  @override
+  String aiMemoryDeleteBody(String preview) {
+    return '«$preview» будет удалена безвозвратно.';
+  }
+
+  @override
+  String aiMemoryOperationFailed(String error) {
+    return 'Не удалось выполнить операцию: $error';
+  }
+
+  @override
+  String get workbenchActivitySessions => 'Разговоры';
+
+  @override
+  String get workbenchActivitySavedQueries => 'Сохранённые запросы';
+
+  @override
+  String get workbenchActivityHistory => 'История';
+
+  @override
+  String get agentStageTabSessions => 'Разговоры';
+
+  @override
+  String get agentStageTabHistory => 'История';
+
+  @override
+  String get agentStageTabSavedQueries => 'Сохранённые запросы';
+
+  @override
+  String get agentStageTabExecution => 'Выполнение';
+
+  @override
+  String get workbenchOpenInStage => 'Открыть на сцене';
+
+  @override
+  String get workbenchLoadIntoEditor => 'Загрузить в редактор';
+
+  @override
+  String get workbenchHistorySearchHint => 'Поиск по истории';
+
+  @override
+  String get workbenchHistoryEmptyTitle => 'Нет истории запросов';
+
+  @override
+  String get workbenchHistoryEmptyHint => 'Выполненные запросы появятся здесь';
+
+  @override
+  String get workbenchSavedQueriesEmptyTitle => 'Нет сохранённых запросов';
+
+  @override
+  String get workbenchSavedQueriesEmptyHint =>
+      'Сначала сохраните запрос в классическом редакторе';
+
+  @override
+  String workbenchExecutionSummary(int total, int failed, int durationMs) {
+    return '$total инструкций · $failed с ошибкой · $durationMs ms';
+  }
+
+  @override
+  String workbenchExecutionAffectedRows(int count) {
+    return '$count строк';
+  }
+
+  @override
+  String get workbenchSplitResizerTooltip =>
+      'Перетащите для изменения ширины · ←/→ 16px · Shift+←/→ 64px · Home сброс';
+
+  @override
+  String get shortcutZoneCycle => 'Переключение областей Workbench';
+
+  @override
+  String get workbenchAgentSourceBadge => 'Агент';
+
+  @override
+  String get agentStageTabObserve => 'Наблюдение';
+
+  @override
+  String get agentStageTabOptimization => 'Оптимизация';
+
+  @override
+  String get workbenchObserveRefresh => 'Обновить';
+
+  @override
+  String workbenchObserveLastUpdated(String time) {
+    return 'Последнее обновление: $time';
+  }
+
+  @override
+  String get workbenchObserveNotLoaded => 'Ещё не загружено';
+
+  @override
+  String get workbenchObserveNoConnection => 'Соединение не закреплено';
+
+  @override
+  String get workbenchObserveNoConnectionHint =>
+      'Закрепите соединение, чтобы наблюдать за его состоянием';
+
+  @override
+  String get workbenchObserveUnsupportedEngine =>
+      'Для этого движка нет панелей наблюдения';
+
+  @override
+  String get workbenchObserveSegmentProcessList => 'Список процессов';
+
+  @override
+  String get workbenchObserveSegmentEngineStatus => 'Состояние движка';
+
+  @override
+  String get workbenchObserveSegmentMemory => 'Анализ памяти';
+
+  @override
+  String get workbenchObserveManageInClassic =>
+      'Управлять в классическом режиме';
+
+  @override
+  String get workbenchObserveLoadFailed => 'Не удалось загрузить данные';
+
+  @override
+  String get workbenchObserveRedisTopN => 'Top-N';
+
+  @override
+  String get workbenchObserveRedisDoctor => 'Doctor';
+
+  @override
+  String get workbenchObserveRedisStats => 'Stats';
+
+  @override
+  String get workbenchObserveRedisNoKeys => 'Нет ключей с данными о памяти';
+
+  @override
+  String get workbenchMongoSchemaLoading => 'Загрузка схемы…';
+
+  @override
+  String get workbenchMongoSchemaLoadFailed => 'Не удалось загрузить схему';
+
+  @override
+  String get workbenchMongoSchemaEmpty => 'Нет данных схемы';
+
+  @override
+  String get workbenchMongoSchemaEmptyHint =>
+      'Эта коллекция пуста или не содержит документов для анализа';
+
+  @override
+  String get commandOpenObserve => 'Открыть наблюдение за экземпляром';
+
+  @override
+  String get commandDescOpenObserve =>
+      'Открыть вкладку наблюдения для закреплённого соединения';
+
+  @override
+  String get commandOpenSavedQueries => 'Открыть сохранённые запросы';
+
+  @override
+  String get commandDescOpenSavedQueries =>
+      'Открыть вкладку сохранённых запросов в Workbench';
+
+  @override
+  String get commandOpenHistory => 'Открыть историю запросов';
+
+  @override
+  String get commandDescOpenHistory =>
+      'Открыть вкладку истории запросов в Workbench';
+
+  @override
+  String get commandOpenScheduledTasks => 'Открыть запланированные задачи';
+
+  @override
+  String get commandDescOpenScheduledTasks =>
+      'Открыть вкладку запланированных задач (появится в следующей версии)';
 }

@@ -273,6 +273,14 @@ void main() {
       expect(AppDesignSystem.workbenchStageTabMaxWidth, 200.0); // §7-4
       expect(AppDesignSystem.artifactStripItemMaxWidth, 160.0); // §7-5
       expect(AppDesignSystem.agentImpactLabelWidth, 104.0); // §7-6
+      // 舞台并置态对话列弹性分配（走查缺陷修复 2026-09-25）
+      expect(AppDesignSystem.workbenchChatSplitMaxWidth, 520.0);
+      expect(AppDesignSystem.workbenchChatSplitRatio, 0.36);
+      // rail 活动条宽（v2 结果面板第一批 A1；§8-1 总宽 240 = 44 + 196）
+      expect(AppDesignSystem.workbenchRailActivityBarWidth, 44.0);
+      // 纯文本气泡可读宽内层封顶（AI-CW 批 2026-09-29；原收起态列宽上限
+      // 760 token 已退役——收起态列吃满 region，cap 经 AiMessageItem.readableMaxWidth）
+      expect(AppDesignSystem.workbenchChatReadableMaxWidth, 640.0);
     });
   });
 }

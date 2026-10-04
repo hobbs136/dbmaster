@@ -6334,6 +6334,18 @@
   "@workbenchContextPickerConnectHint": {
     "description": "Right column hint shown before a connection is picked (R2)"
   },
+  "agentStoppedByContext": "Stopped: database context required",
+  "@agentStoppedByContext": {
+    "description": "Trajectory card header label when the agent was stopped because no database context is set"
+  },
+  "workbenchContextNoDatabase": "No database",
+  "@workbenchContextNoDatabase": {
+    "description": "Context chip database-position label when no database is selected"
+  },
+  "workbenchContextChangeWhileRunning": "Applies to the next run — the running agent keeps the context it started with.",
+  "@workbenchContextChangeWhileRunning": {
+    "description": "Snackbar shown when the workbench context is changed while an agent run is in progress"
+  },
   "workbenchSqlCardTitle": "SQL",
   "@workbenchSqlCardTitle": {
     "description": "Title of the SQL tool card"
@@ -6355,6 +6367,14 @@
   "@workbenchActionOpenInClassic": {
     "description": "Card action that opens the SQL/results in a new classic-mode query tab"
   },
+  "workbenchActionSaveAsQuery": "Save as Query",
+  "@workbenchActionSaveAsQuery": {
+    "description": "Card action that saves the card SQL as a local saved query"
+  },
+  "workbenchSaveQuerySelectConnection": "Select a connection to save this query",
+  "@workbenchSaveQuerySelectConnection": {
+    "description": "Guard hint when saving a workbench SQL card as a query without an effective connection context"
+  },
   "workbenchResultMeta": "{rows} rows · {ms} ms",
   "@workbenchResultMeta": {
     "description": "Collapsed result-table card metadata: row count and execution time",
@@ -6366,10 +6386,6 @@
         "type": "int"
       }
     }
-  },
-  "workbenchOpenInGrid": "Open in Grid",
-  "@workbenchOpenInGrid": {
-    "description": "Result card action that opens the full result set in a classic grid tab (only when rows exceed the snapshot limit)"
   },
   "workbenchResultTruncated": "Showing first {shown} of {total} rows",
   "@workbenchResultTruncated": {
@@ -6451,6 +6467,40 @@
   "workbenchSessionListTitle": "Sessions",
   "@workbenchSessionListTitle": {
     "description": "Header title of the workbench session rail"
+  },
+  "workbenchSessionExportMenu": "Export session…",
+  "@workbenchSessionExportMenu": {
+    "description": "Session rail context menu entry that opens the session export dialog"
+  },
+  "workbenchSessionExportTitle": "Export AI Session",
+  "@workbenchSessionExportTitle": {
+    "description": "Title of the session export dialog"
+  },
+  "workbenchSessionExportHint": "The file contains the full conversation for diagnostics. With query result data included it may contain sensitive production data — review it before sharing.",
+  "@workbenchSessionExportHint": {
+    "description": "Explanatory hint in the export dialog about diagnostic purpose and potentially sensitive data"
+  },
+  "workbenchSessionExportIncludeData": "Include query result data",
+  "@workbenchSessionExportIncludeData": {
+    "description": "Checkbox label to embed query result data in the exported session file"
+  },
+  "workbenchSessionExportSuccess": "Session exported: {path}",
+  "@workbenchSessionExportSuccess": {
+    "description": "Success feedback after the session file is exported",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "workbenchSessionExportFailed": "Session export failed: {error}",
+  "@workbenchSessionExportFailed": {
+    "description": "Error feedback when the session export fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "workbenchErrorEmptySql": "Cannot execute an empty statement",
   "@workbenchErrorEmptySql": {
@@ -6975,6 +7025,10 @@
   "@agentStageCollapse": {
     "description": "Label of the artifact-strip toggle that collapses the stage"
   },
+  "agentStageReopenClosedTab": "Reopen closed tab",
+  "@agentStageReopenClosedTab": {
+    "description": "Tooltip of the stage tab-bar button that reopens a recently closed tab"
+  },
   "agentStageTabClose": "Close",
   "@agentStageTabClose": {
     "description": "Menu item and tooltip for closing a stage tab"
@@ -7039,5 +7093,312 @@
         "type": "String"
       }
     }
+  },
+  "commandAiMemoryManager": "AI Memory Manager",
+  "@commandAiMemoryManager": {
+    "description": "Command palette label for opening the AI memory manager dialog"
+  },
+  "commandDescAiMemoryManager": "View and manage memories the AI assistant remembers",
+  "@commandDescAiMemoryManager": {
+    "description": "Command palette description for the AI memory manager entry"
+  },
+  "aiMemoryTitle": "AI Memory",
+  "@aiMemoryTitle": {
+    "description": "Title of the AI memory manager dialog"
+  },
+  "aiMemoryGlobalSection": "Global",
+  "@aiMemoryGlobalSection": {
+    "description": "Section header for memories shared across all connections"
+  },
+  "aiMemoryConnectionSection": "This connection",
+  "@aiMemoryConnectionSection": {
+    "description": "Section header for memories scoped to the current connection"
+  },
+  "aiMemoryAdd": "Add memory",
+  "@aiMemoryAdd": {
+    "description": "Tooltip and editor dialog title for creating a new memory"
+  },
+  "aiMemoryEdit": "Edit memory",
+  "@aiMemoryEdit": {
+    "description": "Tooltip and editor dialog title for editing an existing memory"
+  },
+  "aiMemoryDelete": "Delete memory",
+  "@aiMemoryDelete": {
+    "description": "Tooltip and confirm-dialog action for deleting a memory"
+  },
+  "aiMemorySubjectLabel": "Subject (optional)",
+  "@aiMemorySubjectLabel": {
+    "description": "Label of the subject input in the memory editor (e.g. orders.status)"
+  },
+  "aiMemorySubjectHint": "e.g. orders.status",
+  "@aiMemorySubjectHint": {
+    "description": "Hint text of the subject input in the memory editor"
+  },
+  "aiMemoryContentLabel": "Content",
+  "@aiMemoryContentLabel": {
+    "description": "Label of the content input in the memory editor"
+  },
+  "aiMemoryContentRequired": "Content cannot be empty",
+  "@aiMemoryContentRequired": {
+    "description": "Validation error shown when saving a memory without content"
+  },
+  "aiMemorySave": "Save",
+  "@aiMemorySave": {
+    "description": "Save action of the memory editor dialog"
+  },
+  "aiMemoryEmpty": "No memories yet",
+  "@aiMemoryEmpty": {
+    "description": "Empty-state text of a memory section with no entries"
+  },
+  "aiMemoryNoConnectionSelected": "Select a connection to manage its memories",
+  "@aiMemoryNoConnectionSelected": {
+    "description": "Guide empty-state of the connection section when no connection is selected"
+  },
+  "aiMemoryNoSubject": "No subject",
+  "@aiMemoryNoSubject": {
+    "description": "Placeholder title of a memory entry without a subject"
+  },
+  "aiMemorySourceAgent": "Agent",
+  "@aiMemorySourceAgent": {
+    "description": "Source label of a memory created by the AI agent"
+  },
+  "aiMemorySourceManual": "Manual",
+  "@aiMemorySourceManual": {
+    "description": "Source label of a memory created manually by the user"
+  },
+  "aiMemoryDeleteTitle": "Delete this memory?",
+  "@aiMemoryDeleteTitle": {
+    "description": "Title of the delete confirmation dialog"
+  },
+  "aiMemoryDeleteBody": "\"{preview}\" will be permanently removed.",
+  "@aiMemoryDeleteBody": {
+    "description": "Body of the delete confirmation dialog; preview is the memory subject or a content excerpt",
+    "placeholders": {
+      "preview": {
+        "type": "String"
+      }
+    }
+  },
+  "aiMemoryOperationFailed": "Operation failed: {error}",
+  "@aiMemoryOperationFailed": {
+    "description": "SnackBar text when a memory add/edit/delete operation fails; error is the technical error message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "workbenchActivitySessions": "Sessions",
+  "@workbenchActivitySessions": {
+    "description": "Tooltip of the workbench activity bar sessions entry"
+  },
+  "workbenchActivitySavedQueries": "Saved queries",
+  "@workbenchActivitySavedQueries": {
+    "description": "Tooltip of the workbench activity bar saved queries entry"
+  },
+  "workbenchActivityHistory": "History",
+  "@workbenchActivityHistory": {
+    "description": "Tooltip of the workbench activity bar query history entry"
+  },
+  "agentStageTabSessions": "Sessions",
+  "@agentStageTabSessions": {
+    "description": "Stage tab type label for the session list tab"
+  },
+  "agentStageTabHistory": "History",
+  "@agentStageTabHistory": {
+    "description": "Stage tab type label for the query history tab"
+  },
+  "agentStageTabSavedQueries": "Saved queries",
+  "@agentStageTabSavedQueries": {
+    "description": "Stage tab type label for the saved queries tab"
+  },
+  "agentStageTabExecution": "Execution",
+  "@agentStageTabExecution": {
+    "description": "Stage tab type label for the execution results tab"
+  },
+  "workbenchOpenInStage": "Open in Stage",
+  "@workbenchOpenInStage": {
+    "description": "Result card action to open the result snapshot in a workbench stage tab"
+  },
+  "workbenchLoadIntoEditor": "Load into editor",
+  "@workbenchLoadIntoEditor": {
+    "description": "Primary action tooltip of history and saved query rows to load SQL into the editor slot"
+  },
+  "workbenchHistorySearchHint": "Search history",
+  "@workbenchHistorySearchHint": {
+    "description": "Hint of the query history view top search field"
+  },
+  "workbenchHistoryEmptyTitle": "No query history",
+  "@workbenchHistoryEmptyTitle": {
+    "description": "Title of the query history empty state"
+  },
+  "workbenchHistoryEmptyHint": "Executed queries will appear here",
+  "@workbenchHistoryEmptyHint": {
+    "description": "Hint of the query history empty state"
+  },
+  "workbenchSavedQueriesEmptyTitle": "No saved queries",
+  "@workbenchSavedQueriesEmptyTitle": {
+    "description": "Title of the saved queries empty state"
+  },
+  "workbenchSavedQueriesEmptyHint": "Save a query in the classic editor first",
+  "@workbenchSavedQueriesEmptyHint": {
+    "description": "Hint of the saved queries empty state"
+  },
+  "workbenchExecutionSummary": "{total} statements · {failed} failed · {durationMs} ms",
+  "@workbenchExecutionSummary": {
+    "description": "Summary line of the execution tab; total and failed are statement counts, durationMs is the total duration in milliseconds",
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      },
+      "durationMs": {
+        "type": "int"
+      }
+    }
+  },
+  "workbenchExecutionAffectedRows": "{count} rows",
+  "@workbenchExecutionAffectedRows": {
+    "description": "Affected row count of an execution statement row",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "workbenchSplitResizerTooltip": "Drag to resize · ←/→ 16px · Shift+←/→ 64px · Home reset",
+  "@workbenchSplitResizerTooltip": {
+    "description": "Tooltip of the workbench chat column split resizer with its keyboard shortcuts"
+  },
+  "shortcutZoneCycle": "Cycle workbench areas",
+  "@shortcutZoneCycle": {
+    "description": "Shortcuts dialog entry for cycling workbench focus areas (F6)"
+  },
+  "workbenchAgentSourceBadge": "Agent",
+  "@workbenchAgentSourceBadge": {
+    "description": "Tooltip of the agent source badge on query history rows"
+  },
+  "agentStageTabObserve": "Observe",
+  "@agentStageTabObserve": {
+    "description": "Type label of a stage tab showing instance observe content"
+  },
+  "agentStageTabOptimization": "Optimization",
+  "@agentStageTabOptimization": {
+    "description": "Type label of a stage tab showing query optimization content"
+  },
+  "workbenchObserveRefresh": "Refresh",
+  "@workbenchObserveRefresh": {
+    "description": "Tooltip of the manual refresh button in the observe tab header"
+  },
+  "workbenchObserveLastUpdated": "Last updated: {time}",
+  "@workbenchObserveLastUpdated": {
+    "description": "Timestamp row of the observe tab; time is a formatted clock time of the last successful load",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "workbenchObserveNotLoaded": "Not loaded yet",
+  "@workbenchObserveNotLoaded": {
+    "description": "Timestamp placeholder of the observe tab before the first successful load"
+  },
+  "workbenchObserveNoConnection": "No connection locked",
+  "@workbenchObserveNoConnection": {
+    "description": "Empty-state title of the observe tab when no connection is locked in the workbench context"
+  },
+  "workbenchObserveNoConnectionHint": "Lock a connection to observe its health",
+  "@workbenchObserveNoConnectionHint": {
+    "description": "Empty-state hint of the observe tab when no connection is locked in the workbench context"
+  },
+  "workbenchObserveUnsupportedEngine": "No observe panels for this engine",
+  "@workbenchObserveUnsupportedEngine": {
+    "description": "Empty state of the observe tab for database engines without observe segments"
+  },
+  "workbenchObserveSegmentProcessList": "Process list",
+  "@workbenchObserveSegmentProcessList": {
+    "description": "Label of the observe tab segment navigation entry for the MySQL process list"
+  },
+  "workbenchObserveSegmentEngineStatus": "Engine status",
+  "@workbenchObserveSegmentEngineStatus": {
+    "description": "Label of the observe tab segment navigation entry for the MySQL engine status"
+  },
+  "workbenchObserveSegmentMemory": "Memory analysis",
+  "@workbenchObserveSegmentMemory": {
+    "description": "Label of the observe tab segment navigation entry for the Redis memory analysis"
+  },
+  "workbenchObserveManageInClassic": "Manage in classic",
+  "@workbenchObserveManageInClassic": {
+    "description": "Label and tooltip of the process row action that exits the workbench to manage the process in the classic panel"
+  },
+  "workbenchObserveLoadFailed": "Failed to load data",
+  "@workbenchObserveLoadFailed": {
+    "description": "Error state of an observe segment whose data failed to load"
+  },
+  "workbenchObserveRedisTopN": "Top-N",
+  "@workbenchObserveRedisTopN": {
+    "description": "Label of the Redis Top-N subview switch in the observe memory analysis segment"
+  },
+  "workbenchObserveRedisDoctor": "Doctor",
+  "@workbenchObserveRedisDoctor": {
+    "description": "Label of the Redis doctor subview switch in the observe memory analysis segment"
+  },
+  "workbenchObserveRedisStats": "Stats",
+  "@workbenchObserveRedisStats": {
+    "description": "Label of the Redis stats subview switch in the observe memory analysis segment"
+  },
+  "workbenchObserveRedisNoKeys": "No keys with memory data",
+  "@workbenchObserveRedisNoKeys": {
+    "description": "Empty state of the Redis Top-N subview when no keys have memory data"
+  },
+  "workbenchMongoSchemaLoading": "Loading schema…",
+  "@workbenchMongoSchemaLoading": {
+    "description": "Loading state of the workbench Mongo schema view"
+  },
+  "workbenchMongoSchemaLoadFailed": "Schema load failed",
+  "@workbenchMongoSchemaLoadFailed": {
+    "description": "Error state of the workbench Mongo schema view"
+  },
+  "workbenchMongoSchemaEmpty": "No schema data",
+  "@workbenchMongoSchemaEmpty": {
+    "description": "Empty-state title of the workbench Mongo schema view"
+  },
+  "workbenchMongoSchemaEmptyHint": "This collection is empty or has no documents to analyze",
+  "@workbenchMongoSchemaEmptyHint": {
+    "description": "Empty-state hint of the workbench Mongo schema view"
+  },
+  "commandOpenObserve": "Open instance observe",
+  "@commandOpenObserve": {
+    "description": "Command palette label for opening the workbench observe tab"
+  },
+  "commandDescOpenObserve": "Open the observe tab for the locked connection",
+  "@commandDescOpenObserve": {
+    "description": "Command palette description for opening the workbench observe tab"
+  },
+  "commandOpenSavedQueries": "Open saved queries",
+  "@commandOpenSavedQueries": {
+    "description": "Command palette label for opening the workbench saved queries tab"
+  },
+  "commandDescOpenSavedQueries": "Open the saved queries tab in the workbench",
+  "@commandDescOpenSavedQueries": {
+    "description": "Command palette description for opening the workbench saved queries tab"
+  },
+  "commandOpenHistory": "Open query history",
+  "@commandOpenHistory": {
+    "description": "Command palette label for opening the workbench query history tab"
+  },
+  "commandDescOpenHistory": "Open the query history tab in the workbench",
+  "@commandDescOpenHistory": {
+    "description": "Command palette description for opening the workbench query history tab"
+  },
+  "commandOpenScheduledTasks": "Open scheduled tasks",
+  "@commandOpenScheduledTasks": {
+    "description": "Command palette label for opening the workbench scheduled tasks tab (placeholder until the next batch)"
+  },
+  "commandDescOpenScheduledTasks": "Open the scheduled tasks tab (coming with the next batch)",
+  "@commandDescOpenScheduledTasks": {
+    "description": "Command palette description for the scheduled tasks placeholder entry"
   }
 }

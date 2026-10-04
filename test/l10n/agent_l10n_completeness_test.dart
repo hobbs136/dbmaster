@@ -13,14 +13,19 @@ import 'package:dbmaster/l10n/app_localizations_zh.dart';
 /// workbench_l10n_completeness_test.dart 的模式）。
 ///
 /// 直接读取六个 ARB 源文件断言：
-/// 1. en 模板 agent* key 全集为 116（含 agentStage* / agentArtifact* /
-///    agentPlanDmlHigh*）；
+/// 1. en 模板 agent* key 全集为 124（含 agentStage* / agentArtifact* /
+///    agentPlanDmlHigh*；v2 先行批 A1 预登记 +4 agentStageTab*；
+///    v2 第二批 2b.0 预登记 +2 agentStageTab*；走查修复批 +1
+///    agentStageReopenClosedTab）；
 /// 2. 五语 agent* key 集合与 en 模板完全一致（无缺键）；
 /// 3. 所有 agent* 值非空；
 /// 4. 带参 key 的占位符名称与类型和 en 模板一致；
 /// 5. 抽查 10 个代表 key（标题/动作/状态/tab）五语非空且不等于英文原文；
 /// 6. 生成类六语均可取到 agent 文案、占位符真实参与拼串（ARB → gen-l10n 链路健全）；
-/// 7. 守卫：en 的 workbench* key 计数保持 38（agent 族补齐不得串扰 workbench 族）。
+/// 7. 守卫：en 的 workbench* key 计数保持 80（agent 族补齐不得串扰 workbench 族；
+///    v2 先行批 A1 预登记 + B2 删除 workbenchOpenInGrid 后基线 53，
+///    v2 第二批 2b.0 预登记 +19 后基线 72，上下文批 +2 后基线 74，
+///    会话导出批 +6 后基线 80）。
 void main() {
   const languages = ['zh', 'zh_TW', 'de', 'fr', 'ru'];
 
@@ -43,13 +48,25 @@ void main() {
   final enKeys = agentKeys(enArb);
 
   group('agent l10n 六语完整性', () {
-    test('en 模板包含全部 agent key（116，含 agentPlanDmlHigh* 两 key）', () {
-      expect(enKeys.length, 116);
+    test('en 模板包含全部 agent key（124，含 agentPlanDmlHigh* 两 key）', () {
+      // v2 先行批 A1（2026-09-26）：+4 舞台 tab 类型 key（agentStageTab*
+      // sessions/history/savedQueries/execution，R8 ARB 集中制预登记），
+      // 基线 116 → 120。
+      // v2 第二批 2b.0（2026-09-26）：+2 舞台 tab 类型 key（agentStageTab*
+      // observe/optimization，R8 ARB 集中制预登记），基线 120 → 122。
+      // 上下文停止批（2026-09-28）：+1 agentStoppedByContext，基线 122 → 123。
+      // 走查修复批（2026-09-29）：+1 agentStageReopenClosedTab（舞台 tab 条
+      // 重开钮 tooltip，件②唯一新增 key），基线 123 → 124。
+      expect(enKeys.length, 124);
       expect(enKeys, contains('agentTrajectoryTitle'));
       expect(enKeys, contains('agentStageTabGrid'));
+      expect(enKeys, contains('agentStageTabSessions'));
+      expect(enKeys, contains('agentStageTabObserve'));
+      expect(enKeys, contains('agentStageTabOptimization'));
       expect(enKeys, contains('agentArtifactEmpty'));
       expect(enKeys, contains('agentPlanDmlHighBadge'));
       expect(enKeys, contains('agentPlanDmlHighTriggers'));
+      expect(enKeys, contains('agentStageReopenClosedTab'));
     });
 
     test('五语 agent key 集合与 en 模板一致（无缺键）', () {
@@ -189,13 +206,22 @@ void main() {
       }
     });
 
-    test('守卫：en 的 workbench key 计数保持 38（agent 族补齐不串扰）', () {
+    // T2 保存查询批（2026-09-25）：ARB +2 卡动作 key，workbench 基线 38 → 40。
+    // v2 先行批 A1（2026-09-26）：+14 全批预登记 key，基线 40 → 54。
+    // v2 先行批 B2（2026-09-26）：-1 删除被替换的 workbenchOpenInGrid，基线 54 → 53。
+    // v2 第二批 2b.0（2026-09-26）：+19 全批预登记 key（workbenchObserve* 15
+    // + workbenchMongoSchema* 4），基线 53 → 72。
+    // 上下文批（2026-09-28）：+2 workbenchContextNoDatabase +
+    // workbenchContextChangeWhileRunning，基线 72 → 74。
+    // 会话导出批（2026-09-28）：+6 会话导出 key（workbenchSessionExport*），
+    // 基线 74 → 80。
+    test('守卫：en 的 workbench key 计数保持 80（agent 族补齐不串扰）', () {
       final wbKeys =
           enArb.keys
               .where((k) => k.startsWith('workbench') && !k.startsWith('@'))
               .toList()
             ..sort();
-      expect(wbKeys.length, 38);
+      expect(wbKeys.length, 80);
       // 两个词根集合互不重叠。
       expect(
         wbKeys.where((k) => k.startsWith('agent')),

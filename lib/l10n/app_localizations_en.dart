@@ -10226,6 +10226,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workbenchContextPickerConnectHint => 'Connect to list databases';
 
   @override
+  String get agentStoppedByContext => 'Stopped: database context required';
+
+  @override
+  String get workbenchContextNoDatabase => 'No database';
+
+  @override
+  String get workbenchContextChangeWhileRunning =>
+      'Applies to the next run — the running agent keeps the context it started with.';
+
+  @override
   String get workbenchSqlCardTitle => 'SQL';
 
   @override
@@ -10240,12 +10250,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workbenchActionOpenInClassic => 'Open in Classic';
 
   @override
+  String get workbenchActionSaveAsQuery => 'Save as Query';
+
+  @override
+  String get workbenchSaveQuerySelectConnection =>
+      'Select a connection to save this query';
+
+  @override
   String workbenchResultMeta(int rows, int ms) {
     return '$rows rows · $ms ms';
   }
-
-  @override
-  String get workbenchOpenInGrid => 'Open in Grid';
 
   @override
   String workbenchResultTruncated(int shown, int total) {
@@ -10294,6 +10308,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get workbenchSessionListTitle => 'Sessions';
+
+  @override
+  String get workbenchSessionExportMenu => 'Export session…';
+
+  @override
+  String get workbenchSessionExportTitle => 'Export AI Session';
+
+  @override
+  String get workbenchSessionExportHint =>
+      'The file contains the full conversation for diagnostics. With query result data included it may contain sensitive production data — review it before sharing.';
+
+  @override
+  String get workbenchSessionExportIncludeData => 'Include query result data';
+
+  @override
+  String workbenchSessionExportSuccess(String path) {
+    return 'Session exported: $path';
+  }
+
+  @override
+  String workbenchSessionExportFailed(String error) {
+    return 'Session export failed: $error';
+  }
 
   @override
   String get workbenchErrorEmptySql => 'Cannot execute an empty statement';
@@ -10648,6 +10685,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get agentStageCollapse => 'Collapse Stage';
 
   @override
+  String get agentStageReopenClosedTab => 'Reopen closed tab';
+
+  @override
   String get agentStageTabClose => 'Close';
 
   @override
@@ -10693,4 +10733,232 @@ class AppLocalizationsEn extends AppLocalizations {
   String agentPlanDmlHighTriggers(String triggers) {
     return 'Triggers: $triggers';
   }
+
+  @override
+  String get commandAiMemoryManager => 'AI Memory Manager';
+
+  @override
+  String get commandDescAiMemoryManager =>
+      'View and manage memories the AI assistant remembers';
+
+  @override
+  String get aiMemoryTitle => 'AI Memory';
+
+  @override
+  String get aiMemoryGlobalSection => 'Global';
+
+  @override
+  String get aiMemoryConnectionSection => 'This connection';
+
+  @override
+  String get aiMemoryAdd => 'Add memory';
+
+  @override
+  String get aiMemoryEdit => 'Edit memory';
+
+  @override
+  String get aiMemoryDelete => 'Delete memory';
+
+  @override
+  String get aiMemorySubjectLabel => 'Subject (optional)';
+
+  @override
+  String get aiMemorySubjectHint => 'e.g. orders.status';
+
+  @override
+  String get aiMemoryContentLabel => 'Content';
+
+  @override
+  String get aiMemoryContentRequired => 'Content cannot be empty';
+
+  @override
+  String get aiMemorySave => 'Save';
+
+  @override
+  String get aiMemoryEmpty => 'No memories yet';
+
+  @override
+  String get aiMemoryNoConnectionSelected =>
+      'Select a connection to manage its memories';
+
+  @override
+  String get aiMemoryNoSubject => 'No subject';
+
+  @override
+  String get aiMemorySourceAgent => 'Agent';
+
+  @override
+  String get aiMemorySourceManual => 'Manual';
+
+  @override
+  String get aiMemoryDeleteTitle => 'Delete this memory?';
+
+  @override
+  String aiMemoryDeleteBody(String preview) {
+    return '\"$preview\" will be permanently removed.';
+  }
+
+  @override
+  String aiMemoryOperationFailed(String error) {
+    return 'Operation failed: $error';
+  }
+
+  @override
+  String get workbenchActivitySessions => 'Sessions';
+
+  @override
+  String get workbenchActivitySavedQueries => 'Saved queries';
+
+  @override
+  String get workbenchActivityHistory => 'History';
+
+  @override
+  String get agentStageTabSessions => 'Sessions';
+
+  @override
+  String get agentStageTabHistory => 'History';
+
+  @override
+  String get agentStageTabSavedQueries => 'Saved queries';
+
+  @override
+  String get agentStageTabExecution => 'Execution';
+
+  @override
+  String get workbenchOpenInStage => 'Open in Stage';
+
+  @override
+  String get workbenchLoadIntoEditor => 'Load into editor';
+
+  @override
+  String get workbenchHistorySearchHint => 'Search history';
+
+  @override
+  String get workbenchHistoryEmptyTitle => 'No query history';
+
+  @override
+  String get workbenchHistoryEmptyHint => 'Executed queries will appear here';
+
+  @override
+  String get workbenchSavedQueriesEmptyTitle => 'No saved queries';
+
+  @override
+  String get workbenchSavedQueriesEmptyHint =>
+      'Save a query in the classic editor first';
+
+  @override
+  String workbenchExecutionSummary(int total, int failed, int durationMs) {
+    return '$total statements · $failed failed · $durationMs ms';
+  }
+
+  @override
+  String workbenchExecutionAffectedRows(int count) {
+    return '$count rows';
+  }
+
+  @override
+  String get workbenchSplitResizerTooltip =>
+      'Drag to resize · ←/→ 16px · Shift+←/→ 64px · Home reset';
+
+  @override
+  String get shortcutZoneCycle => 'Cycle workbench areas';
+
+  @override
+  String get workbenchAgentSourceBadge => 'Agent';
+
+  @override
+  String get agentStageTabObserve => 'Observe';
+
+  @override
+  String get agentStageTabOptimization => 'Optimization';
+
+  @override
+  String get workbenchObserveRefresh => 'Refresh';
+
+  @override
+  String workbenchObserveLastUpdated(String time) {
+    return 'Last updated: $time';
+  }
+
+  @override
+  String get workbenchObserveNotLoaded => 'Not loaded yet';
+
+  @override
+  String get workbenchObserveNoConnection => 'No connection locked';
+
+  @override
+  String get workbenchObserveNoConnectionHint =>
+      'Lock a connection to observe its health';
+
+  @override
+  String get workbenchObserveUnsupportedEngine =>
+      'No observe panels for this engine';
+
+  @override
+  String get workbenchObserveSegmentProcessList => 'Process list';
+
+  @override
+  String get workbenchObserveSegmentEngineStatus => 'Engine status';
+
+  @override
+  String get workbenchObserveSegmentMemory => 'Memory analysis';
+
+  @override
+  String get workbenchObserveManageInClassic => 'Manage in classic';
+
+  @override
+  String get workbenchObserveLoadFailed => 'Failed to load data';
+
+  @override
+  String get workbenchObserveRedisTopN => 'Top-N';
+
+  @override
+  String get workbenchObserveRedisDoctor => 'Doctor';
+
+  @override
+  String get workbenchObserveRedisStats => 'Stats';
+
+  @override
+  String get workbenchObserveRedisNoKeys => 'No keys with memory data';
+
+  @override
+  String get workbenchMongoSchemaLoading => 'Loading schema…';
+
+  @override
+  String get workbenchMongoSchemaLoadFailed => 'Schema load failed';
+
+  @override
+  String get workbenchMongoSchemaEmpty => 'No schema data';
+
+  @override
+  String get workbenchMongoSchemaEmptyHint =>
+      'This collection is empty or has no documents to analyze';
+
+  @override
+  String get commandOpenObserve => 'Open instance observe';
+
+  @override
+  String get commandDescOpenObserve =>
+      'Open the observe tab for the locked connection';
+
+  @override
+  String get commandOpenSavedQueries => 'Open saved queries';
+
+  @override
+  String get commandDescOpenSavedQueries =>
+      'Open the saved queries tab in the workbench';
+
+  @override
+  String get commandOpenHistory => 'Open query history';
+
+  @override
+  String get commandDescOpenHistory =>
+      'Open the query history tab in the workbench';
+
+  @override
+  String get commandOpenScheduledTasks => 'Open scheduled tasks';
+
+  @override
+  String get commandDescOpenScheduledTasks =>
+      'Open the scheduled tasks tab (coming with the next batch)';
 }

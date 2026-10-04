@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../models/ai_conversation_session.dart';
 import '../models/database_models.dart';
 import '../models/workbench_context_lock.dart';
+import '../models/workbench_entry_intent.dart';
 import '../services/ai/ai_session_manager.dart';
 import '../services/ai/ai_context_builder.dart';
 import '../services/ai/agent/agent_gate.dart';
@@ -57,6 +58,15 @@ class AiPanelProvider extends ChangeNotifier {
   /// 运行级 failed，不静默）。
   AgentChatConfig? Function()? agentChatConfigReader;
 
+  /// T4：save_saved_query 工具持久化回调（构造注入——生产由 AppProvider
+  /// 门面方法接线，跨 Provider 禁令下 provider 层不直达 TabProvider）。
+  /// null = 工具 fail-closed（EXECUTION_FAILED 回喂）。
+  final AgentSavedQuerySaver? _savedQuerySaver;
+
+  /// T4：读工具成功的 prefs 历史写回调（构造注入，source=agent；生产由
+  /// AppProvider 门面方法接线）。null = 跳过（历史是旁路观察面）。
+  final AgentQueryHistoryRecorder? _agentHistoryRecorder;
+
   bool _aiPanelOpen = false;
   bool _aiPanelFullscreen = false;
   String _selectedTable = '';
@@ -64,6 +74,14 @@ class AiPanelProvider extends ChangeNotifier {
   String? _selectedConnectionId;
   String? _selectedDatabaseName;
   List<String> _selectedConnectionDatabases = [];
+
+  /// 工作台入口 pending intent（2b.4 R7）：pending 单槽——新请求覆盖旧值；
+  /// 工作台壳 post-frame 消费后调用 [consumeWorkbenchEntryIntent] 清除。
+  /// 与锁定/会话管理零耦合（纯引流信号通道）。
+  WorkbenchEntryIntent? _workbenchEntryIntent;
+
+  /// intent id 单调自增锚（防重入：壳按 id 判「已消费/已覆盖」）。
+  static int _workbenchEntryIntentCounter = 0;
 
   /// 会话切换检测基准（T14）：sessionManager 对每次消息落地也 notify，只在
   /// currentSession id 变化时才复位 agentRunner（防误杀在途 run）。
@@ -86,8 +104,12 @@ class AiPanelProvider extends ChangeNotifier {
     TaskProvider? taskProvider,
     AiAgentFactory? agentFactory,
     AgentLoopRunner? agentRunner,
+    AgentSavedQuerySaver? savedQuerySaver,
+    AgentQueryHistoryRecorder? agentHistoryRecorder,
   }) : sessionManager = sessionManager ?? AiSessionManager(),
-       contextBuilder = contextBuilder ?? AiContextBuilder() {
+       contextBuilder = contextBuilder ?? AiContextBuilder(),
+       _savedQuerySaver = savedQuerySaver,
+       _agentHistoryRecorder = agentHistoryRecorder {
     orchestrator = AiSessionOrchestrator(
       sessionManager: this.sessionManager,
       dbService: dbService,
@@ -140,6 +162,10 @@ class AiPanelProvider extends ChangeNotifier {
     executor: AgentToolExecutor(
       gate: AgentGate(createAnalysis: _createAgentAnalysis),
       db: _buildAgentDbAccess(),
+      // T4：保存查询 / 历史写两回调由构造注入（AppProvider 门面接线）；
+      // 记忆访问面用 executor 默认（AiMemoryService 单例，services 层直达）。
+      savedQuerySaver: _savedQuerySaver,
+      recordAgentHistory: _agentHistoryRecorder,
     ),
     sessionManager: sessionManager,
     resolveRunContext: _resolveAgentRunContext,
@@ -206,7 +232,7 @@ class AiPanelProvider extends ChangeNotifier {
         'AiPanelProvider: dbService not available',
       );
       return AgentDbAccess(
-        getTables: (String? connectionId) => throw err,
+        getTables: (String? connectionId, String? databaseName) => throw err,
         getTableColumns:
             (
               String tableName, {
@@ -244,8 +270,9 @@ class AiPanelProvider extends ChangeNotifier {
     return AgentDbAccess(
       // getTables 为全命名参数签名（AgentDbAccess 是 positional）——包一层；
       // 其余方法签名兼容直接 tear-off（多出的可选命名参数不影响子型赋值）。
-      getTables: (String? connectionId) =>
-          db.getTables(connectionId: connectionId),
+      // FU-18：databaseName = run 快照库，库路由不依赖连接级当前库。
+      getTables: (String? connectionId, String? databaseName) =>
+          db.getTables(connectionId: connectionId, databaseName: databaseName),
       getTableColumns: db.getTableColumns,
       getTableIndexes: db.getTableIndexes,
       getForeignKeys: db.getForeignKeys,
@@ -392,6 +419,33 @@ class AiPanelProvider extends ChangeNotifier {
     unawaited(sessionManager.persist());
     // D12（T14）：同 lockWorkbenchContext——锁定变更即失效放行。
     agentRunner.ledger.clearAll();
+    notifyListeners();
+  }
+
+  // ==================== 工作台入口 intent（2b.4 R7，引流 pending 信号）====================
+
+  /// 当前挂起的入口意图；null = 无待办（壳消费后清空）。
+  WorkbenchEntryIntent? get workbenchEntryIntent => _workbenchEntryIntent;
+
+  /// 挂起一个工作台入口意图（设值 + notify；pending 单槽——新请求覆盖旧值）。
+  /// 由 AppProvider 引流门面（analyzeTreeNodeInWorkbench / 命令面板四条目）
+  /// 调用；壳侧 post-frame 消费。预填 prompt 不自动发送（发送账归用户）。
+  void requestWorkbenchEntry({
+    String? prompt,
+    WorkbenchEntryTabTarget tabTarget = WorkbenchEntryTabTarget.none,
+  }) {
+    _workbenchEntryIntent = WorkbenchEntryIntent(
+      id: ++_workbenchEntryIntentCounter,
+      prompt: prompt,
+      tabTarget: tabTarget,
+    );
+    notifyListeners();
+  }
+
+  /// 清空挂起的入口意图（壳消费完成后调用；无待办时不 notify）。
+  void consumeWorkbenchEntryIntent() {
+    if (_workbenchEntryIntent == null) return;
+    _workbenchEntryIntent = null;
     notifyListeners();
   }
 

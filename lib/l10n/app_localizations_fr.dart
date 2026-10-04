@@ -10300,6 +10300,17 @@ class AppLocalizationsFr extends AppLocalizations {
       'Connectez-vous pour lister les bases de données';
 
   @override
+  String get agentStoppedByContext =>
+      'Arrêté : contexte de base de données requis';
+
+  @override
+  String get workbenchContextNoDatabase => 'Aucune base de données';
+
+  @override
+  String get workbenchContextChangeWhileRunning =>
+      'S\'applique au prochain lancement — l\'agent en cours conserve le contexte de son démarrage.';
+
+  @override
   String get workbenchSqlCardTitle => 'SQL';
 
   @override
@@ -10314,12 +10325,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get workbenchActionOpenInClassic => 'Ouvrir en mode Classique';
 
   @override
+  String get workbenchActionSaveAsQuery => 'Enregistrer comme requête';
+
+  @override
+  String get workbenchSaveQuerySelectConnection =>
+      'Sélectionnez d\'abord une connexion pour enregistrer cette requête';
+
+  @override
   String workbenchResultMeta(int rows, int ms) {
     return '$rows lignes · $ms ms';
   }
-
-  @override
-  String get workbenchOpenInGrid => 'Ouvrir dans la grille';
 
   @override
   String workbenchResultTruncated(int shown, int total) {
@@ -10369,6 +10384,30 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get workbenchSessionListTitle => 'Conversations';
+
+  @override
+  String get workbenchSessionExportMenu => 'Exporter la conversation…';
+
+  @override
+  String get workbenchSessionExportTitle => 'Exporter la conversation IA';
+
+  @override
+  String get workbenchSessionExportHint =>
+      'Le fichier contient la conversation complète à des fins de diagnostic. Avec les données des résultats de requête incluses, il peut contenir des données de production sensibles — vérifiez-le avant de le partager.';
+
+  @override
+  String get workbenchSessionExportIncludeData =>
+      'Inclure les données des résultats de requête';
+
+  @override
+  String workbenchSessionExportSuccess(String path) {
+    return 'Conversation exportée : $path';
+  }
+
+  @override
+  String workbenchSessionExportFailed(String error) {
+    return 'Échec de l\'exportation de la conversation : $error';
+  }
 
   @override
   String get workbenchErrorEmptySql =>
@@ -10729,6 +10768,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get agentStageCollapse => 'Réduire la scène';
 
   @override
+  String get agentStageReopenClosedTab => 'Rouvrir l\'onglet fermé';
+
+  @override
   String get agentStageTabClose => 'Fermer';
 
   @override
@@ -10775,4 +10817,234 @@ class AppLocalizationsFr extends AppLocalizations {
   String agentPlanDmlHighTriggers(String triggers) {
     return 'Déclencheurs : $triggers';
   }
+
+  @override
+  String get commandAiMemoryManager => 'Gestion de la mémoire IA';
+
+  @override
+  String get commandDescAiMemoryManager =>
+      'Consulter et gérer ce dont l\'assistant IA se souvient';
+
+  @override
+  String get aiMemoryTitle => 'Mémoire IA';
+
+  @override
+  String get aiMemoryGlobalSection => 'Global';
+
+  @override
+  String get aiMemoryConnectionSection => 'Connexion actuelle';
+
+  @override
+  String get aiMemoryAdd => 'Ajouter une mémoire';
+
+  @override
+  String get aiMemoryEdit => 'Modifier la mémoire';
+
+  @override
+  String get aiMemoryDelete => 'Supprimer la mémoire';
+
+  @override
+  String get aiMemorySubjectLabel => 'Sujet (facultatif)';
+
+  @override
+  String get aiMemorySubjectHint => 'ex. orders.status';
+
+  @override
+  String get aiMemoryContentLabel => 'Contenu';
+
+  @override
+  String get aiMemoryContentRequired => 'Le contenu ne peut pas être vide';
+
+  @override
+  String get aiMemorySave => 'Enregistrer';
+
+  @override
+  String get aiMemoryEmpty => 'Aucune mémoire pour l\'instant';
+
+  @override
+  String get aiMemoryNoConnectionSelected =>
+      'Sélectionnez une connexion pour gérer ses mémoires';
+
+  @override
+  String get aiMemoryNoSubject => 'Sans sujet';
+
+  @override
+  String get aiMemorySourceAgent => 'Agent';
+
+  @override
+  String get aiMemorySourceManual => 'Manuel';
+
+  @override
+  String get aiMemoryDeleteTitle => 'Supprimer cette mémoire ?';
+
+  @override
+  String aiMemoryDeleteBody(String preview) {
+    return '« $preview » sera définitivement supprimée.';
+  }
+
+  @override
+  String aiMemoryOperationFailed(String error) {
+    return 'Échec de l\'opération : $error';
+  }
+
+  @override
+  String get workbenchActivitySessions => 'Conversations';
+
+  @override
+  String get workbenchActivitySavedQueries => 'Requêtes enregistrées';
+
+  @override
+  String get workbenchActivityHistory => 'Historique';
+
+  @override
+  String get agentStageTabSessions => 'Conversations';
+
+  @override
+  String get agentStageTabHistory => 'Historique';
+
+  @override
+  String get agentStageTabSavedQueries => 'Requêtes enregistrées';
+
+  @override
+  String get agentStageTabExecution => 'Exécution';
+
+  @override
+  String get workbenchOpenInStage => 'Ouvrir dans la scène';
+
+  @override
+  String get workbenchLoadIntoEditor => 'Charger dans l\'éditeur';
+
+  @override
+  String get workbenchHistorySearchHint => 'Rechercher dans l\'historique';
+
+  @override
+  String get workbenchHistoryEmptyTitle => 'Aucun historique de requêtes';
+
+  @override
+  String get workbenchHistoryEmptyHint =>
+      'Les requêtes exécutées apparaîtront ici';
+
+  @override
+  String get workbenchSavedQueriesEmptyTitle => 'Aucune requête enregistrée';
+
+  @override
+  String get workbenchSavedQueriesEmptyHint =>
+      'Enregistrez d\'abord une requête dans l\'éditeur classique';
+
+  @override
+  String workbenchExecutionSummary(int total, int failed, int durationMs) {
+    return '$total instructions · $failed en échec · $durationMs ms';
+  }
+
+  @override
+  String workbenchExecutionAffectedRows(int count) {
+    return '$count lignes';
+  }
+
+  @override
+  String get workbenchSplitResizerTooltip =>
+      'Glisser pour redimensionner · ←/→ 16px · Maj+←/→ 64px · Home réinitialiser';
+
+  @override
+  String get shortcutZoneCycle => 'Parcourir les zones du Workbench';
+
+  @override
+  String get workbenchAgentSourceBadge => 'Agent';
+
+  @override
+  String get agentStageTabObserve => 'Observer';
+
+  @override
+  String get agentStageTabOptimization => 'Optimisation';
+
+  @override
+  String get workbenchObserveRefresh => 'Actualiser';
+
+  @override
+  String workbenchObserveLastUpdated(String time) {
+    return 'Dernière mise à jour : $time';
+  }
+
+  @override
+  String get workbenchObserveNotLoaded => 'Pas encore chargé';
+
+  @override
+  String get workbenchObserveNoConnection => 'Aucune connexion verrouillée';
+
+  @override
+  String get workbenchObserveNoConnectionHint =>
+      'Verrouillez une connexion pour observer son état';
+
+  @override
+  String get workbenchObserveUnsupportedEngine =>
+      'Aucun panneau d\'observation pour ce moteur';
+
+  @override
+  String get workbenchObserveSegmentProcessList => 'Liste des processus';
+
+  @override
+  String get workbenchObserveSegmentEngineStatus => 'État du moteur';
+
+  @override
+  String get workbenchObserveSegmentMemory => 'Analyse mémoire';
+
+  @override
+  String get workbenchObserveManageInClassic => 'Gérer en mode classique';
+
+  @override
+  String get workbenchObserveLoadFailed => 'Échec du chargement des données';
+
+  @override
+  String get workbenchObserveRedisTopN => 'Top-N';
+
+  @override
+  String get workbenchObserveRedisDoctor => 'Doctor';
+
+  @override
+  String get workbenchObserveRedisStats => 'Stats';
+
+  @override
+  String get workbenchObserveRedisNoKeys =>
+      'Aucune clé avec des données mémoire';
+
+  @override
+  String get workbenchMongoSchemaLoading => 'Chargement du schéma…';
+
+  @override
+  String get workbenchMongoSchemaLoadFailed => 'Échec du chargement du schéma';
+
+  @override
+  String get workbenchMongoSchemaEmpty => 'Aucune donnée de schéma';
+
+  @override
+  String get workbenchMongoSchemaEmptyHint =>
+      'Cette collection est vide ou ne contient aucun document à analyser';
+
+  @override
+  String get commandOpenObserve => 'Ouvrir l\'observation d\'instance';
+
+  @override
+  String get commandDescOpenObserve =>
+      'Ouvrir l\'onglet d\'observation pour la connexion verrouillée';
+
+  @override
+  String get commandOpenSavedQueries => 'Ouvrir les requêtes enregistrées';
+
+  @override
+  String get commandDescOpenSavedQueries =>
+      'Ouvrir l\'onglet des requêtes enregistrées dans le Workbench';
+
+  @override
+  String get commandOpenHistory => 'Ouvrir l\'historique des requêtes';
+
+  @override
+  String get commandDescOpenHistory =>
+      'Ouvrir l\'onglet d\'historique des requêtes dans le Workbench';
+
+  @override
+  String get commandOpenScheduledTasks => 'Ouvrir les tâches planifiées';
+
+  @override
+  String get commandDescOpenScheduledTasks =>
+      'Ouvrir l\'onglet des tâches planifiées (arrive dans la prochaine version)';
 }

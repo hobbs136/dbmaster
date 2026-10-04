@@ -51,15 +51,15 @@ import '../../l10n/app_localizations.dart';
 import '../../models/ai_message_type.dart';
 import '../../models/audit_log_entry.dart' show AgentGateDecision;
 import '../../models/database_models.dart';
+import '../../models/query_optimizer/execution_plan.dart'
+    show PerformanceReport;
 import '../../plugins/bootstrap.dart';
 import '../../providers/app_provider.dart';
-import '../../services/ai/agent/agent_loop_runner.dart'
-    show AgentLoopRunner;
+import '../../services/ai/agent/agent_loop_runner.dart' show AgentLoopRunner;
 import '../../services/ai/agent/agent_plan.dart' show AgentActionPlan;
 import '../../services/ai/agent/agent_tool_catalog.dart'
     show AgentGateLevel, AgentToolErrorCodes;
-import '../../services/ai/agent/agent_tool_executor.dart'
-    show GateCallbacks;
+import '../../services/ai/agent/agent_tool_executor.dart' show GateCallbacks;
 import '../../services/ai/agent/agent_ui_port.dart'
     show AgentResultRef, AgentUiOutcome, AgentUiPort, GateCardResult;
 import '../../services/ai/workbench_context_resolver.dart'
@@ -132,6 +132,12 @@ class _DetachedUiPort implements AgentUiPort {
     String? database,
     String? table,
   }) => Future.value(const AgentUiOutcome.failure(_reason));
+
+  @override
+  Future<AgentUiOutcome> openOptimization(
+    PerformanceReport report,
+    String sql,
+  ) => Future.value(const AgentUiOutcome.failure(_reason));
 }
 
 class WorkbenchChatView extends StatefulWidget {
@@ -204,8 +210,10 @@ class _WorkbenchChatViewState extends State<WorkbenchChatView> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    final AgentLoopRunner runner =
-        context.read<AppProvider>().aiPanel.agentRunner;
+    final AgentLoopRunner runner = context
+        .read<AppProvider>()
+        .aiPanel
+        .agentRunner;
     _observedAgentRunner = runner;
     _agentRunning = runner.isRunning;
     runner.addListener(_onAgentRunnerChanged);
@@ -421,7 +429,10 @@ class _WorkbenchChatViewState extends State<WorkbenchChatView> {
     final apiKey = provider.getAiApiKey(selectedProvider) ?? '';
 
     if (apiKey.isEmpty) {
-      return (error: l10n.configureApiKeyFirst(selectedProvider), adapter: null);
+      return (
+        error: l10n.configureApiKeyFirst(selectedProvider),
+        adapter: null,
+      );
     }
 
     // agent 路径（AC7.4）：无连接 / 无库不阻断发送——纯对话可用，数据类
@@ -605,9 +616,7 @@ class _WorkbenchChatViewState extends State<WorkbenchChatView> {
       );
       if (prefix.isEmpty) return tables;
       final lower = prefix.toLowerCase();
-      return tables
-          .where((t) => t.toLowerCase().startsWith(lower))
-          .toList();
+      return tables.where((t) => t.toLowerCase().startsWith(lower)).toList();
     } catch (e) {
       AppLogger.w('WorkbenchChatView', 'table mention query failed: $e');
       return const [];
@@ -675,7 +684,11 @@ class _WorkbenchChatViewState extends State<WorkbenchChatView> {
   /// id 形如 `agent_tc_<runId>_<stepNo>`；或其紧邻下一条即带载荷的 agent 步
   /// 消息（call/result 成对连续落账——两次 addMessage 各自 notify，中间存在
   /// 重建窗口，id 前缀是窗口期的兜底判据）。
-  bool _isAgentToolCall(AiMessage message, List<AiMessage> messages, int index) {
+  bool _isAgentToolCall(
+    AiMessage message,
+    List<AiMessage> messages,
+    int index,
+  ) {
     if (message.type != AiMessageType.toolCall) return false;
     if (message.id.startsWith('agent_tc_')) return true;
     final int next = index + 1;
@@ -931,6 +944,10 @@ class _WorkbenchChatViewState extends State<WorkbenchChatView> {
               return AiMessageItem(
                 key: ValueKey(message.id),
                 message: message,
+                // AI-CW 批：纯文本气泡可读宽内层封顶（列吃满后防行长过长，
+                // 跨态零跳变）；SQL/结果卡走 WorkbenchCardHost 路径不受此
+                // 约束（继续吃满列宽）。
+                readableMaxWidth: AppDesignSystem.workbenchChatReadableMaxWidth,
                 // T13：消息级「执行 / 在新查询打开」与卡动作同路由（执行编
                 // 排复核上下文与读写判定；互跳 = 新 tab + 退出工作台，
                 // AC7.1 出口语义，不覆盖既有 tab）。
@@ -1017,10 +1034,7 @@ class _WorkbenchChatViewState extends State<WorkbenchChatView> {
           Expanded(
             child: Text(
               l10n.agentContextRequired,
-              style: TextStyle(
-                fontSize: 11,
-                color: colors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 11, color: colors.textSecondary),
             ),
           ),
           const SizedBox(width: AppDesignSystem.space2),
@@ -1036,14 +1050,15 @@ class _WorkbenchChatViewState extends State<WorkbenchChatView> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(LucideIcons.crosshair, size: 12, color: colors.accentBlue),
+                  Icon(
+                    LucideIcons.crosshair,
+                    size: 12,
+                    color: colors.accentBlue,
+                  ),
                   const SizedBox(width: AppDesignSystem.space1),
                   Text(
                     l10n.workbenchContextPickerTitle,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: colors.accentBlue,
-                    ),
+                    style: TextStyle(fontSize: 11, color: colors.accentBlue),
                   ),
                 ],
               ),
@@ -1137,10 +1152,12 @@ class _WorkbenchChatViewState extends State<WorkbenchChatView> {
   void _focusSidebarTarget(AppProvider provider, Map<String, dynamic> target) {
     final Object? rawDatabase = target['database'];
     final Object? rawTable = target['table'];
-    final String? database =
-        rawDatabase is String && rawDatabase.isNotEmpty ? rawDatabase : null;
-    final String? table =
-        rawTable is String && rawTable.isNotEmpty ? rawTable : null;
+    final String? database = rawDatabase is String && rawDatabase.isNotEmpty
+        ? rawDatabase
+        : null;
+    final String? table = rawTable is String && rawTable.isNotEmpty
+        ? rawTable
+        : null;
     if (database == null && table == null) return;
     final ctx = effectiveWorkbenchContext(
       provider.aiPanel.aiConversationService.currentSession,

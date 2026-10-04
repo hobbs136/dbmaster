@@ -23,6 +23,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:dbmaster/l10n/app_localizations.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_artifact_strip.dart';
+import 'package:dbmaster/organisms/ai_workbench/workbench_focus_zones.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_stage.dart';
 import 'package:dbmaster/services/ai/agent/agent_ui_port.dart';
 import 'package:dbmaster/theme/app_colors.dart';
@@ -60,13 +61,19 @@ AgentResultRef _ref(String refId) => AgentResultRef(
 
 Future<void> _pump(
   WidgetTester tester,
-  WorkbenchStageController controller,
-) async {
+  WorkbenchStageController controller, {
+  WorkbenchFocusZoneRegistry? zoneRegistry,
+}) async {
   // ui 规格 §6.4 验收窗口 1024×768。
   await tester.binding.setSurfaceSize(const Size(1024, 768));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
-    _wrap(WorkbenchArtifactStrip(controller: controller)),
+    _wrap(
+      WorkbenchArtifactStrip(
+        controller: controller,
+        zoneRegistry: zoneRegistry,
+      ),
+    ),
   );
   await tester.pumpAndSettle();
 }
@@ -87,6 +94,26 @@ bool _focusIsWithinUnpin(String tabId) {
   final matches = find
       .byKey(WorkbenchArtifactStrip.itemUnpinKey(tabId))
       .evaluate();
+  if (matches.isEmpty) return false;
+  final keyed = matches.first;
+  if (identical(ctx, keyed)) return true;
+  var found = false;
+  (ctx as Element).visitAncestorElements((ancestor) {
+    if (identical(ancestor, keyed)) {
+      found = true;
+      return false;
+    }
+    return true;
+  });
+  return found;
+}
+
+/// 主焦点是否落在展开钮（toggleKey）上（同 `_focusIsWithinUnpin` 祖先链
+/// 口径；F6 死档②回退断言用）。
+bool _focusIsWithinToggle() {
+  final ctx = FocusManager.instance.primaryFocus?.context;
+  if (ctx == null) return false;
+  final matches = find.byKey(WorkbenchArtifactStrip.toggleKey).evaluate();
   if (matches.isEmpty) return false;
   final keyed = matches.first;
   if (identical(ctx, keyed)) return true;
@@ -209,6 +236,25 @@ void main() {
       expect(find.byKey(WorkbenchArtifactStrip.itemKey(tab.id)), findsNothing);
       expect(controller.tabs, isEmpty);
       expect(find.byKey(WorkbenchArtifactStrip.emptyKey), findsOneWidget);
+    });
+
+    testWidgets('pinned tab 关闭 → 重开 → 条目自动重现（投影语义，走查修复批 A2-6，AI-WF-202）', (tester) async {
+      final p1 = controller.pinArtifact(_ref('rp1'), 'P1');
+      final p2 = controller.pinArtifact(_ref('rp2'), 'P2');
+      await _pump(tester, controller);
+      expect(find.byKey(WorkbenchArtifactStrip.itemKey(p2.id)), findsOneWidget);
+
+      // 关闭 pinned p2 → 项消失；另一 pinned 项不受影响（关闭 ≠ 取消钉住）。
+      controller.closeTab(1);
+      await tester.pumpAndSettle();
+      expect(find.byKey(WorkbenchArtifactStrip.itemKey(p2.id)), findsNothing);
+      expect(find.byKey(WorkbenchArtifactStrip.itemKey(p1.id)), findsOneWidget);
+
+      // 重开 → 条目自动重现（pinned 标记随对象原样恢复）。
+      controller.reopenClosedTab(p2.id);
+      await tester.pumpAndSettle();
+      expect(find.byKey(WorkbenchArtifactStrip.itemKey(p2.id)), findsOneWidget);
+      expect(find.byKey(WorkbenchArtifactStrip.itemKey(p1.id)), findsOneWidget);
     });
   });
 
@@ -404,26 +450,92 @@ void main() {
   });
 
   group('§6.1/§6.3 舞台开合开关', () {
-    testWidgets('翻转 stageVisible；图标与标签/tooltip 同步切换', (tester) async {
-      await _pump(tester, controller);
+    testWidgets('开合语义收窄（走查修复批件①）：展开钮仅收起态渲染；收起改走舞台 tab 条右端收起钮', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1024, 768));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      // 舞台与产物条同树共享 controller：收起钮在舞台 tab 条右端，组件面
+      // 需两件同挂才能走完整开合回路。
+      await tester.pumpWidget(
+        _wrap(
+          SizedBox(
+            height: 400,
+            child: Column(
+              children: [
+                Expanded(child: WorkbenchStage(controller: controller)),
+                WorkbenchArtifactStrip(controller: controller),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-      // 收起态：panelRight + 「Stage」（tooltip 同步）
-      expect(find.text('Stage'), findsOneWidget);
-      expect(find.text('Collapse Stage'), findsNothing);
-      expect(tester.widget<Icon>(find.byIcon(LucideIcons.panelRight)).size, 14);
-      expect(find.byIcon(LucideIcons.panelRightClose), findsNothing);
+      final stripFinder = find.byType(WorkbenchArtifactStrip);
+      final separatorFinder = find.descendant(
+        of: find.byType(WorkbenchArtifactStrip),
+        matching: find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              w.constraints ==
+                  const BoxConstraints.tightFor(width: 1.0, height: 16.0),
+        ),
+      );
 
+      // 收起态：strip 左端展开钮（panelRight 图标 + 「Stage」文案，tooltip
+      // 同步，A1-3）+ 分隔线在。
+      expect(
+        find.descendant(of: stripFinder, matching: find.text('Stage')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: stripFinder,
+          matching: find.byIcon(LucideIcons.panelRight),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byTooltip('Stage'), findsOneWidget);
+      expect(separatorFinder, findsOneWidget);
+
+      // tap 展开钮 → stageVisible == true（A1-3）。
       await tester.tap(find.byKey(WorkbenchArtifactStrip.toggleKey));
       await tester.pumpAndSettle();
       expect(controller.stageVisible, isTrue);
-      expect(find.text('Collapse Stage'), findsOneWidget);
-      expect(find.byIcon(LucideIcons.panelRightClose), findsOneWidget);
-      expect(find.byIcon(LucideIcons.panelRight), findsNothing);
 
-      await tester.tap(find.byKey(WorkbenchArtifactStrip.toggleKey));
+      // 展开态：strip 内 toggle 与分隔线一并消失（A1-1）；「收起」语义在
+      // 舞台收起钮，strip 子树无「Collapse Stage」（A1-8：件①零新增 key）。
+      expect(find.byKey(WorkbenchArtifactStrip.toggleKey), findsNothing);
+      expect(separatorFinder, findsNothing);
+      expect(
+        find.descendant(of: stripFinder, matching: find.text('Collapse Stage')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: stripFinder,
+          matching: find.byIcon(LucideIcons.panelRightClose),
+        ),
+        findsNothing,
+      );
+      expect(find.byKey(WorkbenchStage.collapseKey), findsOneWidget);
+
+      // 「收起」改走 collapseKey → 回收起态，strip 展开钮重现
+      // （panelRight + 「Stage」，A1-3）。
+      await tester.tap(find.byKey(WorkbenchStage.collapseKey));
       await tester.pumpAndSettle();
       expect(controller.stageVisible, isFalse);
-      expect(find.text('Stage'), findsOneWidget);
+      expect(find.byKey(WorkbenchArtifactStrip.toggleKey), findsOneWidget);
+      expect(
+        find.descendant(of: stripFinder, matching: find.text('Stage')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: stripFinder,
+          matching: find.byIcon(LucideIcons.panelRight),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('舞台收起时条照常；点项重开舞台并激活该 tab', (tester) async {
@@ -439,6 +551,56 @@ void main() {
       await tester.pumpAndSettle();
       expect(controller.stageVisible, isTrue);
       expect(controller.activeTabIndex, controller.tabs.indexOf(t2));
+    });
+  });
+
+  group('A5 焦点区注册（F6：产物条）', () {
+    testWidgets('条挂载注册产物条区；入口 = 聚焦首个条目（pinned 时间序首位）',
+        (tester) async {
+      final registry = WorkbenchFocusZoneRegistry();
+      final t1 = controller.pinArtifact(_ref('res_1'), 'R1');
+      controller.pinArtifact(_ref('res_2'), 'R2');
+      await _pump(tester, controller, zoneRegistry: registry);
+
+      expect(registry.isRegistered(WorkbenchFocusZone.artifactStrip), isTrue);
+      expect(registry.focus(WorkbenchFocusZone.artifactStrip), isTrue);
+      await tester.pump();
+      expect(_focusedItemTabId(), t1.id);
+    });
+
+    testWidgets('零 pinned 且舞台收起：区入口聚焦展开钮返回 true（死档②消除，A1-5，AI-WF-201）',
+        (tester) async {
+      final registry = WorkbenchFocusZoneRegistry();
+      await _pump(tester, controller, zoneRegistry: registry);
+
+      expect(registry.isRegistered(WorkbenchFocusZone.artifactStrip), isTrue);
+      expect(controller.stageVisible, isFalse);
+      expect(registry.focus(WorkbenchFocusZone.artifactStrip), isTrue);
+      await tester.pump();
+      expect(_focusIsWithinToggle(), isTrue);
+    });
+
+    testWidgets('零 pinned 且舞台可见：区入口返回 false（轮转动态跳过）',
+        (tester) async {
+      final registry = WorkbenchFocusZoneRegistry();
+      controller.setStageVisible(true);
+      await _pump(tester, controller, zoneRegistry: registry);
+
+      expect(registry.isRegistered(WorkbenchFocusZone.artifactStrip), isTrue);
+      expect(registry.focus(WorkbenchFocusZone.artifactStrip), isFalse);
+    });
+
+    testWidgets('卸载 → 注销（挂载/卸载随子树生命周期）', (tester) async {
+      final registry = WorkbenchFocusZoneRegistry();
+      controller.pinArtifact(_ref('res_1'), 'R1');
+      await _pump(tester, controller, zoneRegistry: registry);
+      expect(registry.isRegistered(WorkbenchFocusZone.artifactStrip), isTrue);
+
+      await tester.pumpWidget(
+        _wrap(const SizedBox.shrink()),
+      );
+      await tester.pumpAndSettle();
+      expect(registry.isRegistered(WorkbenchFocusZone.artifactStrip), isFalse);
     });
   });
 }

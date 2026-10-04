@@ -9980,6 +9980,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get workbenchContextPickerConnectHint => '连接后可列出数据库';
 
   @override
+  String get agentStoppedByContext => '已终止：需要数据库上下文';
+
+  @override
+  String get workbenchContextNoDatabase => '未选库';
+
+  @override
+  String get workbenchContextChangeWhileRunning => '将在下次运行生效——进行中的运行仍使用启动时的上下文';
+
+  @override
   String get workbenchSqlCardTitle => 'SQL';
 
   @override
@@ -9994,12 +10003,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get workbenchActionOpenInClassic => '在经典模式中打开';
 
   @override
+  String get workbenchActionSaveAsQuery => '保存为查询';
+
+  @override
+  String get workbenchSaveQuerySelectConnection => '请先选择一个连接，再保存查询';
+
+  @override
   String workbenchResultMeta(int rows, int ms) {
     return '$rows 行 · $ms 毫秒';
   }
-
-  @override
-  String get workbenchOpenInGrid => '在网格中打开';
 
   @override
   String workbenchResultTruncated(int shown, int total) {
@@ -10047,6 +10059,29 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get workbenchSessionListTitle => '会话';
+
+  @override
+  String get workbenchSessionExportMenu => '导出会话…';
+
+  @override
+  String get workbenchSessionExportTitle => '导出 AI 会话';
+
+  @override
+  String get workbenchSessionExportHint =>
+      '该文件包含用于诊断的完整对话内容。若包含查询结果数据，可能含有敏感的生产数据——分享前请先检查。';
+
+  @override
+  String get workbenchSessionExportIncludeData => '包含查询结果数据';
+
+  @override
+  String workbenchSessionExportSuccess(String path) {
+    return '会话已导出：$path';
+  }
+
+  @override
+  String workbenchSessionExportFailed(String error) {
+    return '会话导出失败：$error';
+  }
 
   @override
   String get workbenchErrorEmptySql => '无法执行空语句';
@@ -10395,6 +10430,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get agentStageCollapse => '收起舞台';
 
   @override
+  String get agentStageReopenClosedTab => '重新打开已关闭的标签页';
+
+  @override
   String get agentStageTabClose => '关闭';
 
   @override
@@ -10440,6 +10478,224 @@ class AppLocalizationsZh extends AppLocalizations {
   String agentPlanDmlHighTriggers(String triggers) {
     return '触发条件：$triggers';
   }
+
+  @override
+  String get commandAiMemoryManager => 'AI 记忆管理';
+
+  @override
+  String get commandDescAiMemoryManager => '查看和管理 AI 助手记住的内容';
+
+  @override
+  String get aiMemoryTitle => 'AI 记忆';
+
+  @override
+  String get aiMemoryGlobalSection => '全局';
+
+  @override
+  String get aiMemoryConnectionSection => '当前连接';
+
+  @override
+  String get aiMemoryAdd => '新增记忆';
+
+  @override
+  String get aiMemoryEdit => '编辑记忆';
+
+  @override
+  String get aiMemoryDelete => '删除记忆';
+
+  @override
+  String get aiMemorySubjectLabel => '主题（可选）';
+
+  @override
+  String get aiMemorySubjectHint => '如 orders.status';
+
+  @override
+  String get aiMemoryContentLabel => '内容';
+
+  @override
+  String get aiMemoryContentRequired => '内容不能为空';
+
+  @override
+  String get aiMemorySave => '保存';
+
+  @override
+  String get aiMemoryEmpty => '暂无记忆';
+
+  @override
+  String get aiMemoryNoConnectionSelected => '选择一个连接以管理其记忆';
+
+  @override
+  String get aiMemoryNoSubject => '无主题';
+
+  @override
+  String get aiMemorySourceAgent => '智能体';
+
+  @override
+  String get aiMemorySourceManual => '手动';
+
+  @override
+  String get aiMemoryDeleteTitle => '删除这条记忆？';
+
+  @override
+  String aiMemoryDeleteBody(String preview) {
+    return '“$preview”将被永久删除。';
+  }
+
+  @override
+  String aiMemoryOperationFailed(String error) {
+    return '操作失败：$error';
+  }
+
+  @override
+  String get workbenchActivitySessions => '会话';
+
+  @override
+  String get workbenchActivitySavedQueries => '保存的查询';
+
+  @override
+  String get workbenchActivityHistory => '历史';
+
+  @override
+  String get agentStageTabSessions => '会话';
+
+  @override
+  String get agentStageTabHistory => '历史';
+
+  @override
+  String get agentStageTabSavedQueries => '保存的查询';
+
+  @override
+  String get agentStageTabExecution => '执行结果';
+
+  @override
+  String get workbenchOpenInStage => '在舞台打开';
+
+  @override
+  String get workbenchLoadIntoEditor => '载入编辑器';
+
+  @override
+  String get workbenchHistorySearchHint => '搜索历史';
+
+  @override
+  String get workbenchHistoryEmptyTitle => '暂无查询历史';
+
+  @override
+  String get workbenchHistoryEmptyHint => '执行过的查询会出现在这里';
+
+  @override
+  String get workbenchSavedQueriesEmptyTitle => '暂无保存的查询';
+
+  @override
+  String get workbenchSavedQueriesEmptyHint => '先在经典编辑器中保存查询';
+
+  @override
+  String workbenchExecutionSummary(int total, int failed, int durationMs) {
+    return '$total 条语句 · $failed 条失败 · $durationMs ms';
+  }
+
+  @override
+  String workbenchExecutionAffectedRows(int count) {
+    return '$count 行';
+  }
+
+  @override
+  String get workbenchSplitResizerTooltip =>
+      '拖拽调整宽度 · ←/→ 16px · Shift+←/→ 64px · Home 复位';
+
+  @override
+  String get shortcutZoneCycle => '轮转工作台区域';
+
+  @override
+  String get workbenchAgentSourceBadge => 'Agent';
+
+  @override
+  String get agentStageTabObserve => '观察';
+
+  @override
+  String get agentStageTabOptimization => '优化建议';
+
+  @override
+  String get workbenchObserveRefresh => '刷新';
+
+  @override
+  String workbenchObserveLastUpdated(String time) {
+    return '最后更新于：$time';
+  }
+
+  @override
+  String get workbenchObserveNotLoaded => '尚未加载';
+
+  @override
+  String get workbenchObserveNoConnection => '未锁定连接';
+
+  @override
+  String get workbenchObserveNoConnectionHint => '锁定一个连接以观察其实例状态';
+
+  @override
+  String get workbenchObserveUnsupportedEngine => '该引擎暂无观察段';
+
+  @override
+  String get workbenchObserveSegmentProcessList => '进程列表';
+
+  @override
+  String get workbenchObserveSegmentEngineStatus => '引擎状态';
+
+  @override
+  String get workbenchObserveSegmentMemory => '内存分析';
+
+  @override
+  String get workbenchObserveManageInClassic => '在经典中管理';
+
+  @override
+  String get workbenchObserveLoadFailed => '数据加载失败';
+
+  @override
+  String get workbenchObserveRedisTopN => 'Top-N';
+
+  @override
+  String get workbenchObserveRedisDoctor => 'Doctor';
+
+  @override
+  String get workbenchObserveRedisStats => 'Stats';
+
+  @override
+  String get workbenchObserveRedisNoKeys => '暂无带内存数据的键';
+
+  @override
+  String get workbenchMongoSchemaLoading => '正在加载结构…';
+
+  @override
+  String get workbenchMongoSchemaLoadFailed => '结构加载失败';
+
+  @override
+  String get workbenchMongoSchemaEmpty => '暂无结构数据';
+
+  @override
+  String get workbenchMongoSchemaEmptyHint => '该集合为空或没有可分析的文档';
+
+  @override
+  String get commandOpenObserve => '打开实例观察';
+
+  @override
+  String get commandDescOpenObserve => '为锁定连接打开实例观察 tab';
+
+  @override
+  String get commandOpenSavedQueries => '打开保存的查询';
+
+  @override
+  String get commandDescOpenSavedQueries => '在工作台打开保存的查询 tab';
+
+  @override
+  String get commandOpenHistory => '打开查询历史';
+
+  @override
+  String get commandDescOpenHistory => '在工作台打开查询历史 tab';
+
+  @override
+  String get commandOpenScheduledTasks => '打开定时任务';
+
+  @override
+  String get commandDescOpenScheduledTasks => '打开定时任务 tab（随下一批上线）';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -17864,6 +18120,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get workbenchContextPickerConnectHint => '連線後可列出資料庫';
 
   @override
+  String get agentStoppedByContext => '已終止：需要資料庫上下文';
+
+  @override
+  String get workbenchContextNoDatabase => '未選資料庫';
+
+  @override
+  String get workbenchContextChangeWhileRunning => '將在下次執行生效——進行中的執行仍使用啟動時的上下文';
+
+  @override
   String get workbenchSqlCardTitle => 'SQL';
 
   @override
@@ -17878,12 +18143,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get workbenchActionOpenInClassic => '在經典模式中開啟';
 
   @override
+  String get workbenchActionSaveAsQuery => '儲存為查詢';
+
+  @override
+  String get workbenchSaveQuerySelectConnection => '請先選擇一個連線，再儲存查詢';
+
+  @override
   String workbenchResultMeta(int rows, int ms) {
     return '$rows 列 · $ms 毫秒';
   }
-
-  @override
-  String get workbenchOpenInGrid => '在網格中開啟';
 
   @override
   String workbenchResultTruncated(int shown, int total) {
@@ -17931,6 +18199,29 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get workbenchSessionListTitle => '對話';
+
+  @override
+  String get workbenchSessionExportMenu => '匯出對話…';
+
+  @override
+  String get workbenchSessionExportTitle => '匯出 AI 對話';
+
+  @override
+  String get workbenchSessionExportHint =>
+      '此檔案包含供診斷用的完整對話內容。若包含查詢結果資料，可能含有敏感的正式環境資料——分享前請先確認。';
+
+  @override
+  String get workbenchSessionExportIncludeData => '包含查詢結果資料';
+
+  @override
+  String workbenchSessionExportSuccess(String path) {
+    return '對話已匯出：$path';
+  }
+
+  @override
+  String workbenchSessionExportFailed(String error) {
+    return '對話匯出失敗：$error';
+  }
 
   @override
   String get workbenchErrorEmptySql => '無法執行空語句';
@@ -18279,6 +18570,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get agentStageCollapse => '收合舞台';
 
   @override
+  String get agentStageReopenClosedTab => '重新開啟已關閉的分頁';
+
+  @override
   String get agentStageTabClose => '關閉';
 
   @override
@@ -18324,4 +18618,222 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String agentPlanDmlHighTriggers(String triggers) {
     return '觸發條件：$triggers';
   }
+
+  @override
+  String get commandAiMemoryManager => 'AI 記憶管理';
+
+  @override
+  String get commandDescAiMemoryManager => '檢視與管理 AI 助手記住的內容';
+
+  @override
+  String get aiMemoryTitle => 'AI 記憶';
+
+  @override
+  String get aiMemoryGlobalSection => '全域';
+
+  @override
+  String get aiMemoryConnectionSection => '目前連線';
+
+  @override
+  String get aiMemoryAdd => '新增記憶';
+
+  @override
+  String get aiMemoryEdit => '編輯記憶';
+
+  @override
+  String get aiMemoryDelete => '刪除記憶';
+
+  @override
+  String get aiMemorySubjectLabel => '主題（選填）';
+
+  @override
+  String get aiMemorySubjectHint => '如 orders.status';
+
+  @override
+  String get aiMemoryContentLabel => '內容';
+
+  @override
+  String get aiMemoryContentRequired => '內容不可為空';
+
+  @override
+  String get aiMemorySave => '儲存';
+
+  @override
+  String get aiMemoryEmpty => '尚無記憶';
+
+  @override
+  String get aiMemoryNoConnectionSelected => '選擇一個連線以管理其記憶';
+
+  @override
+  String get aiMemoryNoSubject => '無主題';
+
+  @override
+  String get aiMemorySourceAgent => 'Agent';
+
+  @override
+  String get aiMemorySourceManual => '手動';
+
+  @override
+  String get aiMemoryDeleteTitle => '刪除這條記憶？';
+
+  @override
+  String aiMemoryDeleteBody(String preview) {
+    return '「$preview」將被永久刪除。';
+  }
+
+  @override
+  String aiMemoryOperationFailed(String error) {
+    return '操作失敗：$error';
+  }
+
+  @override
+  String get workbenchActivitySessions => '對話';
+
+  @override
+  String get workbenchActivitySavedQueries => '已儲存的查詢';
+
+  @override
+  String get workbenchActivityHistory => '歷史';
+
+  @override
+  String get agentStageTabSessions => '對話';
+
+  @override
+  String get agentStageTabHistory => '歷史';
+
+  @override
+  String get agentStageTabSavedQueries => '已儲存的查詢';
+
+  @override
+  String get agentStageTabExecution => '執行結果';
+
+  @override
+  String get workbenchOpenInStage => '在舞台開啟';
+
+  @override
+  String get workbenchLoadIntoEditor => '載入編輯器';
+
+  @override
+  String get workbenchHistorySearchHint => '搜尋歷史';
+
+  @override
+  String get workbenchHistoryEmptyTitle => '暫無查詢歷史';
+
+  @override
+  String get workbenchHistoryEmptyHint => '執行過的查詢會出現在這裡';
+
+  @override
+  String get workbenchSavedQueriesEmptyTitle => '暫無已儲存的查詢';
+
+  @override
+  String get workbenchSavedQueriesEmptyHint => '請先在經典編輯器中儲存查詢';
+
+  @override
+  String workbenchExecutionSummary(int total, int failed, int durationMs) {
+    return '$total 條語句 · $failed 條失敗 · $durationMs ms';
+  }
+
+  @override
+  String workbenchExecutionAffectedRows(int count) {
+    return '$count 行';
+  }
+
+  @override
+  String get workbenchSplitResizerTooltip =>
+      '拖曳調整寬度 · ←/→ 16px · Shift+←/→ 64px · Home 重設';
+
+  @override
+  String get shortcutZoneCycle => '輪轉工作台區域';
+
+  @override
+  String get workbenchAgentSourceBadge => 'Agent';
+
+  @override
+  String get agentStageTabObserve => '觀察';
+
+  @override
+  String get agentStageTabOptimization => '最佳化建議';
+
+  @override
+  String get workbenchObserveRefresh => '重新整理';
+
+  @override
+  String workbenchObserveLastUpdated(String time) {
+    return '最後更新於：$time';
+  }
+
+  @override
+  String get workbenchObserveNotLoaded => '尚未載入';
+
+  @override
+  String get workbenchObserveNoConnection => '未鎖定連線';
+
+  @override
+  String get workbenchObserveNoConnectionHint => '鎖定一個連線以觀察其實例狀態';
+
+  @override
+  String get workbenchObserveUnsupportedEngine => '此引擎暫無觀察區段';
+
+  @override
+  String get workbenchObserveSegmentProcessList => '處理程序清單';
+
+  @override
+  String get workbenchObserveSegmentEngineStatus => '引擎狀態';
+
+  @override
+  String get workbenchObserveSegmentMemory => '記憶體分析';
+
+  @override
+  String get workbenchObserveManageInClassic => '在經典模式中管理';
+
+  @override
+  String get workbenchObserveLoadFailed => '資料載入失敗';
+
+  @override
+  String get workbenchObserveRedisTopN => 'Top-N';
+
+  @override
+  String get workbenchObserveRedisDoctor => 'Doctor';
+
+  @override
+  String get workbenchObserveRedisStats => 'Stats';
+
+  @override
+  String get workbenchObserveRedisNoKeys => '暫無帶記憶體資料的鍵';
+
+  @override
+  String get workbenchMongoSchemaLoading => '正在載入結構…';
+
+  @override
+  String get workbenchMongoSchemaLoadFailed => '結構載入失敗';
+
+  @override
+  String get workbenchMongoSchemaEmpty => '暫無結構資料';
+
+  @override
+  String get workbenchMongoSchemaEmptyHint => '此集合為空或沒有可分析的文件';
+
+  @override
+  String get commandOpenObserve => '開啟實例觀察';
+
+  @override
+  String get commandDescOpenObserve => '為鎖定的連線開啟觀察分頁';
+
+  @override
+  String get commandOpenSavedQueries => '開啟已儲存的查詢';
+
+  @override
+  String get commandDescOpenSavedQueries => '在工作台開啟已儲存的查詢分頁';
+
+  @override
+  String get commandOpenHistory => '開啟查詢歷史';
+
+  @override
+  String get commandDescOpenHistory => '在工作台開啟查詢歷史分頁';
+
+  @override
+  String get commandOpenScheduledTasks => '開啟排程任務';
+
+  @override
+  String get commandDescOpenScheduledTasks => '開啟排程任務分頁（隨下一批上線）';
 }

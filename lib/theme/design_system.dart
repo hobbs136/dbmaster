@@ -437,10 +437,43 @@ class AppDesignSystem {
   /// AI 工作台对话列最小宽度
   static const double workbenchChatMinWidth = 360.0;
 
-  /// AI 工作台对话列最大宽度（超出居中；M2 舞台进场后失效改固定 360，C-1 不堵死）
-  static const double workbenchChatMaxWidth = 760.0;
+  /// AI 工作台纯文本气泡可读宽内层封顶（v0.3.0 高分屏走查批 AI-CW）。
+  /// 取值推导：0.82 × 760（原收起态列宽上限的气泡实得 = 623.2）≈ 640，与
+  /// 历史最坏行长持平 → 列吃满后跨态零跳变；仅对话列消费（经
+  /// AiMessageItem.readableMaxWidth 注入），经典面板默认不封顶；经典 dock
+  /// 域 [300,600] 与并置态 ≤520 下 0.82 值均 < 640，cap 恒不触发。
+  ///
+  /// 注：原收起态列宽上限 760 token 已随 AI-CW 批退役
+  /// ——收起态对话列吃满 rail 右侧 region，不再居中封顶（ai_workbench_shell
+  /// `_buildChatColumn`）。
+  static const double workbenchChatReadableMaxWidth = 640.0;
 
-  /// AI 工作台会话栏宽度（<900 断点收成 44 = sidebarCollapsedWidth）
+  /// AI 工作台舞台并置态对话列宽度上限。
+  ///
+  /// 舞台可见时对话列宽 = clamp([workbenchChatMinWidth],
+  /// [workbenchChatSplitMaxWidth], 可用宽 × [workbenchChatSplitRatio])。
+  /// 与 `.specs/brainstorm-workbench-results-panel.md` §3.1 提案同名同值——
+  /// 未来拖拽分栏的钳制上限直接复用本值。上限存在是为保住舞台
+  /// ≥ [workbenchStageMinWidth]（480）的主体地位。
+  static const double workbenchChatSplitMaxWidth = 520.0;
+
+  /// AI 工作台舞台并置态对话列弹性占比。
+  ///
+  /// 取值约束：980 × 0.36 = 352.8 < [workbenchChatMinWidth]，保证 1024 最小窗
+  /// （[minWindowWidth]）下对话列仍触底 360、舞台实得 620（§5.4-1 探针零变化）。
+  static const double workbenchChatSplitRatio = 0.36;
+
+  /// AI 工作台会话栏活动条宽度（v2 结果面板第一批 A1）。
+  ///
+  /// rail 布局 = `Row[活动条 44 | 内容页 196]`（总宽
+  /// [workbenchSessionListWidth] 240 不变）；<900 断点（舞台不可见）或
+  /// ≤1080 断点（舞台可见，shell 判定）收成纯活动条 = 本值。
+  /// 沿 Fix-L 先例在 `design_system_test.dart` AI-AG-001 组内锁值。
+  static const double workbenchRailActivityBarWidth = 44.0;
+
+  /// AI 工作台会话栏总宽（v2 A1 起 = 活动条 [workbenchRailActivityBarWidth] 44
+  /// + 内容页 196；内容页宽由本值减活动条宽派生，不设独立 token；
+  /// <900 断点收成活动条宽 44）
   static const double workbenchSessionListWidth = 240.0;
 
   /// AI 工作台输入区（composer）最小高度

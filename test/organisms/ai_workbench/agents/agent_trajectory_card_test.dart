@@ -13,6 +13,8 @@
 //   列表 + 实时计数 = ListenableBuilder 读 runner 的直证）；
 // - §1.8-4 10 态 chip 文案/图标逐态键断言（9 spec 态 + Unknown 兜底）+
 //   token 紧凑格式三档 + usage 缺失「—」；
+// - stoppedByContext 第五终止源显示态接线（标签 l10n 新键 / unplug 图标 /
+//   n/max 计数同构，非 unknown 降级）；
 // - §1.8-5 25 步单滚动区（卡体 ≤362、单 Scrollable、可滚动）；
 // - §1.8-6 awaitingUser 强制展开 + chevron 禁用（tap 无效）+ 未决嵌块
 //   可见（几何在视口内）；
@@ -48,6 +50,8 @@ import 'package:dbmaster/models/ai_models.dart'
     show AiToolCall, ChatResponse, TokenUsage;
 import 'package:dbmaster/models/database_models.dart'
     show AiMessage, DatabaseType, DbColumn, DbIndex, ForeignKey;
+import 'package:dbmaster/models/query_optimizer/execution_plan.dart'
+    show PerformanceReport;
 import 'package:dbmaster/organisms/ai_workbench/agents/agent_confirm_card.dart';
 import 'package:dbmaster/organisms/ai_workbench/agents/agent_plan_card.dart';
 import 'package:dbmaster/organisms/ai_workbench/agents/agent_trajectory_card.dart';
@@ -440,7 +444,8 @@ class _Harness {
     executor = AgentToolExecutor(
       gate: gate,
       db: AgentDbAccess(
-        getTables: (String? connectionId) async => <String>['users', 'orders'],
+        getTables: (String? connectionId, String? databaseName) async =>
+            <String>['users', 'orders'],
         getTableColumns:
             (String t, {String? connectionId, String? databaseName}) async =>
                 <DbColumn>[],
@@ -551,6 +556,12 @@ class _NoopUiPort implements AgentUiPort {
     String? database,
     String? table,
   }) => Future.value(const AgentUiOutcome.failure('noop'));
+
+  @override
+  Future<AgentUiOutcome> openOptimization(
+    PerformanceReport report,
+    String sql,
+  ) => Future.value(const AgentUiOutcome.failure('noop'));
 }
 
 const _NoopUiPort _planUiPort = _NoopUiPort();
@@ -789,6 +800,65 @@ void main() {
         reason: status,
       );
     }
+  });
+
+  testWidgets('stoppedByContext 第五终止源：新显示态接线（非 unknown 降级）', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        AgentTrajectoryCard(
+          runMessages: <AiMessage>[
+            mkAnchor('run_ctx'),
+            ...mkStep('run_ctx', 1, 'list_tables'),
+            ...mkStep('run_ctx', 2, 'describe_table'),
+            mkTerminal(
+              'run_ctx',
+              'stoppedByContext',
+              steps: 2,
+              summaryText: 'Context missing, run stopped',
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // chip 标签 = l10n 新键（agentStoppedByContext），非 Unknown 兜底。
+    expect(
+      find.descendant(
+        of: find.byKey(AgentTrajectoryCard.statusChipKey),
+        matching: find.text('Stopped: database context required'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Unknown'), findsNothing);
+    // 图标映射不抛 + chip 图标 = unplug（断开族：上下文未接入）。
+    expect(
+      find.descendant(
+        of: find.byKey(AgentTrajectoryCard.chipIconKey),
+        matching: find.byIcon(LucideIcons.unplug),
+      ),
+      findsOneWidget,
+    );
+    // 汇报行图标与 chip 同源（同 stoppedByLimit 模式），文案走 summaryText。
+    expect(
+      find.descendant(
+        of: find.byKey(AgentTrajectoryCard.reportRowKey),
+        matching: find.byIcon(LucideIcons.unplug),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(AgentTrajectoryCard.reportRowKey),
+        matching: find.text('Context missing, run stopped'),
+      ),
+      findsOneWidget,
+    );
+    // 终局计数语义与 stoppedByLimit 同构：n/max（锚点 contextSnapshot 恢复
+    // maxSteps = mkAnchor 默认 25），非中断态 stepsOnly。stepsCounterKey 挂在
+    // Text 本体（非父容器），沿用 interrupted 用例的直接 find.text 断言。
+    expect(find.text('2/25'), findsOneWidget);
   });
 
   testWidgets('10 态：interrupted 派生态只显 n 步 + token「—」+ 默认折叠', (

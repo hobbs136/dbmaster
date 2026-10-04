@@ -18023,6 +18023,24 @@ abstract class AppLocalizations {
   /// **'Connect to list databases'**
   String get workbenchContextPickerConnectHint;
 
+  /// Trajectory card header label when the agent was stopped because no database context is set
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped: database context required'**
+  String get agentStoppedByContext;
+
+  /// Context chip database-position label when no database is selected
+  ///
+  /// In en, this message translates to:
+  /// **'No database'**
+  String get workbenchContextNoDatabase;
+
+  /// Snackbar shown when the workbench context is changed while an agent run is in progress
+  ///
+  /// In en, this message translates to:
+  /// **'Applies to the next run — the running agent keeps the context it started with.'**
+  String get workbenchContextChangeWhileRunning;
+
   /// Title of the SQL tool card
   ///
   /// In en, this message translates to:
@@ -18047,17 +18065,23 @@ abstract class AppLocalizations {
   /// **'Open in Classic'**
   String get workbenchActionOpenInClassic;
 
+  /// Card action that saves the card SQL as a local saved query
+  ///
+  /// In en, this message translates to:
+  /// **'Save as Query'**
+  String get workbenchActionSaveAsQuery;
+
+  /// Guard hint when saving a workbench SQL card as a query without an effective connection context
+  ///
+  /// In en, this message translates to:
+  /// **'Select a connection to save this query'**
+  String get workbenchSaveQuerySelectConnection;
+
   /// Collapsed result-table card metadata: row count and execution time
   ///
   /// In en, this message translates to:
   /// **'{rows} rows · {ms} ms'**
   String workbenchResultMeta(int rows, int ms);
-
-  /// Result card action that opens the full result set in a classic grid tab (only when rows exceed the snapshot limit)
-  ///
-  /// In en, this message translates to:
-  /// **'Open in Grid'**
-  String get workbenchOpenInGrid;
 
   /// Footer note on the result card when the snapshot shows fewer rows than the full result set
   ///
@@ -18136,6 +18160,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sessions'**
   String get workbenchSessionListTitle;
+
+  /// Session rail context menu entry that opens the session export dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Export session…'**
+  String get workbenchSessionExportMenu;
+
+  /// Title of the session export dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Export AI Session'**
+  String get workbenchSessionExportTitle;
+
+  /// Explanatory hint in the export dialog about diagnostic purpose and potentially sensitive data
+  ///
+  /// In en, this message translates to:
+  /// **'The file contains the full conversation for diagnostics. With query result data included it may contain sensitive production data — review it before sharing.'**
+  String get workbenchSessionExportHint;
+
+  /// Checkbox label to embed query result data in the exported session file
+  ///
+  /// In en, this message translates to:
+  /// **'Include query result data'**
+  String get workbenchSessionExportIncludeData;
+
+  /// Success feedback after the session file is exported
+  ///
+  /// In en, this message translates to:
+  /// **'Session exported: {path}'**
+  String workbenchSessionExportSuccess(String path);
+
+  /// Error feedback when the session export fails
+  ///
+  /// In en, this message translates to:
+  /// **'Session export failed: {error}'**
+  String workbenchSessionExportFailed(String error);
 
   /// Error message when execution is attempted with an empty statement
   ///
@@ -18749,6 +18809,12 @@ abstract class AppLocalizations {
   /// **'Collapse Stage'**
   String get agentStageCollapse;
 
+  /// Tooltip of the stage tab-bar button that reopens a recently closed tab
+  ///
+  /// In en, this message translates to:
+  /// **'Reopen closed tab'**
+  String get agentStageReopenClosedTab;
+
   /// Menu item and tooltip for closing a stage tab
   ///
   /// In en, this message translates to:
@@ -18838,6 +18904,420 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Triggers: {triggers}'**
   String agentPlanDmlHighTriggers(String triggers);
+
+  /// Command palette label for opening the AI memory manager dialog
+  ///
+  /// In en, this message translates to:
+  /// **'AI Memory Manager'**
+  String get commandAiMemoryManager;
+
+  /// Command palette description for the AI memory manager entry
+  ///
+  /// In en, this message translates to:
+  /// **'View and manage memories the AI assistant remembers'**
+  String get commandDescAiMemoryManager;
+
+  /// Title of the AI memory manager dialog
+  ///
+  /// In en, this message translates to:
+  /// **'AI Memory'**
+  String get aiMemoryTitle;
+
+  /// Section header for memories shared across all connections
+  ///
+  /// In en, this message translates to:
+  /// **'Global'**
+  String get aiMemoryGlobalSection;
+
+  /// Section header for memories scoped to the current connection
+  ///
+  /// In en, this message translates to:
+  /// **'This connection'**
+  String get aiMemoryConnectionSection;
+
+  /// Tooltip and editor dialog title for creating a new memory
+  ///
+  /// In en, this message translates to:
+  /// **'Add memory'**
+  String get aiMemoryAdd;
+
+  /// Tooltip and editor dialog title for editing an existing memory
+  ///
+  /// In en, this message translates to:
+  /// **'Edit memory'**
+  String get aiMemoryEdit;
+
+  /// Tooltip and confirm-dialog action for deleting a memory
+  ///
+  /// In en, this message translates to:
+  /// **'Delete memory'**
+  String get aiMemoryDelete;
+
+  /// Label of the subject input in the memory editor (e.g. orders.status)
+  ///
+  /// In en, this message translates to:
+  /// **'Subject (optional)'**
+  String get aiMemorySubjectLabel;
+
+  /// Hint text of the subject input in the memory editor
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. orders.status'**
+  String get aiMemorySubjectHint;
+
+  /// Label of the content input in the memory editor
+  ///
+  /// In en, this message translates to:
+  /// **'Content'**
+  String get aiMemoryContentLabel;
+
+  /// Validation error shown when saving a memory without content
+  ///
+  /// In en, this message translates to:
+  /// **'Content cannot be empty'**
+  String get aiMemoryContentRequired;
+
+  /// Save action of the memory editor dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get aiMemorySave;
+
+  /// Empty-state text of a memory section with no entries
+  ///
+  /// In en, this message translates to:
+  /// **'No memories yet'**
+  String get aiMemoryEmpty;
+
+  /// Guide empty-state of the connection section when no connection is selected
+  ///
+  /// In en, this message translates to:
+  /// **'Select a connection to manage its memories'**
+  String get aiMemoryNoConnectionSelected;
+
+  /// Placeholder title of a memory entry without a subject
+  ///
+  /// In en, this message translates to:
+  /// **'No subject'**
+  String get aiMemoryNoSubject;
+
+  /// Source label of a memory created by the AI agent
+  ///
+  /// In en, this message translates to:
+  /// **'Agent'**
+  String get aiMemorySourceAgent;
+
+  /// Source label of a memory created manually by the user
+  ///
+  /// In en, this message translates to:
+  /// **'Manual'**
+  String get aiMemorySourceManual;
+
+  /// Title of the delete confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this memory?'**
+  String get aiMemoryDeleteTitle;
+
+  /// Body of the delete confirmation dialog; preview is the memory subject or a content excerpt
+  ///
+  /// In en, this message translates to:
+  /// **'\"{preview}\" will be permanently removed.'**
+  String aiMemoryDeleteBody(String preview);
+
+  /// SnackBar text when a memory add/edit/delete operation fails; error is the technical error message
+  ///
+  /// In en, this message translates to:
+  /// **'Operation failed: {error}'**
+  String aiMemoryOperationFailed(String error);
+
+  /// Tooltip of the workbench activity bar sessions entry
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions'**
+  String get workbenchActivitySessions;
+
+  /// Tooltip of the workbench activity bar saved queries entry
+  ///
+  /// In en, this message translates to:
+  /// **'Saved queries'**
+  String get workbenchActivitySavedQueries;
+
+  /// Tooltip of the workbench activity bar query history entry
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get workbenchActivityHistory;
+
+  /// Stage tab type label for the session list tab
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions'**
+  String get agentStageTabSessions;
+
+  /// Stage tab type label for the query history tab
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get agentStageTabHistory;
+
+  /// Stage tab type label for the saved queries tab
+  ///
+  /// In en, this message translates to:
+  /// **'Saved queries'**
+  String get agentStageTabSavedQueries;
+
+  /// Stage tab type label for the execution results tab
+  ///
+  /// In en, this message translates to:
+  /// **'Execution'**
+  String get agentStageTabExecution;
+
+  /// Result card action to open the result snapshot in a workbench stage tab
+  ///
+  /// In en, this message translates to:
+  /// **'Open in Stage'**
+  String get workbenchOpenInStage;
+
+  /// Primary action tooltip of history and saved query rows to load SQL into the editor slot
+  ///
+  /// In en, this message translates to:
+  /// **'Load into editor'**
+  String get workbenchLoadIntoEditor;
+
+  /// Hint of the query history view top search field
+  ///
+  /// In en, this message translates to:
+  /// **'Search history'**
+  String get workbenchHistorySearchHint;
+
+  /// Title of the query history empty state
+  ///
+  /// In en, this message translates to:
+  /// **'No query history'**
+  String get workbenchHistoryEmptyTitle;
+
+  /// Hint of the query history empty state
+  ///
+  /// In en, this message translates to:
+  /// **'Executed queries will appear here'**
+  String get workbenchHistoryEmptyHint;
+
+  /// Title of the saved queries empty state
+  ///
+  /// In en, this message translates to:
+  /// **'No saved queries'**
+  String get workbenchSavedQueriesEmptyTitle;
+
+  /// Hint of the saved queries empty state
+  ///
+  /// In en, this message translates to:
+  /// **'Save a query in the classic editor first'**
+  String get workbenchSavedQueriesEmptyHint;
+
+  /// Summary line of the execution tab; total and failed are statement counts, durationMs is the total duration in milliseconds
+  ///
+  /// In en, this message translates to:
+  /// **'{total} statements · {failed} failed · {durationMs} ms'**
+  String workbenchExecutionSummary(int total, int failed, int durationMs);
+
+  /// Affected row count of an execution statement row
+  ///
+  /// In en, this message translates to:
+  /// **'{count} rows'**
+  String workbenchExecutionAffectedRows(int count);
+
+  /// Tooltip of the workbench chat column split resizer with its keyboard shortcuts
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to resize · ←/→ 16px · Shift+←/→ 64px · Home reset'**
+  String get workbenchSplitResizerTooltip;
+
+  /// Shortcuts dialog entry for cycling workbench focus areas (F6)
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle workbench areas'**
+  String get shortcutZoneCycle;
+
+  /// Tooltip of the agent source badge on query history rows
+  ///
+  /// In en, this message translates to:
+  /// **'Agent'**
+  String get workbenchAgentSourceBadge;
+
+  /// Type label of a stage tab showing instance observe content
+  ///
+  /// In en, this message translates to:
+  /// **'Observe'**
+  String get agentStageTabObserve;
+
+  /// Type label of a stage tab showing query optimization content
+  ///
+  /// In en, this message translates to:
+  /// **'Optimization'**
+  String get agentStageTabOptimization;
+
+  /// Tooltip of the manual refresh button in the observe tab header
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get workbenchObserveRefresh;
+
+  /// Timestamp row of the observe tab; time is a formatted clock time of the last successful load
+  ///
+  /// In en, this message translates to:
+  /// **'Last updated: {time}'**
+  String workbenchObserveLastUpdated(String time);
+
+  /// Timestamp placeholder of the observe tab before the first successful load
+  ///
+  /// In en, this message translates to:
+  /// **'Not loaded yet'**
+  String get workbenchObserveNotLoaded;
+
+  /// Empty-state title of the observe tab when no connection is locked in the workbench context
+  ///
+  /// In en, this message translates to:
+  /// **'No connection locked'**
+  String get workbenchObserveNoConnection;
+
+  /// Empty-state hint of the observe tab when no connection is locked in the workbench context
+  ///
+  /// In en, this message translates to:
+  /// **'Lock a connection to observe its health'**
+  String get workbenchObserveNoConnectionHint;
+
+  /// Empty state of the observe tab for database engines without observe segments
+  ///
+  /// In en, this message translates to:
+  /// **'No observe panels for this engine'**
+  String get workbenchObserveUnsupportedEngine;
+
+  /// Label of the observe tab segment navigation entry for the MySQL process list
+  ///
+  /// In en, this message translates to:
+  /// **'Process list'**
+  String get workbenchObserveSegmentProcessList;
+
+  /// Label of the observe tab segment navigation entry for the MySQL engine status
+  ///
+  /// In en, this message translates to:
+  /// **'Engine status'**
+  String get workbenchObserveSegmentEngineStatus;
+
+  /// Label of the observe tab segment navigation entry for the Redis memory analysis
+  ///
+  /// In en, this message translates to:
+  /// **'Memory analysis'**
+  String get workbenchObserveSegmentMemory;
+
+  /// Label and tooltip of the process row action that exits the workbench to manage the process in the classic panel
+  ///
+  /// In en, this message translates to:
+  /// **'Manage in classic'**
+  String get workbenchObserveManageInClassic;
+
+  /// Error state of an observe segment whose data failed to load
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load data'**
+  String get workbenchObserveLoadFailed;
+
+  /// Label of the Redis Top-N subview switch in the observe memory analysis segment
+  ///
+  /// In en, this message translates to:
+  /// **'Top-N'**
+  String get workbenchObserveRedisTopN;
+
+  /// Label of the Redis doctor subview switch in the observe memory analysis segment
+  ///
+  /// In en, this message translates to:
+  /// **'Doctor'**
+  String get workbenchObserveRedisDoctor;
+
+  /// Label of the Redis stats subview switch in the observe memory analysis segment
+  ///
+  /// In en, this message translates to:
+  /// **'Stats'**
+  String get workbenchObserveRedisStats;
+
+  /// Empty state of the Redis Top-N subview when no keys have memory data
+  ///
+  /// In en, this message translates to:
+  /// **'No keys with memory data'**
+  String get workbenchObserveRedisNoKeys;
+
+  /// Loading state of the workbench Mongo schema view
+  ///
+  /// In en, this message translates to:
+  /// **'Loading schema…'**
+  String get workbenchMongoSchemaLoading;
+
+  /// Error state of the workbench Mongo schema view
+  ///
+  /// In en, this message translates to:
+  /// **'Schema load failed'**
+  String get workbenchMongoSchemaLoadFailed;
+
+  /// Empty-state title of the workbench Mongo schema view
+  ///
+  /// In en, this message translates to:
+  /// **'No schema data'**
+  String get workbenchMongoSchemaEmpty;
+
+  /// Empty-state hint of the workbench Mongo schema view
+  ///
+  /// In en, this message translates to:
+  /// **'This collection is empty or has no documents to analyze'**
+  String get workbenchMongoSchemaEmptyHint;
+
+  /// Command palette label for opening the workbench observe tab
+  ///
+  /// In en, this message translates to:
+  /// **'Open instance observe'**
+  String get commandOpenObserve;
+
+  /// Command palette description for opening the workbench observe tab
+  ///
+  /// In en, this message translates to:
+  /// **'Open the observe tab for the locked connection'**
+  String get commandDescOpenObserve;
+
+  /// Command palette label for opening the workbench saved queries tab
+  ///
+  /// In en, this message translates to:
+  /// **'Open saved queries'**
+  String get commandOpenSavedQueries;
+
+  /// Command palette description for opening the workbench saved queries tab
+  ///
+  /// In en, this message translates to:
+  /// **'Open the saved queries tab in the workbench'**
+  String get commandDescOpenSavedQueries;
+
+  /// Command palette label for opening the workbench query history tab
+  ///
+  /// In en, this message translates to:
+  /// **'Open query history'**
+  String get commandOpenHistory;
+
+  /// Command palette description for opening the workbench query history tab
+  ///
+  /// In en, this message translates to:
+  /// **'Open the query history tab in the workbench'**
+  String get commandDescOpenHistory;
+
+  /// Command palette label for opening the workbench scheduled tasks tab (placeholder until the next batch)
+  ///
+  /// In en, this message translates to:
+  /// **'Open scheduled tasks'**
+  String get commandOpenScheduledTasks;
+
+  /// Command palette description for the scheduled tasks placeholder entry
+  ///
+  /// In en, this message translates to:
+  /// **'Open the scheduled tasks tab (coming with the next batch)'**
+  String get commandDescOpenScheduledTasks;
 }
 
 class _AppLocalizationsDelegate

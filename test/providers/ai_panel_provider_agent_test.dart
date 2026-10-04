@@ -22,6 +22,8 @@ import 'package:dbmaster/models/ai_message_type.dart'
 import 'package:dbmaster/models/ai_models.dart' show AiToolCall, ChatResponse;
 import 'package:dbmaster/models/database_models.dart'
     show AiMessage, DatabaseType, DbColumn, DbIndex, ForeignKey;
+import 'package:dbmaster/models/query_optimizer/execution_plan.dart'
+    show PerformanceReport;
 import 'package:dbmaster/providers/ai_panel_provider.dart';
 import 'package:dbmaster/services/ai/agent/agent_gate.dart'
     show AgentGate, AgentRunContext;
@@ -82,8 +84,7 @@ class _ChatScript {
 
   void respond(ChatResponse resp) => queue.add(() async => resp);
 
-  void blockOn(Completer<ChatResponse> gate) =>
-      queue.add(() => gate.future);
+  void blockOn(Completer<ChatResponse> gate) => queue.add(() => gate.future);
 }
 
 Future<void> _flush([int rounds = 8]) async {
@@ -103,14 +104,14 @@ class _AgentHarness {
       executor: AgentToolExecutor(
         gate: AgentGate(
           createAnalysis: (AgentRunContext runCtx) => AgentGateAnalysis(
-            getExplainPlan:
-                (String sql) async => <Map<String, dynamic>>[],
+            getExplainPlan: (String sql) async => <Map<String, dynamic>>[],
             rowThreshold: 10000,
             dbType: runCtx.dbType,
           ),
         ),
         db: AgentDbAccess(
-          getTables: (String? connectionId) async => <String>['t1', 't2'],
+          getTables: (String? connectionId, String? databaseName) async =>
+              <String>['t1', 't2'],
           getTableColumns:
               (
                 String tableName, {
@@ -135,15 +136,13 @@ class _AgentHarness {
                 String? connectionId,
                 String? databaseName,
               }) async => 'CREATE TABLE t1 (id INT)',
-          getExplainPlan:
-              (String sql, {String? connectionId}) async =>
-                  <Map<String, dynamic>>[],
+          getExplainPlan: (String sql, {String? connectionId}) async =>
+              <Map<String, dynamic>>[],
           executeQuery:
-              (
-                String sql, {
-                String? connectionId,
-                String? database,
-              }) async => <Map<String, dynamic>>[<String, dynamic>{'id': 1}],
+              (String sql, {String? connectionId, String? database}) async =>
+                  <Map<String, dynamic>>[
+                    <String, dynamic>{'id': 1},
+                  ],
         ),
         audit:
             ({
@@ -172,8 +171,11 @@ class _AgentHarness {
         dbType: DatabaseType.mysql,
         readOnly: false,
       ),
-      resolveChatConfig:
-          () => const AgentChatConfig(provider: 'scripted', model: 'm1', apiKey: 'k1'),
+      resolveChatConfig: () => const AgentChatConfig(
+        provider: 'scripted',
+        model: 'm1',
+        apiKey: 'k1',
+      ),
       chat: chat.call,
     );
     provider = AiPanelProvider(
@@ -234,6 +236,12 @@ class _NoopUiPort implements AgentUiPort {
     String? database,
     String? table,
   }) => Future.value(const AgentUiOutcome.failure('noop'));
+
+  @override
+  Future<AgentUiOutcome> openOptimization(
+    PerformanceReport report,
+    String sql,
+  ) => Future.value(const AgentUiOutcome.failure('noop'));
 }
 
 void main() {
@@ -264,7 +272,10 @@ void main() {
       final provider = AiPanelProvider();
       // 无既有会话直发：runner.start 内部建会话的 notify 不得误伤刚就位的
       // activeRunId（会话切换检测的 idle 窗口回归守卫）。
-      await provider.agentRunner.start(uiPort: const _NoopUiPort(), userMessage: 'hi');
+      await provider.agentRunner.start(
+        uiPort: const _NoopUiPort(),
+        userMessage: 'hi',
+      );
 
       expect(provider.agentRunner.status, AgentRunStatus.failed);
       expect(
@@ -274,7 +285,8 @@ void main() {
       );
       final anchors = _payloadsOf(provider.aiMessages, 'agent_run');
       expect(anchors, hasLength(1));
-      final snapshot = anchors.first['contextSnapshot'] as Map<dynamic, dynamic>;
+      final snapshot =
+          anchors.first['contextSnapshot'] as Map<dynamic, dynamic>;
       expect(snapshot['conn'], '', reason: '无上下文快照 conn 为空');
       expect(snapshot['db'], '');
       expect(snapshot['readOnly'], isFalse);
@@ -285,18 +297,21 @@ void main() {
 
     test('context reader 注入 → 快照进锚点（D15 解析来源）', () async {
       final provider = AiPanelProvider();
-      provider.agentContextSnapshotReader =
-          () => (
-            connectionId: 'c9',
-            connectionName: '连接九',
-            databaseName: 'db9',
-            dbType: DatabaseType.postgresql,
-            readOnly: true,
-          );
-      await provider.agentRunner.start(uiPort: const _NoopUiPort(), userMessage: 'hi');
+      provider.agentContextSnapshotReader = () => (
+        connectionId: 'c9',
+        connectionName: '连接九',
+        databaseName: 'db9',
+        dbType: DatabaseType.postgresql,
+        readOnly: true,
+      );
+      await provider.agentRunner.start(
+        uiPort: const _NoopUiPort(),
+        userMessage: 'hi',
+      );
 
       final anchors = _payloadsOf(provider.aiMessages, 'agent_run');
-      final snapshot = anchors.first['contextSnapshot'] as Map<dynamic, dynamic>;
+      final snapshot =
+          anchors.first['contextSnapshot'] as Map<dynamic, dynamic>;
       expect(snapshot['conn'], '连接九');
       expect(snapshot['db'], 'db9');
       expect(snapshot['readOnly'], isTrue);
@@ -311,7 +326,10 @@ void main() {
         apiKey: 'k',
       );
       provider.agentChatConfigReader = () => bogus;
-      await provider.agentRunner.start(uiPort: const _NoopUiPort(), userMessage: 'hi');
+      await provider.agentRunner.start(
+        uiPort: const _NoopUiPort(),
+        userMessage: 'hi',
+      );
 
       expect(provider.agentRunner.status, AgentRunStatus.failed);
       final ends = _payloadsOf(provider.aiMessages, 'agent_run_end');
@@ -332,7 +350,10 @@ void main() {
       h.chat.respond(_call(_toolCall('list_tables', <String, dynamic>{})));
       h.chat.respond(_text('库里有 t1 和 t2'));
 
-      await h.provider.agentRunner.start(uiPort: const _NoopUiPort(), userMessage: '看看有哪些表');
+      await h.provider.agentRunner.start(
+        uiPort: const _NoopUiPort(),
+        userMessage: '看看有哪些表',
+      );
 
       expect(h.runner.status, AgentRunStatus.completed);
       expect(h.runner.stepsUsed, 1);
@@ -360,7 +381,9 @@ void main() {
       final h = _AgentHarness();
       final Completer<ChatResponse> round1 = Completer<ChatResponse>();
       h.chat.blockOn(round1);
-      unawaited(h.runner.start(uiPort: const _NoopUiPort(), userMessage: '慢一点'));
+      unawaited(
+        h.runner.start(uiPort: const _NoopUiPort(), userMessage: '慢一点'),
+      );
       await _flush();
 
       expect(h.runner.status, AgentRunStatus.running);
@@ -466,24 +489,36 @@ void main() {
   });
 
   group('T14 无上下文纯对话 + CONTEXT_REQUIRED（AC7.4 数据形状）', () {
-    test('数据工具在无上下文快照上被 ② 拦截，运行仍收敛 completed', () async {
+    test('数据工具在无上下文快照上被 ②a 拦截 → 修订（T2 方案 B）：运行立即终止 '
+        'stoppedByContext（终局引导选库，不再回喂继续）', () async {
       final h = _AgentHarness(connectionId: '');
       h.chat.respond(
-        _call(_toolCall('execute_readonly_sql', <String, dynamic>{
-          'sql': 'SELECT 1',
-        })),
+        _call(
+          _toolCall('execute_readonly_sql', <String, dynamic>{
+            'sql': 'SELECT 1',
+          }),
+        ),
       );
-      h.chat.respond(_text('没有上下文，无法查库'));
+      h.chat.respond(_text('不应到达')); // 终止后不再发起下一轮
 
-      await h.provider.agentRunner.start(uiPort: const _NoopUiPort(), userMessage: '查一下');
+      await h.provider.agentRunner.start(
+        uiPort: const _NoopUiPort(),
+        userMessage: '查一下',
+      );
 
       final steps = h.agentPayloads('agent_step');
       expect(steps, hasLength(1));
       final error = steps.first['error'] as Map<dynamic, dynamic>;
       expect(error['code'], 'CONTEXT_REQUIRED', reason: 'AC7.4 运行时出口错误码');
-      expect(h.runner.status, AgentRunStatus.completed, reason: '纯对话可用');
+      expect(h.runner.status, AgentRunStatus.stoppedByContext);
       final ends = h.agentPayloads('agent_run_end');
-      expect(ends.first['status'], 'completed');
+      expect(ends.first['status'], 'stoppedByContext');
+      expect(
+        h.chat.seenProviders,
+        hasLength(1),
+        reason: '不回喂继续（无第二轮）',
+      );
+      expect(h.messages.last.content, contains('context chip'));
       h.provider.dispose();
     });
   });
@@ -502,7 +537,10 @@ void main() {
       await QuerySettingsService().setAgentL05RowThreshold(5000);
       // 无 chat reader → failed 终局（不触网）；但 start 的 resolveMaxSteps
       // await 点（P2-3 刷新挂点）已同步完成——修复前该值仍为 20000。
-      await provider.agentRunner.start(uiPort: const _NoopUiPort(), userMessage: 'hi');
+      await provider.agentRunner.start(
+        uiPort: const _NoopUiPort(),
+        userMessage: 'hi',
+      );
 
       expect(
         provider.agentL05ThresholdForTest,

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -46,6 +47,11 @@ class AiMessageItem extends StatelessWidget {
   final VoidCallback? onContinue;
   final Function(String table, String? whereClause)? onCreateExportTask;
 
+  /// 纯文本气泡可读宽内层封顶（逻辑 px；null = 不封顶，默认既有行为）。
+  /// AI 工作台对话列消费（workbench_chat_view 注入
+  /// [AppDesignSystem.workbenchChatReadableMaxWidth]），经典面板不传。
+  final double? readableMaxWidth;
+
   const AiMessageItem({
     super.key,
     required this.message,
@@ -56,6 +62,7 @@ class AiMessageItem extends StatelessWidget {
     this.onRegenerate,
     this.onContinue,
     this.onCreateExportTask,
+    this.readableMaxWidth,
   });
 
   @override
@@ -65,7 +72,12 @@ class AiMessageItem extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 20),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final maxBubbleWidth = constraints.maxWidth * 0.82;
+          // AI-CW 批：cap 用 min 次序（先 0.82 比例后封顶）——宿主窄于 cap
+          // 时比例值生效、cap 恒不放大气泡。readableMaxWidth! 位于 null 检查
+          // 的 else 分支内（100% 可证非空，AGENTS §4.6 MAY 例外）。
+          final maxBubbleWidth = readableMaxWidth == null
+              ? constraints.maxWidth * 0.82
+              : math.min(constraints.maxWidth * 0.82, readableMaxWidth!);
           return Row(
             mainAxisAlignment: isUser
                 ? MainAxisAlignment.end
