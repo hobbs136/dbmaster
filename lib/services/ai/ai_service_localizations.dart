@@ -558,6 +558,12 @@ Constraints: <list database, table, syntax constraints if any>''';
       ? '请从结构合理性、索引设计、潜在优化点、可能存在的问题等方面给出分析建议。'
       : 'Please provide analysis and suggestions on structural soundness, index design, potential optimizations, and possible issues.';
 
+  // --- analyzeTreeNodeInWorkbench：server 节点健康问句（2b.4，R8 例外——
+  // 预填 prompt 走本文件不走 ARB；connection 型钩子预填 + observe tab）---
+  String get analyzeServerHealthAsk => _respondsChinese
+      ? '汇总这个实例的健康状况（进程/引擎状态/资源占用）。'
+      : 'Summarize the health of this instance (processes / engine status / resource usage).';
+
   // --- analyzeErrorWithAi：错误诊断 ---
   String get analyzeErrorHeader => _respondsChinese
       ? '请诊断下面的数据库错误：说明可能的原因，并给出排查与修复建议。'

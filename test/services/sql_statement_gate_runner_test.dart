@@ -46,7 +46,7 @@ void main() {
         deps: SqlGateRunDeps(
           execute: (statement) async {
             executed.add(statement);
-            return const <Map<String, dynamic>>[];
+            return const SqlStatementOutcome(rows: <Map<String, dynamic>>[]);
           },
         ),
       );
@@ -67,7 +67,7 @@ void main() {
         deps: SqlGateRunDeps(
           execute: (statement) async {
             executed.add(statement);
-            return const <Map<String, dynamic>>[];
+            return const SqlStatementOutcome(rows: <Map<String, dynamic>>[]);
           },
         ),
       );
@@ -85,7 +85,7 @@ void main() {
         deps: SqlGateRunDeps(
           execute: (statement) async {
             executed.add(statement);
-            return const <Map<String, dynamic>>[];
+            return const SqlStatementOutcome(rows: <Map<String, dynamic>>[]);
           },
         ),
       );
@@ -101,7 +101,7 @@ void main() {
         deps: SqlGateRunDeps(
           execute: (statement) async {
             executed.add(statement);
-            return const <Map<String, dynamic>>[];
+            return const SqlStatementOutcome(rows: <Map<String, dynamic>>[]);
           },
         ),
       );
@@ -120,7 +120,7 @@ void main() {
         deps: SqlGateRunDeps(
           execute: (statement) async {
             executed.add(statement);
-            return const <Map<String, dynamic>>[];
+            return const SqlStatementOutcome(rows: <Map<String, dynamic>>[]);
           },
           writeConfirm: SqlWriteConfirmStrategy.perStatement((statement) async {
             confirmedWrites.add(statement);
@@ -155,7 +155,7 @@ void main() {
         deps: SqlGateRunDeps(
           execute: (statement) async {
             executed.add(statement);
-            return const <Map<String, dynamic>>[];
+            return const SqlStatementOutcome(rows: <Map<String, dynamic>>[]);
           },
           writeConfirm: SqlWriteConfirmStrategy.perStatement((statement) async {
             confirmedWrites.add(statement);
@@ -176,7 +176,7 @@ void main() {
         deps: SqlGateRunDeps(
           execute: (statement) async {
             executed.add(statement);
-            return const <Map<String, dynamic>>[];
+            return const SqlStatementOutcome(rows: <Map<String, dynamic>>[]);
           },
           writeConfirm: SqlWriteConfirmStrategy.perStatement(
             (statement) async => SqlWriteConfirmDecision.aborted,
@@ -197,7 +197,7 @@ void main() {
         deps: SqlGateRunDeps(
           execute: (statement) async {
             executed.add(statement);
-            return const <Map<String, dynamic>>[];
+            return const SqlStatementOutcome(rows: <Map<String, dynamic>>[]);
           },
           writeConfirm: const SqlWriteConfirmStrategy.none(),
         ),
@@ -211,7 +211,7 @@ void main() {
       final result = await runner.run(
         sql: 'DROP TABLE legacy',
         deps: SqlGateRunDeps(
-          execute: (statement) async => const <Map<String, dynamic>>[],
+          execute: (statement) async => const SqlStatementOutcome(rows: <Map<String, dynamic>>[]),
         ),
       );
 
@@ -241,7 +241,7 @@ void main() {
           },
           executeBypassDdl: (statement) async {
             bypassed.add(statement);
-            return _kRows;
+            return SqlStatementOutcome(rows: _kRows);
           },
         ),
       );
@@ -270,7 +270,7 @@ void main() {
           ddlConfirm: (e) async => SqlGateConfirmDecision.cancelled,
           executeBypassDdl: (statement) async {
             bypassed.add(statement);
-            return const <Map<String, dynamic>>[];
+            return const SqlStatementOutcome(rows: <Map<String, dynamic>>[]);
           },
         ),
       );
@@ -299,7 +299,7 @@ void main() {
           execute: (statement) async => throw ddlException,
           executeBypassDdl: (statement) async {
             bypassed.add(statement);
-            return const <Map<String, dynamic>>[];
+            return const SqlStatementOutcome(rows: <Map<String, dynamic>>[]);
           },
         ),
       );
@@ -318,7 +318,7 @@ void main() {
         deps: SqlGateRunDeps(
           execute: (statement) async => throw ddlException,
           ddlConfirm: (e) async => SqlGateConfirmDecision.aborted,
-          executeBypassDdl: (statement) async => const <Map<String, dynamic>>[],
+          executeBypassDdl: (statement) async => const SqlStatementOutcome(rows: <Map<String, dynamic>>[]),
         ),
       );
 
@@ -337,7 +337,7 @@ void main() {
           execute: (statement) async {
             executed.add(statement);
             if (statement.startsWith('DROP')) throw ddlException;
-            return const <Map<String, dynamic>>[];
+            return const SqlStatementOutcome(rows: <Map<String, dynamic>>[]);
           },
           ddlConfirm: (e) async => SqlGateConfirmDecision.confirmed,
           executeBypassDdl: (statement) async => throw Exception('bypass boom'),
@@ -375,7 +375,7 @@ void main() {
           },
           executeBypassDml: (statement) async {
             bypassed.add(statement);
-            return _kRows;
+            return SqlStatementOutcome(rows: _kRows);
           },
         ),
       );
@@ -395,7 +395,7 @@ void main() {
           dmlConfirm: (e) async => SqlGateConfirmDecision.cancelled,
           executeBypassDml: (statement) async {
             bypassed.add(statement);
-            return const <Map<String, dynamic>>[];
+            return const SqlStatementOutcome(rows: <Map<String, dynamic>>[]);
           },
         ),
       );
@@ -416,7 +416,7 @@ void main() {
           execute: (statement) async {
             executed.add(statement);
             if (statement.startsWith('UPDATE')) throw Exception('boom');
-            return _kRows;
+            return SqlStatementOutcome(rows: _kRows);
           },
         ),
       );
@@ -444,7 +444,7 @@ void main() {
           execute: (statement) async {
             executed.add(statement);
             if (statement.startsWith('UPDATE')) throw Exception('boom');
-            return const <Map<String, dynamic>>[];
+            return const SqlStatementOutcome(rows: <Map<String, dynamic>>[]);
           },
           haltOnStatementFailure: true,
         ),
@@ -472,7 +472,7 @@ void main() {
         deps: SqlGateRunDeps(
           execute: (statement) async {
             if (statement.startsWith('UPDATE')) throw Exception('boom');
-            return _kRows;
+            return SqlStatementOutcome(rows: _kRows);
           },
           onStatementResult: emitted.add,
         ),
@@ -495,7 +495,7 @@ void main() {
         deps: SqlGateRunDeps(
           execute: (statement) async {
             executed.add(statement);
-            return const <Map<String, dynamic>>[];
+            return const SqlStatementOutcome(rows: <Map<String, dynamic>>[]);
           },
           shouldContinue: () {
             probeCalls++;
@@ -511,6 +511,92 @@ void main() {
         [SqlStatementStatus.done, SqlStatementStatus.skipped],
       );
       expect(result.haltIndex, 1);
+    });
+  });
+
+  group('affectedRows 贯通（裁决选项 A：SqlExecuteCallback 回调型扩宽）', () {
+    test('写语句引擎 affectedRows 透传到 SqlStatementResult（逐语句回调 + 终局双通道）', () async {
+      final emitted = <SqlStatementResult>[];
+      final result = await runner.run(
+        sql: 'INSERT INTO t VALUES (1); SELECT 2',
+        deps: SqlGateRunDeps(
+          execute: (statement) async {
+            if (statement.startsWith('INSERT')) {
+              return const SqlStatementOutcome(
+                rows: <Map<String, dynamic>>[],
+                affectedRows: 3,
+              );
+            }
+            return const SqlStatementOutcome(rows: <Map<String, dynamic>>[]);
+          },
+          onStatementResult: emitted.add,
+        ),
+      );
+
+      expect(result.status, SqlBatchStatus.completed);
+      expect(result.results, hasLength(2));
+      expect(
+        result.results.first.affectedRows,
+        3,
+        reason: '写语句引擎值 3 贯通（detailed 通道不再解包丢失）',
+      );
+      expect(result.results.first.rows, isEmpty, reason: '写语句空行集不影响 affectedRows');
+      expect(
+        result.results.last.affectedRows,
+        isNull,
+        reason: '读语句引擎无影响行概念 → null',
+      );
+      expect(emitted.first.affectedRows, 3, reason: '回调通道与终局通道一致');
+    });
+
+    test('DDL bypass 第二道执行的 affectedRows 透传（多门路径最终成功执行段）', () async {
+      final ddlException = DdlConfirmationRequiredException(
+        sql: 'DROP TABLE t1',
+        impactReport: _impact('DROP TABLE t1'),
+      );
+      final result = await runner.run(
+        sql: 'DROP TABLE t1',
+        deps: SqlGateRunDeps(
+          execute: (statement) async => throw ddlException,
+          ddlConfirm: (e) async => SqlGateConfirmDecision.confirmed,
+          executeBypassDdl: (statement) async => const SqlStatementOutcome(
+            rows: <Map<String, dynamic>>[],
+            affectedRows: 0,
+          ),
+        ),
+      );
+
+      expect(result.status, SqlBatchStatus.completed);
+      expect(
+        result.results.single.affectedRows,
+        0,
+        reason: 'bypass 通道引擎值原样透传（DDL 成功常报 0，展示层抑制）',
+      );
+    });
+
+    test('DML bypass 第二道执行的 affectedRows 透传', () async {
+      const dmlException = DmlConfirmationRequiredException(
+        sql: 'UPDATE orders SET status = 1',
+        analysis: RiskAnalysisResult(
+          riskLevel: DmlRiskLevel.high,
+          affectedObjects: [],
+        ),
+        statements: [],
+      );
+      final result = await runner.run(
+        sql: 'UPDATE orders SET status = 1',
+        deps: SqlGateRunDeps(
+          execute: (statement) async => throw dmlException,
+          dmlConfirm: (e) async => SqlGateConfirmDecision.confirmed,
+          executeBypassDml: (statement) async => const SqlStatementOutcome(
+            rows: <Map<String, dynamic>>[],
+            affectedRows: 7,
+          ),
+        ),
+      );
+
+      expect(result.status, SqlBatchStatus.completed);
+      expect(result.results.single.affectedRows, 7, reason: 'DML bypass 引擎值 7 贯通');
     });
   });
 }

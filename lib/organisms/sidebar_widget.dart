@@ -246,6 +246,14 @@ class _SidebarWidgetState extends State<SidebarWidget> {
   Widget _buildExpandedSidebar() {
     // Use watch (not read) so async data loads trigger sidebar rebuild
     final provider = context.watch<AppProvider>();
+    // 2b.1（R3）：observe escalation 一次性展开请求——post-frame 消费
+    //（构建期改动控制器状态会触发嵌套 notify；消费点不触碰 :328 进程面板
+    // 挂载段语义——挂载判据仍是 currentServer + expandedItems）。
+    if (provider.sidebar.sidebarExpandRequest != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _consumeSidebarExpandRequest();
+      });
+    }
     _controller.rebuildVisibleNodeKeys(provider);
     // 仅在侧边栏首次挂载时请求焦点，不重复抢占
     _controller.ensureInitialTreeFocus();
@@ -339,6 +347,19 @@ class _SidebarWidgetState extends State<SidebarWidget> {
     ); // Focus
   }
   // ==================== 对话框路由（需要 BuildContext，留在 widget 层） ====================
+
+  /// 消费一次性展开请求（2b.1 R3 通道）：未展开则补展开（经典进程面板
+  /// 挂载键 `'$id:performance'`），随后清除信号。挂载语义（:328 段）零改动。
+  void _consumeSidebarExpandRequest() {
+    if (!mounted) return;
+    final provider = context.read<AppProvider>();
+    final request = provider.sidebar.sidebarExpandRequest;
+    if (request == null) return; // 已被并发消费（防御）
+    if (!_controller.expandedItems.contains(request)) {
+      _controller.toggleExpand(request);
+    }
+    provider.sidebar.consumeSidebarExpandRequest();
+  }
 
   void _showConnectionManager() {
     context.showAnimatedDialog(builder: (_) => const ConnectionManagerDialog());

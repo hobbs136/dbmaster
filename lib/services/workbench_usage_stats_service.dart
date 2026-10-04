@@ -107,10 +107,11 @@ class WorkbenchUsageStatsService {
       .map((AgentPlanStat stat) => stat.name)
       .toSet();
 
-  /// 工具分桶键白名单 = AgentToolCatalog 的 14 个编译期固定目录名
-  /// （design-ai-agent §4.1，FC-6 无运行时注册；NF6.1「目录名即白名单」）。
-  /// 本文件 imports 白名单禁止直接 import catalog（M1 T05 零网络先例），
-  /// 此处编译期常量镜像；catalog 侧工具名变更时必须同步本清单（评审对照项）。
+  /// 工具分桶键白名单 = AgentToolCatalog 的 17 个编译期固定目录名
+  /// （design-ai-agent §4.1 + T4 客户端本地状态三工具，FC-6 无运行时注册；
+  /// NF6.1「目录名即白名单」）。本文件 imports 白名单禁止直接 import catalog
+  ///（M1 T05 零网络先例），此处编译期常量镜像；catalog 侧工具名变更时必须
+  /// 同步本清单（评审对照项）。
   static const Set<String> _agentToolKeyWhitelist = <String>{
     // A1 六工具（数据 5 + 上下文 1）
     'execute_readonly_sql',
@@ -128,6 +129,10 @@ class WorkbenchUsageStatsService {
     'pin_artifact',
     'open_in_classic',
     'focus_sidebar',
+    // T4 客户端本地状态三工具
+    'save_saved_query',
+    'save_memory',
+    'list_memories',
   };
 
   // ── 生命周期 ──

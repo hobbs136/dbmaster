@@ -2002,7 +2002,11 @@ class SidebarTree extends StatelessWidget {
   ) async {
     if (!context.mounted) return;
     try {
-      await provider.analyzeTreeNodeWithAi(
+      // 2b.4 R7 引流重路由：三钩子（ai_analyze_table / ai_analyze_server /
+      // ai_analyze_database）全部经此单点 → 工作台内分析（开台 + 锁定 +
+      // 预填，零自动发送）。旧 analyzeTreeNodeWithAi（经典 dock 路径）保留
+      // 零改动，但不再从侧栏树触发。
+      await provider.analyzeTreeNodeInWorkbench(
         AiTreeNodeContext(
           type: nodeType,
           connectionId: cid,

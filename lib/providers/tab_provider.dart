@@ -611,6 +611,42 @@ class TabProvider extends ChangeNotifier {
     }
   }
 
+  /// [executeQuery] 的 detailed 孪生（裁决选项 A 并行通道）：返回完整
+  /// [QueryExecutionResult]（rows + affectedRows + executionTimeMs）。
+  /// SELECT PII 脱敏口径与 [executeQuery] 完全一致（:599-605 同源）。
+  /// ⚠ 工作台执行必须走本层（AppProvider.executeQueryDetailed → 本方法），
+  /// 严禁下绕直绑 dbService——否则 SELECT 脱敏回归（裁决 ②）。
+  Future<QueryExecutionResult> executeQueryDetailed(
+    String sql, {
+    String? connectionId,
+    String? database,
+    String? sessionId,
+    bool skipDdlAnalysis = false,
+  }) async {
+    try {
+      final results = await _dbService.executeQueryDetailed(
+        sql,
+        connectionId: connectionId,
+        database: database,
+        sessionId: sessionId,
+        skipDdlAnalysis: skipDdlAnalysis,
+      );
+
+      // Apply PII masking to SELECT query results（镜像 executeQuery 口径）
+      final isSelect = sql.trim().toUpperCase().startsWith('SELECT');
+      if (isSelect && results.rows.isNotEmpty) {
+        return results.copyWith(rows: PIIMasker().maskRows(results.rows));
+      }
+
+      return results;
+    } on DdlConfirmationRequiredException {
+      rethrow;
+    } catch (e) {
+      // 错误不再弹窗，由调用方在结果面板中显示（镜像 executeQuery 结构）
+      rethrow;
+    }
+  }
+
   Future<List<ExecutionResult>> executeCurrentQuery({
     String? overrideSql,
     String? connectionId,

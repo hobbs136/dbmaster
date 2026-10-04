@@ -625,7 +625,8 @@ void main() {
       // 全部操作被拒收 → 无任何有效写入，存储保持为空（未被创建过）。
       expect(await _storedRaw(), '');
 
-      // AgentToolCatalog 14 个编译期固定目录名全部接受（镜像全集互证）。
+      // AgentToolCatalog 17 个编译期固定目录名全部接受（镜像全集互证；
+      // T4 追加 save_saved_query / save_memory / list_memories）。
       const List<String> catalogNames = <String>[
         'execute_readonly_sql',
         'list_tables',
@@ -641,6 +642,9 @@ void main() {
         'pin_artifact',
         'open_in_classic',
         'focus_sidebar',
+        'save_saved_query',
+        'save_memory',
+        'list_memories',
       ];
       for (final String name in catalogNames) {
         _service.recordAgentToolCall(name);

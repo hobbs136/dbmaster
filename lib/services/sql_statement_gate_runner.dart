@@ -40,7 +40,7 @@ import 'package:dbmaster/models/dml_risk_models.dart'
 import 'package:dbmaster/services/ai/ai_tool_classifier.dart'
     show AiToolClassifier;
 import 'package:dbmaster/services/database_service.dart'
-    show DdlConfirmationRequiredException;
+    show DdlConfirmationRequiredException, QueryExecutionResult;
 import 'package:dbmaster/services/sql_parser_service.dart'
     show ParseException, SQLParserService;
 
@@ -103,10 +103,32 @@ class SqlWriteConfirmStrategy {
   final SqlWriteConfirmCallback? onConfirmWrite;
 }
 
-/// 单语句执行回调（M1 绑 `AppProvider.executeQuery` facade——DDL/DML
-/// 拦截、行限制、embedded 网关路由、只读连接检查全部继承）。
+/// 单语句执行回调产物（裁决选项 A detailed 通道）：结果行 + 写/DDL
+/// 语句的影响行数（[affectedRows] 引擎值；SELECT 等读语句为 null）。
+class SqlStatementOutcome {
+  const SqlStatementOutcome({required this.rows, this.affectedRows});
+
+  /// [QueryExecutionResult] 投影（detailed 通道绑定点的解包助手）。
+  factory SqlStatementOutcome.fromExecutionResult(QueryExecutionResult result) {
+    return SqlStatementOutcome(
+      rows: result.rows,
+      affectedRows: result.affectedRows,
+    );
+  }
+
+  /// 结果行。
+  final List<Map<String, dynamic>> rows;
+
+  /// 影响行数（引擎值；null = 无该概念或通道未供给）。
+  final int? affectedRows;
+}
+
+/// 单语句执行回调（M1 绑 `AppProvider.executeQueryDetailed` facade——
+/// DDL/DML 拦截、行限制、embedded 网关路由、只读连接检查、SELECT PII
+/// 脱敏全部继承；返回 [SqlStatementOutcome] 使 affectedRows 贯通执行
+/// 投影与历史双写，不再于 facade 解包层丢失）。
 typedef SqlExecuteCallback =
-    Future<List<Map<String, dynamic>>> Function(String statement);
+    Future<SqlStatementOutcome> Function(String statement);
 
 /// gate #2 DDL 双门确认回调（M1 由 organisms 绑 DdlConfirmDialog；A2 由
 /// shell 绑同款对话框——沿 insertConfirmationCallback 独立注入先例）。
@@ -140,6 +162,7 @@ class SqlStatementResult {
     required this.index,
     required this.status,
     this.rows,
+    this.affectedRows,
     this.durationMs = 0,
     this.error,
   });
@@ -155,6 +178,10 @@ class SqlStatementResult {
 
   /// 成功时的结果行（仅 done 非 null）。
   final List<Map<String, dynamic>>? rows;
+
+  /// 成功时的影响行数（引擎值；仅 done 非 null，SELECT 等读语句可为
+  /// null——裁决选项 A 只加不删的新载荷字段）。
+  final int? affectedRows;
 
   /// 成功时的执行耗时（毫秒；多门路径只计最终成功执行段，与 M1
   /// stopwatch「bypass 前 reset 重启」口径一致）。
@@ -249,11 +276,12 @@ class SqlGateRunDeps {
   /// gate #2 DML 门确认回调；缺位时 fail-closed 视同取消。
   final SqlDmlConfirmCallback? dmlConfirm;
 
-  /// DDL 确认后的 bypass 执行（M1 = `dbService.executeQueryBypassDdl`；
-  /// 确认但未提供通道时 fail-closed 中止，不静默回落裸执行）。
+  /// DDL 确认后的 bypass 执行（M1 = `dbService.executeQueryBypassDdlDetailed`
+  /// 投影；确认但未提供通道时 fail-closed 中止，不静默回落裸执行）。
   final SqlExecuteCallback? executeBypassDdl;
 
-  /// DML 确认后的 bypass 执行（M1 = `dbService.executeQueryBypassDml`）。
+  /// DML 确认后的 bypass 执行（M1 = `dbService.executeQueryBypassDmlDetailed`
+  /// 投影）。
   final SqlExecuteCallback? executeBypassDml;
 
   /// 第 k 句失败即停（A2 计划语义）；false = M1 部分失败继续（AC9.5）。
@@ -348,8 +376,11 @@ class SqlStatementGateRunner {
 
       final stopwatch = Stopwatch()..start();
       List<Map<String, dynamic>> rows;
+      int? affectedRows;
       try {
-        rows = await deps.execute(statement);
+        final SqlStatementOutcome outcome = await deps.execute(statement);
+        rows = outcome.rows;
+        affectedRows = outcome.affectedRows;
       } on DdlConfirmationRequiredException catch (e) {
         final confirm = deps.ddlConfirm;
         // 回调缺位 fail-closed：视同取消（零执行）。
@@ -384,7 +415,9 @@ class SqlStatementGateRunner {
           stopwatch
             ..reset()
             ..start();
-          rows = await bypass(statement);
+          final SqlStatementOutcome outcome = await bypass(statement);
+          rows = outcome.rows;
+          affectedRows = outcome.affectedRows;
         } catch (execError) {
           _emitResult(
             deps,
@@ -430,7 +463,9 @@ class SqlStatementGateRunner {
           stopwatch
             ..reset()
             ..start();
-          rows = await bypass(statement);
+          final SqlStatementOutcome outcome = await bypass(statement);
+          rows = outcome.rows;
+          affectedRows = outcome.affectedRows;
         } catch (execError) {
           _emitResult(
             deps,
@@ -467,6 +502,7 @@ class SqlStatementGateRunner {
         i,
         SqlStatementStatus.done,
         rows: rows,
+        affectedRows: affectedRows,
         durationMs: stopwatch.elapsedMilliseconds,
       );
     }
@@ -513,6 +549,7 @@ class SqlStatementGateRunner {
     int index,
     SqlStatementStatus status, {
     List<Map<String, dynamic>>? rows,
+    int? affectedRows,
     int durationMs = 0,
     Object? error,
   }) {
@@ -521,6 +558,7 @@ class SqlStatementGateRunner {
       index: index,
       status: status,
       rows: rows,
+      affectedRows: affectedRows,
       durationMs: durationMs,
       error: error,
     );

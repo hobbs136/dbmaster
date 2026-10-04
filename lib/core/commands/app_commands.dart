@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/workbench_entry_intent.dart';
+import '../../organisms/ai_workbench/ai_memory_manager_dialog.dart';
 import '../../organisms/connection/command_palette.dart';
 import '../../organisms/connection/connection_export_import_dialog.dart';
 import '../../providers/app_provider.dart';
@@ -170,6 +172,95 @@ List<Command> buildCommands(AppLocalizations l10n, CommandBuilders handlers) {
       icon: LucideIcons.fileDown,
       category: l10n.commandCategoryTools,
       execute: (context) => ConnectionExportImportDialog.showImport(context),
+    ),
+    Command(
+      id: 'ai_memory_manager',
+      label: l10n.commandAiMemoryManager,
+      description: l10n.commandDescAiMemoryManager,
+      icon: LucideIcons.brain,
+      category: l10n.commandCategoryTools,
+      keywords: ['AI', 'memory', '记忆'],
+      // 内联 execute（同 export/import_connections 先例，不扩 CommandBuilders）；
+      // 当前连接 id 由命令面板上下文解析（currentServer 优先语义同侧栏）。
+      execute: (context) => showAiMemoryManagerDialog(
+        context,
+        connectionId: context.read<AppProvider>().connection.currentServer?.id,
+      ),
+    ),
+    Command(
+      id: 'open_observe',
+      label: l10n.commandOpenObserve,
+      description: l10n.commandDescOpenObserve,
+      icon: LucideIcons.activity,
+      category: l10n.commandCategoryTools,
+      keywords: ['observe', '观察', 'monitor', 'health', 'instance'],
+      // 内联 execute（同 ai_memory_manager 先例，不扩 CommandBuilders）：
+      // 开工作台 + 推 observe tab（R7；observe 单例跟随锁定连接，2b.1）。
+      execute: (context) {
+        final aiPanel = context.read<AppProvider>().aiPanel;
+        aiPanel.setAiPanelOpen(true);
+        aiPanel.setAiPanelFullscreen(true);
+        aiPanel.ensureSession();
+        aiPanel.requestWorkbenchEntry(
+          tabTarget: WorkbenchEntryTabTarget.observe,
+        );
+      },
+    ),
+    Command(
+      id: 'open_saved_queries',
+      label: l10n.commandOpenSavedQueries,
+      description: l10n.commandDescOpenSavedQueries,
+      icon: LucideIcons.bookmark,
+      category: l10n.commandCategoryTools,
+      keywords: ['saved', 'query', '保存', '查询'],
+      // 内联 execute（同 ai_memory_manager 先例）：开工作台 + 推保存的查询
+      // tab（先行批 A4 舞台同源单例，§8-2）。
+      execute: (context) {
+        final aiPanel = context.read<AppProvider>().aiPanel;
+        aiPanel.setAiPanelOpen(true);
+        aiPanel.setAiPanelFullscreen(true);
+        aiPanel.ensureSession();
+        aiPanel.requestWorkbenchEntry(
+          tabTarget: WorkbenchEntryTabTarget.savedQueries,
+        );
+      },
+    ),
+    Command(
+      id: 'open_history',
+      label: l10n.commandOpenHistory,
+      description: l10n.commandDescOpenHistory,
+      icon: LucideIcons.history,
+      category: l10n.commandCategoryTools,
+      keywords: ['history', '历史', 'query'],
+      // 内联 execute（同 ai_memory_manager 先例）：开工作台 + 推查询历史
+      // tab（先行批 A3 舞台同源单例，§8-2）。
+      execute: (context) {
+        final aiPanel = context.read<AppProvider>().aiPanel;
+        aiPanel.setAiPanelOpen(true);
+        aiPanel.setAiPanelFullscreen(true);
+        aiPanel.ensureSession();
+        aiPanel.requestWorkbenchEntry(
+          tabTarget: WorkbenchEntryTabTarget.history,
+        );
+      },
+    ),
+    Command(
+      id: 'open_scheduled_tasks',
+      label: l10n.commandOpenScheduledTasks,
+      description: l10n.commandDescOpenScheduledTasks,
+      icon: LucideIcons.clock,
+      category: l10n.commandCategoryTools,
+      keywords: ['scheduled', 'task', '定时任务', 'cron'],
+      // 内联 execute（同 ai_memory_manager 先例）：开工作台 only（占位）。
+      // TODO: taskList 第二批接线——届时推 scheduledTasks tab；本批
+      // tabTarget: none（描述文案已预告「随下一批上线」）。
+      execute: (context) {
+        final aiPanel = context.read<AppProvider>().aiPanel;
+        aiPanel.setAiPanelOpen(true);
+        aiPanel.setAiPanelFullscreen(true);
+        aiPanel.ensureSession();
+        aiPanel.requestWorkbenchEntry();
+      },
     ),
   ];
 }
