@@ -104,9 +104,10 @@ void main() {
       );
 
       // 2. 真实 AppProvider 连接（真实 DatabaseService + 网关壳 adapter）。
-      // Fix-H：注入存储隔离 manager——本文件不调 setMockInitialValues，
-      // 真机模式下 ensureSession/addAiMessage 的会话文件 + active-id prefs
-      // 此前直写用户真实存储（污染缺陷波及点），现落临时目录 + 前缀键。
+      // 存储隔离两面：prefs 面经 setUp 首行 setMockInitialValues 隔离
+      // （AG-F-19）；会话文件面注入存储隔离 manager（Fix-H）——此前
+      // ensureSession/addAiMessage 直写用户真实存储（污染缺陷波及点），
+      // 现分别落 mock 存储 / 临时目录 + 前缀键。
       appProvider = AppProvider(
         aiSessionManager: createIsolatedAiSessionManager(),
       );
