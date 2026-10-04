@@ -115,6 +115,59 @@ void main() {
       expect(find.text('7 rows · 30 ms'), findsOneWidget);
     });
 
+    testWidgets('result_card「在舞台打开」回调携带 (payload, cardId)（v2 B2 签名）', (
+      tester,
+    ) async {
+      // 非截断有快照（v2 B2 放宽：snapshotRows 非空即可开）。
+      final payload = WorkbenchResultCardPayload(
+        sql: 'SELECT id FROM users',
+        rowCount: 3,
+        durationMs: 20,
+        columns: const ['id'],
+        rows: const [
+          {'id': 1},
+          {'id': 2},
+          {'id': 3},
+        ],
+      );
+      final message = _msg(
+        type: AiMessageType.toolResult,
+        toolResultData: {'workbench': payload.toJson()},
+      );
+      WorkbenchResultCardPayload? gridPayload;
+      String? cardId;
+      await tester.pumpWidget(
+        _wrap(
+          Builder(
+            builder: (context) =>
+                WorkbenchCardHost.tryBuild(
+                  context: context,
+                  message: message,
+                  actions: WorkbenchCardActions(
+                    onOpenResultInGrid: (p, id) {
+                      gridPayload = p;
+                      cardId = id;
+                    },
+                  ),
+                ) ??
+                const SizedBox.shrink(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(ResultTableCard.openInGridButtonKey));
+      await tester.pump();
+      expect(gridPayload, isNotNull);
+      // 安全：上方 expect(isNotNull) 已收窄。
+      expect(gridPayload!.rowCount, 3);
+      expect(
+        cardId,
+        message.id,
+        reason: 'v2 B2：回调第二参 = 承载卡的消息 id（构建点注入）',
+      );
+    });
+
     testWidgets('error_card → 错误态渲染分支', (tester) async {
       final payload = WorkbenchErrorCardPayload(
         sql: 'SELECT 1',

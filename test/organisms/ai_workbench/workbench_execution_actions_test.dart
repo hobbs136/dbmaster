@@ -27,18 +27,29 @@ import 'package:dbmaster/organisms/ai_panel/confirm_execute_dialog.dart';
 import 'package:dbmaster/organisms/ai_panel/ddl_confirm_dialog.dart';
 import 'package:dbmaster/organisms/dialogs/dml_confirm_dialog.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_execution_actions.dart';
+import 'package:dbmaster/organisms/ai_workbench/workbench_stage.dart'
+    show StageExecutionData, StageExecutionStatus;
 import 'package:dbmaster/providers/app_provider.dart';
 import 'package:dbmaster/services/database_service.dart';
 import 'package:dbmaster/services/workbench_usage_stats_service.dart';
 
-/// executeQuery 计数桩（只覆写 facade 执行入口；其余成员沿真实 AppProvider）。
+/// executeQueryDetailed 计数桩（只覆写 facade 执行入口；其余成员沿真实
+/// AppProvider。裁决选项 A 起工作台执行走 detailed 通道）。
 class _CountingAppProvider extends AppProvider {
   int executeCalls = 0;
   final List<String> executedSql = <String>[];
   Object? throwOnExecute;
 
+  /// B1 用：按语句内容选择性抛错的钩子（返回非 null 即抛；null = 不抛）。
+  /// 用于混合批「单语句失败」与「gate #2 选择性拦截」形态。
+  Object? Function(String sql)? throwForSql;
+
+  /// 按语句内容定制引擎影响行数（裁决选项 A：写语句回传真值；null 回调
+  /// 走默认——只读 null、写 1）。DDL 0 抑制 / DML 直显语义测试用。
+  int? Function(String sql)? affectedRowsFor;
+
   @override
-  Future<List<Map<String, dynamic>>> executeQuery(
+  Future<QueryExecutionResult> executeQueryDetailed(
     String sql, {
     String? connectionId,
     String? database,
@@ -47,9 +58,24 @@ class _CountingAppProvider extends AppProvider {
     executeCalls++;
     executedSql.add(sql);
     if (throwOnExecute != null) throw throwOnExecute!;
-    return Future<List<Map<String, dynamic>>>.value(<Map<String, dynamic>>[
-      <String, dynamic>{'id': 1, 'name': 'alpha'},
-    ]);
+    final Object? custom = throwForSql?.call(sql);
+    if (custom != null) throw custom;
+    // 网关形态对齐（detailed 通道）：只读语句回传 1 行（affectedRows
+    // null）；写语句空行集 + 引擎 affectedRows（默认 1）。
+    final bool isSelect = sql.trim().toUpperCase().startsWith('SELECT');
+    final int? affectedRows = isSelect
+        ? null
+        : (affectedRowsFor?.call(sql) ?? 1);
+    return Future<QueryExecutionResult>.value(
+      QueryExecutionResult(
+        isSelect
+            ? <Map<String, dynamic>>[
+                <String, dynamic>{'id': 1, 'name': 'alpha'},
+              ]
+            : <Map<String, dynamic>>[],
+        affectedRows: affectedRows,
+      ),
+    );
   }
 }
 
@@ -64,11 +90,13 @@ void main() {
   });
 
   /// 泵编排触发面：按钮经 [WorkbenchExecutionActions.run] 驱动（与卡动作
-  /// 同入口）。[sql] 经闭包捕获（测试体内可变）。
+  /// 同入口）。[sql] 经闭包捕获（测试体内可变）。[batches]（B1）传入即
+  /// 捕获 execution tab 批次推送（onExecutionBatch 回调）。
   Future<_CountingAppProvider> pumpHarness(
     WidgetTester tester, {
     required String Function() sql,
     required Set<String> allowed,
+    List<StageExecutionData>? batches,
   }) async {
     final app = _CountingAppProvider();
     app.aiPanel.ensureSession();
@@ -90,6 +118,7 @@ void main() {
                     context,
                     sql(),
                     allowedWriteServers: allowed,
+                    onExecutionBatch: batches?.add,
                   ),
                   child: const Text('run'),
                 ),
@@ -677,6 +706,272 @@ void main() {
         everyElement('error_card'),
         reason: '本桩两条均失败（桩按调用全量抛错）——逐条落错误卡可辨识',
       );
+    });
+  });
+
+  group('B1 execution tab 批次推送（R3/R4，永不空开）', () {
+    testWidgets('混合批（含写）→ 批末推送一次，行 = 批内全部语句（含只读，执行序）', (
+      tester,
+    ) async {
+      final batches = <StageExecutionData>[];
+      final app = await pumpHarness(
+        tester,
+        sql: () => "SELECT 1; INSERT INTO t VALUES (1); SELECT 2",
+        allowed: {'conn-1'},
+        batches: batches,
+      );
+
+      await triggerRun(tester);
+      await tester.pumpAndSettle();
+
+      expect(app.executeCalls, 3, reason: '三句逐条执行');
+      expect(batches, hasLength(1), reason: '批末推送恰好一次');
+      final data = batches.single;
+      expect(
+        data.tabKey,
+        StageExecutionData.manualTabKey,
+        reason: 'R4：手动批单例键 manual（复用刷新不累积）',
+      );
+      expect(data.title, startsWith('Execution '), reason: '标题含时间戳');
+      expect(
+        data.rows.map((r) => r.sql),
+        ['SELECT 1', 'INSERT INTO t VALUES (1)', 'SELECT 2'],
+        reason: 'R3：行 = 批内全部语句（含只读），执行序',
+      );
+      expect(
+        data.rows.map((r) => r.status),
+        everyElement(StageExecutionStatus.done),
+      );
+      // 指标口径（裁决选项 A detailed 通道）：只读行无影响行概念（引擎
+      // null → 降级不显）；写语句（INSERT）affectedRows = 引擎真值 1
+      // （不再空行集降级）；耗时逐行在位。
+      expect(
+        data.rows[0].affectedRows,
+        isNull,
+        reason: '只读语句无影响行概念（引擎 null），chip 不显',
+      );
+      expect(
+        data.rows[1].affectedRows,
+        1,
+        reason: '写语句行 affectedRows 有值 = 引擎真值（detailed 通道贯通）',
+      );
+      expect(
+        data.rows.every((r) => r.durationMs != null),
+        isTrue,
+        reason: '耗时逐行在位（runner stopwatch 口径）',
+      );
+    });
+
+    testWidgets('DDL 展示语义（裁决定案）：引擎报 0 抑制 chip；DML 直显引擎值（含 0）', (
+      tester,
+    ) async {
+      final batches = <StageExecutionData>[];
+      final app = await pumpHarness(
+        tester,
+        sql: () => 'UPDATE t SET a = 1 WHERE id = 99; '
+            'CREATE TABLE t2 (id INT); '
+            'INSERT INTO t3 VALUES (1)',
+        allowed: {'conn-1'},
+        batches: batches,
+      );
+      // 引擎值：UPDATE 命中 0 行（DML 直显 0）；CREATE TABLE 报 0
+      // （MySQL DDL 成功常报 0 → 抑制）；INSERT 报 1。
+      app.affectedRowsFor = (sql) {
+        if (sql.contains('CREATE TABLE')) return 0;
+        if (sql.contains('INSERT')) return 1;
+        return 0;
+      };
+
+      await triggerRun(tester);
+      await tester.pumpAndSettle();
+
+      expect(app.executeCalls, 3);
+      expect(batches, hasLength(1));
+      final data = batches.single;
+      expect(
+        data.rows.map((r) => r.sql),
+        [
+          'UPDATE t SET a = 1 WHERE id = 99',
+          'CREATE TABLE t2 (id INT)',
+          'INSERT INTO t3 VALUES (1)',
+        ],
+      );
+      expect(
+        data.rows[0].affectedRows,
+        0,
+        reason: 'DML 直显引擎值（含 0）——UPDATE 命中 0 行如实显示',
+      );
+      expect(
+        data.rows[1].affectedRows,
+        isNull,
+        reason: 'DDL 引擎报 0（MySQL DDL 成功常报 0）→ 抑制 chip，仅 >0 显示',
+      );
+      expect(
+        data.rows[2].affectedRows,
+        1,
+        reason: 'INSERT 引擎真值 1 贯通',
+      );
+    });
+
+    testWidgets('DDL 引擎报 >0 → 显示真值（抑制只针对 0）', (tester) async {
+      final batches = <StageExecutionData>[];
+      final app = await pumpHarness(
+        tester,
+        sql: () => 'CREATE TABLE t2 (id INT)',
+        allowed: {'conn-1'},
+        batches: batches,
+      );
+      app.affectedRowsFor = (_) => 4;
+
+      await triggerRun(tester);
+      await tester.pumpAndSettle();
+
+      expect(batches, hasLength(1));
+      expect(
+        batches.single.rows.single.affectedRows,
+        4,
+        reason: 'DDL 引擎报 4 → 直显（抑制只针对 0）',
+      );
+    });
+
+    testWidgets('失败行 error 全文入 data + 部分失败不中断（AC9.5）', (tester) async {
+      final batches = <StageExecutionData>[];
+      final app = await pumpHarness(
+        tester,
+        sql: () =>
+            'INSERT INTO t VALUES (1); '
+            'UPDATE missing_t SET a = 1 WHERE id = 2 LIMIT 1',
+        allowed: {'conn-1'},
+        batches: batches,
+      );
+      app.throwForSql = (sql) => sql.contains('missing_t')
+          ? Exception('boom: table missing_t not found')
+          : null;
+
+      await triggerRun(tester);
+      await tester.pumpAndSettle();
+
+      expect(app.executeCalls, 2, reason: '部分失败不中断后续语句');
+      expect(batches, hasLength(1));
+      final data = batches.single;
+      expect(data.rows, hasLength(2));
+      expect(data.rows[0].status, StageExecutionStatus.done);
+      expect(data.rows[1].status, StageExecutionStatus.failed);
+      expect(
+        data.rows[1].error,
+        contains('boom: table missing_t not found'),
+        reason: '失败行错误全文入投影（脱敏后原文）',
+      );
+      expect(data.rows[1].durationMs, isNotNull);
+    });
+
+    testWidgets('纯只读批不推（结果卡已承载，R3）', (tester) async {
+      final batches = <StageExecutionData>[];
+      final app = await pumpHarness(
+        tester,
+        sql: () => 'SELECT 1; SELECT 2',
+        allowed: <String>{},
+        batches: batches,
+      );
+
+      await triggerRun(tester);
+      await tester.pumpAndSettle();
+
+      expect(app.executeCalls, 2, reason: '只读批正常执行');
+      expect(batches, isEmpty, reason: '纯只读批不推 execution tab（R3）');
+    });
+
+    testWidgets('gate #1 写确认取消（零执行）不推（永不空开，v1 §3.7）', (tester) async {
+      final batches = <StageExecutionData>[];
+      final app = await pumpHarness(
+        tester,
+        sql: () => 'INSERT INTO t VALUES (1)',
+        allowed: <String>{},
+        batches: batches,
+      );
+
+      await triggerRun(tester);
+      await tester.tap(find.text(l10n.commonCancel));
+      await tester.pumpAndSettle();
+
+      expect(app.executeCalls, 0, reason: '取消零执行');
+      expect(batches, isEmpty, reason: '全取消（零执行）不推——永不空开');
+    });
+
+    testWidgets('拆分失败（fail-closed 零执行）不推（F1）', (tester) async {
+      final batches = <StageExecutionData>[];
+      final app = await pumpHarness(
+        tester,
+        sql: () => 'INSERT INTO t VALUES (1); /*',
+        allowed: {'conn-1'},
+        batches: batches,
+      );
+
+      await triggerRun(tester);
+      await tester.pumpAndSettle();
+
+      expect(app.executeCalls, 0, reason: '拆分失败零执行');
+      expect(batches, isEmpty, reason: '拆分失败不推——永不空开');
+    });
+
+    testWidgets('gate #2 DDL 取消：已执行行 + skipped 行同批入投影（R3 全语句行）', (
+      tester,
+    ) async {
+      final batches = <StageExecutionData>[];
+      final app = await pumpHarness(
+        tester,
+        sql: () => 'INSERT INTO t VALUES (1); DROP TABLE risky_x',
+        allowed: {'conn-1'}, // gate #1 已放行，直达管线异常
+        batches: batches,
+      );
+      app.throwForSql = (sql) => sql.contains('risky_x')
+          ? DdlConfirmationRequiredException(
+              sql: sql,
+              impactReport: ImpactReport(
+                ddlStatement: sql,
+                targetTable: 'risky_x',
+                ddlType: 'DROP',
+                riskLevel: RiskLevel.high,
+                affectedObjects: const [],
+                dependencies: const [],
+                warnings: const [],
+                recommendations: const [],
+                requiresConfirmation: true,
+                analyzedAt: DateTime.now(),
+              ),
+            )
+          : null;
+
+      await triggerRun(tester);
+      await tester.pump();
+      expect(
+        find.byType(DdlConfirmDialog),
+        findsOneWidget,
+        reason: 'DROP 触发 DDL 双门确认',
+      );
+      await tester.tap(find.text(l10n.commonCancel));
+      await tester.pumpAndSettle();
+
+      expect(
+        app.executeCalls,
+        2,
+        reason: 'INSERT 已执行 1 次 + DROP 被管线拦截的 1 次尝试',
+      );
+      expect(batches, hasLength(1), reason: '批内有真实执行（INSERT done）→ 推');
+      final data = batches.single;
+      expect(data.rows, hasLength(2), reason: '行 = 全批语句（含 skipped）');
+      expect(data.rows[0].status, StageExecutionStatus.done);
+      expect(
+        data.rows[1].status,
+        StageExecutionStatus.skipped,
+        reason: '门控取消语句未执行 → skipped 行',
+      );
+      expect(
+        data.rows[1].durationMs,
+        isNull,
+        reason: '未执行语句无指标（降级「状态 + SQL」）',
+      );
+      expect(data.rows[1].error, isNull);
     });
   });
 }

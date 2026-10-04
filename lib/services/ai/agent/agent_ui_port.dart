@@ -9,6 +9,9 @@
 /// 约束）；抽象接口 + 值对象 only，零实现、零 IO（tasks-ai-agent.md §3 T09）。
 library;
 
+import '../../../models/query_optimizer/execution_plan.dart'
+    show PerformanceReport;
+
 /// 数据引用：工具结果不重复传全量，以 run 内引用 ID 寻址（舞台/图表/产物条
 /// 消费；design §4.5 原文）。
 ///
@@ -80,7 +83,8 @@ class AgentUiOutcome {
   String toString() => 'AgentUiOutcome(ok: $ok, message: $message)';
 }
 
-/// Agent → 工作台界面的派发端口（design §4.5 七方法，签名一字不改）。
+/// Agent → 工作台界面的派发端口（design §4.5 七方法，签名一字不改；
+/// 2b.3 加性扩展第八方法 [openOptimization]——只读推送零执行，R6）。
 ///
 /// - D8：本抽象由 services 层定义、organisms 侧（T27）实现注入；A1 期 runner
 ///   的 `uiPort` 参数可空（计划期发现 #7），无实现即不派发界面动作；
@@ -110,6 +114,15 @@ abstract class AgentUiPort {
 
   /// 建议卡：侧栏定位（库/表；应用落审计，AC6.4）。
   Future<AgentUiOutcome> suggestFocusSidebar({String? database, String? table});
+
+  /// 舞台 optimization tab 推送（2b.3，R6 加性方法）：executor `explain_plan`
+  /// 只读通道成功取到 plan 行后组装 [PerformanceReport] 经本方法推入舞台
+  /// （[sql] = 原 SQL 精确串，去重键）。**只读推送、零执行**——报告纯展示
+  /// 渲染（计划树/瓶颈/索引推荐/重写建议），本方法不触发任何 SQL 执行；
+  /// 「应用此索引」由 UI 层用户动作触发且只填编辑器槽。调用方约定：
+  /// uiPort 为 null（未装配）时**跳过本方法不失败**（结果照常回模型，
+  /// fail-closed 语义同 [_DetachedUiPort] 缺席占位）。
+  Future<AgentUiOutcome> openOptimization(PerformanceReport report, String sql);
 }
 
 /// design §4.3 UI 决策结果类型，T11 runner 与卡面共同消费。

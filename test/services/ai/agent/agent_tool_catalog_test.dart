@@ -1,13 +1,14 @@
 /// T04 AgentToolCatalog 单测（tasks-ai-agent.md §3 T04）。
 ///
-/// 覆盖：14 工具全集完整性、milestone 过滤（A1 六 / A2 全 14）、find 命中 /
-/// 目录外 / A1 期 A2 工具不可寻址、llmToolsFor 输出 OpenAI function schema
-/// 结构断言（四键子集 + additionalProperties:false，D4/FC-3）、门档与类别
-/// 对 design §4.1 表、错误码全集。
+/// 覆盖：17 工具全集完整性（A1 六 + A2 八 + T4 客户端本地状态三工具）、
+/// milestone 过滤（A1 六 / A2 全 17）、find 命中 / 目录外 / A1 期 A2 工具
+/// 不可寻址、llmToolsFor 输出 OpenAI function schema 结构断言（四键子集 +
+/// additionalProperties:false，D4/FC-3）、门档与类别对 design §4.1 表、
+/// 错误码全集（T4 加性追加 SAVED_QUERY_CONFLICT）。
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dbmaster/services/ai/agent/agent_tool_catalog.dart';
 
-/// design §4.1 表的 14 工具名全集。
+/// design §4.1 表 + T4 三工具的 17 工具名全集。
 const Set<String> _allNames = <String>{
   'execute_readonly_sql',
   'list_tables',
@@ -23,6 +24,9 @@ const Set<String> _allNames = <String>{
   'pin_artifact',
   'open_in_classic',
   'focus_sidebar',
+  'save_saved_query',
+  'save_memory',
+  'list_memories',
 };
 
 /// A1 档六工具（数据 5 + 上下文 1，tasks §6 计划期发现 #2）。
@@ -47,6 +51,13 @@ const Set<String> _a2Names = <String>{
   'focus_sidebar',
 };
 
+/// T4 客户端本地状态三工具（milestone 2）。
+const Set<String> _t4Names = <String>{
+  'save_saved_query',
+  'save_memory',
+  'list_memories',
+};
+
 /// 按 name 取全集内 spec（不受 activeMilestone 过滤影响，供 A2 工具断言）。
 AgentToolSpec _specByName(String name) {
   for (final AgentToolSpec spec in AgentToolCatalog.specsFor(milestone: 3)) {
@@ -58,77 +69,82 @@ AgentToolSpec _specByName(String name) {
 }
 
 Set<String> _llmNames(List<Map<String, dynamic>> tools) => tools
-    .map((Map<String, dynamic> tool) =>
-        (tool['function'] as Map<String, dynamic>)['name'] as String)
+    .map(
+      (Map<String, dynamic> tool) =>
+          (tool['function'] as Map<String, dynamic>)['name'] as String,
+    )
     .toSet();
 
 void main() {
-  group('14 工具全集完整性', () {
-    test('specsFor(3) 返回 14 工具，name 集合与 design §4.1 表一致', () {
-      final List<AgentToolSpec> specs =
-          AgentToolCatalog.specsFor(milestone: 3);
-      expect(specs, hasLength(14));
+  group('17 工具全集完整性', () {
+    test('specsFor(3) 返回 17 工具，name 集合与 design §4.1 表 + T4 三工具一致', () {
+      final List<AgentToolSpec> specs = AgentToolCatalog.specsFor(milestone: 3);
+      expect(specs, hasLength(17));
       expect(specs.map((AgentToolSpec s) => s.name).toSet(), _allNames);
     });
 
     test('每工具 name 为 snake_case、description 非空、milestone ∈ {1, 2}', () {
-      for (final AgentToolSpec spec
-          in AgentToolCatalog.specsFor(milestone: 3)) {
-        expect(spec.name, matches(RegExp(r'^[a-z][a-z0-9_]*$')),
-            reason: spec.name);
+      for (final AgentToolSpec spec in AgentToolCatalog.specsFor(
+        milestone: 3,
+      )) {
+        expect(
+          spec.name,
+          matches(RegExp(r'^[a-z][a-z0-9_]*$')),
+          reason: spec.name,
+        );
         expect(spec.description, isNotEmpty, reason: spec.name);
         expect(spec.milestone, anyOf(1, 2), reason: spec.name);
       }
     });
 
     test('无 milestone 3 工具（FC-6：不预实现 A3 死占位）', () {
-      final Set<int> milestones = AgentToolCatalog.specsFor(milestone: 3)
-          .map((AgentToolSpec s) => s.milestone)
-          .toSet();
+      final Set<int> milestones = AgentToolCatalog.specsFor(
+        milestone: 3,
+      ).map((AgentToolSpec s) => s.milestone).toSet();
       expect(milestones.difference(<int>{1, 2}), isEmpty);
     });
   });
 
   group('milestone 过滤', () {
     test('specsFor(1) 恰含 A1 六工具（数据 5 + 上下文 1），无 A2 工具', () {
-      final List<AgentToolSpec> specs =
-          AgentToolCatalog.specsFor(milestone: 1);
+      final List<AgentToolSpec> specs = AgentToolCatalog.specsFor(milestone: 1);
       expect(specs.map((AgentToolSpec s) => s.name).toSet(), _a1Names);
       expect(specs.map((AgentToolSpec s) => s.name).toSet().length, 6);
     });
 
-    test('specsFor(2) 恰含 14；specsFor(3) 与 specsFor(2) 一致（无 A3 工具）',
-        () {
-      final List<AgentToolSpec> m2 =
-          AgentToolCatalog.specsFor(milestone: 2);
-      expect(m2, hasLength(14));
+    test('specsFor(2) 恰含 17；specsFor(3) 与 specsFor(2) 一致（无 A3 工具）', () {
+      final List<AgentToolSpec> m2 = AgentToolCatalog.specsFor(milestone: 2);
+      expect(m2, hasLength(17));
       expect(m2.map((AgentToolSpec s) => s.name).toSet(), _allNames);
-      final Set<String> m3Names = AgentToolCatalog.specsFor(milestone: 3)
-          .map((AgentToolSpec s) => s.name)
-          .toSet();
+      final Set<String> m3Names = AgentToolCatalog.specsFor(
+        milestone: 3,
+      ).map((AgentToolSpec s) => s.name).toSet();
       expect(m3Names, m2.map((AgentToolSpec s) => s.name).toSet());
     });
 
-    test('llmToolsFor(1) 恰含 6 且不含任何 A2 工具；llmToolsFor(2) 恰含 14', () {
-      final List<Map<String, dynamic>> t1 =
-          AgentToolCatalog.llmToolsFor(milestone: 1);
+    test('llmToolsFor(1) 恰含 6 且不含任何 A2/T4 工具；llmToolsFor(2) 恰含 17', () {
+      final List<Map<String, dynamic>> t1 = AgentToolCatalog.llmToolsFor(
+        milestone: 1,
+      );
       expect(t1, hasLength(6));
       final Set<String> names1 = _llmNames(t1);
       expect(names1, _a1Names);
       expect(names1.intersection(_a2Names), isEmpty);
+      expect(names1.intersection(_t4Names), isEmpty);
 
-      final List<Map<String, dynamic>> t2 =
-          AgentToolCatalog.llmToolsFor(milestone: 2);
-      expect(t2, hasLength(14));
+      final List<Map<String, dynamic>> t2 = AgentToolCatalog.llmToolsFor(
+        milestone: 2,
+      );
+      expect(t2, hasLength(17));
       expect(_llmNames(t2), _allNames);
     });
 
-    test('activeMilestone == 2（T28 A2 合龙相位：14 工具全量可寻址）', () {
+    test('activeMilestone == 2（T28 A2 合龙相位 + T4：17 工具全量可寻址）', () {
       // T28：A1 期 == 1 的相位断言随合龙翻转为 2（任务书预留的切换点）。
       expect(AgentToolCatalog.activeMilestone, 2);
       expect(
         AgentToolCatalog.specsFor(milestone: AgentToolCatalog.activeMilestone),
-        hasLength(14),
+        hasLength(17),
       );
     });
   });
@@ -147,9 +163,12 @@ void main() {
       expect(AgentToolCatalog.find(''), isNull);
     });
 
-    test('A2 相位（T28）：A2 八工具经 find 可寻址，全集与过滤一致', () {
+    test('A2 相位（T28）+ T4：A2 八工具与 T4 三工具经 find 可寻址', () {
       // T28 后 A2 工具进入可寻址集（A1 期不可寻址断言随合龙翻转）。
       for (final String name in _a2Names) {
+        expect(AgentToolCatalog.find(name), isNotNull, reason: name);
+      }
+      for (final String name in _t4Names) {
         expect(AgentToolCatalog.find(name), isNotNull, reason: name);
       }
       expect(AgentToolCatalog.find('drop_database'), isNull);
@@ -157,47 +176,58 @@ void main() {
   });
 
   group('llmToolsFor 输出结构（OpenAI function schema）', () {
-    test('条目顶层为 type=function + function{name, description, parameters}',
-        () {
-      for (final Map<String, dynamic> tool
-          in AgentToolCatalog.llmToolsFor(milestone: 2)) {
+    test('条目顶层为 type=function + function{name, description, parameters}', () {
+      for (final Map<String, dynamic> tool in AgentToolCatalog.llmToolsFor(
+        milestone: 2,
+      )) {
         final Map<String, dynamic> function =
             tool['function'] as Map<String, dynamic>;
-        expect(tool.keys.toSet(), <String>{'type', 'function'},
-            reason: function['name'] as String);
+        expect(tool.keys.toSet(), <String>{
+          'type',
+          'function',
+        }, reason: function['name'] as String);
         expect(tool['type'], 'function');
-        expect(function.keys.toSet(),
-            <String>{'name', 'description', 'parameters'},
-            reason: function['name'] as String);
+        expect(function.keys.toSet(), <String>{
+          'name',
+          'description',
+          'parameters',
+        }, reason: function['name'] as String);
         expect(function['name'], isA<String>());
         expect(function['description'], isA<String>());
         expect(function['parameters'], isA<Map<String, dynamic>>());
       }
     });
 
-    test('parameters 恰为四键子集且 additionalProperties:false（D4 / FC-3）',
-        () {
-      for (final Map<String, dynamic> tool
-          in AgentToolCatalog.llmToolsFor(milestone: 2)) {
+    test('parameters 恰为四键子集且 additionalProperties:false（D4 / FC-3）', () {
+      for (final Map<String, dynamic> tool in AgentToolCatalog.llmToolsFor(
+        milestone: 2,
+      )) {
         final Map<String, dynamic> function =
             tool['function'] as Map<String, dynamic>;
         final String name = function['name'] as String;
         final Map<String, dynamic> parameters =
             function['parameters'] as Map<String, dynamic>;
-        expect(parameters.keys.toSet(),
-            <String>{'type', 'properties', 'required', 'additionalProperties'},
-            reason: name);
+        expect(parameters.keys.toSet(), <String>{
+          'type',
+          'properties',
+          'required',
+          'additionalProperties',
+        }, reason: name);
         expect(parameters['type'], 'object', reason: name);
         expect(parameters['additionalProperties'], false, reason: name);
-        expect(parameters['properties'], isA<Map<dynamic, dynamic>>(),
-            reason: name);
+        expect(
+          parameters['properties'],
+          isA<Map<dynamic, dynamic>>(),
+          reason: name,
+        );
         expect(parameters['required'], isA<List<dynamic>>(), reason: name);
       }
     });
 
     test('required 的每个键都在 properties 中声明（无悬空 required）', () {
-      for (final Map<String, dynamic> tool
-          in AgentToolCatalog.llmToolsFor(milestone: 2)) {
+      for (final Map<String, dynamic> tool in AgentToolCatalog.llmToolsFor(
+        milestone: 2,
+      )) {
         final Map<String, dynamic> function =
             tool['function'] as Map<String, dynamic>;
         final String name = function['name'] as String;
@@ -206,8 +236,11 @@ void main() {
         final Map<dynamic, dynamic> properties =
             parameters['properties'] as Map<dynamic, dynamic>;
         for (final dynamic key in parameters['required'] as List<dynamic>) {
-          expect(properties.containsKey(key), isTrue,
-              reason: '$name required key "$key" missing in properties');
+          expect(
+            properties.containsKey(key),
+            isTrue,
+            reason: '$name required key "$key" missing in properties',
+          );
         }
       }
     });
@@ -215,8 +248,9 @@ void main() {
 
   group('schema 抽样断言（逐工具参数面）', () {
     test('execute_readonly_sql：sql 必填 string', () {
-      final Map<String, dynamic> schema =
-          _specByName('execute_readonly_sql').inputSchema;
+      final Map<String, dynamic> schema = _specByName(
+        'execute_readonly_sql',
+      ).inputSchema;
       expect(schema['required'], <String>['sql']);
       final Map<dynamic, dynamic> sql =
           (schema['properties'] as Map<dynamic, dynamic>)['sql']
@@ -225,8 +259,9 @@ void main() {
     });
 
     test('get_sample_data：table 必填、limit 可选 integer（不在 required）', () {
-      final Map<String, dynamic> schema =
-          _specByName('get_sample_data').inputSchema;
+      final Map<String, dynamic> schema = _specByName(
+        'get_sample_data',
+      ).inputSchema;
       expect(schema['required'], <String>['table']);
       final Map<dynamic, dynamic> properties =
           schema['properties'] as Map<dynamic, dynamic>;
@@ -238,23 +273,25 @@ void main() {
     });
 
     test('get_current_context：空参数（properties 与 required 皆空）', () {
-      final Map<String, dynamic> schema =
-          _specByName('get_current_context').inputSchema;
-      expect(
-          (schema['properties'] as Map<dynamic, dynamic>), isEmpty);
+      final Map<String, dynamic> schema = _specByName(
+        'get_current_context',
+      ).inputSchema;
+      expect((schema['properties'] as Map<dynamic, dynamic>), isEmpty);
       expect(schema['required'], <String>[]);
     });
 
     test('submit_action_plan：steps 必填数组，嵌套 item 锁 sql/rollback_sql/'
         'irreversible/note 且 additionalProperties:false', () {
-      final Map<String, dynamic> schema =
-          _specByName('submit_action_plan').inputSchema;
+      final Map<String, dynamic> schema = _specByName(
+        'submit_action_plan',
+      ).inputSchema;
       expect(schema['required'], <String>['steps']);
       final Map<dynamic, dynamic> steps =
           (schema['properties'] as Map<dynamic, dynamic>)['steps']
               as Map<dynamic, dynamic>;
       expect(steps['type'], 'array');
-      final Map<dynamic, dynamic> item = steps['items'] as Map<dynamic, dynamic>;
+      final Map<dynamic, dynamic> item =
+          steps['items'] as Map<dynamic, dynamic>;
       expect(item['additionalProperties'], false);
       expect(
         (item['properties'] as Map<dynamic, dynamic>).keys.toSet(),
@@ -324,7 +361,10 @@ void main() {
     });
 
     test('跨经典 2 工具：uiClassicSuggest / suggest 档 / 零自动副作用形态', () {
-      for (final String name in const <String>['open_in_classic', 'focus_sidebar']) {
+      for (final String name in const <String>[
+        'open_in_classic',
+        'focus_sidebar',
+      ]) {
         final AgentToolSpec spec = _specByName(name);
         expect(spec.category, AgentToolCategory.uiClassicSuggest, reason: name);
         expect(spec.gateLevel, AgentGateLevel.suggest, reason: name);
@@ -335,8 +375,63 @@ void main() {
     });
   });
 
-  group('错误码全集（design §4.1）', () {
-    test('11 个常量值与全集逐一对应', () {
+  group('T4 客户端本地状态三工具（save_saved_query / save_memory / '
+      'list_memories）', () {
+    test('三工具均为 clientLocal / l0 / milestone 2（上线即可见）', () {
+      for (final String name in _t4Names) {
+        final AgentToolSpec spec = _specByName(name);
+        expect(spec.category, AgentToolCategory.clientLocal, reason: name);
+        expect(spec.gateLevel, AgentGateLevel.l0, reason: name);
+        expect(spec.milestone, 2, reason: name);
+        expect(spec.requiresDatabase, isFalse, reason: name);
+      }
+    });
+
+    test('save_saved_query：name/sql 必填 string；requiresConnection=true '
+        '（连接绑定取锁定上下文）；description 声明同名冲突与 20 上限语义', () {
+      final AgentToolSpec spec = _specByName('save_saved_query');
+      expect(spec.requiresConnection, isTrue);
+      final Map<String, dynamic> schema = spec.inputSchema;
+      expect(schema['required'], <String>['name', 'sql']);
+      final Map<dynamic, dynamic> properties =
+          schema['properties'] as Map<dynamic, dynamic>;
+      expect(properties.keys.toSet(), <String>{'name', 'sql'});
+      expect((properties['name'] as Map<dynamic, dynamic>)['type'], 'string');
+      expect((properties['sql'] as Map<dynamic, dynamic>)['type'], 'string');
+      expect(spec.description, contains('SAVED_QUERY_CONFLICT'));
+      expect(spec.description, contains('20'));
+      // F-01：单 run 节流语义写入 description，供模型可预期。
+      expect(spec.description, contains('SAVED_QUERY_LIMIT_EXCEEDED'));
+      expect(spec.description, contains('3 saves per agent run'));
+    });
+
+    test('save_memory：仅 content 必填；scope/subject 可选；'
+        'requiresConnection=false（global 路径无连接可用）', () {
+      final AgentToolSpec spec = _specByName('save_memory');
+      expect(spec.requiresConnection, isFalse);
+      final Map<String, dynamic> schema = spec.inputSchema;
+      expect(schema['required'], <String>['content']);
+      final Map<dynamic, dynamic> properties =
+          schema['properties'] as Map<dynamic, dynamic>;
+      expect(properties.keys.toSet(), <String>{'scope', 'subject', 'content'});
+      // 缺省 scope 口径写入 description（锁定连接在场时 connection，否则
+      // global），供模型可预期。
+      expect(spec.description, contains('defaults to "connection"'));
+    });
+
+    test('list_memories：空参数、无需连接（无连接也报告全局清单）', () {
+      final AgentToolSpec spec = _specByName('list_memories');
+      expect(spec.requiresConnection, isFalse);
+      expect(
+        (spec.inputSchema['properties'] as Map<dynamic, dynamic>),
+        isEmpty,
+      );
+      expect(spec.inputSchema['required'], <String>[]);
+    });
+  });
+
+  group('错误码全集（design §4.1 + T4 加性扩展）', () {
+    test('13 个常量值与全集逐一对应', () {
       const List<String> codes = <String>[
         AgentToolErrorCodes.unknownTool,
         AgentToolErrorCodes.invalidArguments,
@@ -349,6 +444,8 @@ void main() {
         AgentToolErrorCodes.planAlreadyExecuted,
         AgentToolErrorCodes.stepLimitReached,
         AgentToolErrorCodes.executionFailed,
+        AgentToolErrorCodes.savedQueryConflict,
+        AgentToolErrorCodes.savedQueryLimitExceeded,
       ];
       expect(codes.toSet(), <String>{
         'UNKNOWN_TOOL',
@@ -362,6 +459,8 @@ void main() {
         'PLAN_ALREADY_EXECUTED',
         'STEP_LIMIT_REACHED',
         'EXECUTION_FAILED',
+        'SAVED_QUERY_CONFLICT',
+        'SAVED_QUERY_LIMIT_EXCEEDED',
       });
     });
 
@@ -378,6 +477,8 @@ void main() {
         AgentToolErrorCodes.planAlreadyExecuted,
         AgentToolErrorCodes.stepLimitReached,
         AgentToolErrorCodes.executionFailed,
+        AgentToolErrorCodes.savedQueryConflict,
+        AgentToolErrorCodes.savedQueryLimitExceeded,
       ];
       expect(codes.toSet().length, codes.length);
       for (final String code in codes) {

@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dbmaster/providers/ai_panel_provider.dart';
 import 'package:dbmaster/models/database_models.dart';
+import 'package:dbmaster/models/workbench_entry_intent.dart';
 
 AiMessage _testUserMessage(String content) {
   return AiMessage(
@@ -235,6 +236,56 @@ void main() {
           provider.selectedConnectionDatabases,
           equals(['db1', 'db2', 'db3']),
         );
+      });
+    });
+
+    group('工作台入口 intent（2b.4 R7）', () {
+      test('初始无 pending intent', () {
+        expect(provider.workbenchEntryIntent, isNull);
+      });
+
+      test('requestWorkbenchEntry 设值 + 通知一次', () {
+        var notified = 0;
+        provider.addListener(() => notified++);
+        provider.requestWorkbenchEntry(
+          prompt: 'hello',
+          tabTarget: WorkbenchEntryTabTarget.observe,
+        );
+        final intent = provider.workbenchEntryIntent;
+        expect(intent, isNotNull);
+        expect(intent!.prompt, equals('hello'));
+        expect(intent.tabTarget, equals(WorkbenchEntryTabTarget.observe));
+        expect(notified, equals(1));
+      });
+
+      test('id 单调自增（防重入锚）', () {
+        provider.requestWorkbenchEntry();
+        final firstId = provider.workbenchEntryIntent!.id;
+        provider.requestWorkbenchEntry();
+        final secondId = provider.workbenchEntryIntent!.id;
+        expect(secondId, greaterThan(firstId));
+      });
+
+      test('pending 单槽：新请求覆盖旧值', () {
+        provider.requestWorkbenchEntry(prompt: 'A');
+        provider.requestWorkbenchEntry(prompt: 'B');
+        expect(provider.workbenchEntryIntent!.prompt, equals('B'));
+      });
+
+      test('consumeWorkbenchEntryIntent 清空 + 通知一次', () {
+        provider.requestWorkbenchEntry();
+        var notified = 0;
+        provider.addListener(() => notified++);
+        provider.consumeWorkbenchEntryIntent();
+        expect(provider.workbenchEntryIntent, isNull);
+        expect(notified, equals(1));
+      });
+
+      test('无 pending 时 consume 不通知', () {
+        var notified = 0;
+        provider.addListener(() => notified++);
+        provider.consumeWorkbenchEntryIntent();
+        expect(notified, equals(0));
       });
     });
   });

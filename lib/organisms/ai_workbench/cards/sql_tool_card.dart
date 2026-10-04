@@ -5,9 +5,10 @@
 //! 类型徽标 + 写操作「危险」徽标 + Spacer + 动作区 + chevron）与展开态
 //! SQL 正文块。懒构建写死（`if (_expanded)`，NF1.3 性能不变式，禁止改预构建）。
 //!
-//! 动作区（复制/执行/在经典中打开）中：复制为内置实现（AC4.3）；
-//! 执行与在经典中打开为构造参数注入的接口预留（T13 接线
-//! `WorkbenchExecutionActions` / `WorkbenchOpenInClassic`），本组件只渲染
+//! 动作区（复制/执行/在经典中打开/保存为查询）中：复制为内置实现（AC4.3）；
+//! 执行、在经典中打开与保存为查询为构造参数注入的接口预留（T13 接线
+//! `WorkbenchExecutionActions` / `WorkbenchOpenInClassic`；保存为查询经
+//! `WorkbenchCardActions.onSaveQuery` 注入），本组件只渲染
 //! 不禁用、不写死禁用态以外的假实现。
 //!
 //! 键盘（§8【三】）：焦点序 header → 动作钮（左→右）→ content 滚动区；
@@ -30,6 +31,7 @@ class SqlToolCard extends StatefulWidget {
     required this.isWrite,
     this.onExecute,
     this.onOpenInClassic,
+    this.onSaveQuery,
   });
 
   /// 卡内 SQL 全文（复制 / 执行 / 互跳出口的数据源）。
@@ -47,6 +49,9 @@ class SqlToolCard extends StatefulWidget {
 
   /// 「在经典中打开」动作（T13 注入）。
   final void Function(String sql)? onOpenInClassic;
+
+  /// 「保存为查询」动作（保存链路注入；参数为卡内 SQL 全文）。
+  final void Function(String sql)? onSaveQuery;
 
   /// header 整行（折叠热区 + 焦点宿主）。
   static const Key headerKey = ValueKey('workbench_sql_card_header');
@@ -67,6 +72,9 @@ class SqlToolCard extends StatefulWidget {
   static const Key executeButtonKey = ValueKey('workbench_sql_card_execute');
   static const Key openInClassicButtonKey = ValueKey(
     'workbench_sql_card_open_in_classic',
+  );
+  static const Key saveQueryButtonKey = ValueKey(
+    'workbench_sql_card_save_query',
   );
 
   @override
@@ -210,7 +218,9 @@ class _SqlToolCardState extends State<SqlToolCard> {
           _toggle();
         },
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppDesignSystem.space2),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDesignSystem.space2,
+          ),
           child: Row(
             children: [
               Icon(LucideIcons.database, size: 16, color: statusColor),
@@ -308,7 +318,8 @@ class _SqlToolCardState extends State<SqlToolCard> {
     );
   }
 
-  /// 动作区（只在 header 出现一次，§8【三】）：复制 / 执行 / 在经典中打开。
+  /// 动作区（只在 header 出现一次，§8【三】）：复制 / 执行 / 在经典中打开 /
+  /// 保存为查询。
   Widget _buildActions(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colors = context.themeColors;
@@ -338,6 +349,16 @@ class _SqlToolCardState extends State<SqlToolCard> {
           label: l10n.workbenchActionOpenInClassic,
           color: colors.accentBlue,
           onTap: () => widget.onOpenInClassic?.call(widget.sql),
+        ),
+        const SizedBox(width: AppDesignSystem.space1_5),
+        _CardActionButton(
+          buttonKey: SqlToolCard.saveQueryButtonKey,
+          // bookmark 在既有子集字体清单内（bookmarkPlus 需重生成字体，超出本任务）。
+          icon: LucideIcons.bookmark,
+          label: l10n.workbenchActionSaveAsQuery,
+          color: colors.accentPurple,
+          // 接口预留（保存链路接线）：回调未注入时按钮照常渲染不禁用。
+          onTap: () => widget.onSaveQuery?.call(widget.sql),
         ),
       ],
     );

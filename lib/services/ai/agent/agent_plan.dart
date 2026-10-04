@@ -616,8 +616,9 @@ class AgentPlanExecutionDeps {
     this.onStepStateChange,
   });
 
-  /// 语句执行入口（必填；绑 `AppProvider.executeQuery` facade——readOnly
-  /// 检查、DML 拦截、DDL 双门、行限、网关路由全部继承）。
+  /// 语句执行入口（必填；绑 `AppProvider.executeQueryDetailed` facade
+  /// 投影——readOnly 检查、DML 拦截、DDL 双门、行限、网关路由全部继承；
+  /// 返回 [SqlStatementOutcome]（裁决选项 A 回调型扩宽）。
   final SqlExecuteCallback execute;
 
   /// DDL 确认后的 bypass 执行（双门第二道；缺位时确认后 fail-closed 中止）。

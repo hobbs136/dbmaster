@@ -8,7 +8,10 @@
 //! 不改舞台可见性 ui 规格 §6.3）；suggest 两方法 = 落建议卡消息进当前会话
 //! （payload 契约 = T26：`agent_suggest` kind + action + payload +
 //! applied:false）后返回 ok——消息落账经注入回调（避免 services→UI 反向；
-//! runId/stepNo 审计上下文由宿主回调侧补写）。
+//! runId/stepNo 审计上下文由宿主回调侧补写）。2b.3（R6）加性第八方法
+//! [AgentUiPortImpl.openOptimization]：explain_plan 旁挂推送的舞台落点——
+//! 只读推送零执行（「应用此索引」由内容槽填编辑器槽，本端口不触发任何
+//! SQL 执行）。
 //!
 //! AC15.1 通路：全部方法经 [_guard] 包裹，实现侧自身异常一律转
 //! [AgentUiOutcome.failure] 回喂 LLM 自纠，**不得向 runner 抛出未处理异常**
@@ -22,6 +25,8 @@
 
 import '../../models/ai_message_type.dart';
 import '../../models/database_models.dart' show AiMessage;
+import '../../models/query_optimizer/execution_plan.dart'
+    show PerformanceReport;
 import '../../services/ai/agent/agent_ui_port.dart';
 import '../../utils/app_logger.dart';
 import 'workbench_stage.dart';
@@ -35,7 +40,8 @@ typedef AgentSuggestionLandCallback = void Function(AiMessage message);
 /// 取数失败以异常抛出（由 [_guard] 转 outcome 失败回喂）；方言能力面
 /// （索引/外键/DDL）取不到由实现侧置空，不视为失败（沿 executor
 /// describe_table 的容忍口径）。
-typedef StageStructureFetcher = Future<StageStructureData> Function(String table);
+typedef StageStructureFetcher =
+    Future<StageStructureData> Function(String table);
 
 /// [AgentUiPort] 的 organisms 实现（T27；经 shell 构造注入 runner.start）。
 class AgentUiPortImpl implements AgentUiPort {
@@ -111,6 +117,22 @@ class AgentUiPortImpl implements AgentUiPort {
     });
   }
 
+  // ── optimization 旁挂推送（2b.3，R6）──────────────────────────────────
+
+  @override
+  Future<AgentUiOutcome> openOptimization(
+    PerformanceReport report,
+    String sql,
+  ) {
+    return _guard(() async {
+      // 只读推送零执行：optimization tab 纯展示渲染，「应用此索引」由内容
+      // 槽回调填编辑器槽（openEditorSlot 载入不自动执行，AC5.2/AC5.5 既有
+      // 语义），本端口不触发任何 SQL 执行。
+      _stage.openOptimization(StageOptimizationData(sql: sql, report: report));
+      return const AgentUiOutcome.ok();
+    });
+  }
+
   // ── 跨经典两建议（R6 零自动副作用：只落建议卡消息，应用由人触发）────
 
   @override
@@ -126,7 +148,10 @@ class AgentUiPortImpl implements AgentUiPort {
   }
 
   @override
-  Future<AgentUiOutcome> suggestFocusSidebar({String? database, String? table}) {
+  Future<AgentUiOutcome> suggestFocusSidebar({
+    String? database,
+    String? table,
+  }) {
     return _guard(() async {
       _landSuggestionMessage(
         _buildSuggestionMessage('focus_sidebar', <String, dynamic>{
@@ -170,7 +195,9 @@ class AgentUiPortImpl implements AgentUiPort {
   }
 
   /// AC15.1 通路：实现侧异常 → 失败 outcome 回喂，不向 runner 抛（T09 契约）。
-  Future<AgentUiOutcome> _guard(Future<AgentUiOutcome> Function() action) async {
+  Future<AgentUiOutcome> _guard(
+    Future<AgentUiOutcome> Function() action,
+  ) async {
     try {
       return await action();
     } catch (e, stackTrace) {

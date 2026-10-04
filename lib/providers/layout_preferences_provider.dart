@@ -33,6 +33,10 @@ class LayoutPreferencesProvider extends ChangeNotifier {
   double? _overlayLeft;
   double? _overlayTop;
 
+  // 工作台对话列并置态宽度（null = 未设置 = Fix-L 弹性默认，
+  // 任务书 B3 R2 双模：首次拖拽/键盘调整后落盘显式宽度）
+  double? _workbenchChatSplitWidth;
+
   // FAB 偏移量
   double _fabRightOffset = 0.0;
   double _fabBottomOffset = 0.0;
@@ -73,6 +77,10 @@ class LayoutPreferencesProvider extends ChangeNotifier {
 
   /// 浮层上缘位置（null = 从未持久化过）
   double? get overlayTop => _overlayTop;
+
+  /// 工作台对话列并置态持久化宽度（null = 未设置 = 弹性默认，
+  /// 由消费方回落 Fix-L ratio 公式；非 null 时恒在 [360, 520] 钳制区间内）
+  double? get workbenchChatSplitWidth => _workbenchChatSplitWidth;
   @Deprecated('FAB 已改为固定位置，这些偏移量不再使用')
   double get fabRightOffset => _fabRightOffset;
   @Deprecated('FAB 已改为固定位置，这些偏移量不再使用')
@@ -109,6 +117,9 @@ class LayoutPreferencesProvider extends ChangeNotifier {
     _overlayLeft = await _service.getOverlayLeft();
     _overlayTop = await _service.getOverlayTop();
 
+    // 加载工作台对话列并置态宽度（可为 null：弹性默认分支）
+    _workbenchChatSplitWidth = await _service.getWorkbenchChatSplitWidth();
+
     // 加载 FAB 偏移量
     final fabOffsets = await _service.getFabOffsets();
     _fabRightOffset = fabOffsets['right'] ?? 0.0;
@@ -136,6 +147,20 @@ class LayoutPreferencesProvider extends ChangeNotifier {
       _editorResultsRatio = clampedRatio;
       notifyListeners();
       await _service.setEditorResultsRatio(clampedRatio);
+    }
+  }
+
+  /// 工作台对话列并置态宽度：clamp [360, 520] 后落盘（任务书 B3）。
+  /// 首次调用即从弹性默认切入显式宽度模式（R2：模式切换是用户显式动作）。
+  Future<void> setWorkbenchChatSplitWidth(double width) async {
+    final clampedWidth = width.clamp(
+      LayoutPreferencesService.minWorkbenchChatSplitWidth,
+      LayoutPreferencesService.maxWorkbenchChatSplitWidth,
+    );
+    if (_workbenchChatSplitWidth != clampedWidth) {
+      _workbenchChatSplitWidth = clampedWidth;
+      notifyListeners();
+      await _service.setWorkbenchChatSplitWidth(clampedWidth);
     }
   }
 

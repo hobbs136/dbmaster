@@ -98,7 +98,7 @@ class WorkbenchResultCardPayload {
   /// ≤ N 行快照（行 Map 为执行结果原引用）。
   final List<Map<String, dynamic>> snapshotRows;
 
-  /// 执行管线产物（_QueryExecutionResult.columnTypes）；null = 管线未提供。
+  /// 执行管线产物（QueryExecutionResult.columnTypes）；null = 管线未提供。
   final Map<String, String>? columnTypes;
 
   /// rowCount > snapshotRows.length（M>N 时表尾截断提示 + 「在网格中打开」，

@@ -10,8 +10,9 @@
 
 import '../../l10n/app_localizations.dart';
 
-/// 快捷键作用域：global = GlobalShortcutsWrapper 处理；editor = 编辑器焦点链处理。
-enum ShortcutScope { global, editor }
+/// 快捷键作用域：global = GlobalShortcutsWrapper 处理；editor = 编辑器焦点链处理；
+/// workbench = 工作台壳内焦点树处理（AiWorkbenchShell 壳根 Focus 冒泡承接）。
+enum ShortcutScope { global, editor, workbench }
 
 class ShortcutBinding {
   /// 本地化标签（延迟取，避免无 context 时求值）。
@@ -31,6 +32,9 @@ class ShortcutBinding {
 
   final ShortcutScope scope;
 
+  /// 附加展示按键段（A5：一键与其修饰变体同行展示，如 F6 行附 'Shift+F6'）。
+  final List<String> extraKeys;
+
   const ShortcutBinding({
     required this.label,
     required this.category,
@@ -38,15 +42,17 @@ class ShortcutBinding {
     this.shift = false,
     required this.key,
     this.scope = ShortcutScope.global,
+    this.extraKeys = const <String>[],
   });
 
-  /// 平台感知的显示按键段（'Ctrl'/'⌘' + 'Shift' + key）。
+  /// 平台感知的显示按键段（'Ctrl'/'⌘' + 'Shift' + key + [extraKeys]）。
   List<String> displayKeys(bool isMacOS) {
     final mod = isMacOS ? '⌘' : 'Ctrl';
     return [
       if (control) mod,
       if (shift) 'Shift',
       key,
+      ...extraKeys,
     ];
   }
 }
@@ -161,6 +167,15 @@ final shortcutBindings = <ShortcutBinding>[
       category: (l) => l.shortcutCategoryView,
       control: true,
       key: '-'),
+  // A5：F6/Shift+F6 工作台六区轮转——处理器在 AiWorkbenchShell 壳根焦点树
+  //（R10：不碰 GlobalShortcutsWrapper），scope = workbench（parity 守卫只
+  // 锁 global 集合，不受影响）。
+  ShortcutBinding(
+      label: (l) => l.shortcutZoneCycle,
+      category: (l) => l.shortcutCategoryView,
+      key: 'F6',
+      extraKeys: <String>['Shift+F6'],
+      scope: ShortcutScope.workbench),
 
   // --- Tabs ---
   ShortcutBinding(

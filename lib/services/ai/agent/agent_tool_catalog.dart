@@ -4,10 +4,12 @@
 /// 工具全集在编译期一次定义，无运行时注册（镜像 SafetyReviewService 的
 /// 「构造时传入」风格）；目录外 name 一律不可寻址，调用方回 `UNKNOWN_TOOL`。
 ///
-/// - 14 工具全集一次定义：A1 六工具（数据 5 + 上下文 1）+ A2 八工具（计划 1
-///   + 舞台 5 + 跨经典建议 2），以 [AgentToolSpec.milestone] 区分——FC-6 无死
-///   占位，A2 工具仅在 milestone >= 2 时进入 [AgentToolCatalog.llmToolsFor]
-///   输出与 [AgentToolCatalog.find] 寻址（计划期发现 #2/#6，tasks-ai-agent.md）；
+/// - 17 工具全集一次定义：A1 六工具（数据 5 + 上下文 1）+ A2 八工具（计划 1
+///   + 舞台 5 + 跨经典建议 2）+ T4 客户端本地状态三工具（save_saved_query /
+///   save_memory / list_memories，milestone 2），以 [AgentToolSpec.milestone]
+///   区分——FC-6 无死占位，milestone 解锁工具才进入
+///   [AgentToolCatalog.llmToolsFor] 输出与 [AgentToolCatalog.find] 寻址
+///   （计划期发现 #2/#6，tasks-ai-agent.md）；
 /// - [AgentToolCatalog.activeMilestone] 为编译期常量（A1 = 1；A2 合龙任务
 ///   T28 改 2 即解锁 8 个 A2 工具，一行切换，不做运行时开关）；
 /// - schema 为 OpenAI function schema 四键子集（D4 裁决：type / properties /
@@ -21,8 +23,17 @@
 /// material（组件级 §0 MUST NOT 2）。
 library;
 
-/// 工具类别（design §4.1 枚举原文）。
-enum AgentToolCategory { data, uiStage, uiClassicSuggest, context, plan }
+/// 工具类别（design §4.1 枚举原文；T4 加性追加 [clientLocal]——客户端本地
+/// 状态工具：不触达数据库、不派发界面动作，落 prefs 类本地存储；枚举只加法，
+/// 门侧仅消费 [plan] 一档（readOnly 拒判定），新值对判定序零影响）。
+enum AgentToolCategory {
+  data,
+  uiStage,
+  uiClassicSuggest,
+  context,
+  plan,
+  clientLocal,
+}
 
 /// 权限门档（design §4.1 枚举原文；有序，FC-5 可插新档——只加法不改序）。
 enum AgentGateLevel { l0, l05, l1, l2, suggest }
@@ -74,11 +85,13 @@ class AgentToolCatalog {
   /// T28（A2 合龙）已切 2：8 个 A2 工具全量进入 llmToolsFor 输出与 find 寻址。
   static const int activeMilestone = 2;
 
-  /// 14 工具全集，声明序 = design §4.1 表序（A1 读面在前、计划/界面殿后）。
+  /// 17 工具全集，声明序 = design §4.1 表序（A1 读面在前、计划/界面殿后）+
+  /// T4 客户端本地状态三工具尾追加（契约只加不删，既有序不动）。
   static const List<AgentToolSpec> _specs = <AgentToolSpec>[
     AgentToolSpec(
       name: 'execute_readonly_sql',
-      description: 'Execute one read-only SQL statement against the database '
+      description:
+          'Execute one read-only SQL statement against the database '
           'this run is locked to. The statement passes a read-only SQL gate '
           'before execution; write statements (INSERT / UPDATE / DELETE / DDL) '
           'are rejected with WRITE_REJECTED_READONLY_CHANNEL and never reach '
@@ -106,7 +119,8 @@ class AgentToolCatalog {
     ),
     AgentToolSpec(
       name: 'list_tables',
-      description: 'List the tables and views of the database this run is '
+      description:
+          'List the tables and views of the database this run is '
           'locked to. The scope comes from the context snapshot taken at run '
           'start and does not drift when the user switches context mid-run. '
           'Start here, then drill down with describe_table / get_sample_data. '
@@ -125,7 +139,8 @@ class AgentToolCatalog {
     ),
     AgentToolSpec(
       name: 'describe_table',
-      description: 'Describe one table of the current database: columns, '
+      description:
+          'Describe one table of the current database: columns, '
           'indexes, foreign keys and the CREATE TABLE DDL where the dialect '
           'provides it. Dialect differences are reported as-is. Args: table — '
           'table name as returned by list_tables.',
@@ -148,7 +163,8 @@ class AgentToolCatalog {
     ),
     AgentToolSpec(
       name: 'get_sample_data',
-      description: 'Fetch sample rows from one table (SELECT * ... LIMIT n). '
+      description:
+          'Fetch sample rows from one table (SELECT * ... LIMIT n). '
           'The read passes the same read-only validation and pre-read impact '
           'analysis as execute_readonly_sql; NoSQL connections reject this '
           'tool with UNSUPPORTED_DIALECT. Args: table — table name as '
@@ -177,7 +193,8 @@ class AgentToolCatalog {
     ),
     AgentToolSpec(
       name: 'explain_plan',
-      description: 'Return the execution plan for a SQL statement WITHOUT '
+      description:
+          'Return the execution plan for a SQL statement WITHOUT '
           'running it (EXPLAIN only — the statement itself never executes; '
           'unsupported dialects fail with UNSUPPORTED_DIALECT). Use it to '
           'check scan shape and cost before execute_readonly_sql. Args: sql — '
@@ -201,7 +218,8 @@ class AgentToolCatalog {
     ),
     AgentToolSpec(
       name: 'get_current_context',
-      description: 'Report the context snapshot this run is bound to: '
+      description:
+          'Report the context snapshot this run is bound to: '
           'connection name, current database, database type and read-only '
           'flag — the same values the workbench context chips show. Works '
           'when no connection is locked (the fields are then reported as '
@@ -220,7 +238,8 @@ class AgentToolCatalog {
     ),
     AgentToolSpec(
       name: 'submit_action_plan',
-      description: 'Submit a multi-step write plan for human approval. This '
+      description:
+          'Submit a multi-step write plan for human approval. This '
           'tool SUBMITS ONLY and never executes anything: execution starts '
           'exclusively after the user approves the plan card. Each step must '
           'carry either rollback_sql (the inverse statement) or irreversible: '
@@ -234,24 +253,28 @@ class AgentToolCatalog {
         'properties': <String, dynamic>{
           'steps': <String, dynamic>{
             'type': 'array',
-            'description': 'Ordered write steps; executed in order only '
+            'description':
+                'Ordered write steps; executed in order only '
                 'after user approval',
             'items': <String, dynamic>{
               'type': 'object',
               'properties': <String, dynamic>{
                 'sql': <String, dynamic>{
                   'type': 'string',
-                  'description': 'Single SQL statement (one statement per '
+                  'description':
+                      'Single SQL statement (one statement per '
                       'step)',
                 },
                 'rollback_sql': <String, dynamic>{
                   'type': 'string',
-                  'description': 'Inverse statement that undoes this step '
+                  'description':
+                      'Inverse statement that undoes this step '
                       '(mutually exclusive with irreversible)',
                 },
                 'irreversible': <String, dynamic>{
                   'type': 'boolean',
-                  'description': 'Declare the step has no rollback (mutually '
+                  'description':
+                      'Declare the step has no rollback (mutually '
                       'exclusive with rollback_sql)',
                 },
                 'note': <String, dynamic>{
@@ -279,7 +302,8 @@ class AgentToolCatalog {
     ),
     AgentToolSpec(
       name: 'open_result_grid',
-      description: 'Open a result produced earlier in this run as a full grid '
+      description:
+          'Open a result produced earlier in this run as a full grid '
           'tab in the workbench stage (all rows within the row limit — no '
           're-execution). Args: result_ref — reference id (resultRef) of an '
           'earlier tool result in this run; title — optional tab title.',
@@ -288,7 +312,8 @@ class AgentToolCatalog {
         'properties': <String, dynamic>{
           'result_ref': <String, dynamic>{
             'type': 'string',
-            'description': 'Reference id (resultRef) of an earlier tool '
+            'description':
+                'Reference id (resultRef) of an earlier tool '
                 'result in this run',
           },
           'title': <String, dynamic>{
@@ -307,7 +332,8 @@ class AgentToolCatalog {
     ),
     AgentToolSpec(
       name: 'show_table_structure',
-      description: 'Show the structure of one table as a structure card in '
+      description:
+          'Show the structure of one table as a structure card in '
           'the workbench stage (columns / indexes / keys, fetched live from '
           'the current connection). Args: table — table name as returned by '
           'list_tables.',
@@ -330,7 +356,8 @@ class AgentToolCatalog {
     ),
     AgentToolSpec(
       name: 'open_sql_editor',
-      description: 'Load SQL into a workbench editor slot WITHOUT executing '
+      description:
+          'Load SQL into a workbench editor slot WITHOUT executing '
           'it. If the target slot has unsaved changes, a new slot is opened '
           'instead — user edits are never overwritten. Args: sql — the SQL '
           'text to load.',
@@ -339,7 +366,8 @@ class AgentToolCatalog {
         'properties': <String, dynamic>{
           'sql': <String, dynamic>{
             'type': 'string',
-            'description': 'SQL text to load into an editor slot (not '
+            'description':
+                'SQL text to load into an editor slot (not '
                 'executed)',
           },
         },
@@ -354,7 +382,8 @@ class AgentToolCatalog {
     ),
     AgentToolSpec(
       name: 'render_chart',
-      description: 'Render a result produced earlier in this run as a chart '
+      description:
+          'Render a result produced earlier in this run as a chart '
           'in the workbench stage. Data that does not fit a chart fails with '
           'a clear error so another presentation can be chosen. Args: '
           'result_ref — reference id of an earlier tool result in this run; '
@@ -364,7 +393,8 @@ class AgentToolCatalog {
         'properties': <String, dynamic>{
           'result_ref': <String, dynamic>{
             'type': 'string',
-            'description': 'Reference id of an earlier tool result in this '
+            'description':
+                'Reference id of an earlier tool result in this '
                 'run',
           },
           'chart_kind': <String, dynamic>{
@@ -383,7 +413,8 @@ class AgentToolCatalog {
     ),
     AgentToolSpec(
       name: 'pin_artifact',
-      description: 'Pin a result produced earlier in this run (SQL + context '
+      description:
+          'Pin a result produced earlier in this run (SQL + context '
           '+ row snapshot) to the artifact strip so it stays reachable as the '
           'conversation advances. Args: result_ref — reference id of an '
           'earlier tool result in this run; label — optional short label.',
@@ -392,7 +423,8 @@ class AgentToolCatalog {
         'properties': <String, dynamic>{
           'result_ref': <String, dynamic>{
             'type': 'string',
-            'description': 'Reference id of an earlier tool result in this '
+            'description':
+                'Reference id of an earlier tool result in this '
                 'run',
           },
           'label': <String, dynamic>{
@@ -411,7 +443,8 @@ class AgentToolCatalog {
     ),
     AgentToolSpec(
       name: 'open_in_classic',
-      description: 'Suggest opening a SQL statement in the classic editor. '
+      description:
+          'Suggest opening a SQL statement in the classic editor. '
           'Producing the suggestion has no side effect; nothing happens '
           'unless the user clicks the card — clicking opens a NEW classic '
           'query tab (never overwrites existing tabs) and is audited. Args: '
@@ -435,7 +468,8 @@ class AgentToolCatalog {
     ),
     AgentToolSpec(
       name: 'focus_sidebar',
-      description: 'Suggest locating a database or table in the sidebar. '
+      description:
+          'Suggest locating a database or table in the sidebar. '
           'Producing the suggestion has no side effect; nothing happens '
           'unless the user clicks the card — clicking moves the sidebar '
           'selection and is audited. Args: database — optional database name; '
@@ -457,6 +491,107 @@ class AgentToolCatalog {
       },
       category: AgentToolCategory.uiClassicSuggest,
       gateLevel: AgentGateLevel.suggest,
+      requiresConnection: false,
+      requiresDatabase: false,
+      milestone: 2,
+    ),
+    // ── T4 客户端本地状态三工具（clientLocal：不触达 DB、不派界面动作）──
+    AgentToolSpec(
+      name: 'save_saved_query',
+      description:
+          'Save a SQL statement as a named saved query for the '
+          'connection this run is locked to. This is a local client storage '
+          'operation — nothing is sent to the database. The saved query '
+          'appears in the classic editor saved-queries list with the locked '
+          'connection/database binding taken from the run context. Names must '
+          'be unique per connection: a conflicting name fails with '
+          'SAVED_QUERY_CONFLICT — pick another name or ask the user to '
+          'rename/delete the existing entry. At most 20 saved queries are '
+          'kept; when the limit is exceeded the oldest entry is dropped '
+          'automatically. Throttled to at most 3 saves per agent run: '
+          'further save attempts in the same run fail with '
+          'SAVED_QUERY_LIMIT_EXCEEDED — stop saving and tell the user they '
+          'can organize saved queries manually in the editor. Args: name — '
+          'saved query name; sql — the SQL text to store.',
+      inputSchema: <String, dynamic>{
+        'type': 'object',
+        'properties': <String, dynamic>{
+          'name': <String, dynamic>{
+            'type': 'string',
+            'description': 'Saved query name (unique per connection)',
+          },
+          'sql': <String, dynamic>{
+            'type': 'string',
+            'description': 'SQL text to store',
+          },
+        },
+        'required': <String>['name', 'sql'],
+        'additionalProperties': false,
+      },
+      category: AgentToolCategory.clientLocal,
+      gateLevel: AgentGateLevel.l0,
+      requiresConnection: true,
+      requiresDatabase: false,
+      milestone: 2,
+    ),
+    AgentToolSpec(
+      name: 'save_memory',
+      description:
+          'Remember a short fact for future conversations (persisted '
+          'locally, never sent to the database): table/column semantics, '
+          'business rules, user preferences. Args: scope — "connection" '
+          '(visible only with the locked connection) or "global" (visible '
+          'with every connection); when omitted, defaults to "connection" if '
+          'a connection is locked, otherwise "global". scope "connection" '
+          'without a locked connection fails with CONTEXT_REQUIRED. subject — '
+          'optional short topic tag; use the "table.column" shape for field '
+          'semantics so describe_table can surface the note next to the '
+          'table structure. content — the fact itself (truncated to 500 '
+          'characters).',
+      inputSchema: <String, dynamic>{
+        'type': 'object',
+        'properties': <String, dynamic>{
+          'scope': <String, dynamic>{
+            'type': 'string',
+            'description':
+                '"connection" (default when a connection is '
+                'locked) or "global"',
+          },
+          'subject': <String, dynamic>{
+            'type': 'string',
+            'description': 'Optional topic tag, e.g. "orders.status"',
+          },
+          'content': <String, dynamic>{
+            'type': 'string',
+            'description':
+                'The fact to remember (truncated to 500 '
+                'characters)',
+          },
+        },
+        'required': <String>['content'],
+        'additionalProperties': false,
+      },
+      category: AgentToolCategory.clientLocal,
+      gateLevel: AgentGateLevel.l0,
+      requiresConnection: false,
+      requiresDatabase: false,
+      milestone: 2,
+    ),
+    AgentToolSpec(
+      name: 'list_memories',
+      description:
+          'List the memories already saved: global entries plus the '
+          'entries of the locked connection (if any), with id, subject and a '
+          'content excerpt each. Check this before save_memory to avoid '
+          'duplicates. Args: none.',
+      inputSchema: <String, dynamic>{
+        'type': 'object',
+        'properties': <String, dynamic>{},
+        'required': <String>[],
+        'additionalProperties': false,
+      },
+      category: AgentToolCategory.clientLocal,
+      gateLevel: AgentGateLevel.l0,
       requiresConnection: false,
       requiresDatabase: false,
       milestone: 2,
@@ -539,4 +674,12 @@ class AgentToolErrorCodes {
 
   /// handler 执行异常（detail 过 redactSecrets，NF2.2；模型可据此自纠）。
   static const String executionFailed = 'EXECUTION_FAILED';
+
+  /// save_saved_query 同连接同名冲突（T4 加性扩展；模型自纠：换名或请
+  /// 用户整理既有条目）。
+  static const String savedQueryConflict = 'SAVED_QUERY_CONFLICT';
+
+  /// save_saved_query 单 run 调用超限（F-01 安全审查加性扩展；模型自纠：
+  /// 停止保存并转告用户可在编辑器手动整理）。
+  static const String savedQueryLimitExceeded = 'SAVED_QUERY_LIMIT_EXCEEDED';
 }

@@ -2,8 +2,10 @@
 ///
 /// 接口无逻辑，测试从简：值对象构造与字段、rows 内存引用不复制、
 /// AgentUiOutcome 形态（ok/failure 构造 + 值相等语义）、fake 实现编译性
-/// 用例（七方法签名绑定 + 参数与 outcome 透传）。
+/// 用例（八方法签名绑定 + 参数与 outcome 透传——七方法 A2 期 +
+/// openOptimization 2b.3 加性）。
 import 'package:flutter_test/flutter_test.dart';
+import 'package:dbmaster/models/query_optimizer/execution_plan.dart';
 import 'package:dbmaster/services/ai/agent/agent_ui_port.dart';
 
 void main() {
@@ -88,7 +90,7 @@ void main() {
   });
 
   group('AgentUiPort fake 实现（编译性用例）', () {
-    test('七方法签名绑定 + 参数与 outcome 透传', () async {
+    test('八方法签名绑定 + 参数与 outcome 透传', () async {
       final _FakeAgentUiPort port = _FakeAgentUiPort();
       final AgentResultRef ref = AgentResultRef(
         refId: 'res_2',
@@ -96,6 +98,20 @@ void main() {
         rowCount: 10,
         columns: <String>['a'],
         rows: const <Map<String, dynamic>>[],
+      );
+      final PerformanceReport report = PerformanceReport(
+        executionPlan: ExecutionPlan(
+          databaseType: 'mysql',
+          originalQuery: 'SELECT * FROM t',
+          steps: const <PlanStep>[],
+          rawData: const <String, dynamic>{},
+          analyzedAt: DateTime(2026, 1, 1),
+        ),
+        bottlenecks: const <Bottleneck>[],
+        indexRecommendations: const <IndexRecommendation>[],
+        queryRewrites: const <QueryRewrite>[],
+        summary: 'summary',
+        analysisDuration: Duration.zero,
       );
 
       expect(
@@ -126,6 +142,10 @@ void main() {
         await port.suggestFocusSidebar(database: 'db1', table: 't1'),
         const AgentUiOutcome.ok(message: 'suggest:sidebar:db1/t1'),
       );
+      expect(
+        await port.openOptimization(report, 'SELECT * FROM t'),
+        const AgentUiOutcome.ok(message: 'optimization:SELECT * FROM t'),
+      );
 
       expect(port.calls, <String>[
         'openResultGrid:res_2:title',
@@ -135,6 +155,7 @@ void main() {
         'pinArtifact:res_2:label',
         'suggestOpenInClassic:SELECT 2',
         'suggestFocusSidebar:db1/t1',
+        'openOptimization:SELECT * FROM t',
       ]);
     });
 
@@ -214,6 +235,15 @@ class _FakeAgentUiPort implements AgentUiPort {
       message: 'suggest:sidebar:${database ?? ''}/${table ?? ''}',
     );
   }
+
+  @override
+  Future<AgentUiOutcome> openOptimization(
+    PerformanceReport report,
+    String sql,
+  ) async {
+    calls.add('openOptimization:$sql');
+    return AgentUiOutcome.ok(message: 'optimization:$sql');
+  }
 }
 
 /// 恒定失败 outcome 的 fake（失败回喂形态用例）。
@@ -253,4 +283,10 @@ class _FailingAgentUiPort implements AgentUiPort {
     String? database,
     String? table,
   }) async => AgentUiOutcome.failure('unsupported');
+
+  @override
+  Future<AgentUiOutcome> openOptimization(
+    PerformanceReport report,
+    String sql,
+  ) async => AgentUiOutcome.failure('unsupported');
 }

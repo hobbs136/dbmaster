@@ -7,6 +7,8 @@
 // - AC5.3：renderChart 列型不适配 → outcome 失败回喂（message 非空）且
 //   **不建图表 tab**（自纠通路，不产噪音）；
 // - ui 规格 §6.3：pinArtifact 建 pinned tab 且不改舞台可见性；
+// - 2b.3：openOptimization → optimization tab（载荷 sql/report 透传）+
+//   舞台可见 + outcome ok（只读推送零执行）；
 // - suggest 两方法：落 agent_suggest 消息（T26 payload 契约：kind + action +
 //   payload + applied:false）+ 返回 ok；
 // - AC15.1 通路：实现侧异常（取数失败 / 落账回调抛出）→ outcome 失败，
@@ -18,6 +20,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:dbmaster/models/ai_message_type.dart';
 import 'package:dbmaster/models/database_models.dart';
+import 'package:dbmaster/models/query_optimizer/execution_plan.dart';
 import 'package:dbmaster/organisms/ai_workbench/agent_ui_port_impl.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_stage.dart';
 import 'package:dbmaster/services/ai/agent/agent_ui_port.dart';
@@ -73,8 +76,7 @@ void main() {
     stageController: controller,
     structureFetcher:
         structureFetcher ?? (_) async => throw StateError('unset in test'),
-    landSuggestionMessage:
-        landSuggestionMessage ?? landRecorder.call,
+    landSuggestionMessage: landSuggestionMessage ?? landRecorder.call,
   );
 
   setUp(() {
@@ -182,6 +184,55 @@ void main() {
         isFalse,
         reason: 'ui 规格 §6.3：pin 不改舞台可见性',
       );
+    });
+  });
+
+  group('2b.3 openOptimization（只读推送零执行）', () {
+    PerformanceReport report() => PerformanceReport(
+      executionPlan: ExecutionPlan(
+        databaseType: 'mysql',
+        originalQuery: 'SELECT * FROM big_table',
+        steps: [PlanStep(table: 'big_table', scanType: ScanType.fullTable)],
+        rawData: const <String, dynamic>{},
+        analyzedAt: DateTime(2026, 1, 1),
+      ),
+      bottlenecks: const <Bottleneck>[],
+      indexRecommendations: const <IndexRecommendation>[],
+      queryRewrites: const <QueryRewrite>[],
+      summary: 'summary',
+      analysisDuration: Duration.zero,
+    );
+
+    test('openOptimization：ok + optimization tab（sql/report 载荷透传）'
+        ' + 舞台可见', () async {
+      final port = mkPort();
+      final PerformanceReport captured = report();
+      final outcome = await port.openOptimization(
+        captured,
+        'SELECT * FROM big_table',
+      );
+
+      expect(outcome, const AgentUiOutcome.ok());
+      expect(controller.tabs, hasLength(1));
+      expect(controller.tabs.single.kind, WorkbenchStageTabKind.optimization);
+      expect(
+        controller.tabs.single.optimization?.sql,
+        'SELECT * FROM big_table',
+      );
+      expect(
+        identical(controller.tabs.single.optimization?.report, captured),
+        isTrue,
+        reason: 'report 按引用透传（值对象不复制——沿 AgentResultRef 先例）',
+      );
+      expect(controller.stageVisible, isTrue, reason: '§5.3 openXxx 自动开舞台');
+    });
+
+    test('同 SQL 重复推送 → 复用刷新（tab 恒 1）——R6 去重语义经端口直达', () async {
+      final port = mkPort();
+      await port.openOptimization(report(), 'SELECT * FROM big_table');
+      await port.openOptimization(report(), 'SELECT * FROM big_table');
+
+      expect(controller.tabs, hasLength(1), reason: '同 SQL 精确串复用同 tab');
     });
   });
 

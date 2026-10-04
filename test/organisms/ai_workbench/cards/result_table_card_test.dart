@@ -1,7 +1,8 @@
 // T12 阶段二结果表格卡组件测试（design-ai-workbench §8【三】/§11.1）。
 //
-// 覆盖：AC5.1 快照（前 N 行）/ AC5.2 上限与截断提示 + 在网格中打开（仅
-// M>N）/ AC5.3 M≤N 全量无误导提示 / AC5.5 只读 / AC5.6 空态 / NF1.3 懒构建
+// 覆盖：AC5.1 快照（前 N 行）/ AC5.2 上限与截断提示 + 在舞台打开（v2 B2：
+// 有快照即可开——非截断有快照头栏出现、M>N 头栏+表尾两处、空结果卡不出现）/
+// AC5.3 M≤N 全量无误导截断提示 / AC5.5 只读 / AC5.6 空态 / NF1.3 懒构建
 // / 错误态渲染分支（左色条 error 语义、triangleAlert、摘要、可折技术详情、
 // ≥1 出口、初始展开可折叠）/ 快照行 null 显示惯例。
 import 'package:flutter/material.dart';
@@ -63,7 +64,7 @@ void main() {
   }
 
   group('AC5.1/5.2 快照与上限（M>N）', () {
-    testWidgets('折叠元信息 M 行 · ms；展开显示前 N 行快照 + 截断提示 + 在网格中打开', (
+    testWidgets('折叠元信息 M 行 · ms；展开显示前 N 行快照 + 截断提示 + 在舞台打开（头栏+表尾两处）', (
       tester,
     ) async {
       // M=25 > N → 快照 take(N)。
@@ -80,6 +81,9 @@ void main() {
       );
       expect(find.byIcon(LucideIcons.circleCheckBig), findsOneWidget);
       expect(find.byKey(ResultTableCard.contentKey), findsNothing);
+      // v2 B2：折叠态头栏入口已可见（有快照即可开，无需展开）。
+      expect(find.byKey(ResultTableCard.openInGridButtonKey), findsOneWidget);
+      expect(find.text(l10n.workbenchOpenInStage), findsOneWidget);
 
       await expand(tester, find.text(l10n.workbenchResultMeta(25, 42)));
 
@@ -91,7 +95,7 @@ void main() {
       expect(table.rows.length, AppDesignSystem.toolCardSnapshotRows);
       expect(table.columns, p.columns);
 
-      // 截断提示（shown=N, total=M）与表尾「在网格中打开」。
+      // 截断提示（shown=N, total=M）与表尾「在舞台打开」。
       expect(
         find.text(
           l10n.workbenchResultTruncated(
@@ -106,10 +110,12 @@ void main() {
         find.byKey(ResultTableCard.truncatedFooterKey),
         findsOneWidget,
       );
-      expect(find.byKey(ResultTableCard.openInGridButtonKey), findsWidgets);
+      // v2 B2：M>N 头栏 + 表尾两处入口并存（同文案）。
+      expect(find.byKey(ResultTableCard.openInGridButtonKey), findsNWidgets(2));
+      expect(find.text(l10n.workbenchOpenInStage), findsNWidgets(2));
     });
 
-    testWidgets('在网格中打开回调携带 payload（M>N）', (tester) async {
+    testWidgets('在舞台打开回调携带 payload（M>N，表尾入口）', (tester) async {
       final p = payload(rowCount: 25);
       WorkbenchResultCardPayload? gridPayload;
       await tester.pumpWidget(
@@ -141,7 +147,9 @@ void main() {
   });
 
   group('AC5.3 M≤N 全量无误导提示', () {
-    testWidgets('全量结果：无截断提示、无在网格中打开按钮', (tester) async {
+    testWidgets('全量结果：无截断提示表尾；有快照 → 头栏「在舞台打开」出现（v2 B2 放宽）', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _wrap(
           ResultTableCard(
@@ -159,11 +167,14 @@ void main() {
         findsNothing,
         reason: 'M≤N 不得出现截断提示（无误导）',
       );
+      // v2 B2：显示条件从仅 M>N 放宽为 snapshotRows.isNotEmpty——
+      // 非截断有快照 → 头栏入口出现（仅头栏一处，无表尾）。
       expect(
         find.byKey(ResultTableCard.openInGridButtonKey),
-        findsNothing,
-        reason: '「在网格中打开」仅 M>N 渲染',
+        findsOneWidget,
+        reason: '「在舞台打开」有快照即可开（v2 B2）',
       );
+      expect(find.text(l10n.workbenchOpenInStage), findsOneWidget);
       expect(find.byType(ResultSnapshotTable), findsOneWidget);
       final table = tester.widget<ResultSnapshotTable>(
         find.byType(ResultSnapshotTable),
@@ -204,6 +215,8 @@ void main() {
         findsOneWidget,
         reason: '空态元信息 0 行 · 12ms',
       );
+      // v2 B2：空结果卡 snapshotRows 空 → 「在舞台打开」不出现（折叠头栏）。
+      expect(find.byKey(ResultTableCard.openInGridButtonKey), findsNothing);
       expect(find.byIcon(LucideIcons.triangleAlert), findsNothing,
           reason: '空态无错误图标');
       expect(find.byIcon(LucideIcons.circleAlert), findsNothing);
@@ -211,6 +224,8 @@ void main() {
       await expand(tester, find.text(l10n.workbenchEmptyResult(0, 12)));
       expect(find.byKey(ResultTableCard.emptyHintKey), findsOneWidget);
       expect(find.text(l10n.workbenchEmptyResultHint), findsOneWidget);
+      // 展开态同样不出现（snapshotRows 空不随展开变化）。
+      expect(find.byKey(ResultTableCard.openInGridButtonKey), findsNothing);
       expect(find.byType(ResultSnapshotTable), findsNothing,
           reason: '空结果无快照表');
     });

@@ -17,6 +17,8 @@ class LayoutPreferencesService {
   static const String _overlayHeightKey = 'overlay_height';
   static const String _overlayLeftKey = 'overlay_left';
   static const String _overlayTopKey = 'overlay_top';
+  static const String _workbenchChatSplitWidthKey =
+      'workbench_chat_split_width';
   static const String _fabRightOffsetKey = 'fab_right_offset';
   static const String _fabBottomOffsetKey = 'fab_bottom_offset';
   static const String _editorResultsOrientationKey =
@@ -41,6 +43,13 @@ class LayoutPreferencesService {
   static const double defaultColumnWidth = 150.0;
   static const double minColumnWidth = 50.0;
   static const double maxColumnWidth = 600.0;
+
+  /// 工作台对话列并置态持久化宽度的钳制区间（任务书 B3：[360, 520]）。
+  /// 与 design_system 的 workbenchChatMinWidth / workbenchChatSplitMaxWidth
+  /// 同源同值（design_system 为视觉权威；此处按 service 层既有惯例持数值
+  /// 边界，勿单边改动）。
+  static const double minWorkbenchChatSplitWidth = 360.0;
+  static const double maxWorkbenchChatSplitWidth = 520.0;
 
   Future<double> getSidebarWidth() async {
     final prefs = await SharedPreferences.getInstance();
@@ -132,6 +141,21 @@ class LayoutPreferencesService {
   Future<double?> getOverlayTop() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getDouble(_overlayTopKey);
+  }
+
+  /// 工作台对话列并置态宽度。返回 null 表示从未持久化过宽度
+  /// （调用方回落 Fix-L 弹性默认公式；沿 [getOverlayLeft] 可空先例）。
+  Future<double?> getWorkbenchChatSplitWidth() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble(_workbenchChatSplitWidthKey);
+  }
+
+  Future<void> setWorkbenchChatSplitWidth(double width) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(
+      _workbenchChatSplitWidthKey,
+      width.clamp(minWorkbenchChatSplitWidth, maxWorkbenchChatSplitWidth),
+    );
   }
 
   /// 批量持久化浮层几何（位置 + 尺寸），手势结束时一次性写入。

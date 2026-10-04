@@ -155,5 +155,26 @@ void main() {
         expect(offsets['bottom'], 16.0);
       });
     });
+
+    group('工作台对话列宽度（B3）', () {
+      test('getWorkbenchChatSplitWidth 缺席应返回 null（弹性默认分支）', () async {
+        final width = await service.getWorkbenchChatSplitWidth();
+        expect(width, isNull);
+      });
+
+      test('setWorkbenchChatSplitWidth 后写读往返应一致', () async {
+        await service.setWorkbenchChatSplitWidth(440);
+        final width = await service.getWorkbenchChatSplitWidth();
+        expect(width, 440.0);
+      });
+
+      test('setWorkbenchChatSplitWidth 超界应钳制到 [360, 520]', () async {
+        await service.setWorkbenchChatSplitWidth(999);
+        expect(await service.getWorkbenchChatSplitWidth(), 520.0);
+
+        await service.setWorkbenchChatSplitWidth(0);
+        expect(await service.getWorkbenchChatSplitWidth(), 360.0);
+      });
+    });
   });
 }

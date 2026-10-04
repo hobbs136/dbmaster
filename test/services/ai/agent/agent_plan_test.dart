@@ -35,7 +35,7 @@ import 'package:dbmaster/services/ai/agent/agent_tool_catalog.dart'
 import 'package:dbmaster/services/database_service.dart'
     show DdlConfirmationRequiredException;
 import 'package:dbmaster/services/sql_statement_gate_runner.dart'
-    show SqlGateConfirmDecision;
+    show SqlGateConfirmDecision, SqlStatementOutcome;
 
 // ── 测试桩与助手 ─────────────────────────────────────────────────────────────
 
@@ -175,12 +175,12 @@ class _Harness {
             analysis: const RiskAnalysisResult(riskLevel: DmlRiskLevel.high),
           );
         }
-        return const <Map<String, dynamic>>[];
+        return const SqlStatementOutcome(rows: <Map<String, dynamic>>[]);
       },
       executeBypassDdl: bypassDdlPresent
           ? (String statement) async {
               bypassDdlStatements.add(statement);
-              return const <Map<String, dynamic>>[];
+              return const SqlStatementOutcome(rows: <Map<String, dynamic>>[]);
             }
           : null,
       executeBypassDml: bypassDmlPresent
@@ -189,7 +189,7 @@ class _Harness {
               if (bypassDmlFailAt.contains(statement)) {
                 throw Exception('bypass boom: $statement');
               }
-              return const <Map<String, dynamic>>[];
+              return const SqlStatementOutcome(rows: <Map<String, dynamic>>[]);
             }
           : null,
       ddlConfirm: ddlConfirmPresent

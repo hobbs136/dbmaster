@@ -25,7 +25,7 @@ import 'cards/result_table_card.dart';
 import 'cards/sql_tool_card.dart';
 import 'workbench_card_payload.dart';
 
-/// 工作台卡动作注入包（T13 消费面——参数名与类型为稳定契约）。
+/// 工作台卡动作注入包（T13 消息面 + 保存为查询出口——参数名与类型为稳定契约）。
 ///
 /// 复制动作不在其中：SQL 卡复制为组件内置实现（AC4.3），无需宿主接线。
 @immutable
@@ -37,6 +37,7 @@ class WorkbenchCardActions {
     this.onOpenResultInClassic,
     this.onRetryError,
     this.onOpenErrorInClassic,
+    this.onSaveQuery,
   });
 
   /// SQL 卡「执行」（T13：`WorkbenchExecutionActions.run` 入口；参数为卡内
@@ -46,8 +47,13 @@ class WorkbenchCardActions {
   /// SQL 卡「在经典中打开」（T13：`WorkbenchOpenInClassic.open`）。
   final void Function(String sql)? onOpenSqlInClassic;
 
-  /// 结果卡「在网格中打开」（仅 M>N 的卡渲染该按钮；同 openQueryTab 出口）。
-  final void Function(WorkbenchResultCardPayload payload)? onOpenResultInGrid;
+  /// 结果卡「在舞台打开」（v2 B2 改路由：宿主组装
+  /// `AgentResultRef(refId: 'card_<cardId>', …)` → `_stageController.openGrid`，
+  /// 同 refId 复用激活不重复建 tab；R7 快照语义——tab 呈现卡快照全量，不
+  /// 重执行不补全）。[cardId] = 承载卡的消息 id，由卡构建点注入；有快照
+  /// （`snapshotRows` 非空）的卡渲染该出口。
+  final void Function(WorkbenchResultCardPayload payload, String cardId)?
+  onOpenResultInGrid;
 
   /// 结果卡「在经典中打开」。
   final void Function(WorkbenchResultCardPayload payload)?
@@ -58,6 +64,10 @@ class WorkbenchCardActions {
 
   /// 错误卡「在经典中打开」出口（T13）。
   final void Function(WorkbenchErrorCardPayload error)? onOpenErrorInClassic;
+
+  /// SQL 卡「保存为查询」（参数为卡内 SQL 全文；保存上下文在宿主实现中
+  /// 取 effectiveWorkbenchContext 复核，不经卡传递）。
+  final void Function(String sql)? onSaveQuery;
 }
 
 /// 消息 → 工作台卡 的构建分发。纯渲染层组件：不新建消息、不动消息流。
@@ -83,13 +93,17 @@ class WorkbenchCardHost {
           isWrite: sqlPayload.isWrite,
           onExecute: actions?.onExecuteSql,
           onOpenInClassic: actions?.onOpenSqlInClassic,
+          onSaveQuery: actions?.onSaveQuery,
         );
       }
       final resultPayload = WorkbenchResultCardPayload.fromJson(data);
       if (resultPayload != null) {
         return ResultTableCard(
           payload: resultPayload,
-          onOpenInGrid: actions?.onOpenResultInGrid,
+          // v2 B2：onOpenResultInGrid 签名增 cardId——承载卡的消息 id 在此
+          // 构建点注入（卡内回调仍单参 payload，由宿主适配）。
+          onOpenInGrid: (payload) =>
+              actions?.onOpenResultInGrid?.call(payload, message.id),
           onOpenInClassic: actions?.onOpenResultInClassic,
         );
       }
@@ -134,9 +148,7 @@ class WorkbenchCardHost {
         if (hasReasoning)
           ThinkingCard(
             thinkingProcess: message.reasoningContent!,
-            thinkingResult: message.content.isNotEmpty
-                ? message.content
-                : null,
+            thinkingResult: message.content.isNotEmpty ? message.content : null,
             isStreaming: false,
             initiallyExpanded: false,
           ),
@@ -151,6 +163,7 @@ class WorkbenchCardHost {
           isWrite: AiToolClassifier.isWriteSql(code),
           onExecute: actions?.onExecuteSql,
           onOpenInClassic: actions?.onOpenSqlInClassic,
+          onSaveQuery: actions?.onSaveQuery,
         ),
       ],
     );

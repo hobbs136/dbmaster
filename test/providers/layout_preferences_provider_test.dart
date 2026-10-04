@@ -188,6 +188,53 @@ void main() {
       });
     });
 
+    group('workbenchChatSplitWidth（B3）', () {
+      test('初始应为 null（未设置 = 弹性默认）', () {
+        expect(provider.workbenchChatSplitWidth, isNull);
+      });
+
+      test('setter 应更新并 clamp 到 [360, 520]', () async {
+        await provider.setWorkbenchChatSplitWidth(999);
+        expect(provider.workbenchChatSplitWidth, 520.0);
+
+        await provider.setWorkbenchChatSplitWidth(0);
+        expect(provider.workbenchChatSplitWidth, 360.0);
+
+        await provider.setWorkbenchChatSplitWidth(440);
+        expect(provider.workbenchChatSplitWidth, 440.0);
+      });
+
+      test('变更应触发 notifyListeners；相同值不应触发', () async {
+        var notified = false;
+        provider.addListener(() => notified = true);
+        await provider.setWorkbenchChatSplitWidth(440);
+        expect(notified, isTrue);
+
+        notified = false;
+        await provider.setWorkbenchChatSplitWidth(440);
+        expect(notified, isFalse);
+      });
+
+      test('setter 应落盘（SharedPreferences 可读回）', () async {
+        await provider.setWorkbenchChatSplitWidth(480);
+        final prefs = await SharedPreferences.getInstance();
+        expect(prefs.getDouble('workbench_chat_split_width'), 480.0);
+      });
+
+      test('load 应加载持久化宽度', () async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setDouble('workbench_chat_split_width', 440.0);
+        await provider.load();
+        expect(provider.workbenchChatSplitWidth, 440.0);
+      });
+
+      test('load 缺席时保持 null（弹性默认分支）', () async {
+        final fresh = LayoutPreferencesProvider();
+        await fresh.load();
+        expect(fresh.workbenchChatSplitWidth, isNull);
+      });
+    });
+
     group('load', () {
       test('load 后 isLoaded 应为 true', () async {
         await provider.load();

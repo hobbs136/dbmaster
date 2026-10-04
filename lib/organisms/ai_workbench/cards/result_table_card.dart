@@ -2,9 +2,10 @@
 //!
 //! 四个渲染分支：
 //! - **正常态**：折叠元信息 `M 行 · 42ms`（mono 11 textMuted）+ 成功状态图标；
-//!   展开态列名 + 前 N 行内嵌只读快照表 [ResultSnapshotTable]；M>N 时表尾
-//!   「已显示前 N 行 · 共 M 行」+「在网格中打开」（仅 M>N）；M≤N 不出现截断
-//!   提示（AC5.2/5.3）。
+//!   展开态列名 + 前 N 行内嵌只读快照表 [ResultSnapshotTable]；头栏动作
+//!   「在舞台打开」（v2 B2：有快照即可开，`snapshotRows` 非空即渲染；M>N
+//!   时表尾另有同文案同路由入口「已显示前 N 行 · 共 M 行」+「在舞台打开」
+//!   两处并存）；M≤N 不出现截断提示（AC5.2/5.3）。
 //! - **空态**（rowCount == 0）：`0 行 · 12ms` + 一行居中 12px 提示，无错误
 //!   图标（AC5.6）。
 //! - **错误态**（[error] 非空）：左色条 error + triangleAlert 图标 + 摘要
@@ -95,7 +96,8 @@ class ResultTableCard extends StatefulWidget {
   /// 错误数据（非 null → 错误态渲染分支）。
   final WorkbenchErrorCardPayload? error;
 
-  /// 「在网格中打开」（仅 M>N 渲染；T13 注入）。
+  /// 「在舞台打开」（有快照即可开渲染；T13 注入；宿主侧携带 cardId 组装
+  /// AgentResultRef 路由舞台网格，R7 快照语义）。
   final void Function(WorkbenchResultCardPayload payload)? onOpenInGrid;
 
   /// 「在经典中打开」（T13 注入）。
@@ -114,7 +116,7 @@ class ResultTableCard extends StatefulWidget {
   /// 展开态内容区（懒构建守护断言目标，NF1.3）。
   static const Key contentKey = ValueKey('workbench_result_card_content');
 
-  /// 截断提示 + 「在网格中打开」表尾（仅 M>N）。
+  /// 截断提示 + 「在舞台打开」表尾（仅 M>N；与头栏入口同文案同路由）。
   static const Key truncatedFooterKey = ValueKey(
     'workbench_result_card_truncated_footer',
   );
@@ -370,12 +372,13 @@ class _ResultTableCardState extends State<ResultTableCard> {
     color: colors.textMuted,
   );
 
-  /// 正常态 header 动作：「在网格中打开」（仅 M>N）+「在经典中打开」。
+  /// 正常态 header 动作：「在舞台打开」（v2 B2：有快照即可开——显示条件从
+  /// 仅 M>N（`isTruncated`）放宽为 `snapshotRows.isNotEmpty`）+「在经典中打开」。
   Widget _buildNormalActions(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colors = context.themeColors;
     final payload = widget.payload;
-    final showGrid = payload != null && payload.isTruncated;
+    final showGrid = payload != null && payload.snapshotRows.isNotEmpty;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -383,7 +386,7 @@ class _ResultTableCardState extends State<ResultTableCard> {
           _CardActionButton(
             buttonKey: ResultTableCard.openInGridButtonKey,
             icon: LucideIcons.table,
-            label: l10n.workbenchOpenInGrid,
+            label: l10n.workbenchOpenInStage,
             color: colors.accentBlue,
             onTap: () => widget.onOpenInGrid?.call(payload),
           ),
@@ -481,11 +484,12 @@ class _ResultTableCardState extends State<ResultTableCard> {
                       style: _metaStyle(colors),
                     ),
                   ),
-                  // 表尾「在网格中打开」（仅 M>N，任务书 T12）。
+                  // 表尾「在舞台打开」（仅 M>N；v2 B2 保留原位同文案同路由，
+                  // 与头栏入口并存）。
                   _CardActionButton(
                     buttonKey: ResultTableCard.openInGridButtonKey,
                     icon: LucideIcons.table,
-                    label: l10n.workbenchOpenInGrid,
+                    label: l10n.workbenchOpenInStage,
                     color: colors.accentBlue,
                     onTap: () => widget.onOpenInGrid?.call(payload),
                   ),
