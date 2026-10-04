@@ -10,16 +10,21 @@
 ///    （`AgentToolCatalog.find`，T04），与全集判存分立——A1 期计划/界面
 ///    工具经 find 不可寻址（evaluate 不可达），但注入全集 spec 可完整
 ///    测试 l1/suggest 分支（FC-5）；
-/// 2. ② `requiresConnection` 且快照无连接 → `reject(CONTEXT_REQUIRED)`
+/// 2. ②a `requiresConnection` 且快照无连接 → `reject(CONTEXT_REQUIRED)`
 ///    （AC7.4 引导态）；
-/// 3. ③ readOnly 连接 × 写形态动作（plan 类工具）→
+/// 3. ②b（T2 方案 B / FU-10 收口）[agentToolRequiresDatabaseContext]——
+///    USE 语义族 `requiresDatabase` 工具 × 快照无库（db-less 是硬错误态，
+///    3D000 类）→ `reject(CONTEXT_REQUIRED)`（run 立即终止，不给模型用
+///    information_schema / 系统库绕行的机会）；豁免族（SQLite / PG / SS /
+///    Mongo / Redis）不受拦；
+/// 4. ③ readOnly 连接 × 写形态动作（plan 类工具）→
 ///    `reject(READONLY_CONNECTION)`（NF2.3；数据/界面工具不受限）；
-/// 4. ④ 档判定——`l0` 数据读取（`execute_readonly_sql` / `get_sample_data`，
+/// 5. ④ 档判定——`l0` 数据读取（`execute_readonly_sql` / `get_sample_data`，
 ///    design §4.1 表「升 L0.5」标注的两个工具）→ 读前分析（T05 内核，
 ///    含 X1/X2 豁免与 fail-closed）→ 任一信号残存 `confirm(l05)` / 全消
 ///    `allow`；其余 `l0`（元数据/上下文/界面类）→ `allow`；`plan (l1)` →
 ///    `confirm(l1)`；`suggest` → `allow`（派发为建议卡，用户点击才是执行）；
-/// 5. ⑤ 会话放行短路（D12）——`confirm(l05)` 候选且账本命中该连接 →
+/// 6. ⑤ 会话放行短路（D12）——`confirm(l05)` 候选且账本命中该连接 →
 ///    `allow`。审计判据 `allowed_session`：`kind == allow && level == l05`
 ///    ——本分支是该组合在 evaluate 内的**唯一产生源**（干净放行的 level
 ///    恒为 l0/suggest）。
@@ -106,6 +111,41 @@ class GateDecision {
   final ReadImpactAnalysis? impact;
 }
 
+/// T2 方案 B 方言谓词（gate ②b 与 executor fail-closed 防御的**同一事实源**，
+/// 禁两份实现）：USE 语义族下 `requiresDatabase` 工具在 db-less 快照上是
+/// **硬错误态**（3D000「No database selected」类）——db-less 时执行必然报错
+/// 或静默返回空表/空列，故在门处直接 `CONTEXT_REQUIRED` 终止（FU-10：
+/// 错误不静默 → 升级为立即终止）。
+///
+/// 豁免族（连接语义合法或恒有当前库，行为同现状）：
+/// - SQLite：无选库概念（本地文件库）；
+/// - PostgreSQL / SQL Server：连接恒绑定当前库（PG `database` 参数路由 /
+///   SS 连接串初始目录），无「未选库」态；
+/// - MongoDB / Redis：连接级语义合法，无库概念。
+bool agentToolRequiresDatabaseContext(
+  AgentToolSpec spec,
+  AgentRunContext runCtx,
+) {
+  if (!spec.requiresDatabase) return false;
+  if (!_useSemanticsDialects.contains(runCtx.dbType)) return false;
+  final String? databaseName = runCtx.databaseName;
+  return databaseName == null || databaseName.isEmpty;
+}
+
+/// USE 语义族：db-less = 硬错误态的 SQL 类方言。豁免族见
+/// [agentToolRequiresDatabaseContext]（sqlite / postgresql / sqlserver /
+/// mongodb / redis 不在此族）。
+const Set<DatabaseType> _useSemanticsDialects = <DatabaseType>{
+  DatabaseType.mysql,
+  DatabaseType.doris,
+  DatabaseType.oceanbase,
+  DatabaseType.tidb,
+  DatabaseType.starrocks,
+  DatabaseType.mariadb,
+  DatabaseType.clickhouse,
+  DatabaseType.tdengine,
+};
+
 /// Agent 门：判定序 ①-⑤ 的唯一实现（D3 单一判定点）。无状态纯逻辑，
 /// 依赖全注入——读前分析经 [createAnalysis] 工厂每次判定时构造（AC8.7）。
 class AgentGate {
@@ -153,10 +193,21 @@ class AgentGate {
       );
     }
 
-    // ② requiresConnection 且快照无连接 → CONTEXT_REQUIRED（AC7.4）。
+    // ②a requiresConnection 且快照无连接 → CONTEXT_REQUIRED（AC7.4）。
     final String? connectionId = runCtx.connectionId;
     if (catalogSpec.requiresConnection &&
         (connectionId == null || connectionId.isEmpty)) {
+      return GateDecision(
+        kind: GateDecisionKind.reject,
+        level: catalogSpec.gateLevel,
+        reasonCode: AgentToolErrorCodes.contextRequired,
+      );
+    }
+
+    // ②b（T2 方案 B / FU-10 收口）：USE 语义族 requiresDatabase × 快照无库
+    // → CONTEXT_REQUIRED（db-less 是硬错误态，3D000 类）。豁免族见
+    // [agentToolRequiresDatabaseContext]。
+    if (agentToolRequiresDatabaseContext(catalogSpec, runCtx)) {
       return GateDecision(
         kind: GateDecisionKind.reject,
         level: catalogSpec.gateLevel,

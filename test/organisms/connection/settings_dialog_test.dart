@@ -772,7 +772,7 @@ void main() {
 
   // ===========================================================================
   // T16：Agent 设置两行（D16）——AI 页「Agent」分区。
-  // 值经 QuerySettingsService（T02）异步读写：步数上限 clamp 1-100（默认 25）、
+  // 值经 QuerySettingsService（T02）异步读写：步数上限 clamp 1-100（默认 40）、
   // L0.5 行阈值 clamp 1,000-1,000,000（默认 10,000）。提交后回显合法值；
   // 非数字回退上一合法值；修改仅持久化（后续运行生效，无即时推送）。
   // ===========================================================================
@@ -805,13 +805,13 @@ void main() {
       );
     });
 
-    testWidgets('默认值回显：25 / 10000', (tester) async {
+    testWidgets('默认值回显：40 / 10000', (tester) async {
       await pumpSettingsDialog(tester);
       await openAiPage(tester);
 
       expect(
         fieldValue(tester, const ValueKey('agent_max_steps_input')),
-        equals('25'),
+        equals('40'),
       );
       expect(
         fieldValue(tester, const ValueKey('agent_l05_threshold_input')),
@@ -903,7 +903,7 @@ void main() {
 
       expect(
         fieldValue(tester, const ValueKey('agent_max_steps_input')),
-        equals('25'),
+        equals('40'),
         reason: '校验失败应回退默认合法值',
       );
       final stored = await QuerySettingsService().getAgentMaxSteps();

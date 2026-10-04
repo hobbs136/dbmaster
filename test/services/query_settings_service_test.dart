@@ -95,8 +95,8 @@ void main() {
     // =====================================================================
 
     group('agent keys', () {
-      test('getAgentMaxSteps returns default 25 when prefs empty', () async {
-        expect(await service.getAgentMaxSteps(), equals(25));
+      test('getAgentMaxSteps returns default 40 when prefs empty', () async {
+        expect(await service.getAgentMaxSteps(), equals(40));
       });
 
       test(

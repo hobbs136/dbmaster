@@ -38,6 +38,7 @@ import '../../utils/app_logger.dart';
 import '../connection/connect_failure_dialog.dart';
 import '../connection/connection_dialog.dart';
 import '../connection/password_prompt_dialog.dart';
+import 'workbench_context_change_hint.dart';
 
 /// AI 工作台上下文选择器（三态全态可开；选择即锁定，R2）。
 class WorkbenchContextPicker extends StatefulWidget {
@@ -346,10 +347,11 @@ class _WorkbenchContextPickerState extends State<WorkbenchContextPicker> {
   void _commitDatabase(String databaseName) {
     final connection = _activeConnection;
     if (connection == null) return;
-    context
-        .read<AppProvider>()
-        .aiPanel
-        .lockWorkbenchContext(connection.id, databaseName);
+    final aiPanel = context.read<AppProvider>().aiPanel;
+    aiPanel.lockWorkbenchContext(connection.id, databaseName);
+    // T6：run 活跃时提示「改选下次运行生效」（D15 快照契约显示面）；放在
+    // pop 前——pop 后本 State 的 context 失效。
+    WorkbenchContextChangeHint.showIfRunActive(context, aiPanel);
     Navigator.of(context).pop();
   }
 
@@ -357,7 +359,9 @@ class _WorkbenchContextPickerState extends State<WorkbenchContextPicker> {
   void _lockConnectionOnly() {
     final connection = _activeConnection;
     if (connection == null) return;
-    context.read<AppProvider>().aiPanel.lockWorkbenchContext(connection.id, null);
+    final aiPanel = context.read<AppProvider>().aiPanel;
+    aiPanel.lockWorkbenchContext(connection.id, null);
+    WorkbenchContextChangeHint.showIfRunActive(context, aiPanel);
     Navigator.of(context).pop();
   }
 

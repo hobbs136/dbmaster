@@ -30,6 +30,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/app_provider.dart';
 import '../../services/ai/workbench_context_resolver.dart';
 import '../../theme/app_colors.dart';
+import 'workbench_context_change_hint.dart';
 import 'workbench_context_picker.dart';
 
 /// AI 工作台上下文芯片。
@@ -104,7 +105,10 @@ class _WorkbenchContextChipState extends State<WorkbenchContextChip> {
   }
 
   void _unlockContext() {
-    context.read<AppProvider>().aiPanel.unlockWorkbenchContext();
+    final aiPanel = context.read<AppProvider>().aiPanel;
+    aiPanel.unlockWorkbenchContext();
+    // T6：run 活跃时提示「改选下次运行生效」（D15 快照契约的显示面）。
+    WorkbenchContextChangeHint.showIfRunActive(context, aiPanel);
   }
 
   /// R2：打开上下文选择器（三态全态出口；选择即锁定）。
@@ -306,12 +310,18 @@ class _WorkbenchContextChipState extends State<WorkbenchContextChip> {
 
   /// 连接名 + 库名（§7.3 错误路径：名字解析失败时 resolver 已以 id 兜底，
   /// 此处再兜一层，绝不显示 null）。
+  ///
+  /// T6 未选库标记：本方法仅在跟随/锁定态被调（未设置态走 _buildUnsetChip，
+  /// 不经过此槽位）——有连接但 databaseName 空时，库名槽位显示
+  /// workbenchContextNoDatabase 标记（同槽位、textMuted 11px 同款样式）。
   List<Widget> _buildNameAndDatabase(
     BuildContext context,
     WorkbenchContextValue ctx,
   ) {
     final name = ctx.connectionName ?? ctx.connectionId ?? '';
     final databaseName = ctx.databaseName;
+    final hasDatabase = databaseName != null && databaseName.isNotEmpty;
+    final l10n = AppLocalizations.of(context)!;
     return [
       Flexible(
         child: Text(
@@ -325,20 +335,20 @@ class _WorkbenchContextChipState extends State<WorkbenchContextChip> {
           overflow: TextOverflow.ellipsis,
         ),
       ),
-      if (databaseName != null && databaseName.isNotEmpty) ...[
-        const SizedBox(width: AppDesignSystem.space1_5),
-        Flexible(
-          child: Text(
-            '· $databaseName',
-            style: TextStyle(
-              fontSize: 11,
-              color: context.themeColors.textMuted,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+      const SizedBox(width: AppDesignSystem.space1_5),
+      Flexible(
+        child: Text(
+          hasDatabase
+              ? '· $databaseName'
+              : '· ${l10n.workbenchContextNoDatabase}',
+          style: TextStyle(
+            fontSize: 11,
+            color: context.themeColors.textMuted,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-      ],
+      ),
     ];
   }
 }

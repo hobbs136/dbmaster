@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,11 +11,18 @@ class SidebarProvider extends ChangeNotifier {
   String? _selectedConnectionId;
   String? _selectedDatabaseName;
   String? _expandedConnectionId;
+  String? _sidebarExpandRequest;
   final Set<String> _favoriteTables = {};
 
   String? get selectedConnectionId => _selectedConnectionId;
   String? get selectedDatabaseName => _selectedDatabaseName;
   String? get expandedConnectionId => _expandedConnectionId;
+
+  /// 一次性展开请求信号（2b.1 observe escalation 通道，R3）：observe 的
+  /// 「在经典中管理」请求展开经典进程面板挂载键（`'$connectionId:performance'`），
+  /// 由 SidebarWidget 消费后补展开并清除。**一次性、不持久化**（非展开状态
+  /// 快照，不进 SharedPreferences）。
+  String? get sidebarExpandRequest => _sidebarExpandRequest;
   Set<String> get favoriteTables => Set.unmodifiable(_favoriteTables);
 
   SidebarProvider() {
@@ -43,6 +52,62 @@ class SidebarProvider extends ChangeNotifier {
       await prefs.setStringList(_favoritesKey, _favoriteTables.toList());
     } catch (e) {
       // ignore save errors
+    }
+  }
+
+  // ==================== 最后选库持久化（按连接） ====================
+
+  /// 按连接持久化最后选中的库：键 = `sidebar_last_db_<connectionId>`。
+  /// 键归属连接而非会话内选择——clearSelection 不清键；连接删除时由
+  /// AppProvider.deleteConnection 显式清除；重启后经
+  /// AppProvider.restoreSidebarDatabaseSelection 校验恢复。
+  static const String _lastDbKeyPrefix = 'sidebar_last_db_';
+
+  String _lastDbKey(String connectionId) => '$_lastDbKeyPrefix$connectionId';
+
+  /// 纯判定（可单测）：persisted 非空且在 availableDatabases 内 → 返回之；
+  /// 否则 null（键缺失 / 空串损坏 / 库已不在列表——含 SQLite 无库列表语义
+  /// 的连接，availableDatabases 为空自然返回 null）。
+  static String? resolveRestorableDatabase({
+    required String? persisted,
+    required List<String> availableDatabases,
+  }) {
+    final name = persisted;
+    if (name == null || name.isEmpty) return null;
+    if (!availableDatabases.contains(name)) return null;
+    return name;
+  }
+
+  /// 读取指定连接持久化的最后选库。prefs 缺键 / 值损坏（非字符串转型失败）/
+  /// 读失败一律返回 null（静默忽略，沿 _loadFavorites 的吞错风格）。
+  Future<String?> getPersistedLastDatabase(String connectionId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_lastDbKey(connectionId));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// 清除指定连接的持久化键（连接删除 / 持久化库已不存在时调用）。
+  Future<void> clearPersistedLastDatabase(String connectionId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_lastDbKey(connectionId));
+    } catch (e) {
+      // ignore clear errors
+    }
+  }
+
+  Future<void> _persistLastDatabase(
+    String connectionId,
+    String databaseName,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_lastDbKey(connectionId), databaseName);
+    } catch (e) {
+      // ignore persist errors
     }
   }
 
@@ -107,6 +172,17 @@ class SidebarProvider extends ChangeNotifier {
   void selectDatabase(String? databaseName) {
     if (_selectedDatabaseName != databaseName) {
       _selectedDatabaseName = databaseName;
+      // 最后选库落盘（键按连接归属）：已选连接时写入/清除持久化键。
+      // null（显式取消选库）清对应键；未选连接不写（键属于连接，Fix-J）。
+      // fire-and-forget：写失败静默，不影响内存选择语义。
+      final connectionId = _selectedConnectionId;
+      if (connectionId != null) {
+        if (databaseName != null) {
+          unawaited(_persistLastDatabase(connectionId, databaseName));
+        } else {
+          unawaited(clearPersistedLastDatabase(connectionId));
+        }
+      }
       notifyListeners();
     }
   }
@@ -116,6 +192,21 @@ class SidebarProvider extends ChangeNotifier {
       _expandedConnectionId = connectionId;
       notifyListeners();
     }
+  }
+
+  /// 发起一次性展开请求（2b.1 R3）：每次调用均 notify（重复请求覆盖旧值，
+  /// 消费方只处理最新请求）。
+  void requestSidebarExpand(String key) {
+    _sidebarExpandRequest = key;
+    notifyListeners();
+  }
+
+  /// 消费（清除）展开请求（SidebarWidget 补展开后调用；无请求时零副作用
+  /// 不通知，防通知风暴）。
+  void consumeSidebarExpandRequest() {
+    if (_sidebarExpandRequest == null) return;
+    _sidebarExpandRequest = null;
+    notifyListeners();
   }
 
   void toggleFavoriteTable(String tableKey) {

@@ -19,7 +19,8 @@ class QuerySettingsService {
   static const int maxAutoLimitValue = 100000;
 
   // Agent 运行族配置（D16/D6）：与编辑器 SafetyConfig 分立，互不影响。
-  static const int defaultAgentMaxSteps = 25;
+  // 默认 40（2026-09-27 由 25 上调）：E2E 实证「诊断整个库」类任务 25 步偏紧。
+  static const int defaultAgentMaxSteps = 40;
   static const int minAgentMaxSteps = 1;
   static const int maxAgentMaxSteps = 100;
 

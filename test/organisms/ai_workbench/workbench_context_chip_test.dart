@@ -11,12 +11,50 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:dbmaster/l10n/app_localizations.dart';
+import 'package:dbmaster/l10n/app_localizations_en.dart';
 import 'package:dbmaster/models/database_models.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_context_chip.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_context_picker.dart';
+import 'package:dbmaster/providers/ai_panel_provider.dart';
 import 'package:dbmaster/providers/app_provider.dart';
+import 'package:dbmaster/services/ai/agent/agent_loop_runner.dart';
+import 'package:dbmaster/services/ai/agent/agent_permission_ledger.dart';
 
 import '../../helpers/fake_pro_module.dart';
+
+/// isRunning 可控的 runner 桩（T6 提示用例）：isRunning 为本组唯一触达面；
+/// 会话切换路径触达的 ledger 给真实实现（clearAll 零副作用）、复位桩为
+/// no-op，其余成员 noSuchMethod 兜底（AGENTS §5.4 内部服务桩惯例）。
+class _StubAgentRunner implements AgentLoopRunner {
+  _StubAgentRunner({this.running = false});
+
+  final bool running;
+
+  @override
+  bool get isRunning => running;
+
+  @override
+  final AgentPermissionLedger ledger = AgentPermissionLedger();
+
+  @override
+  void resetForSessionSwitch() {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+/// aiPanel getter 覆盖为注入桩 runner 的独立 AiPanelProvider（AppProvider
+/// 的 aiPanel 为 late final，组件树级无法替换默认 runner——
+/// workbench_chat_view_agent_test.dart 头注同款约束；除 agentRunner 外
+/// 面板装配全部真实，仅服务「run 活跃」提示用例）。
+class _RunnerStubAppProvider extends AppProvider {
+  _RunnerStubAppProvider({required this.stubPanel, required super.proModule});
+
+  final AiPanelProvider stubPanel;
+
+  @override
+  AiPanelProvider get aiPanel => stubPanel;
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -65,13 +103,17 @@ void main() {
   });
 
   /// 泵独立芯片（组件面）。[visible] 控制工作台可见性门（同步写的前提）。
+  /// [appBuilder] 供「run 活跃」用例注入桩 runner 面板（默认真实 AppProvider）。
   Future<AppProvider> pumpChip(
     WidgetTester tester, {
     bool visible = true,
+    AppProvider Function(FakeProModule proModule)? appBuilder,
     Future<void> Function(AppProvider app)? seed,
   }) async {
     fakePro = FakeProModule(isPro: true);
-    final app = AppProvider(proModule: fakePro);
+    final app = appBuilder != null
+        ? appBuilder(fakePro)
+        : AppProvider(proModule: fakePro);
     if (seed != null) {
       await seed(app);
     }
@@ -477,6 +519,142 @@ void main() {
       await tester.pumpAndSettle();
       expect(app.aiPanel.selectedConnectionId, 'conn_hidden');
       expect(app.aiPanel.selectedDatabaseName, 'hidden_db');
+    });
+  });
+
+  group('T6 未选库标记（E2E 缺陷①显示面）', () {
+    testWidgets('跟随态：有连接但未选库 → 库名槽位显示标记；有库 → 现状不变',
+        (tester) async {
+      await pumpChip(
+        tester,
+        seed: (app) async {
+          await app.connection.saveConnection(
+            serverOf('conn_nodb', '无库连接'),
+          );
+          await app.connection.saveConnection(
+            serverOf('conn_db', '有库连接', database: 'db_present'),
+          );
+          app.sidebar.selectConnection('conn_nodb');
+        },
+      );
+
+      expect(find.text('无库连接'), findsOneWidget);
+      expect(find.text('· No database'), findsOneWidget);
+
+      // 切到有库连接 → 「· 库名」现状不变，标记消失。
+      tester
+          .element(find.byType(WorkbenchContextChip))
+          .read<AppProvider>()
+          .sidebar
+          .selectConnection('conn_db');
+      await tester.pumpAndSettle();
+      expect(find.text('· db_present'), findsOneWidget);
+      expect(find.text('· No database'), findsNothing);
+    });
+
+    testWidgets('锁定态：连接级锁（databaseName null）→ 同槽位同款标记',
+        (tester) async {
+      final app = await pumpChip(
+        tester,
+        seed: (app) async {
+          await app.connection.saveConnection(
+            serverOf('conn_lock_nodb', '锁定无库连接'),
+          );
+          app.aiPanel.ensureSession();
+          // 「仅锁定连接」同款连接级锁（_lockConnectionOnly 落锁形态）。
+          app.aiPanel.lockWorkbenchContext('conn_lock_nodb', null);
+        },
+      );
+
+      expect(app.aiPanel.workbenchContextLock, isNotNull);
+      expect(
+        find.byKey(const ValueKey('workbench_context_chip_locked_badge')),
+        findsOneWidget,
+      );
+      expect(find.text('锁定无库连接'), findsOneWidget);
+      expect(find.text('· No database'), findsOneWidget);
+
+      await drainPersistDebounce(tester);
+    });
+
+    testWidgets('未设置态：现状不变，无标记', (tester) async {
+      await pumpChip(tester);
+
+      expect(find.text('Not set'), findsOneWidget);
+      expect(find.text('· No database'), findsNothing);
+    });
+  });
+
+  group('T6 运行中改选提示（D15 快照契约显示面）', () {
+    testWidgets('run 活跃：解锁上下文 → 「下次运行生效」提示 snackbar',
+        (tester) async {
+      final app = await pumpChip(
+        tester,
+        appBuilder: (proModule) => _RunnerStubAppProvider(
+          proModule: proModule,
+          stubPanel: AiPanelProvider(
+            agentRunner: _StubAgentRunner(running: true),
+          ),
+        ),
+        seed: (app) async {
+          await app.connection.saveConnection(
+            serverOf('conn_unlock', '解锁目标库', database: 'db_unlock'),
+          );
+          await app.tab.openQueryTab(
+            connectionId: 'conn_unlock',
+            databaseName: 'db_unlock',
+          );
+          app.aiPanel.ensureSession();
+          app.aiPanel.lockWorkbenchContext('conn_unlock', 'db_unlock');
+        },
+      );
+
+      expect(
+        find.byKey(const ValueKey('workbench_context_chip_unlock_button')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('workbench_context_chip_unlock_button')),
+      );
+      await tester.pumpAndSettle();
+
+      // 解锁回跟随（锁定语义零改动）+ run 活跃提示在。
+      expect(app.aiPanel.workbenchContextLock, isNull);
+      expect(
+        find.text(AppLocalizationsEn().workbenchContextChangeWhileRunning),
+        findsOneWidget,
+      );
+
+      // snackbar 到期 + 退出动画（清 pending timer，防不变量拦截）。
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
+      await drainPersistDebounce(tester);
+    });
+
+    testWidgets('run 空闲：解锁上下文 → 零提示（现状不变）', (tester) async {
+      final app = await pumpChip(
+        tester,
+        seed: (app) async {
+          await app.connection.saveConnection(
+            serverOf('conn_unlock_idle', '空闲解锁库', database: 'db_idle'),
+          );
+          await app.tab.openQueryTab(
+            connectionId: 'conn_unlock_idle',
+            databaseName: 'db_idle',
+          );
+          app.aiPanel.ensureSession();
+          app.aiPanel.lockWorkbenchContext('conn_unlock_idle', 'db_idle');
+        },
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('workbench_context_chip_unlock_button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(app.aiPanel.workbenchContextLock, isNull);
+      expect(find.byType(SnackBar), findsNothing);
+      await drainPersistDebounce(tester);
     });
   });
 }

@@ -27,6 +27,7 @@ import '../../providers/app_provider.dart';
 import '../../services/database_abstract.dart' show SchemaAwareAdapter;
 import '../../services/ports/capability_table.dart';
 import '../../utils/app_logger.dart';
+import 'sidebar_current_connection.dart';
 import 'sidebar_visible_nodes.dart';
 
 /// 侧边栏局部状态控制器（展开状态 + 键盘导航 + 懒加载）。
@@ -130,6 +131,13 @@ class SidebarController extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       // 忽略加载失败，不影响正常使用
+    }
+    // T1 侧栏库选择持久化 · 挂载恢复尝试：侧栏挂载时若已有已连接的当前
+    // 连接且无选库，恢复其持久化库选择。facade 内部再做连接在/已连接/
+    // 当前连接校验——冷启动未连接时零副作用直达返回。
+    final currentId = resolveSidebarCurrentConnection(_appProvider)?.id;
+    if (currentId != null) {
+      _tryRestoreSidebarDatabase(currentId);
     }
   }
 
@@ -812,7 +820,10 @@ class SidebarController extends ChangeNotifier {
       // Auto-expand is now handled by the ConnectionEstablished stream
       // listener. The connection node auto-expands after the event fires.
       if (success && !_disposed) {
-        _appProvider.refreshDatabases();
+        // T1：await 顺序化——恢复在库列表装载完成后执行（connectToServer
+        // 的连接级状态收尾已写定，防默认库 stub 覆写恢复值）。
+        await _appProvider.refreshDatabases(connectionId: server.id);
+        _tryRestoreSidebarDatabase(server.id);
       }
     }
   }
@@ -822,7 +833,29 @@ class SidebarController extends ChangeNotifier {
   // 旧列表（FR-005），完成后自行 notifyListeners。
   void _onConnectionExpanded(String connectionId) {
     if (!_appProvider.isConnectionConnected(connectionId)) return;
-    _appProvider.refreshDatabases(connectionId: connectionId);
+    unawaited(_refreshDatabasesAndTryRestore(connectionId));
+  }
+
+  /// 刷新库列表 → 恢复尝试（T1）。await 顺序化：恢复在库列表装载完成后
+  /// 执行，防与 refresh 的默认库装载交错写连接级当前库状态。
+  Future<void> _refreshDatabasesAndTryRestore(String connectionId) async {
+    try {
+      await _appProvider.refreshDatabases(connectionId: connectionId);
+    } catch (_) {
+      // refreshDatabases 内部已吞错（FR-005）；此处防御性兜底。
+    }
+    _tryRestoreSidebarDatabase(connectionId);
+  }
+
+  // ==================== 侧栏库选择恢复（T1） ====================
+
+  /// 库列表装载完成后的恢复尝试：当前连接无选库时调 AppProvider facade，
+  /// 恢复该连接持久化的侧栏库选择。fire-and-forget：facade 全程校验 +
+  /// 吞错（未连接 / 非当前连接 / 键缺失 / getDatabases 失败均零副作用），
+  /// 触发点无需关心结果。
+  void _tryRestoreSidebarDatabase(String connectionId) {
+    if (_disposed) return;
+    unawaited(_appProvider.restoreSidebarDatabaseSelection(connectionId));
   }
 
   // ==================== 懒加载 ====================
@@ -1029,6 +1062,9 @@ class SidebarController extends ChangeNotifier {
       _loadingDatabases.remove(key);
       notifyListeners();
     }
+    // T1 侧栏库选择持久化 · 恢复尝试（任务书候选挂载点：库列表装载漏斗）。
+    // facade 幂等短路（已选库直接返回）+ 吞错，重放无害。
+    _tryRestoreSidebarDatabase(connectionId);
   }
 
   // ==================== 首帧焦点 ====================

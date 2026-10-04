@@ -41,9 +41,30 @@ void main() {
     test('en 模板包含全部 workbench key（含 workbenchErrorEmptySql）', () {
       // R2（T18，2026-09-22）：+7 上下文选择器 key（workbenchContextSwitchTip
       // + workbenchContextPicker* 6 个），基线 31 → 38。
-      expect(enKeys.length, 38);
+      // T2 保存查询批（2026-09-25）：+2 卡动作 key（workbenchActionSaveAsQuery
+      // + workbenchSaveQuerySelectConnection），基线 38 → 40。
+      // v2 先行批 A1（2026-09-26）：+14 全批预登记 key（workbenchActivity* 3
+      // + workbenchOpenInStage + workbenchLoadIntoEditor + workbenchHistory* 3
+      // + workbenchSavedQueries* 2 + workbenchExecution* 2 +
+      // workbenchSplitResizerTooltip + workbenchAgentSourceBadge），
+      // 基线 40 → 54（R8 ARB 集中制）。
+      // v2 先行批 B2（2026-09-26）：-1 删除被替换的 workbenchOpenInGrid
+      // （按钮文案改 workbenchOpenInStage，R8 唯一删除例外），基线 54 → 53。
+      // v2 第二批 2b.0（2026-09-26）：+19 全批预登记 key（workbenchObserve* 15
+      // + workbenchMongoSchema* 4，R8 ARB 集中制），基线 53 → 72。
+      // 上下文批（2026-09-28）：+2 workbenchContextNoDatabase +
+      // workbenchContextChangeWhileRunning，基线 72 → 74。
+      // 会话导出批（2026-09-28）：+6 会话导出 key（workbenchSessionExport*
+      // Menu/Title/Hint/IncludeData/Success/Failed），基线 74 → 80。
+      expect(enKeys.length, 80);
       expect(enKeys, contains('workbenchErrorEmptySql'));
       expect(enKeys, contains('workbenchContextPickerTitle'));
+      expect(enKeys, contains('workbenchActionSaveAsQuery'));
+      expect(enKeys, contains('workbenchSaveQuerySelectConnection'));
+      expect(enKeys, contains('workbenchActivitySessions'));
+      expect(enKeys, contains('workbenchExecutionSummary'));
+      expect(enKeys, contains('workbenchObserveLastUpdated'));
+      expect(enKeys, contains('workbenchMongoSchemaEmpty'));
     });
 
     test('五语 workbench key 集合与 en 模板一致', () {

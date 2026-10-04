@@ -7,14 +7,18 @@ import '../models/report_models.dart';
 import '../models/filter_condition.dart';
 import '../models/ai_tree_node_context.dart';
 import '../models/table_maintenance_command.dart';
+import '../models/workbench_entry_intent.dart';
 import '../models/connection_event.dart';
 import '../models/dml_risk_models.dart';
 import '../models/execution_result.dart';
+import '../models/query_history.dart' show QueryHistorySource;
 import '../models/redis_function.dart';
 import '../services/adapters/mongodb_adapter.dart';
 import '../services/adapters/redis_adapter.dart';
 import '../services/readonly_guard.dart';
 import '../services/ai_quota_service.dart';
+import '../services/ai/agent/agent_tool_executor.dart'
+    show AgentSavedQuerySaveStatus;
 import '../services/ai/ai_session_manager.dart';
 import '../models/pro_feature.dart';
 import '../models/sql_statement.dart';
@@ -336,6 +340,10 @@ class AppProvider extends ChangeNotifier {
       // ai_agent_service.dart，使 OSS 构建可达图保持无 Pro 符号。
       agentFactory: this.proModule.createAgentRunner,
       sessionManager: aiSessionManager,
+      // T4：agent 工具链的保存查询 / 历史写两回调走本门面（跨 Provider 禁令
+      // 下 AiPanelProvider 不直达 Tab/QueryHistoryProvider）。
+      savedQuerySaver: _saveAgentSavedQuery,
+      agentHistoryRecorder: _recordAgentQueryHistory,
     );
     _aiQuotaService = AiQuotaService(isPro: () async => _isProUnlocked);
     // 全免费客户端——试用已移除，无需初始化试用服务。
@@ -913,6 +921,85 @@ class AppProvider extends ChangeNotifier {
     connectionName: connectionName ?? connection.currentServer?.name,
   );
 
+  /// F-03：agent 保存查询 tab id 生成——毫秒时间戳 + 进程内递增序号
+  /// （仿 AiMemoryService `mem_<ms>_<n>` 防同毫秒碰撞先例）；static 计数
+  /// 跨实例单调，同毫秒两次保存必得不同 id。
+  static int _agentSaveIdSeq = 0;
+  static String _nextAgentSaveTabId() =>
+      'agent_save_${DateTime.now().millisecondsSinceEpoch}_${_agentSaveIdSeq++}';
+
+  /// T4：agent save_saved_query 工具的保存查询落点（AiPanelProvider 构造
+  /// 注入回调的本体）。构造合成 QueryTab 走既有 TabProvider.saveQuery 管线
+  /// （同连接同名抛 DuplicateSavedQueryNameException → duplicateName 供模型
+  /// 自纠；上限 20 自动移最旧由管线执法）。失败不抛出——映射 failed 状态，
+  /// 由工具层回喂 EXECUTION_FAILED。
+  Future<AgentSavedQuerySaveStatus> _saveAgentSavedQuery({
+    required String name,
+    required String sql,
+    String? connectionId,
+    String? databaseName,
+    DatabaseType? databaseType,
+  }) async {
+    try {
+      await tab.saveQuery(
+        QueryTab(
+          id: _nextAgentSaveTabId(),
+          title: name,
+          sql: sql,
+          connectionId: connectionId,
+          databaseName: databaseName,
+          databaseType: databaseType,
+        ),
+      );
+      return AgentSavedQuerySaveStatus.saved;
+    } on DuplicateSavedQueryNameException {
+      return AgentSavedQuerySaveStatus.duplicateName;
+    } catch (e) {
+      AppLogger.e('AppProvider', 'agent save_saved_query failed', e);
+      return AgentSavedQuerySaveStatus.failed;
+    }
+  }
+
+  /// 测试注入：暴露 agent 保存查询落点（F-03 用例钉同毫秒 id 去重；生产
+  /// 路径仅经构造注入 AiPanelProvider 的 savedQuerySaver 回调触达）。
+  @visibleForTesting
+  Future<AgentSavedQuerySaveStatus> saveAgentSavedQueryForTest({
+    required String name,
+    required String sql,
+    String? connectionId,
+    String? databaseName,
+    DatabaseType? databaseType,
+  }) => _saveAgentSavedQuery(
+    name: name,
+    sql: sql,
+    connectionId: connectionId,
+    databaseName: databaseName,
+    databaseType: databaseType,
+  );
+
+  /// T4：agent 读工具成功的 prefs 历史写（source=agent；字段口径对齐 T1
+  /// `workbench_execution_actions` 的 recordAgentQueryHistory 助手）。
+  Future<void> _recordAgentQueryHistory({
+    required String sql,
+    required String connectionId,
+    String? connectionName,
+    String? database,
+    DatabaseType? databaseType,
+    required int durationMs,
+    required int affectedRows,
+    String? error,
+  }) => queryHistory.addQueryHistory(
+    sql: sql,
+    connectionId: connectionId,
+    connectionName: connectionName,
+    executionTime: durationMs,
+    affectedRows: affectedRows,
+    error: error,
+    database: database,
+    databaseType: databaseType,
+    source: QueryHistorySource.agent,
+  );
+
   // ==================== 便捷的分组操作 ====================
   List<ConnectionGroup> get connectionGroups => connection.connectionGroups;
   Future<void> addConnectionGroup(ConnectionGroup group) =>
@@ -972,6 +1059,80 @@ class AppProvider extends ChangeNotifier {
   Future<void> useDatabase(String dbName, {String? connectionId}) async {
     await connection.dbService.useDatabase(dbName, connectionId: connectionId);
     await connection.changeDatabase(dbName, connectionId: connectionId);
+  }
+
+  /// 是否正在执行侧栏库选择恢复（内联并发守卫：恢复编排含多次 await，
+  /// 库列表装载等触发点可能并发调用，重入以先到者为准）。
+  bool _isRestoringSidebarDatabase = false;
+
+  /// 恢复指定连接的侧栏库选择（T1 持久化的恢复入口）。
+  ///
+  /// 校验（任一失败零副作用返回）：连接仍在（已删 → 清持久化键）∧ 已连接
+  /// （未连接 → 跳过，**绝不自动发起连接**，键保留待下次装载）∧ 是侧栏当前
+  /// 连接（恢复不触发 switchToConnection）→ 读持久化键 →
+  /// [SidebarProvider.resolveRestorableDatabase] 校验库在（已删 → 清键）。
+  /// 恢复链复用显式选库链（sidebar_tree._selectDatabase 去
+  /// switchToConnection 变体）：changeDatabase → followActiveTabDatabase →
+  /// sidebar.selectConnection（幂等）→ sidebar.selectDatabase（重写同值键）。
+  /// 编排全程 try/catch：getDatabases 等失败视为「暂不恢复」（不删键，下次
+  /// 库列表装载再试）。幂等：侧栏已选中该连接的库时直接返回（不劫持）。
+  Future<void> restoreSidebarDatabaseSelection(String connectionId) async {
+    if (connectionId.isEmpty) return;
+    if (_isRestoringSidebarDatabase) return;
+    _isRestoringSidebarDatabase = true;
+    try {
+      // 幂等短路：该连接已选中库（恢复重放 / 用户会话内已显式选库）→ 不劫持。
+      if (sidebar.selectedConnectionId == connectionId &&
+          sidebar.selectedDatabaseName != null) {
+        return;
+      }
+      // 校验①：连接仍在（已删除 → 清持久化键）。
+      if (connection.getServerById(connectionId) == null) {
+        await sidebar.clearPersistedLastDatabase(connectionId);
+        return;
+      }
+      // 校验②：已连接（未连接 → 跳过恢复，键保留；启动路径零隐式网络动作）。
+      if (!isConnectionConnected(connectionId)) {
+        return;
+      }
+      // 校验③：只恢复侧栏当前连接（解析序与
+      // organisms/sidebar/sidebar_current_connection.dart 同源：
+      // currentServer → 活动 tab → 侧栏选中）。
+      final sidebarCurrentId =
+          connection.currentServer?.id ??
+          tab.activeTab?.connectionId ??
+          sidebar.selectedConnectionId;
+      if (sidebarCurrentId != connectionId) {
+        return;
+      }
+      // 读持久化键（缺失 / 损坏 → 静默忽略）。
+      final persisted = await sidebar.getPersistedLastDatabase(connectionId);
+      // 校验④：库仍在（经 getDatabases 服务端真相；已删 → 清键）。
+      final candidate = SidebarProvider.resolveRestorableDatabase(
+        persisted: persisted,
+        availableDatabases: await dbService.getDatabases(
+          connectionId: connectionId,
+        ),
+      );
+      if (candidate == null) {
+        if (persisted != null && persisted.isNotEmpty) {
+          await sidebar.clearPersistedLastDatabase(connectionId);
+        }
+        return;
+      }
+      // 恢复链（显式选库链去 switchToConnection 变体；顺序与
+      // _selectDatabase 一致：先落连接级当前库，再同步侧栏与工具栏）。
+      await changeDatabase(candidate, connectionId: connectionId);
+      followActiveTabDatabase(candidate);
+      sidebar.selectConnection(connectionId);
+      sidebar.selectDatabase(candidate);
+    } catch (e) {
+      // 恢复编排失败（getDatabases 网络失败等）→ 视为「暂不恢复」：
+      // 不删键，下次库列表装载后再试。
+      AppLogger.w('AppProvider', '恢复侧栏库选择失败（暂不恢复）: $e');
+    } finally {
+      _isRestoringSidebarDatabase = false;
+    }
   }
 
   Future<void> _syncDatabase(String dbName) async {
@@ -1062,6 +1223,9 @@ class AppProvider extends ChangeNotifier {
   Future<void> deleteConnection(String id) async {
     await tab.closeTabsForConnection(id);
     await connection.deleteConnection(id);
+    // T1：连接删除后清其持久化最后选库键（键归属连接；删除失败 rethrow
+    // 时不会走到这里，键随连接保留）。
+    await sidebar.clearPersistedLastDatabase(id);
   }
 
   Future<void> cancelConnect({String? connectionId}) async {
@@ -1341,6 +1505,24 @@ class AppProvider extends ChangeNotifier {
     String? sessionId,
   }) {
     return tab.executeQuery(
+      sql,
+      connectionId: connectionId,
+      database: database,
+      sessionId: sessionId,
+    );
+  }
+
+  /// [executeQuery] 的 detailed 孪生（裁决选项 A）：完整
+  /// [QueryExecutionResult]（rows + affectedRows + executionTimeMs），
+  /// 经 TabProvider 层（SELECT PII 脱敏口径同 [executeQuery]）。
+  /// 工作台执行入口 = 本方法（勿下绕直绑 dbService，否则 SELECT 脱敏回归）。
+  Future<QueryExecutionResult> executeQueryDetailed(
+    String sql, {
+    String? connectionId,
+    String? database,
+    String? sessionId,
+  }) {
+    return tab.executeQueryDetailed(
       sql,
       connectionId: connectionId,
       database: database,
@@ -1861,6 +2043,68 @@ class AppProvider extends ChangeNotifier {
     await recordAiUsage();
   }
 
+  /// 对侧边栏树节点（表/库/连接）发起 **工作台内** AI 分析（2b.4 R7 引流
+  /// 重路由；旧 [analyzeTreeNodeWithAi] 经典 dock 路径保留零改动）。
+  ///
+  /// 与经典路径的区别：本方法只做「开工作台 + 锁定连接/库 + 预填 prompt +
+  /// 对应 tab」，**不调用任何 send 路径、不校验 API key、不 recordAiUsage**
+  /// （预填零执行——发送时机的账由用户按发送键走既有 runner 链）。
+  /// tabTarget：connection 型 = observe（实例观察）；table/database 型 =
+  /// none（表产物落 optimization tab 走 R6 推送链、库产物 document kind
+  /// 未实现留已知项）。
+  Future<void> analyzeTreeNodeInWorkbench(
+    AiTreeNodeContext ctx, {
+    String locale = 'en',
+  }) async {
+    // ① 开工作台（open + fullscreen 组合 = 进入全屏工作台宿主）。
+    aiPanel.setAiPanelOpen(true);
+    aiPanel.setAiPanelFullscreen(true);
+    // ② 锁定需要会话（会话为空时 lockWorkbenchContext 静默失败——先
+    // ensureSession 建默认会话）。
+    aiPanel.ensureSession();
+    // ③ 锁定连接/库到当前会话（工作台上下文芯片/observe 内容的派生源）。
+    aiPanel.lockWorkbenchContext(ctx.connectionId, ctx.databaseName);
+
+    // ④ 收集节点上下文（非 MySQL 分支 adapter 解析按 ctx.connectionId 已
+    // 顺修）。收集失败不阻塞工作台打开——预填降级为纯问句（零执行路径
+    // 无失败语义）。
+    String context = '';
+    try {
+      context = await _collectNodeContext(ctx, locale);
+    } catch (_) {
+      // 预填降级：无上下文仍可预填 header + 问句，由用户按需补充后发送。
+    }
+
+    // ⑤ 组装预填 prompt：复用既有 analyzeTreeNodeHeader/analyzeTreeNodeAsk；
+    // connection 型问句换成 server 健康问句（观察 tab 内容对应实例状态）。
+    final l10n = AiServiceLocalizations(locale);
+    final text = StringBuffer();
+    text.writeln(
+      l10n.analyzeTreeNodeHeader(l10n.nodeTypeLabel(ctx.type), ctx.displayLabel),
+    );
+    if (context.isNotEmpty) {
+      text.writeln();
+      text.writeln('```');
+      text.writeln(context);
+      text.writeln('```');
+    }
+    text.writeln();
+    text.writeln(
+      ctx.type == AiTreeNodeType.connection
+          ? l10n.analyzeServerHealthAsk
+          : l10n.analyzeTreeNodeAsk,
+    );
+
+    // ⑥ 挂 pending intent：connection 型推开 observe tab，其余不推 tab。
+    aiPanel.requestWorkbenchEntry(
+      prompt: text.toString(),
+      tabTarget: ctx.type == AiTreeNodeType.connection
+          ? WorkbenchEntryTabTarget.observe
+          : WorkbenchEntryTabTarget.none,
+    );
+    // ⑦ 无 send 路径 / 无 API key 校验 / 无 recordAiUsage（预填零执行）。
+  }
+
   Future<String> _collectNodeContext(AiTreeNodeContext ctx, [String locale = 'en']) async {
     final l = AiServiceLocalizations(locale);
     final dbType = connection.currentServer?.type;
@@ -1900,8 +2144,10 @@ class AppProvider extends ChangeNotifier {
       }
     }
 
-    // Other SQL databases use the adapter's basic schema summary
-    final adapter = connection.dbService.currentAdapter;
+    // Other SQL databases use the adapter's basic schema summary.
+    // 2b.4 顺修：按 ctx.connectionId 取 adapter（原 currentAdapter = 侧栏
+    // 当前连接，锁定的连接与侧栏当前连接不一致时张冠李戴——锁定连接正确性）。
+    final adapter = connection.dbService.getAdapter(ctx.connectionId);
     if (adapter == null) throw Exception('Not connected to a database.');
 
     switch (ctx.type) {

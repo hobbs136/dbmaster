@@ -17,6 +17,10 @@ abstract class ISessionManager {
   List<AiBookmark> get bookmarks;
   List<AiMessage> get currentMessages;
 
+  /// 只读消息视图（会话导出用）：返回指定会话消息列的不可变快照。
+  /// 不切换 currentSession、不触发持久化、不 notifyListeners；未知 id 返回空列。
+  List<AiMessage> messagesForSession(String sessionId);
+
   AiConversationSession createSession({String? title, String? parentMessageId, String locale = 'en'});
   void switchSession(String sessionId);
   void deleteSession(String sessionId);
@@ -110,6 +114,10 @@ class AiSessionManager extends ChangeNotifier implements ISessionManager {
     if (_currentSession == null) return [];
     return List.unmodifiable(_sessionMessages[_currentSession!.id] ?? []);
   }
+
+  @override
+  List<AiMessage> messagesForSession(String sessionId) =>
+      List.unmodifiable(_sessionMessages[sessionId] ?? const <AiMessage>[]);
 
   Future<void> _ensureInit() async {
     if (_docsDir != null) return;

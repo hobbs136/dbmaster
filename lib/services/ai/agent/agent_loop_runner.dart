@@ -10,6 +10,7 @@
 ///                             ├─ requestStop（当前步完成）──► stopping ──► stoppedByUser
 ///                             ├─ 预算耗尽 ───────────────────► stoppedByLimit
 ///                             ├─ 连续失败 ≥5 ────────────────► stoppedByFailures
+///                             ├─ 上下文缺失（②a/②b CONTEXT_REQUIRED）──► stoppedByContext
 ///                             └─ chat() 抛出 ────────────────► failed
 /// 所有终态 ──新 start()──► running（新 runId；账本跨 run 保留、随会话/连接失效）
 /// ```
@@ -18,7 +19,7 @@
 /// （AC1.7 发送守卫读此值）；任何终态必有终局消息（崩溃除外——由 §5.2
 /// 中断态渲染兜底，runner 不从消息恢复运行态，FC-6）。
 ///
-/// 四停止源统一收敛（§6.4，全部落终局消息）：
+/// 五停止源统一收敛（§6.4 四源 + T2 方案 B 上下文缺失终止，全部落终局消息）：
 /// - 用户停止（AC1.3）：在途工具调用**完成**（结果保留）；awaitingUser 的
 ///   Completer 以 rejected 解决（卡上「已随运行取消」）；不再发起新轮；
 /// - 超限（AC2.2）：派发前预算检查——预算内调用执行完（部分执行语义），
@@ -26,6 +27,11 @@
 ///   **不自动请求继续**（AC2.4：用户发新指令接续，新 run seed 自会话历史）；
 /// - 失败自纠上限（D18/NF3.2）：连续 5 个失败工具调用即停；成功清零；
 ///   chat 层提供商错误**不走此计数**（→ failed 态，AC15.5）；
+/// - 上下文缺失（T2 方案 B / FU-10 收口）：数据类工具被门 ②a/②b 以
+///   `CONTEXT_REQUIRED` 拒绝 → 立即终止 `stoppedByContext` + 终局引导选库
+///   （顶部上下文芯片）；同批剩余 tool_calls 回喂 CONTEXT_REQUIRED 占位
+///   （协议完整，不执行不计步）——不再进入下一轮让模型用 information_schema /
+///   系统库绕行烧满步限；
 /// - 提供商错误：`chat()` 抛出（chat 层重试 3 次后）→ 运行级失败。
 ///
 /// 消息流（§5.2，D2 落同一会话账本）：runner 落**用户消息 / 轨迹锚点 /
@@ -48,12 +54,14 @@ import 'dart:async' show Completer;
 
 import 'package:flutter/foundation.dart' show ChangeNotifier;
 
+import '../../../models/ai_memory_item.dart' show AiMemoryItem;
 import '../../../models/ai_message_type.dart'
     show AiMessageStatus, AiMessageType;
 import '../../../models/ai_models.dart' show ChatResponse, TokenUsage;
 import '../../../models/database_models.dart' show AiMessage;
 import '../../../utils/app_logger.dart' show AppLogger;
 import '../../../utils/secret_redactor.dart' show redactSecrets;
+import '../../ai/ai_memory_service.dart' show AiMemoryService;
 import '../../ai_service.dart' show AiService;
 import '../../query_settings_service.dart' show QuerySettingsService;
 import '../../workbench_usage_stats_service.dart'
@@ -69,7 +77,8 @@ import 'agent_tool_executor.dart'
     show AgentToolCall, AgentToolExecutor, AgentToolOutcome, GateCallbacks;
 import 'agent_ui_port.dart' show AgentUiPort, GateCardResult;
 
-/// agent 运行状态（design §4.3 枚举原文，一字不改）。
+/// agent 运行状态（design §4.3 枚举原文；T2 方案 B 尾部追加
+/// [stoppedByContext]——既有值与序不动）。
 enum AgentRunStatus {
   idle,
   running,
@@ -80,6 +89,7 @@ enum AgentRunStatus {
   stoppedByLimit,
   stoppedByFailures,
   failed, // AI 提供商错误（AC15.5）
+  stoppedByContext, // 上下文缺失终止（T2 方案 B：门 ②a/②b CONTEXT_REQUIRED）
 }
 
 /// 一次 chat 调用的配置（生产由 T14 闭包解析自 AppProvider 的 AI 配置面；
@@ -132,6 +142,42 @@ typedef AgentChatConfigResolver = AgentChatConfig Function();
 /// maxSteps 解析函数（AC2.1：启动时读，运行中不改；生产默认 =
 /// `QuerySettingsService.getAgentMaxSteps`）。
 typedef AgentMaxStepsResolver = Future<int> Function();
+
+/// 系统提示词记忆块快照（T4）：全局 + 锁定连接两作用域，各自按 updatedAt
+/// 新→旧（AiMemoryService 清单语义；注入 fake 时由调用方保证同序——
+/// 截断按序取最新）。
+class AgentMemorySnapshot {
+  const AgentMemorySnapshot({
+    this.global = const <AiMemoryItem>[],
+    this.connection = const <AiMemoryItem>[],
+  });
+
+  /// 全局作用域记忆（新→旧）。
+  final List<AiMemoryItem> global;
+
+  /// 锁定连接作用域记忆（新→旧；无锁定连接为空列）。
+  final List<AiMemoryItem> connection;
+
+  bool get isEmpty => global.isEmpty && connection.isEmpty;
+}
+
+/// 记忆解析函数（T4）：run 启动时按锁定连接取一次快照注入系统提示词。
+/// 生产默认 = [AiMemoryService] 单例；测试注入 fake 隔离 prefs。
+typedef AgentMemoryResolver =
+    Future<AgentMemorySnapshot> Function(String? connectionId);
+
+/// 生产默认记忆解析（initialize 幂等且内部容错——prefs 不可达时降级空态，
+/// 不阻断 run 启动）。
+Future<AgentMemorySnapshot> _defaultMemoryResolver(String? connectionId) async {
+  final AiMemoryService service = AiMemoryService();
+  await service.initialize();
+  return AgentMemorySnapshot(
+    global: service.listGlobal(),
+    connection: connectionId == null
+        ? const <AiMemoryItem>[]
+        : service.listForConnection(connectionId),
+  );
+}
 
 /// 运行级统计回调集（T08 四方法；生产默认绑 WorkbenchUsageStatsService
 /// 单例，测试注入 spy）。
@@ -186,13 +232,15 @@ class AgentLoopRunner extends ChangeNotifier {
     AgentChatFn? chat,
     AgentMaxStepsResolver? resolveMaxSteps,
     AgentRunStatsCallbacks? stats,
+    AgentMemoryResolver? memoryResolver,
   }) : _executor = executor,
        _sessionManager = sessionManager,
        _resolveRunContext = resolveRunContext,
        _resolveChatConfig = resolveChatConfig,
        _chat = chat ?? AiService().client.chat,
        _resolveMaxSteps = resolveMaxSteps ?? _defaultMaxSteps,
-       _stats = stats ?? _defaultStats();
+       _stats = stats ?? _defaultStats(),
+       _memoryResolver = memoryResolver ?? _defaultMemoryResolver;
 
   /// D18：连续失败工具调用上限（任何成功即清零；chat 层错误不计入 → failed）。
   static const int maxConsecutiveFailures = 5;
@@ -206,6 +254,10 @@ class AgentLoopRunner extends ChangeNotifier {
   final AgentChatFn _chat;
   final AgentMaxStepsResolver _resolveMaxSteps;
   final AgentRunStatsCallbacks _stats;
+
+  /// T4：记忆解析（系统提示词记忆块数据源；启动时取一次，run 内不刷新——
+  /// 与 D15 上下文快照同节奏）。
+  final AgentMemoryResolver _memoryResolver;
 
   /// 会话放行账本（D12；跨 run 保留，随会话/连接失效——失效触发方在
   /// T14 接线，本类只持有并传递给 executor）。
@@ -320,10 +372,15 @@ class AgentLoopRunner extends ChangeNotifier {
     }
 
     // seed（D19 裁剪产物）：在落用户消息/锚点**之前**取历史——本轮消息走
-    // _runLlmMessages，不进 seed。
+    // _runLlmMessages，不进 seed。T4：记忆块同点取一次快照（解析失败降级
+    // 空态——记忆是提示词增强面，不阻断 run 启动）。
+    final AgentMemorySnapshot memory = await _resolveMemorySnapshot(
+      runCtx.connectionId,
+    );
     final String systemPrompt = _AgentSystemPrompt.build(
       locale: cfg.locale,
       runCtx: runCtx,
+      memory: memory,
     );
     final BuildContextResult seed = AiContextBuilder.buildContext(
       fixedSystemPrompt: systemPrompt,
@@ -574,6 +631,24 @@ class AgentLoopRunner extends ChangeNotifier {
         });
         notifyListeners(); // stepsUsed 已变（AC3.1 实时对账）
 
+        // T2 方案 B 检查点（FU-10 收口）：CONTEXT_REQUIRED 拒绝 → run 立即
+        // 终止（stoppedByContext + 终局引导选库），同批剩余 tool_calls 回喂
+        // CONTEXT_REQUIRED 占位保持协议完整——不再进入下一轮让模型经
+        // information_schema / 系统库绕行烧满步限。用户停止优先（§6.4）：
+        // requestStop 与本检查点同帧时按既有 _stopCause 检查顺序收敛
+        // stoppedByUser（循环尾的 userStop 分支接管）。
+        if (!outcome.ok &&
+            outcome.errorCode == AgentToolErrorCodes.contextRequired) {
+          if (_stopCause == _StopCause.userStop) {
+            break; // 用户停止语义不被上下文终止抢占
+          }
+          for (int j = i + 1; j < resp.toolCalls.length; j++) {
+            llm.add(_contextPlaceholderToolMessage(resp.toolCalls[j].id));
+          }
+          await _finalizeStoppedByContext(runId, cfg, runCtx, generation);
+          return;
+        }
+
         // D18 失败计数：任何成功即清零。
         if (outcome.ok) {
           _consecutiveFailures = 0;
@@ -607,7 +682,8 @@ class AgentLoopRunner extends ChangeNotifier {
   bool _silentExit(int generation) =>
       generation != _generation || _stopCause == _StopCause.sessionSwitch;
 
-  // ── 终局收敛（§6.4 四源统一：全部落终局消息 + 统计 + 状态收敛）─────────
+  // ── 终局收敛（§6.4 四源 + T2 方案 B 上下文缺失终止：全部落终局消息 +
+  //    统计 + 状态收敛）──────────────────────────────────────────────────────
 
   Future<void> _finalizeCompleted(
     String runId,
@@ -665,6 +741,33 @@ class AgentLoopRunner extends ChangeNotifier {
       runId: runId,
       cfg: cfg,
       status: AgentRunStatus.stoppedByLimit,
+      content: summary,
+      summaryText: summary,
+    );
+  }
+
+  /// T2 方案 B 终局（FU-10 收口）：上下文缺失终止。照
+  /// [_finalizeStoppedByLimit] 同构——**不新增统计字段**
+  /// （workbench_usage_stats_service.dart 零改动）。
+  Future<void> _finalizeStoppedByContext(
+    String runId,
+    AgentChatConfig cfg,
+    AgentRunContext runCtx,
+    int generation,
+  ) async {
+    if (generation != _generation) return;
+    final _RunnerText t = _RunnerText.forLocale(cfg.locale);
+    final String conn = runCtx.connectionName ?? runCtx.connectionId ?? '';
+    final bool hasConnection =
+        runCtx.connectionId != null && runCtx.connectionId!.isNotEmpty;
+    final String summary = t.stoppedByContextSummary(
+      connectionLabel: conn,
+      hasConnection: hasConnection,
+    );
+    await _landTerminal(
+      runId: runId,
+      cfg: cfg,
+      status: AgentRunStatus.stoppedByContext,
       content: summary,
       summaryText: summary,
     );
@@ -885,6 +988,22 @@ class AgentLoopRunner extends ChangeNotifier {
 
   // ── 私有辅助 ────────────────────────────────────────────────────────────
 
+  /// T4：记忆快照解析（容错封装——解析异常降级空快照，run 照常启动）。
+  Future<AgentMemorySnapshot> _resolveMemorySnapshot(
+    String? connectionId,
+  ) async {
+    try {
+      return await _memoryResolver(connectionId);
+    } catch (e) {
+      AppLogger.e(
+        'AgentLoopRunner',
+        'memory snapshot resolution failed (run continues without memory block)',
+        e,
+      );
+      return const AgentMemorySnapshot();
+    }
+  }
+
   /// STEP_LIMIT_REACHED 占位回喂（§6.4 超限行：协议完整；不执行不计步）。
   Map<String, dynamic> _placeholderToolMessage(String callId) =>
       <String, dynamic>{
@@ -895,6 +1014,20 @@ class AgentLoopRunner extends ChangeNotifier {
             '${AgentToolErrorCodes.stepLimitReached}'
             '","message":"step budget exhausted; run stopped before '
             'dispatching this call"}}',
+      };
+
+  /// T2 方案 B：上下文缺失终止时同批剩余 tool_calls 的占位回喂（沿
+  /// [_placeholderToolMessage] 模式——协议完整、不执行不计步；错误码与
+  /// 终止步同源 CONTEXT_REQUIRED，区别于超限占位的 STEP_LIMIT_REACHED）。
+  Map<String, dynamic> _contextPlaceholderToolMessage(String callId) =>
+      <String, dynamic>{
+        'role': 'tool',
+        'tool_call_id': callId,
+        'content':
+            '{"ok":false,"error":{"code":"'
+            '${AgentToolErrorCodes.contextRequired}'
+            '","message":"run stopped: no locked database context; this call '
+            'was not dispatched"}}',
       };
 
   void _setStatus(AgentRunStatus next) {
@@ -908,12 +1041,20 @@ class AgentLoopRunner extends ChangeNotifier {
 /// 指令 l10n 化——沿 AiServiceLocalizations 的 locale 参数模式。ARB 集中制
 /// 下本文件不触 ARB（T03/T21/T33 专属）。
 class _AgentSystemPrompt {
-  /// 组装系统提示词（runCtx 快照注入上下文段，§4.6）。
+  /// 组装系统提示词（runCtx 快照注入上下文段，§4.6；[memory] 为 T4 记忆
+  /// 块快照——null 或空态整段省略）。
   static String build({
     required String locale,
     required AgentRunContext runCtx,
+    AgentMemorySnapshot? memory,
   }) {
     final bool zh = locale == 'zh';
+    // P3-1：空串同视为未设置（与 gate ②b 谓词 agentToolRequiresDatabaseContext
+    // 同语义；局部变量收窄避免裸 !）。
+    final String? databaseName = runCtx.databaseName;
+    final String? memoryBlock = memory == null || memory.isEmpty
+        ? null
+        : _memoryBlock(zh, memory);
     return <String>[
       zh
           ? '你是 DbMaster 工作台 agent。工具目录即你的全部能力边界——目录'
@@ -929,8 +1070,10 @@ class _AgentSystemPrompt {
       _contextLine(runCtx),
       // Fix-J：缺 database 时注入缺口引导，指向真实可用路径（顶部上下文
       // 芯片 → 选择器），掐断模型幻觉出的「请先在侧边栏选中一个 database」。
-      if (runCtx.databaseName == null) _missingDatabaseGuide(zh),
+      if (databaseName == null || databaseName.isEmpty)
+        _missingDatabaseGuide(zh),
       '',
+      if (memoryBlock != null) ...<String>[memoryBlock, ''],
       zh ? _rulesZh() : _rulesEn(),
     ].join('\n');
   }
@@ -940,7 +1083,11 @@ class _AgentSystemPrompt {
   static String _contextLine(AgentRunContext runCtx) {
     final String conn =
         runCtx.connectionName ?? runCtx.connectionId ?? 'no connection';
-    final String db = runCtx.databaseName ?? '-';
+    // P3-1：空串同视为未设置（与 gate ②b 谓词同语义），渲染占位 `-`。
+    final String? databaseName = runCtx.databaseName;
+    final String db = databaseName == null || databaseName.isEmpty
+        ? '-'
+        : databaseName;
     final String mode = runCtx.readOnly ? 'read-only' : 'writable';
     return '- locked connection: $conn · database: $db · dialect: '
         '${runCtx.dbType.name} · mode: $mode';
@@ -949,14 +1096,67 @@ class _AgentSystemPrompt {
   /// 上下文缺失引导（Fix-J）：database 未设置（上方为 `-`）时的唯一正确
   /// 指引 = 顶部上下文芯片 → 上下文选择器设置数据库；明确禁止指引用户去
   /// 侧边栏树选库（侧栏树选库对芯片/agent 上下文不生效的误导曾实报）。
+  /// T2 方案 B 补终止语义：设置前调用数据类工具会立即终止本次运行。
   static String _missingDatabaseGuide(bool zh) => zh
       ? '上下文缺失引导：database 为 - 表示未设置。若任务需要指定库，请指引'
             '用户点顶部上下文芯片、在上下文选择器中设置数据库——不要指引用户'
-            '去侧边栏树选库。'
+            '去侧边栏树选库。未设置前调用数据类工具会立即终止本次运行。'
       : 'Missing-context guidance: database "-" means unset. If the task '
             'needs a specific database, direct the user to the context chip '
             'at the top and set the database in the context picker — never '
-            'direct the user to the sidebar tree to pick a database.';
+            'direct the user to the sidebar tree to pick a database. Calling '
+            'a data tool before it is set terminates this run immediately.';
+
+  /// T4 记忆块总字符预算（含标题；超限按序截断——清单本身 updatedAt 新→旧，
+  /// 截断即保最新）。
+  static const int _memoryBlockBudgetChars = 2000;
+
+  /// 记忆块（T4）：全局 + 锁定连接两段，条目 `- [subject] content`；总字符
+  /// ≤ [_memoryBlockBudgetChars]（放不下的截断并以省略标记收尾——塞不下的
+  /// 一定是最旧条目，marker 放不进去时直接收束）。
+  static String _memoryBlock(bool zh, AgentMemorySnapshot memory) {
+    final String heading = zh
+        ? '已知记忆（你与用户此前沉淀的事实，优先采信；过时条目勿盲从）：'
+        : 'Known memories (facts saved earlier by you or the user; trust them, '
+              'but do not follow stale entries blindly):';
+    final String globalTitle = zh ? '全局记忆：' : 'Global memories:';
+    final String connectionTitle = zh
+        ? '当前连接记忆：'
+        : 'Locked-connection memories:';
+    const String moreMarker = '- …';
+
+    final List<String> lines = <String>[heading];
+    int used = heading.length;
+    bool truncated = false;
+
+    void emit(String title, List<AiMemoryItem> items) {
+      if (items.isEmpty || truncated) return;
+      if (used + title.length + 1 > _memoryBlockBudgetChars) {
+        truncated = true;
+        return;
+      }
+      lines.add(title);
+      used += title.length + 1;
+      for (final AiMemoryItem item in items) {
+        final String? subject = item.subject;
+        final String line =
+            '- ${subject == null ? '' : '[$subject] '}${item.content}';
+        if (used + line.length + 1 > _memoryBlockBudgetChars) {
+          truncated = true;
+          return;
+        }
+        lines.add(line);
+        used += line.length + 1;
+      }
+    }
+
+    emit(globalTitle, memory.global);
+    emit(connectionTitle, memory.connection);
+    if (truncated && used + moreMarker.length + 1 <= _memoryBlockBudgetChars) {
+      lines.add(moreMarker);
+    }
+    return lines.join('\n');
+  }
 
   /// 行为规则（zh）。规则 3 含 A1 兜底引导：目录无 submit_action_plan 时
   /// 写语句进回复文本、交用户走既有确认流（AC9.4 中间态）。
@@ -972,6 +1172,12 @@ class _AgentSystemPrompt {
     '4. 不确定时问用户，不要猜。',
     '5. 结果大时先采样（小 LIMIT），不要一次拉全量。',
     '6. 界面工具用于呈现，不要堆砌：同类产物先 pin 再新开。',
+    '7. 用户纠正字段含义、业务规则或偏好时，主动用 save_memory 沉淀'
+        '（subject 用 table.column 形态，describe_table 会直接展示）；'
+        '保存前先 list_memories 查重。',
+    '8. 上下文缺失（无锁定连接或无库）时，不要调用任何数据类工具，也不要'
+        '尝试用 information_schema 或系统库绕行——此类调用会立即终止本次'
+        '运行；直接在回复中引导用户点顶部上下文芯片设置。',
   ].join('\n');
 
   /// 行为规则（en，英文为体）。
@@ -993,6 +1199,15 @@ class _AgentSystemPrompt {
     '5. Sample first (small LIMIT) when results may be large.',
     '6. Presentation tools are for presenting, not piling up: pin an '
         'existing artifact before opening a new one.',
+    '7. When the user corrects a field meaning, a business rule or a '
+        'preference, proactively persist it with save_memory (use a '
+        'table.column subject so describe_table surfaces it); check '
+        'list_memories first to avoid duplicates.',
+    '8. When context is missing (no locked connection or no database), do '
+        'not call any data tool and do not try to work around it via '
+        'information_schema or system catalogs — such calls terminate this '
+        'run immediately; instead, direct the user to set it via the context '
+        'chip at the top.',
   ].join('\n');
 }
 
@@ -1032,6 +1247,30 @@ class _RunnerText {
     return zh
         ? '连续 $failures 次工具调用失败，运行停止$tail'
         : 'Stopped after $failures consecutive tool failures$tail';
+  }
+
+  /// T2 方案 B 终局文案（zh/en 对称，沿 _RunnerText 双语模式——不进 ARB，
+  /// 既有终局 summary 同此前例）。无连接时换引导变体（选择连接与数据库）。
+  String stoppedByContextSummary({
+    required String connectionLabel,
+    required bool hasConnection,
+  }) {
+    if (!hasConnection) {
+      return zh
+          ? '本次运行已终止：数据类工具需要锁定数据库上下文，但当前上下文'
+                '未设置连接。请点顶部上下文芯片选择连接与数据库后，重新发送'
+                '你的指令。'
+          : 'Run stopped: data tools require a locked database context, but '
+                'no connection is set. Pick a connection and a database via '
+                'the context chip at the top, then resend your instruction.';
+    }
+    return zh
+        ? '本次运行已终止：数据类工具需要锁定数据库上下文，但当前上下文'
+              '未设置数据库（连接：$connectionLabel）。请点顶部上下文芯片选择'
+              '数据库后，重新发送你的指令。'
+        : 'Run stopped: data tools require a locked database context, but no '
+              'database is set (connection: $connectionLabel). Pick a database '
+              'via the context chip at the top, then resend your instruction.';
   }
 
   String failedSummary(String detail) =>

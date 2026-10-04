@@ -550,7 +550,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
   }
 
   /// Agent 设置分区（T16 / D16）：AI 工作台 agent 运行参数两行——步数上限
-  /// （clamp 1-100，默认 25）与 L0.5 读确认行阈值（clamp 1,000-1,000,000，
+  /// （clamp 1-100，默认 40）与 L0.5 读确认行阈值（clamp 1,000-1,000,000，
   /// 默认 10,000）。写经 QuerySettingsService setter（T02），仅持久化——
   /// 修改后对后续运行生效，无运行中热更新（AC2.1/AC8.7）；不加任何
   /// 「关闭审计」类开关（AC13.4 禁项）。

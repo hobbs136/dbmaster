@@ -1,8 +1,9 @@
-// AgentGate + AgentRunContext 单测（T06 / design §4.2、D3、D12、D15）。
+// AgentGate + AgentRunContext 单测（T06 / design §4.2、D3、D12、D15；T2 方案 B）。
 //
 // 判定序 ①-⑤ 逐环 + 顺序不可换断言（①>② / ②>③ / ③>⑤）+ readOnly 锁档
 // + 无上下文引导 + 放行短路 + A1 目录锁（find 不可寻址 → evaluate 不可达；
-// l1/suggest 分支经注入全集 spec 完整测试，FC-5）。
+// l1/suggest 分支经注入全集 spec 完整测试，FC-5）+ ②b 上下文缺失终止
+// （requiresDatabase × USE 语义族 db-less——T2 方案 B / FU-10 收口）。
 //
 // 读前分析经注入工厂构造（AC8.7；gate 不依赖 dbService，NF5.3）——本文件
 // 以真 AgentGateAnalysis + mock getExplainPlan 驱动；分析内核自身的分支面
@@ -600,6 +601,194 @@ void main() {
       );
       expect(decision.kind, GateDecisionKind.allow);
       expect(decision.level, AgentGateLevel.l0);
+    });
+  });
+
+  group('②b 上下文缺失终止（T2 方案 B：requiresDatabase × USE 语义族 db-less）', () {
+    AgentRunContext dbLessCtx({
+      String? connectionId = 'c1',
+      DatabaseType dbType = DatabaseType.mysql,
+      bool readOnly = false,
+    }) => AgentRunContext(
+      runId: 'run-1',
+      connectionId: connectionId,
+      connectionName: connectionId == null ? null : '测试连接',
+      databaseName: null,
+      dbType: dbType,
+      readOnly: readOnly,
+    );
+
+    test('mysql 无库 + list_tables → reject CONTEXT_REQUIRED（level=l0，零分析构造）', () async {
+      final mock = _ExplainMock();
+      var factoryCalls = 0;
+      final decision = await _gate(mock, onCreate: (_) => factoryCalls++).evaluate(
+        spec: _spec('list_tables'),
+        args: const <String, dynamic>{},
+        runCtx: dbLessCtx(),
+        ledger: AgentPermissionLedger(),
+      );
+      expect(decision.kind, GateDecisionKind.reject);
+      expect(decision.reasonCode, AgentToolErrorCodes.contextRequired);
+      expect(decision.level, AgentGateLevel.l0);
+      expect(decision.impact, isNull);
+      expect(factoryCalls, 0, reason: '②b 先于 ④ 读前分析');
+    });
+
+    test('逐工具：7 个 requiresDatabase 工具在 mysql 无库快照上同拒', () async {
+      for (final String name in <String>[
+        'execute_readonly_sql',
+        'list_tables',
+        'describe_table',
+        'get_sample_data',
+        'explain_plan',
+        'submit_action_plan',
+        'show_table_structure',
+      ]) {
+        final decision = await _gate(_ExplainMock()).evaluate(
+          spec: _spec(name),
+          args: const <String, dynamic>{},
+          runCtx: dbLessCtx(),
+          ledger: AgentPermissionLedger(),
+        );
+        expect(decision.kind, GateDecisionKind.reject, reason: name);
+        expect(
+          decision.reasonCode,
+          AgentToolErrorCodes.contextRequired,
+          reason: name,
+        );
+      }
+    });
+
+    test('空串 databaseName 同视为无库（对齐 ②a 空串 connectionId 语义）', () async {
+      final ctx = AgentRunContext(
+        runId: 'run-1',
+        connectionId: 'c1',
+        connectionName: '测试连接',
+        databaseName: '',
+        dbType: DatabaseType.mysql,
+        readOnly: false,
+      );
+      final decision = await _gate(_ExplainMock()).evaluate(
+        spec: _spec('list_tables'),
+        args: const <String, dynamic>{},
+        runCtx: ctx,
+        ledger: AgentPermissionLedger(),
+      );
+      expect(decision.reasonCode, AgentToolErrorCodes.contextRequired);
+    });
+
+    test(
+      '顺序②b>③：readOnly + plan + mysql 无库 → CONTEXT_REQUIRED 而非 READONLY_CONNECTION',
+      () async {
+        final decision = await _gate(_ExplainMock()).evaluate(
+          spec: _spec('submit_action_plan'),
+          args: const <String, dynamic>{},
+          runCtx: dbLessCtx(readOnly: true),
+          ledger: AgentPermissionLedger(),
+        );
+        expect(decision.reasonCode, AgentToolErrorCodes.contextRequired);
+      },
+    );
+
+    test(
+      '豁免族：sqlite/postgresql/sqlserver/mongodb/redis 无库 → 不被 ②b 拦'
+      '（allow，零分析构造）',
+      () async {
+        for (final DatabaseType dbType in <DatabaseType>[
+          DatabaseType.sqlite,
+          DatabaseType.postgresql,
+          DatabaseType.sqlserver,
+          DatabaseType.mongodb,
+          DatabaseType.redis,
+        ]) {
+          final mock = _ExplainMock();
+          var factoryCalls = 0;
+          final decision = await _gate(
+            mock,
+            onCreate: (_) => factoryCalls++,
+          ).evaluate(
+            spec: _spec('list_tables'),
+            args: const <String, dynamic>{},
+            runCtx: dbLessCtx(dbType: dbType),
+            ledger: AgentPermissionLedger(),
+          );
+          expect(
+            decision.kind,
+            GateDecisionKind.allow,
+            reason: '${dbType.name} 豁免（行为同现状）',
+          );
+          expect(decision.level, AgentGateLevel.l0, reason: '${dbType.name}');
+          expect(factoryCalls, 0, reason: '${dbType.name} 零分析');
+        }
+      },
+    );
+
+    test('USE 语义族其余成员（doris/clickhouse/tdengine 等）无库 → 同拒', () async {
+      for (final DatabaseType dbType in <DatabaseType>[
+        DatabaseType.doris,
+        DatabaseType.clickhouse,
+        DatabaseType.tdengine,
+        DatabaseType.oceanbase,
+        DatabaseType.tidb,
+        DatabaseType.starrocks,
+        DatabaseType.mariadb,
+      ]) {
+        final decision = await _gate(_ExplainMock()).evaluate(
+          spec: _spec('list_tables'),
+          args: const <String, dynamic>{},
+          runCtx: dbLessCtx(dbType: dbType),
+          ledger: AgentPermissionLedger(),
+        );
+        expect(
+          decision.reasonCode,
+          AgentToolErrorCodes.contextRequired,
+          reason: '${dbType.name} 属 USE 语义族',
+        );
+      }
+    });
+
+    test('谓词事实源单测：agentToolRequiresDatabaseContext', () {
+      expect(
+        agentToolRequiresDatabaseContext(_spec('list_tables'), dbLessCtx()),
+        isTrue,
+      );
+      expect(
+        agentToolRequiresDatabaseContext(_spec('list_tables'), _runCtx()),
+        isFalse,
+        reason: '有库快照（db1）不拦',
+      );
+      expect(
+        agentToolRequiresDatabaseContext(
+          _spec('get_current_context'),
+          dbLessCtx(),
+        ),
+        isFalse,
+        reason: 'requiresDatabase=false 不拦',
+      );
+      expect(
+        agentToolRequiresDatabaseContext(
+          _spec('save_saved_query'),
+          dbLessCtx(),
+        ),
+        isFalse,
+        reason: 'save_saved_query 声明 requiresDatabase=false',
+      );
+      for (final DatabaseType dbType in <DatabaseType>[
+        DatabaseType.sqlite,
+        DatabaseType.postgresql,
+        DatabaseType.sqlserver,
+        DatabaseType.mongodb,
+        DatabaseType.redis,
+      ]) {
+        expect(
+          agentToolRequiresDatabaseContext(
+            _spec('list_tables'),
+            dbLessCtx(dbType: dbType),
+          ),
+          isFalse,
+          reason: '${dbType.name} 豁免族',
+        );
+      }
     });
   });
 

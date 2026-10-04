@@ -24,16 +24,54 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:dbmaster/l10n/app_localizations.dart';
+import 'package:dbmaster/l10n/app_localizations_en.dart';
 import 'package:dbmaster/models/database_models.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_context_chip.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_context_picker.dart';
 import 'package:dbmaster/organisms/connection/connect_failure_dialog.dart';
 import 'package:dbmaster/organisms/connection/connection_dialog.dart';
 import 'package:dbmaster/organisms/connection/password_prompt_dialog.dart';
+import 'package:dbmaster/providers/ai_panel_provider.dart';
 import 'package:dbmaster/providers/app_provider.dart';
+import 'package:dbmaster/services/ai/agent/agent_loop_runner.dart';
+import 'package:dbmaster/services/ai/agent/agent_permission_ledger.dart';
 import 'package:dbmaster/services/database_abstract.dart';
 
 import '../../helpers/fake_pro_module.dart';
+
+/// isRunning 可控的 runner 桩（T6 提示用例）：isRunning 为本组唯一触达面；
+/// 会话切换路径触达的 ledger 给真实实现（clearAll 零副作用）、复位桩为
+/// no-op，其余成员 noSuchMethod 兜底（AGENTS §5.4 内部服务桩惯例）。
+class _StubAgentRunner implements AgentLoopRunner {
+  _StubAgentRunner({this.running = false});
+
+  final bool running;
+
+  @override
+  bool get isRunning => running;
+
+  @override
+  final AgentPermissionLedger ledger = AgentPermissionLedger();
+
+  @override
+  void resetForSessionSwitch() {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+/// aiPanel getter 覆盖为注入桩 runner 的独立 AiPanelProvider（AppProvider
+/// 的 aiPanel 为 late final，组件树级无法替换默认 runner——
+/// workbench_chat_view_agent_test.dart 头注同款约束；除 agentRunner 外
+/// 面板装配全部真实，仅服务「run 活跃」提示用例）。
+class _RunnerStubAppProvider extends AppProvider {
+  _RunnerStubAppProvider({required this.stubPanel, required super.proModule});
+
+  final AiPanelProvider stubPanel;
+
+  @override
+  AiPanelProvider get aiPanel => stubPanel;
+}
 
 const ValueKey _launcherKey = ValueKey('picker_test_launcher');
 
@@ -136,12 +174,17 @@ void main() {
   });
 
   /// 泵宿主：芯片（同步管道在位）+ launcher。工作台可见门打开。
+  /// [appBuilder] 供「run 活跃」用例注入桩 runner 面板（默认真实 AppProvider）。
   Future<AppProvider> pumpHost(
     WidgetTester tester, {
+    AppProvider Function(FakeProModule proModule)? appBuilder,
     Future<void> Function(AppProvider app)? seed,
   }) async {
     fakePro = FakeProModule(isPro: true);
-    final app = AppProvider(proModule: fakePro);
+    final pro = fakePro!;
+    final app = appBuilder != null
+        ? appBuilder(pro)
+        : AppProvider(proModule: pro);
     if (seed != null) {
       await seed(app);
     }
@@ -779,6 +822,108 @@ void main() {
         ),
         isTrue,
       );
+    });
+  });
+
+  group('运行中改选提示（T6，D15 快照契约显示面）', () {
+    /// 注入桩 runner 的宿主（run 活跃面）：除 agentRunner 外装配全真实，
+    /// 选择即锁定语义（R2）零改动。
+    Future<AppProvider> pumpWithStubRunner(
+      WidgetTester tester, {
+      required bool running,
+      required List<String> dbs,
+    }) {
+      return pumpHost(
+        tester,
+        appBuilder: (proModule) => _RunnerStubAppProvider(
+          proModule: proModule,
+          stubPanel: AiPanelProvider(
+            agentRunner: _StubAgentRunner(running: running),
+          ),
+        ),
+        seed: (app) async {
+          await app.connection.saveConnection(
+            serverOf('conn_t6', 'T6 连接'),
+          );
+          registerConnected(app, serverOf('conn_t6', 'T6 连接'), dbs);
+          app.aiPanel.ensureSession();
+        },
+      );
+    }
+
+    testWidgets('run 活跃：选库提交 → 落锁语义不变 + 「下次运行生效」snackbar',
+        (tester) async {
+      final app = await pumpWithStubRunner(
+        tester,
+        running: true,
+        dbs: <String>['run_db'],
+      );
+      await openPicker(tester);
+      await tester.tap(find.text('T6 连接'));
+      await tester.pumpAndSettle();
+      expect(find.text('run_db'), findsOneWidget);
+
+      await tester.tap(find.text('run_db'));
+      await tester.pumpAndSettle();
+
+      // picker 已关 + 落锁（R2 选择即锁定零改动）；run 活跃提示在。
+      expect(find.byType(WorkbenchContextPicker), findsNothing);
+      expect(app.aiPanel.workbenchContextLock?.connectionId, 'conn_t6');
+      expect(app.aiPanel.workbenchContextLock?.databaseName, 'run_db');
+      expect(
+        find.text(AppLocalizationsEn().workbenchContextChangeWhileRunning),
+        findsOneWidget,
+      );
+
+      // snackbar 到期 + 退出动画（清 pending timer，防不变量拦截）。
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
+      await drainPersistDebounce(tester);
+    });
+
+    testWidgets('run 空闲：选库提交 → 落锁但零提示（现状不变）', (tester) async {
+      final app = await pumpWithStubRunner(
+        tester,
+        running: false,
+        dbs: <String>['idle_db'],
+      );
+      await openPicker(tester);
+      await tester.tap(find.text('T6 连接'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('idle_db'));
+      await tester.pumpAndSettle();
+
+      expect(app.aiPanel.workbenchContextLock?.databaseName, 'idle_db');
+      expect(find.byType(SnackBar), findsNothing);
+      await drainPersistDebounce(tester);
+    });
+
+    testWidgets('run 活跃：「仅锁定连接」提交 → 「下次运行生效」snackbar',
+        (tester) async {
+      final app = await pumpWithStubRunner(
+        tester,
+        running: true,
+        dbs: <String>[],
+      );
+      await openPicker(tester);
+      await tester.tap(find.text('T6 连接'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('No database list for this connection'), findsOneWidget);
+      await tester.tap(find.text('Use connection only'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(WorkbenchContextPicker), findsNothing);
+      expect(app.aiPanel.workbenchContextLock?.connectionId, 'conn_t6');
+      expect(app.aiPanel.workbenchContextLock?.databaseName, isNull);
+      expect(
+        find.text(AppLocalizationsEn().workbenchContextChangeWhileRunning),
+        findsOneWidget,
+      );
+
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
+      await drainPersistDebounce(tester);
     });
   });
 }

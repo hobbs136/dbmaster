@@ -27,9 +27,10 @@
 //! 读注入的 [AgentTrajectoryCard.runner]（null = 历史/中断态静态渲染）——卡**不
 //! 重写消息 JSON**（消息对象 id 不变，§1.8-3 断言目标）。
 //!
-//! 10 态状态清单（§1.2 状态表）：running / awaitingUser / stopping（实时态，
-//! 来自 runner）+ completed / stoppedByUser / stoppedByLimit / stoppedByFailures
-//! / failed（终局态，来自终局消息 status）+ interrupted（派生态：有锚点无终局
+//! 11 态状态清单（§1.2 状态表）：running / awaitingUser / stopping（实时态，
+//! 来自 runner）+ completed / stoppedByUser / stoppedByLimit / stoppedByContext
+//! / stoppedByFailures / failed（终局态，来自终局消息 status；stoppedByContext
+//! = 第五终止源「上下文缺失」，warning 档）+ interrupted（派生态：有锚点无终局
 //! ——只显 `n 步`、token「—」、maxSteps 自锚点 contextSnapshot 恢复进视图模型）
 //! + Unknown（终局 status 不可解析的兜底）。
 //!
@@ -595,7 +596,8 @@ class _RunView {
   }
 }
 
-/// 卡显示态（§1.2 状态表 + Unknown 兜底 = 10 态）。
+/// 卡显示态（§1.2 状态表 + Unknown 兜底 = 11 态；stoppedByContext = 第五
+/// 终止源「上下文缺失」，runner 终局 status 契约字符串）。
 enum _DisplayState {
   running,
   awaitingUser,
@@ -603,6 +605,7 @@ enum _DisplayState {
   completed,
   stoppedByUser,
   stoppedByLimit,
+  stoppedByContext, // 终局态：需要数据库上下文而终止（warning 档中间态）
   stoppedByFailures,
   failed,
   interrupted, // 派生态：有锚点无终局（AC15.6）
@@ -812,6 +815,8 @@ class _AgentTrajectoryCardState extends State<AgentTrajectoryCard> {
           return _DisplayState.stoppedByUser;
         case 'stoppedByLimit':
           return _DisplayState.stoppedByLimit;
+        case 'stoppedByContext':
+          return _DisplayState.stoppedByContext;
         case 'stoppedByFailures':
           return _DisplayState.stoppedByFailures;
         case 'failed':
@@ -1220,8 +1225,9 @@ class _AgentTrajectoryCardState extends State<AgentTrajectoryCard> {
             ),
           );
 
-    // T27 缺陷修复（舞台并置态对话列恒 360）：三件均 Flexible + ellipsis，
-    // 窄列下元信息可收缩（宽屏 ≥ M1 实宽时各取固有宽，渲染零变化）。
+    // T27 缺陷修复（窄列元信息可收缩；对话列下限 360——舞台并置态现为弹性
+    // [360,520]，见 ai_workbench_shell `_buildStageLayout`）：三件均 Flexible
+    // + ellipsis，窄列下元信息可收缩（宽屏 ≥ M1 实宽时各取固有宽，渲染零变化）。
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1261,6 +1267,7 @@ class _AgentTrajectoryCardState extends State<AgentTrajectoryCard> {
       _DisplayState.completed => l10n.agentTrajectoryCompleted,
       _DisplayState.stoppedByUser => l10n.agentStoppedByUser,
       _DisplayState.stoppedByLimit => l10n.agentStoppedByLimit,
+      _DisplayState.stoppedByContext => l10n.agentStoppedByContext,
       _DisplayState.stoppedByFailures => l10n.agentStoppedByFailures(
         _view.terminalSteps,
       ),
@@ -1275,6 +1282,10 @@ class _AgentTrajectoryCardState extends State<AgentTrajectoryCard> {
       _DisplayState.completed => LucideIcons.circleCheck,
       _DisplayState.stoppedByUser => LucideIcons.square,
       _DisplayState.stoppedByLimit => LucideIcons.gauge,
+      // unplug（断开族）：语义 = 数据库上下文未接入（需要而缺失）——裸
+      // database 图标易误读为「数据库就绪」，unlink 偏链接语义，unplug
+      // 最贴「上下文未插上」。
+      _DisplayState.stoppedByContext => LucideIcons.unplug,
       _DisplayState.stoppedByFailures => LucideIcons.triangleAlert,
       _DisplayState.failed => LucideIcons.circleX,
       _DisplayState.interrupted => LucideIcons.clockFading,
@@ -1341,6 +1352,7 @@ class _AgentTrajectoryCardState extends State<AgentTrajectoryCard> {
       _DisplayState.completed => colors.success,
       _DisplayState.stoppedByUser => colors.borderStrong,
       _DisplayState.stoppedByLimit => colors.warning,
+      _DisplayState.stoppedByContext => colors.warning,
       _DisplayState.stoppedByFailures => colors.error,
       _DisplayState.failed => colors.error,
       _DisplayState.interrupted => colors.warning,
@@ -1357,6 +1369,7 @@ class _AgentTrajectoryCardState extends State<AgentTrajectoryCard> {
       _DisplayState.completed => colors.success,
       _DisplayState.stoppedByUser => colors.textMuted,
       _DisplayState.stoppedByLimit => colors.warning,
+      _DisplayState.stoppedByContext => colors.warning,
       _DisplayState.stoppedByFailures => colors.error,
       _DisplayState.failed => colors.error,
       _DisplayState.interrupted => colors.warning,
@@ -1383,6 +1396,8 @@ class _AgentTrajectoryCardState extends State<AgentTrajectoryCard> {
       _DisplayState.completed => LucideIcons.circleCheck,
       _DisplayState.stoppedByUser => LucideIcons.square,
       _DisplayState.stoppedByLimit => LucideIcons.gauge,
+      // 同 stoppedByLimit 模式：汇报行图标与 chip 图标同源（不落 unknown 兜底）。
+      _DisplayState.stoppedByContext => LucideIcons.unplug,
       _DisplayState.stoppedByFailures => LucideIcons.triangleAlert,
       _DisplayState.failed => LucideIcons.circleX,
       _DisplayState.interrupted => LucideIcons.clockFading,
