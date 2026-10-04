@@ -19,9 +19,17 @@
 #
 # Platform fallback: the test job is believed platform-neutral (no platform
 # pins in test/, 4 Platform.isWindows uses are binary-name adaptive, and the
-# only native dependency sqlite3 FFI is covered by libsqlite3-dev). If the
-# first ubuntu run still fails on platform-related issues, switch the test
-# job's runs-on to windows-latest (public repo — no billing concern).
+# only native dependency sqlite3 FFI is covered by libsqlite3-dev). If a run
+# still fails on genuinely platform-related issues, switch the test job's
+# runs-on to windows-latest (public repo — no billing concern).
+#
+# SDK pin: flutter-version is pinned to the version the baselines were
+# measured with (local dev SDK). First CI run on unpinned channel:stable
+# failed both jobs on the NEWER SDK: dartssh2 2.14.0 no longer compiles
+# (int?->num assignment tightened) breaking every test file's loading, and
+# the newer analyzer counted 156 findings vs the 149 baseline. Bump the pin
+# together with the local dev SDK and re-baseline the soft gate in the same
+# batch.
 
 name: ci
 
@@ -44,6 +52,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.41.4
           cache: true
 
       - name: flutter pub get
@@ -76,6 +85,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.41.4
           cache: true
 
       # sqlite3 FFI (the only native dependency of test/) resolves against the
