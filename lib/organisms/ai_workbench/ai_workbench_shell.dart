@@ -1393,8 +1393,8 @@ class _AiWorkbenchShellState extends State<AiWorkbenchShell> {
   /// 1. 对话列恒在 [workbenchChatMinWidth(360), workbenchChatSplitMaxWidth(520)]；
   /// 2. 舞台恒 ≥ workbenchStageMinWidth(480)——压缩序 = 对话列先触底 360 →
   ///    会话栏 ≤1080 收 44，无死分支；窗口真实最小 800（main.dart
-  ///    WindowOptions minimumSize，minWindowWidth=1024 token 无强制点——
-  ///    AI-CW 批文档修正，原「<1024 窗口不可达」系假断言）下全域 region
+  ///    WindowOptions minimumSize，minWindowWidth token 已对齐 800——FU-37）
+  ///    下全域 region
   ///    ≥ 660（900−240 最坏档）> 360，沿 FC-6 先例不做死分支；
   /// 3. 会话栏折叠断点算式不动（[_stageRailCollapseBreakpoint] =
   ///    240+360+480=1080，用的是对话列下限 360；下限不变 → 断点逻辑零改动）；
@@ -1558,8 +1558,8 @@ class _AiWorkbenchShellState extends State<AiWorkbenchShell> {
   ///
   /// region 下限推导（勿写 1024）：rail 展开宽 240（workbenchSessionListWidth），
   /// <900 断点收 44（WorkbenchSessionRail.collapseBreakpoint）。窗口真实最小
-  /// 800（main.dart WindowOptions minimumSize；注意 minWindowWidth=1024 token
-  /// 无任何强制点）：800 下 rail 恒收 44 → region 756；900 恰触发展开 →
+  /// 800（main.dart WindowOptions minimumSize；minWindowWidth token 已对齐
+  /// 800——FU-37）：800 下 rail 恒收 44 → region 756；900 恰触发展开 →
   /// region = 900 − 240 = 660 为全域最坏，均 > workbenchChatMinWidth(360)，
   /// 无下限死区。
   Widget _buildChatColumn(BuildContext context) {

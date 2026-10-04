@@ -425,8 +425,10 @@ class AppDesignSystem {
   static const double tabBarDividerHeight =
       1.0; // plan §3.6：TabsBarWidget 底部分隔线
   static const double headerHeight = 48.0; // plan §3.1：44→48
-  static const double minWindowWidth = 1024.0;
-  static const double minWindowHeight = 768.0;
+  // FU-37：OS 强制最小窗 = main.dart WindowOptions minimumSize 800×600，
+  // 本 token 对随现实对齐；工作台布局按 ≥1024 优化（指导值，非强制）。
+  static const double minWindowWidth = 800.0;
+  static const double minWindowHeight = 600.0;
 
   /// 编辑器/工作区舒适最小宽度——面板降级阈值（plan §3.2）
   static const double minWorkspaceComfortWidth = 480.0;
@@ -459,8 +461,8 @@ class AppDesignSystem {
 
   /// AI 工作台舞台并置态对话列弹性占比。
   ///
-  /// 取值约束：980 × 0.36 = 352.8 < [workbenchChatMinWidth]，保证 1024 最小窗
-  /// （[minWindowWidth]）下对话列仍触底 360、舞台实得 620（§5.4-1 探针零变化）。
+  /// 取值约束：980 × 0.36 = 352.8 < [workbenchChatMinWidth]，保证 1024 优化窗
+  /// （指导值，非强制）下对话列仍触底 360、舞台实得 620（§5.4-1 探针零变化）。
   static const double workbenchChatSplitRatio = 0.36;
 
   /// AI 工作台会话栏活动条宽度（v2 结果面板第一批 A1）。
@@ -546,8 +548,8 @@ class AppDesignSystem {
   static const double breakpointLarge = 1600.0;
 
   /// 侧边栏自动折叠阈值 = breakpointMedium（900）。注意与 [minWindowWidth]
-  /// （1024，OS 窗口最小尺寸）的关系：breakpointMedium 是 UI 折叠阈值，
-  /// 用户可在 900~1024 之间看到折叠态侧边栏。
+  /// （800，OS 窗口最小尺寸）的关系：breakpointMedium 是 UI 折叠阈值，
+  /// 用户可在 800~900 之间看到折叠态侧边栏。
   static const double sidebarAutoCollapseBreakpoint = breakpointMedium;
   // AI 迷你 FAB 几何（plan §3.7：收敛硬编码 24/48/56）
   static const double aiFabSize = 56.0;
