@@ -66,6 +66,8 @@ void main() {
     const connectionLabel = 'PostgreSQL Sidebar E2E';
 
     setUp(() async {
+      // AG-F-19：prefs 隔离（Fix-H 同族）——mock 存储，杜绝直写用户真实偏好。
+      SharedPreferences.setMockInitialValues({});
       adapter = PostgreSQLAdapter();
       if (!pgE2EGatewayReady) {
         return;

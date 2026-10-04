@@ -65,6 +65,10 @@ void main() {
     const seedTable = 'wb_seed';
 
     setUp(() async {
+      // AG-F-19：prefs 隔离（Fix-H 会话隔离同族）——早于任何 AppProvider
+      // 构造与 prefs 触达，把 SharedPreferences 切到 mock 存储，杜绝直写
+      // 用户真实偏好（saved_queries / recent_tables / connection_groups 等）。
+      SharedPreferences.setMockInitialValues({});
       if (!mysqlE2EGatewayReady) return; // 无环境：整组跳过（标记已打印）
       adapter = MySQLAdapter();
       testDbName = MySQLTestConfig.generateTestDatabaseName();
@@ -145,6 +149,7 @@ void main() {
         await appProvider.disconnectConnection(connectionId: server.id);
       } catch (_) {}
       // 清理跨用例的 SharedPreferences 键（含工作台统计存储键）。
+      // setUp 已 setMockInitialValues：以下清理作用于 mock 存储，不动用户真实偏好。
       try {
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove('saved_queries');
