@@ -72,7 +72,10 @@ class _MockDbService extends DatabaseService {
   Future<List<String>> getDatabases({String? connectionId}) async => _databases;
 
   @override
-  Future<List<String>> getTables({String? connectionId}) async => _tables;
+  Future<List<String>> getTables({
+    String? connectionId,
+    String? databaseName,
+  }) async => _tables;
 }
 
 void main() {

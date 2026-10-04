@@ -4,7 +4,9 @@
 // 覆盖任务书清单：状态机全迁移（§6.5 图逐边）、四停止源终局与汇报消息、
 // 预算部分执行（AC2.2）、失败计数清零（D18）、usage null 降级（D11/AC3.4）、
 // 快照不漂移（D15/AC7.2）、seed 裁剪（D19）、消息结构断言（§5.2）、
-// resetSteps 接线（AC2.3 对账）、D17 isRunning 守卫、会话切换复位。
+// resetSteps 接线（AC2.3 对账）、D17 isRunning 守卫、会话切换复位、
+// T2 方案 B 上下文缺失终止（stoppedByContext：②a/②b 接入、批量占位回喂、
+// zh/en 终局文案、用户停止优先、豁免回归）。
 //
 // 依赖全注入（NF5.3）：chat 脚本化闭包队列；executor 为**真实** AgentToolExecutor
 // （步数对账走真实 D10 计数点），门用 _ScriptedGate 可编程判定；db / 审计 /
@@ -16,6 +18,8 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:dbmaster/models/ai_memory_item.dart'
+    show AiMemoryItem, AiMemoryScope;
 import 'package:dbmaster/models/ai_message_type.dart'
     show AiMessageStatus, AiMessageType;
 import 'package:dbmaster/models/ai_models.dart'
@@ -23,6 +27,8 @@ import 'package:dbmaster/models/ai_models.dart'
 import 'package:dbmaster/models/audit_log_entry.dart' show AgentGateDecision;
 import 'package:dbmaster/models/database_models.dart'
     show AiMessage, DatabaseType, DbColumn, DbIndex, ForeignKey;
+import 'package:dbmaster/models/query_optimizer/execution_plan.dart'
+    show PerformanceReport;
 import 'package:dbmaster/services/ai/agent/agent_gate.dart'
     show AgentGate, AgentRunContext, GateDecision, GateDecisionKind;
 import 'package:dbmaster/services/ai/agent/agent_gate_analysis.dart'
@@ -74,6 +80,12 @@ class _NoopUiPort implements AgentUiPort {
     String? database,
     String? table,
   }) => Future.value(const AgentUiOutcome.failure('noop port'));
+
+  @override
+  Future<AgentUiOutcome> openOptimization(
+    PerformanceReport report,
+    String sql,
+  ) => Future.value(const AgentUiOutcome.failure('noop port'));
 }
 
 const _NoopUiPort _noopUiPort = _NoopUiPort();
@@ -234,9 +246,14 @@ class _DbSpy {
   int getTablesCalls = 0;
   int executeQueryCalls = 0;
   Completer<List<String>>? getTablesGate;
+  final List<String?> getTablesDatabases = <String?>[];
 
-  Future<List<String>> getTables(String? connectionId) async {
+  Future<List<String>> getTables(
+    String? connectionId,
+    String? databaseName,
+  ) async {
     getTablesCalls++;
+    getTablesDatabases.add(databaseName);
     final Completer<List<String>>? gate = getTablesGate;
     if (gate != null) return gate.future;
     return <String>['users', 'orders'];
@@ -253,6 +270,8 @@ class _StatsSpy {
 }
 
 /// 测试台：真实 executor + 脚本化 chat/门 + spy 依赖。
+/// [gateOverride] 注入真实 AgentGate（T2 方案 B ②a/②b 全链用例）；
+/// [auditGate] 门控审计落账（构造「execute 在途」窗口，边界② 同帧用例）。
 class _Harness {
   _Harness({
     int maxSteps = 25,
@@ -260,8 +279,11 @@ class _Harness {
     String connectionId = 'conn-1',
     bool readOnly = false,
     String locale = 'en',
+    AgentMemoryResolver? memoryResolver,
+    AgentGate? gateOverride,
   }) : chat = _ChatScript(),
        gate = _ScriptedGate(),
+       realGate = gateOverride,
        db = _DbSpy(),
        stats = _StatsSpy(),
        sessionManager = AiSessionManager() {
@@ -277,7 +299,7 @@ class _Harness {
       ),
     );
     executor = AgentToolExecutor(
-      gate: gate,
+      gate: realGate ?? gate,
       db: AgentDbAccess(
         getTables: db.getTables,
         getTableColumns:
@@ -317,6 +339,8 @@ class _Harness {
             required bool success,
             String? errorMessage,
           }) async {
+            final Completer<void>? gate = auditGate;
+            if (gate != null) await gate.future;
             auditRecords.add(<String, Object?>{
               'connectionId': connectionId,
               'runId': runId,
@@ -353,6 +377,7 @@ class _Harness {
       ),
       chat: chat.call,
       resolveMaxSteps: () async => maxSteps,
+      memoryResolver: memoryResolver,
       stats: AgentRunStatsCallbacks(
         onSessionStart: () => stats.sessionStarts++,
         onActiveDay: () => stats.activeDays++,
@@ -366,9 +391,13 @@ class _Harness {
 
   final _ChatScript chat;
   final _ScriptedGate gate;
+  final AgentGate? realGate;
   final _DbSpy db;
   final _StatsSpy stats;
   final AiSessionManager sessionManager;
+
+  /// 审计落账门控（T2 边界② 用例：构造「execute 在途」窗口）。
+  Completer<void>? auditGate;
 
   /// 审计记录（Fix-B 中-1 用例：兜底审计断言面）。
   final List<Map<String, Object?>> auditRecords = <Map<String, Object?>>[];
@@ -437,7 +466,13 @@ void main() {
       final Completer<ChatResponse> round1 = Completer<ChatResponse>();
       h.chat.queue.add(() => round1.future);
 
-      unawaited(h.runner.start(uiPort: _noopUiPort, userMessage: '看看有哪些表', gates: h.gates));
+      unawaited(
+        h.runner.start(
+          uiPort: _noopUiPort,
+          userMessage: '看看有哪些表',
+          gates: h.gates,
+        ),
+      );
       await _flush();
 
       expect(h.runner.status, AgentRunStatus.running);
@@ -492,7 +527,9 @@ void main() {
         h.chat.respond(_text('分析完成'));
 
         final GateCallbacks gates = h.gates;
-        unawaited(h.runner.start(uiPort: _noopUiPort, userMessage: '查大表', gates: gates));
+        unawaited(
+          h.runner.start(uiPort: _noopUiPort, userMessage: '查大表', gates: gates),
+        );
         await _flush();
 
         // awaitingUser 边 + 门卡宿主消息（决策前无 outcome）。
@@ -544,7 +581,9 @@ void main() {
       );
       h.chat.respond(_text('不应到达')); // 停止后不再发起新轮
 
-      unawaited(h.runner.start(uiPort: _noopUiPort, userMessage: '采样', gates: h.gates));
+      unawaited(
+        h.runner.start(uiPort: _noopUiPort, userMessage: '采样', gates: h.gates),
+      );
       await _flush();
       expect(h.runner.status, AgentRunStatus.awaitingUser);
 
@@ -577,7 +616,13 @@ void main() {
         h.chat.respond(_call(_toolCall('list_tables')));
         h.chat.respond(_text('不应到达'));
 
-        unawaited(h.runner.start(uiPort: _noopUiPort, userMessage: '列表', gates: h.gates));
+        unawaited(
+          h.runner.start(
+            uiPort: _noopUiPort,
+            userMessage: '列表',
+            gates: h.gates,
+          ),
+        );
         await _flush();
         expect(h.runner.status, AgentRunStatus.running);
 
@@ -644,8 +689,11 @@ void main() {
 
     test('连续 5 个失败工具调用 → stoppedByFailures（汇报失败工具与最后错误）', () async {
       final h = _Harness();
+      // 修订（T2 方案 B）：失败驱动码自 CONTEXT_REQUIRED 换为
+      // EXECUTION_FAILED——CONTEXT_REQUIRED 现为终止语义（stoppedByContext），
+      // 不再能驱动「回喂后 run 继续」的失败计数。
       for (int i = 0; i < 5; i++) {
-        h.gate.reject(AgentToolErrorCodes.contextRequired);
+        h.gate.reject(AgentToolErrorCodes.executionFailed);
         h.chat.respond(_call(_toolCall('describe_table')));
       }
 
@@ -664,14 +712,15 @@ void main() {
     test('失败计数清零：任何成功调用重置连续计数（D18）', () async {
       final h = _Harness();
       // 2 失败 → 1 成功 → 4 失败 = 最大连续 4 < 5 → 不触发停止。
-      h.gate.reject(AgentToolErrorCodes.contextRequired);
+      // 修订（T2 方案 B）：失败驱动码用 EXECUTION_FAILED（见上）。
+      h.gate.reject(AgentToolErrorCodes.executionFailed);
       h.chat.respond(_call(_toolCall('describe_table')));
-      h.gate.reject(AgentToolErrorCodes.contextRequired);
+      h.gate.reject(AgentToolErrorCodes.executionFailed);
       h.chat.respond(_call(_toolCall('describe_table')));
       h.gate.allow();
       h.chat.respond(_call(_toolCall('list_tables'))); // 成功清零
       for (int i = 0; i < 4; i++) {
-        h.gate.reject(AgentToolErrorCodes.contextRequired);
+        h.gate.reject(AgentToolErrorCodes.executionFailed);
         h.chat.respond(_call(_toolCall('describe_table')));
       }
       h.chat.respond(_text('全部处理完'));
@@ -681,6 +730,191 @@ void main() {
       expect(h.runner.status, AgentRunStatus.completed);
       expect(h.runner.stepsUsed, 7);
       expect(h.agentPayloads('agent_run_end').first['status'], 'completed');
+    });
+  });
+
+  group('T2 方案 B：上下文缺失终止（stoppedByContext，FU-10 收口）', () {
+    /// 真实门（②a/②b 全链）：读前分析不可达（拒绝先于 ④）。
+    AgentGate realGate() => AgentGate(
+      createAnalysis: (_) => throw StateError('②a/②b 拒绝先于读前分析'),
+    );
+
+    /// mysql 无库快照（连接在、库缺——②b 面）。
+    void setDbLessCtx(
+      _Harness h, {
+      String connectionId = 'c1',
+      String connectionName = '测试连接',
+      DatabaseType dbType = DatabaseType.mysql,
+    }) {
+      h.ctxHolder.value = AgentRunContext(
+        runId: 'pending',
+        connectionId: connectionId,
+        connectionName: connectionName,
+        databaseName: null,
+        dbType: dbType,
+        readOnly: false,
+      );
+    }
+
+    test('真实门 ②b：mysql 无库快照调 list_tables → 门拒 → 终态 stoppedByContext', () async {
+      final h = _Harness(gateOverride: realGate());
+      setDbLessCtx(h);
+      h.chat.respond(_call(_toolCall('list_tables')));
+      h.chat.respond(_text('不应到达'));
+
+      await h.runner.start(uiPort: _noopUiPort, userMessage: '看看有哪些表');
+
+      expect(h.runner.status, AgentRunStatus.stoppedByContext);
+      expect(h.runner.isRunning, isFalse);
+      expect(h.runner.stepsUsed, 1); // 被拒调用仍计步（D10）
+      expect(h.db.getTablesCalls, 0); // 零执行
+      expect(h.chat.callCount, 1); // 不回喂继续（无第二轮）
+      // 锚点/终局 payload status。
+      final List<Map<String, dynamic>> ends = h.agentPayloads('agent_run_end');
+      expect(ends, hasLength(1));
+      expect(ends.first['status'], 'stoppedByContext');
+      expect(ends.first['steps'], 1);
+      // 终局消息含引导文案（en 有连接变体：{conn} + context chip）。
+      expect(h.messages.last.content, contains('context chip'));
+      expect(h.messages.last.content, contains('测试连接'));
+      expect(h.messages.last.content, contains('Run stopped'));
+      // 门拒 blocked 审计落账现状不变。
+      expect(h.auditRecords, hasLength(1));
+      expect(h.auditRecords.single['gateDecision'], AgentGateDecision.blocked);
+      expect(h.auditRecords.single['tool'], 'list_tables');
+      expect(h.auditRecords.single['success'], isFalse);
+      // 步消息对落账（blocked 形态）。
+      expect(h.agentPayloads('agent_step'), hasLength(1));
+    });
+
+    test('②b 逐工具：7 个 requiresDatabase 工具在 mysql 无库快照上同终止', () async {
+      const List<(String, Map<String, dynamic>)> cases =
+          <(String, Map<String, dynamic>)>[
+            ('list_tables', <String, dynamic>{}),
+            ('describe_table', <String, dynamic>{'table': 'users'}),
+            ('get_sample_data', <String, dynamic>{'table': 'users'}),
+            ('execute_readonly_sql', <String, dynamic>{'sql': 'SELECT 1'}),
+            ('explain_plan', <String, dynamic>{'sql': 'SELECT 1'}),
+            ('show_table_structure', <String, dynamic>{'table': 'users'}),
+            ('submit_action_plan', <String, dynamic>{}),
+          ];
+      for (final (String tool, Map<String, dynamic> args) in cases) {
+        final h = _Harness(gateOverride: realGate());
+        setDbLessCtx(h);
+        h.chat.respond(_call(_toolCall(tool, args)));
+
+        await h.runner.start(uiPort: _noopUiPort, userMessage: '调 $tool');
+
+        expect(
+          h.runner.status,
+          AgentRunStatus.stoppedByContext,
+          reason: tool,
+        );
+        expect(h.db.executeQueryCalls + h.db.getTablesCalls, 0, reason: tool);
+        expect(
+          h.agentPayloads('agent_run_end').first['status'],
+          'stoppedByContext',
+          reason: tool,
+        );
+      }
+    });
+
+    test('无连接快照调 requiresConnection 工具 → ②a 既有拒绝路径接入同一终止', () async {
+      final h = _Harness(connectionId: '', gateOverride: realGate());
+      h.chat.respond(_call(_toolCall('list_tables')));
+
+      await h.runner.start(uiPort: _noopUiPort, userMessage: '列出表');
+
+      expect(h.runner.status, AgentRunStatus.stoppedByContext);
+      expect(
+        h.agentPayloads('agent_run_end').first['status'],
+        'stoppedByContext',
+      );
+      // en 无连接变体文案。
+      expect(h.messages.last.content, contains('no connection is set'));
+      expect(h.messages.last.content, contains('connection and a database'));
+    });
+
+    test('批次多调用：第 1 个命中终止 → 剩余 2 个占位回喂（不派发），收敛终局', () async {
+      final h = _Harness();
+      h.gate.reject(AgentToolErrorCodes.contextRequired);
+      h.chat.respond(
+        ChatResponse(
+          content: null,
+          toolCalls: <AiToolCall>[
+            _toolCall('list_tables'),
+            _toolCall('describe_table', <String, dynamic>{'table': 't'}),
+            _toolCall('get_sample_data', <String, dynamic>{'table': 't'}),
+          ],
+        ),
+      );
+
+      await h.runner.start(uiPort: _noopUiPort, userMessage: '连查三个');
+
+      expect(h.runner.status, AgentRunStatus.stoppedByContext);
+      expect(h.runner.stepsUsed, 1); // 只第 1 个进入执行管线（D10）
+      expect(h.gate.decisions, isEmpty, reason: '剩余 2 个未派发（占位回喂）');
+      expect(h.chat.callCount, 1); // 不再发起下一轮
+      final List<Map<String, dynamic>> ends = h.agentPayloads('agent_run_end');
+      expect(ends.first['status'], 'stoppedByContext');
+      expect(ends.first['steps'], 1);
+      expect(h.db.getTablesCalls, 0);
+      expect(h.agentPayloads('agent_step'), hasLength(1)); // 第 1 个步消息对
+    });
+
+    test('zh 终局文案：有连接变体（连接：{conn} + 上下文芯片）', () async {
+      final h = _Harness(locale: 'zh', gateOverride: realGate());
+      setDbLessCtx(h);
+      h.chat.respond(_call(_toolCall('list_tables')));
+
+      await h.runner.start(uiPort: _noopUiPort, userMessage: '列出表');
+
+      expect(h.runner.status, AgentRunStatus.stoppedByContext);
+      expect(h.messages.last.content, contains('本次运行已终止'));
+      expect(h.messages.last.content, contains('（连接：测试连接）'));
+      expect(h.messages.last.content, contains('上下文芯片'));
+    });
+
+    test('边界②：requestStop 与终止检查点同帧 → 用户停止语义不被抢', () async {
+      final h = _Harness();
+      h.auditGate = Completer<void>(); // 审计门控 = execute 在途窗口
+      h.gate.reject(AgentToolErrorCodes.contextRequired);
+      h.chat.respond(_call(_toolCall('list_tables')));
+
+      unawaited(h.runner.start(uiPort: _noopUiPort, userMessage: '列表'));
+      await _flush();
+
+      h.runner.requestStop(); // 在途期间请求停止
+      expect(h.runner.status, AgentRunStatus.stopping);
+      h.auditGate!.complete();
+      await _flush();
+
+      expect(h.runner.status, AgentRunStatus.stoppedByUser);
+      expect(
+        h.agentPayloads('agent_run_end').first['status'],
+        'stoppedByUser',
+      );
+      expect(
+        h.agentPayloads('agent_run_end').first['status'],
+        isNot('stoppedByContext'),
+      );
+    });
+
+    test('豁免回归：sqlite 无库快照（无选库概念）→ ②b 不拦，数据流照常完成', () async {
+      final h = _Harness(dbType: DatabaseType.sqlite, gateOverride: realGate());
+      setDbLessCtx(h, dbType: DatabaseType.sqlite, connectionName: 'SQLite 库');
+      h.chat.respond(_call(_toolCall('list_tables')));
+      h.chat.respond(_text('完成'));
+
+      await h.runner.start(uiPort: _noopUiPort, userMessage: '列出表');
+
+      expect(h.runner.status, AgentRunStatus.completed);
+      expect(h.db.getTablesCalls, 1); // 正常执行（豁免，行为同现状）
+      expect(h.runner.stepsUsed, 1);
+      expect(
+        h.agentPayloads('agent_run_end').first['status'],
+        'completed',
+      );
     });
   });
 
@@ -797,8 +1031,8 @@ void main() {
       expect(prompt, contains('测试连接'));
       expect(prompt, contains('db1'));
 
-      // 工具目录：T28 A2 合龙后 14 工具全量。
-      expect(req.tools, hasLength(14));
+      // 工具目录：T28 A2 合龙 + T4 三工具后 17 工具全量。
+      expect(req.tools, hasLength(17));
       expect(
         h.chat.requests.first.tools!.map(
           (Map<String, dynamic> t) =>
@@ -887,7 +1121,9 @@ void main() {
       h.chat.respond(_call(_toolCall('list_tables')));
       h.chat.respond(_text('完成'));
 
-      unawaited(h.runner.start(uiPort: _noopUiPort, userMessage: '列表', gates: h.gates));
+      unawaited(
+        h.runner.start(uiPort: _noopUiPort, userMessage: '列表', gates: h.gates),
+      );
       await _flush();
 
       // 运行中改解析源（模拟切侧栏/切 tab）。
@@ -908,37 +1144,39 @@ void main() {
         expect(seen.dbType, DatabaseType.mysql);
         expect(seen.readOnly, isFalse);
       }
+      // T1（reviewer P3-3，T2 补断言）：T1 批新增的 `_DbSpy.getTablesDatabases`
+      // 记录字段此前只记录无断言——此处钉住 loop 级 list_tables 调用收到的
+      // 库名序列 = run 快照库 db1（executor 经快照 runCtx 把库名传导到 db
+      // 访问面，非空序列亦证明记录字段真被写入）。
+      expect(h.db.getTablesDatabases, <String?>['db1']);
     });
 
-    test(
-      'Fix-J 提示词：缺 database 注入缺失引导（en）——指向顶部上下文芯片，'
-      '明确禁止指引侧栏树选库',
-      () async {
-        final h = _Harness();
-        h.ctxHolder.value = AgentRunContext(
-          runId: 'pending',
-          connectionId: 'conn-1',
-          connectionName: '测试连接',
-          databaseName: null,
-          dbType: DatabaseType.mysql,
-          readOnly: false,
-        );
-        h.chat.respond(_text('hi'));
+    test('Fix-J 提示词：缺 database 注入缺失引导（en）——指向顶部上下文芯片，'
+        '明确禁止指引侧栏树选库', () async {
+      final h = _Harness();
+      h.ctxHolder.value = AgentRunContext(
+        runId: 'pending',
+        connectionId: 'conn-1',
+        connectionName: '测试连接',
+        databaseName: null,
+        dbType: DatabaseType.mysql,
+        readOnly: false,
+      );
+      h.chat.respond(_text('hi'));
 
-        await h.runner.start(uiPort: _noopUiPort, userMessage: '列出表');
+      await h.runner.start(uiPort: _noopUiPort, userMessage: '列出表');
 
-        final String prompt = h.chat.requests.first.systemPrompt ?? '';
-        expect(prompt, contains('database: -'), reason: '缺库如实呈现（AC7.4）');
-        expect(prompt, contains('Missing-context guidance'));
-        expect(prompt, contains('context chip'));
-        expect(prompt, contains('context picker'));
-        expect(
-          prompt,
-          contains('never direct the user to the sidebar tree'),
-          reason: '掐断「请先在侧边栏选中一个 database」误导指引',
-        );
-      },
-    );
+      final String prompt = h.chat.requests.first.systemPrompt ?? '';
+      expect(prompt, contains('database: -'), reason: '缺库如实呈现（AC7.4）');
+      expect(prompt, contains('Missing-context guidance'));
+      expect(prompt, contains('context chip'));
+      expect(prompt, contains('context picker'));
+      expect(
+        prompt,
+        contains('never direct the user to the sidebar tree'),
+        reason: '掐断「请先在侧边栏选中一个 database」误导指引',
+      );
+    });
 
     test('Fix-J 提示词：缺 database 注入缺失引导（zh 双语同步）', () async {
       final h = _Harness(locale: 'zh');
@@ -970,7 +1208,36 @@ void main() {
       final String prompt = h.chat.requests.first.systemPrompt ?? '';
       expect(prompt, contains('database: db1'));
       expect(prompt, isNot(contains('Missing-context guidance')));
-      expect(prompt, isNot(contains('context chip')));
+      // 修订（T2 方案 B）：原「isNot(contains('context chip'))」断言翻转——
+      // 行为规则 8 恒在（上下文缺失不得调数据工具、指 context chip 设置），
+      // 「context chip」不再是缺失引导独有锚点；条件注入面改用引导段落标题
+      // 'Missing-context guidance' 锚定。
+    });
+
+    test('P3-1 提示词：databaseName 空串同视为未设置——注入缺失引导且 '
+        'database 行渲染 -（与 gate ②b 谓词同语义）', () async {
+      final h = _Harness();
+      h.ctxHolder.value = AgentRunContext(
+        runId: 'pending',
+        connectionId: 'conn-1',
+        connectionName: '测试连接',
+        databaseName: '',
+        dbType: DatabaseType.mysql,
+        readOnly: false,
+      );
+      h.chat.respond(_text('hi'));
+
+      await h.runner.start(uiPort: _noopUiPort, userMessage: '列出表');
+
+      final String prompt = h.chat.requests.first.systemPrompt ?? '';
+      expect(
+        prompt,
+        contains('database: -'),
+        reason: '空串不得渲染为空 context 行（P3-1 旧行为）',
+      );
+      expect(prompt, contains('Missing-context guidance'));
+      expect(prompt, contains('context chip'));
+      expect(prompt, contains('context picker'));
     });
   });
 
@@ -1008,11 +1275,7 @@ void main() {
       );
       h.chat.respond(_text('第一轮完成'));
       await h.runner.start(uiPort: _noopUiPort, userMessage: '第一轮');
-      expect(
-        h.executor.resultRefOf('res_1'),
-        isNotNull,
-        reason: 'run1 注册表在册',
-      );
+      expect(h.executor.resultRefOf('res_1'), isNotNull, reason: 'run1 注册表在册');
 
       // run2 无工具调用（纯文本终局）——若清理仍靠下个 execute 的 runId
       // 惰性切换，run2 全程注册表都会留着 run1 的 res_1；start 同步序言
@@ -1053,7 +1316,9 @@ void main() {
       );
       h.chat.respond(_text('第一轮完成'));
 
-      unawaited(h.runner.start(uiPort: _noopUiPort, userMessage: '第一轮', gates: h.gates));
+      unawaited(
+        h.runner.start(uiPort: _noopUiPort, userMessage: '第一轮', gates: h.gates),
+      );
       await _flush();
       expect(h.runner.status, AgentRunStatus.awaitingUser);
       h.cardCompleter.complete(GateCardResult.approvedForSession);
@@ -1073,7 +1338,9 @@ void main() {
       final Completer<ChatResponse> round1 = Completer<ChatResponse>();
       h.chat.queue.add(() => round1.future);
 
-      unawaited(h.runner.start(uiPort: _noopUiPort, userMessage: '第一问', gates: h.gates));
+      unawaited(
+        h.runner.start(uiPort: _noopUiPort, userMessage: '第一问', gates: h.gates),
+      );
       await _flush();
       final String? run1 = h.runner.activeRunId;
       final int msgCount = h.messages.length;
@@ -1108,7 +1375,9 @@ void main() {
         ),
       );
 
-      unawaited(h.runner.start(uiPort: _noopUiPort, userMessage: '等卡', gates: h.gates));
+      unawaited(
+        h.runner.start(uiPort: _noopUiPort, userMessage: '等卡', gates: h.gates),
+      );
       await _flush();
       expect(h.runner.status, AgentRunStatus.awaitingUser);
 
@@ -1147,7 +1416,10 @@ void main() {
       h.chat.respond(_call(_toolCall('list_tables')));
       h.chat.respond(_text('完成'));
 
-      await h.runner.start(uiPort: _noopUiPort, userMessage: '无门卡回调'); // gates 缺省
+      await h.runner.start(
+        uiPort: _noopUiPort,
+        userMessage: '无门卡回调',
+      ); // gates 缺省
 
       // fail-closed：GATE_REJECTED 步消息落账，零执行，run 继续（回喂自纠）。
       expect(h.db.getTablesCalls, 0);
@@ -1239,6 +1511,152 @@ void main() {
       expect(h.messages, isEmpty, reason: '低-1：旧 run 步消息不写进新会话');
       expect(h.runner.status, AgentRunStatus.idle);
       expect(h.chat.callCount, 1, reason: '旧 run 静默退出，不再发起新轮');
+    });
+  });
+
+  group('T4 系统提示词记忆块', () {
+    AiMemoryItem memItem(
+      String id,
+      AiMemoryScope scope, {
+      String? subject,
+      String content = 'note',
+      int updatedAt = 1,
+    }) => AiMemoryItem(
+      id: id,
+      scope: scope,
+      connectionId: scope == AiMemoryScope.connection ? 'conn-1' : null,
+      subject: subject,
+      content: content,
+      createdAt: updatedAt,
+      updatedAt: updatedAt,
+    );
+
+    test('有记忆：全局 + 锁定连接两段注入，含 subject/content 行', () async {
+      final h = _Harness(
+        memoryResolver: (String? connectionId) async => AgentMemorySnapshot(
+          global: <AiMemoryItem>[
+            memItem(
+              'g1',
+              AiMemoryScope.global,
+              subject: 'team',
+              content: '金额列单位是分',
+            ),
+          ],
+          connection: <AiMemoryItem>[
+            memItem(
+              'c1',
+              AiMemoryScope.connection,
+              subject: 'orders.status',
+              content: 'status=3 已支付',
+            ),
+          ],
+        ),
+      );
+      h.chat.respond(_text('完成'));
+      await h.runner.start(uiPort: _noopUiPort, userMessage: '看订单');
+
+      final String prompt = h.chat.requests.single.systemPrompt ?? '';
+      expect(prompt, contains('Known memories'));
+      expect(prompt, contains('Global memories:'));
+      expect(prompt, contains('Locked-connection memories:'));
+      expect(prompt, contains('- [team] 金额列单位是分'));
+      expect(prompt, contains('- [orders.status] status=3 已支付'));
+      // 上下文段与行为规则仍在（记忆块插在两者之间）。
+      expect(prompt, contains('locked connection'));
+      expect(prompt, contains('Behavior rules:'));
+    });
+
+    test('无记忆：整段省略（零占位噪音）', () async {
+      final h = _Harness(
+        memoryResolver: (String? connectionId) async =>
+            const AgentMemorySnapshot(),
+      );
+      h.chat.respond(_text('完成'));
+      await h.runner.start(uiPort: _noopUiPort, userMessage: 'hi');
+
+      final String prompt = h.chat.requests.single.systemPrompt ?? '';
+      expect(prompt, isNot(contains('Known memories')));
+      expect(prompt, contains('Behavior rules:'));
+    });
+
+    test('超限截断：预算 2000 字符按序保最新，省略标记收尾', () async {
+      // 30 条 × ~110 字符 ≈ 3300 字符 → 必须截断。
+      final List<AiMemoryItem> many = <AiMemoryItem>[
+        for (int i = 0; i < 30; i++)
+          memItem(
+            'g$i',
+            AiMemoryScope.global,
+            subject: 't.c$i',
+            content: 'fact-$i ${'x' * 90}',
+            updatedAt: i,
+          ),
+      ];
+      final h = _Harness(
+        memoryResolver: (String? connectionId) async =>
+            AgentMemorySnapshot(global: many),
+      );
+      h.chat.respond(_text('完成'));
+      await h.runner.start(uiPort: _noopUiPort, userMessage: 'hi');
+
+      final String prompt = h.chat.requests.single.systemPrompt ?? '';
+      final int start = prompt.indexOf('Known memories');
+      final int end = prompt.indexOf('Behavior rules:');
+      expect(start, greaterThanOrEqualTo(0));
+      expect(end, greaterThan(start));
+      final String block = prompt.substring(start, end);
+      expect(block.length, lessThanOrEqualTo(2000 + 2)); // 段间换行
+      expect(block, contains('- …'));
+      expect(block, isNot(contains('fact-29'))); // 最旧被截掉
+    });
+
+    test('行为规则含记忆指引行（save_memory / list_memories 查重）', () async {
+      final h = _Harness(
+        memoryResolver: (String? connectionId) async =>
+            const AgentMemorySnapshot(),
+      );
+      h.chat.respond(_text('完成'));
+      await h.runner.start(uiPort: _noopUiPort, userMessage: 'hi');
+
+      final String prompt = h.chat.requests.single.systemPrompt ?? '';
+      expect(prompt, contains('save_memory'));
+      expect(prompt, contains('list_memories'));
+    });
+
+    test('zh locale：记忆块与指引行中文化', () async {
+      final h = _Harness(
+        locale: 'zh',
+        memoryResolver: (String? connectionId) async => AgentMemorySnapshot(
+          connection: <AiMemoryItem>[
+            memItem(
+              'c1',
+              AiMemoryScope.connection,
+              subject: 'orders.status',
+              content: 'status=3 已支付',
+            ),
+          ],
+        ),
+      );
+      h.chat.respond(_text('完成'));
+      await h.runner.start(uiPort: _noopUiPort, userMessage: '看订单');
+
+      final String prompt = h.chat.requests.single.systemPrompt ?? '';
+      expect(prompt, contains('已知记忆'));
+      expect(prompt, contains('当前连接记忆：'));
+      expect(prompt, contains('- [orders.status] status=3 已支付'));
+      expect(prompt, contains('save_memory 沉淀'));
+    });
+
+    test('记忆解析抛错 → 降级空态，run 照常完成', () async {
+      final h = _Harness(
+        memoryResolver: (String? connectionId) =>
+            Future<AgentMemorySnapshot>.error(StateError('prefs down')),
+      );
+      h.chat.respond(_text('完成'));
+      await h.runner.start(uiPort: _noopUiPort, userMessage: 'hi');
+
+      expect(h.runner.status, AgentRunStatus.completed);
+      final String prompt = h.chat.requests.single.systemPrompt ?? '';
+      expect(prompt, isNot(contains('Known memories')));
     });
   });
 }

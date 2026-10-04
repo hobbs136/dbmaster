@@ -63,7 +63,8 @@ class ClickhouseGatewayException implements Exception {
 
 /// ClickHouse 适配器（网关壳实现：执行走 T27 网关 API，无本地驱动）。
 class ClickhouseAdapter extends DatabaseAdapter
-    with AiAdapterMixin, DisconnectAware {
+    with AiAdapterMixin, DisconnectAware
+    implements DatabaseQualifiedTablesAdapter {
   /// serverConnId 映射表 key（与 ConnectionProvider / 其它网关壳同源的
   /// 本地 id → 网关注册 id 映射；共享同一 SharedPreferences key）。
   static const String _kServerIdMapKey = 'connection_server_id_map';
@@ -492,9 +493,15 @@ class ClickhouseAdapter extends DatabaseAdapter
     _currentConnection = _currentConnection?.copyWith(database: dbName);
   }
 
+  /// [database] 非空 → `SHOW TABLES FROM \`db\``（库限定枚举，
+  /// `DatabaseQualifiedTablesAdapter`：网关壳无会话态，不带上库名会落到
+  /// 连接初始库）；省略/null → 与改动前逐字节一致的裸 `SHOW TABLES`。
   @override
-  Future<List<String>> getTables() async {
-    final r = await executeQuery('SHOW TABLES');
+  Future<List<String>> getTables({String? database}) async {
+    final r = await executeQuery(
+      'SHOW TABLES'
+      '${database != null && database.isNotEmpty ? ' FROM `$database`' : ''}',
+    );
     return r.rows
         .map((row) => row.values.firstOrNull?.toString() ?? '')
         .where((n) => n.isNotEmpty)

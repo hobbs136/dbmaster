@@ -49,7 +49,10 @@ class _MockDbService extends DatabaseService {
   DbServer? get currentServer => _currentServer;
 
   @override
-  Future<List<String>> getTables({String? connectionId}) async => _tables;
+  Future<List<String>> getTables({
+    String? connectionId,
+    String? databaseName,
+  }) async => _tables;
 
   @override
   Future<List<Map<String, dynamic>>> executeQuery(

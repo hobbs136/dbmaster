@@ -75,6 +75,8 @@ import 'package:dbmaster/models/ai_models.dart'
 import 'package:dbmaster/models/audit_log_entry.dart' show AgentGateDecision;
 import 'package:dbmaster/models/database_models.dart'
     show AiMessage, DatabaseType, DbServer;
+import 'package:dbmaster/models/query_optimizer/execution_plan.dart'
+    show PerformanceReport;
 import 'package:dbmaster/organisms/ai_workbench/agent_ui_port_impl.dart';
 import 'package:dbmaster/organisms/ai_workbench/agents/agent_suggestion_card.dart';
 import 'package:dbmaster/organisms/ai_workbench/ai_workbench_shell.dart';
@@ -108,9 +110,10 @@ import 'package:dbmaster/services/ai/ai_session_manager.dart'
 import 'package:dbmaster/services/audit_log_service.dart' show AuditLogService;
 import 'package:dbmaster/services/database_abstract.dart'
     show DatabaseConnection;
-import 'package:dbmaster/services/database_service.dart' show DatabaseService;
+import 'package:dbmaster/services/database_service.dart'
+    show DatabaseService, QueryExecutionResult;
 import 'package:dbmaster/services/sql_statement_gate_runner.dart'
-    show SqlGateConfirmDecision;
+    show SqlGateConfirmDecision, SqlStatementOutcome;
 import 'package:dbmaster/services/workbench_usage_stats_service.dart'
     show AgentPlanStat, WorkbenchUsageStatsService;
 
@@ -194,8 +197,10 @@ class _DbTap {
   final List<String> executedSql = <String>[];
 
   AgentDbAccess wrap(DatabaseService db) => AgentDbAccess(
-    getTables: (String? connectionId) =>
-        db.getTables(connectionId: connectionId),
+    getTables: (String? connectionId, String? databaseName) => db.getTables(
+      connectionId: connectionId,
+      databaseName: databaseName,
+    ),
     getTableColumns: db.getTableColumns,
     getTableIndexes: db.getTableIndexes,
     getForeignKeys: db.getForeignKeys,
@@ -294,7 +299,8 @@ class _PlanHarness {
        // Fix-H：默认装配走存储隔离 manager（临时目录 + prefs 前缀），
        // 防测试会话写进真实 Documents/prefs（用户存储污染缺陷）。
        sessionManager =
-           sessionManager ?? (createIsolatedAiSessionManager()..createSession()) {
+           sessionManager ??
+           (createIsolatedAiSessionManager()..createSession()) {
     planExecutor = AgentPlanExecutor(
       audit: auditTap.call,
       recordPlanEvent: (AgentPlanStatEvent event) {
@@ -429,24 +435,35 @@ class _PlanHarness {
     final String? connectionId = plan.ctx.connectionId;
     final String? databaseName = plan.ctx.databaseName;
     return AgentPlanExecutionDeps(
-      execute: (String statement) {
+      execute: (String statement) async {
         planStatementCalls++;
-        return dbService.executeQuery(
-          statement,
-          connectionId: connectionId,
-          database: databaseName,
-        );
+        // 裁决选项 A detailed 通道（真库管线不变，只扩返回载荷）。
+        final QueryExecutionResult outcome = await dbService
+            .executeQueryDetailed(
+              statement,
+              connectionId: connectionId,
+              database: databaseName,
+            );
+        return SqlStatementOutcome.fromExecutionResult(outcome);
       },
-      executeBypassDdl: (String statement) => dbService.executeQueryBypassDdl(
-        statement,
-        connectionId: connectionId,
-        database: databaseName,
-      ),
-      executeBypassDml: (String statement) => dbService.executeQueryBypassDml(
-        statement,
-        connectionId: connectionId,
-        database: databaseName,
-      ),
+      executeBypassDdl: (String statement) async {
+        final QueryExecutionResult outcome = await dbService
+            .executeQueryBypassDdlDetailed(
+              statement,
+              connectionId: connectionId,
+              database: databaseName,
+            );
+        return SqlStatementOutcome.fromExecutionResult(outcome);
+      },
+      executeBypassDml: (String statement) async {
+        final QueryExecutionResult outcome = await dbService
+            .executeQueryBypassDmlDetailed(
+              statement,
+              connectionId: connectionId,
+              database: databaseName,
+            );
+        return SqlStatementOutcome.fromExecutionResult(outcome);
+      },
       // gate #2 脚本化确认（DdlConfirmDialog/DmlConfirmDialog 是 UI 确认面；
       // 本套记录语句并给 confirmed 决策）。
       ddlConfirm: (Object e) async {
@@ -531,17 +548,22 @@ class _NoopUiPort implements AgentUiPort {
     String? database,
     String? table,
   }) => Future.value(const AgentUiOutcome.failure('noop port'));
+
+  @override
+  Future<AgentUiOutcome> openOptimization(
+    PerformanceReport report,
+    String sql,
+  ) => Future.value(const AgentUiOutcome.failure('noop port'));
 }
 
 const _NoopUiPort _agentUiPort = _NoopUiPort();
 
 /// AC11.4 重放探针的 fail-loud 执行通道：若防重失效而派发语句，立即抛错
 /// 使断言失败（零库操作的结构保证）。
-Future<List<Map<String, dynamic>>> _failExecute(String statement) =>
-    throw StateError(
-      'AGENT_PLAN_E2E: replayed plan dispatched "$statement" — '
-      'PLAN_ALREADY_EXECUTED guard failed',
-    );
+Future<SqlStatementOutcome> _failExecute(String statement) => throw StateError(
+  'AGENT_PLAN_E2E: replayed plan dispatched "$statement" — '
+  'PLAN_ALREADY_EXECUTED guard failed',
+);
 
 /// 结构取数（shell `_fetchStageStructure` 镜像：真 dbService + 锁定上下文；
 /// 列信息失败抛错由 port 层转失败 outcome；索引/外键/DDL 为方言能力面，
@@ -961,11 +983,13 @@ void main() {
         );
         expect(reached, isTrue, reason: 'L1 计划卡阻塞等人（D7）');
 
-        // A2 目录解锁：milestone 2 → 14 工具进 LLM 面。
+        // A2 目录解锁：milestone 2 → 17 工具进 LLM 面（A2 合龙 14 +
+        // T4 clientLocal 三工具 save_saved_query/save_memory/list_memories；
+        // agent_tool_catalog.dart 头注「LLM 可见 17」为唯一事实源）。
         expect(
           h.chat.toolCounts.first,
-          14,
-          reason: 'A2 合龙后工具目录 = 14（6 A1 + 8 A2）',
+          17,
+          reason: 'A2 合龙后工具目录 = 17（A1 6 + A2 8 + T4 clientLocal 3）',
         );
 
         // 批准前：计划 pendingApproval + 库零变化 + agent 通道零

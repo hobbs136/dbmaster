@@ -1,5 +1,57 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:dbmaster/models/database_models.dart';
+import 'package:dbmaster/services/database_abstract.dart';
 import 'package:dbmaster/services/database_service.dart';
+
+/// 库限定表枚举 fake（FU-18）：实现 [DatabaseQualifiedTablesAdapter]，
+/// 记录每次收到的库（含 null —— 原路径零参调用）。
+class _QualifiedTablesAdapter
+    implements DatabaseAdapter, DatabaseQualifiedTablesAdapter {
+  final List<String?> receivedDatabases = <String?>[];
+
+  @override
+  bool get isConnected => true;
+
+  @override
+  Future<List<String>> getTables({String? database}) async {
+    receivedDatabases.add(database);
+    return <String>['qualified_t'];
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+/// 未实现能力接口的 fake（PG/SS/SQLite 族代表）：只提供基类零参 getTables。
+class _PlainTablesAdapter implements DatabaseAdapter {
+  int getTablesCalls = 0;
+
+  @override
+  bool get isConnected => true;
+
+  @override
+  Future<List<String>> getTables() async {
+    getTablesCalls++;
+    return <String>['plain_t'];
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+DbServer _server(String id) => DbServer(
+  id: id,
+  name: id,
+  type: DatabaseType.mysql,
+  host: '127.0.0.1',
+  port: 3306,
+  username: null,
+  password: null,
+  database: null,
+  useSSL: false,
+  timeoutSeconds: 30,
+  autoReconnect: false,
+);
 
 void main() {
   group('DatabaseService', () {
@@ -115,6 +167,55 @@ void main() {
       test('未追踪的查询应返回 false', () {
         expect(service.isQueryCancelled('nonexistent'), isFalse);
       });
+    });
+
+    // FU-18：list_tables 库路由对齐 run 快照——databaseName 只对
+    // DatabaseQualifiedTablesAdapter 实现者生效，其余路径零行为变化。
+    group('getTables databaseName 分支（FU-18）', () {
+      late _QualifiedTablesAdapter qualified;
+      late _PlainTablesAdapter plain;
+
+      setUp(() {
+        qualified = _QualifiedTablesAdapter();
+        plain = _PlainTablesAdapter();
+        service.registerConnectedServerForTest(_server('conn-q'));
+        service.registerConnectedServerForTest(_server('conn-p'));
+        service.registerConnectedAdapterForTest('conn-q', qualified);
+        service.registerConnectedAdapterForTest('conn-p', plain);
+      });
+
+      test(
+        '实现 DatabaseQualifiedTablesAdapter + databaseName 非空 → 带库调用被记录',
+        () async {
+          final tables = await service.getTables(
+            connectionId: 'conn-q',
+            databaseName: 'testdb',
+          );
+
+          expect(tables, <String>['qualified_t']);
+          expect(qualified.receivedDatabases, <String?>['testdb']);
+        },
+      );
+
+      test('databaseName null / 空串 → 不带库原路径（零参调用，不传空串）', () async {
+        await service.getTables(connectionId: 'conn-q');
+        await service.getTables(connectionId: 'conn-q', databaseName: '');
+
+        expect(qualified.receivedDatabases, <String?>[null, null]);
+      });
+
+      test(
+        '未实现该接口的 adapter + databaseName 非空 → 走原 adapter.getTables() 路径（零回归）',
+        () async {
+          final tables = await service.getTables(
+            connectionId: 'conn-p',
+            databaseName: 'testdb',
+          );
+
+          expect(tables, <String>['plain_t']);
+          expect(plain.getTablesCalls, 1);
+        },
+      );
     });
   });
 }

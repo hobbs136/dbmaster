@@ -70,6 +70,8 @@ import 'package:dbmaster/models/ai_models.dart'
 import 'package:dbmaster/models/audit_log_entry.dart' show AgentGateDecision;
 import 'package:dbmaster/models/database_models.dart'
     show AiMessage, DatabaseType, DbServer;
+import 'package:dbmaster/models/query_optimizer/execution_plan.dart'
+    show PerformanceReport;
 import 'package:dbmaster/organisms/ai_panel/confirm_execute_dialog.dart';
 import 'package:dbmaster/organisms/dialogs/dml_confirm_dialog.dart';
 import 'package:dbmaster/organisms/ai_workbench/agents/agent_trajectory_card.dart'
@@ -80,6 +82,7 @@ import 'package:dbmaster/organisms/ai_workbench/cards/result_table_card.dart'
 import 'package:dbmaster/organisms/ai_workbench/cards/sql_tool_card.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_card_payload.dart';
 import 'package:dbmaster/providers/app_provider.dart';
+import 'package:dbmaster/providers/layout_preferences_provider.dart';
 import 'package:dbmaster/services/adapters/mysql_adapter.dart';
 import 'package:dbmaster/services/ai/agent/agent_gate.dart'
     show AgentGate, AgentRunContext;
@@ -218,8 +221,10 @@ class _DbTap {
       <({String table, String? database})>[];
 
   AgentDbAccess wrap(DatabaseService db) => AgentDbAccess(
-    getTables: (String? connectionId) =>
-        db.getTables(connectionId: connectionId),
+    getTables: (String? connectionId, String? databaseName) => db.getTables(
+      connectionId: connectionId,
+      databaseName: databaseName,
+    ),
     getTableColumns:
         (String tableName, {String? connectionId, String? databaseName}) {
           describeColumnCalls.add((table: tableName, database: databaseName));
@@ -360,7 +365,8 @@ class _LoopHarness {
        // Fix-H：默认装配走存储隔离 manager（临时目录 + prefs 前缀），
        // 防测试会话写进真实 Documents/prefs（用户存储污染缺陷）。
        sessionManager =
-           sessionManager ?? (createIsolatedAiSessionManager()..createSession()) {
+           sessionManager ??
+           (createIsolatedAiSessionManager()..createSession()) {
     executor = AgentToolExecutor(
       // 生产装配形态（AiPanelProvider._createAgentAnalysis 同款）：每次判定
       // 重新构造，EXPLAIN 经真连接注入。
@@ -582,6 +588,12 @@ class _NoopUiPort implements AgentUiPort {
     String? database,
     String? table,
   }) => Future.value(const AgentUiOutcome.failure('noop port'));
+
+  @override
+  Future<AgentUiOutcome> openOptimization(
+    PerformanceReport report,
+    String sql,
+  ) => Future.value(const AgentUiOutcome.failure('noop port'));
 }
 
 const _NoopUiPort _agentUiPort = _NoopUiPort();
@@ -1279,8 +1291,7 @@ void main() {
           print('AGENT_LOOP_E2E_SKIP: 环境未就绪（网关/凭据/连接）');
           return;
         }
-        final killedManager = createIsolatedAiSessionManager()
-          ..createSession();
+        final killedManager = createIsolatedAiSessionManager()..createSession();
         final h = _LoopHarness(
           dbService: dbService!,
           ctxSource: _CtxSource(
@@ -1471,6 +1482,18 @@ void main() {
           print('AGENT_LOOP_E2E_SKIP: 环境未就绪（网关/凭据/连接）');
           return;
         }
+        // B1：写批执行会推 execution tab 打开舞台 → 对话列收窄，测试字体
+        // （Ahem 方块字）下 SQL 卡四动作钮 header 假性溢出（真机放得下
+        // 520 档；与 workbench_mysql_e2e_test.dart 同款吞咽——仅 RenderFlex
+        // overflow 类报告，其余原样转交既有处理器）。
+        final previousOverflowHandler = FlutterError.onError;
+        addTearDown(() => FlutterError.onError = previousOverflowHandler);
+        FlutterError.onError = (FlutterErrorDetails details) {
+          if (details.exception.toString().contains('RenderFlex overflowed')) {
+            return;
+          }
+          previousOverflowHandler?.call(details);
+        };
         const updateSql =
             "UPDATE loop_small SET label = 'manual_applied' WHERE id = 2 LIMIT 1";
         const ddlSql = 'DROP TABLE loop_ddl_gate';
@@ -1531,8 +1554,18 @@ void main() {
           appProvider.setAiPanelOpen(true);
           appProvider.setAiPanelFullscreen(true);
           await tester.pumpWidget(
-            ChangeNotifierProvider<AppProvider>.value(
-              value: appProvider,
+            MultiProvider(
+              providers: [
+                ChangeNotifierProvider<AppProvider>.value(value: appProvider),
+                // B3/B1 适配（同 workbench_mysql_e2e_test.dart harness）：
+                // 舞台布局段消费 LayoutPreferencesProvider（对话列宽双模
+                // 持久化），execution tab 推送打开舞台会构建
+                // _buildStageLayout——harness 树补齐该 provider（与
+                // main.dart 真实装配一致）。
+                ChangeNotifierProvider<LayoutPreferencesProvider>(
+                  create: (_) => LayoutPreferencesProvider()..load(),
+                ),
+              ],
               child: MaterialApp(
                 localizationsDelegates: AppLocalizations.localizationsDelegates,
                 supportedLocales: AppLocalizations.supportedLocales,

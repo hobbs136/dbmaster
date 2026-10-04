@@ -728,6 +728,98 @@ void main() {
       await adapter.executeQuery('SELECT 1');
       expect(_sentBody(queryReq!)['database'], 'northwind');
     });
+    test('getTables 不带库：SQL 逐字节同改动前（裸 SHOW FULL TABLES）+ 视图过滤', () async {
+      http.Request? queryReq;
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections') {
+          return _listResponse({'srv-1'});
+        }
+        queryReq = req;
+        return _sse([
+          'event: meta\ndata: {"kind":"sql","type":"meta","columns":["Tables_in_test","Table_type"]}',
+          'event: rows\ndata: {"kind":"sql","type":"rows","rows":[["orders","BASE TABLE"],["v_orders","VIEW"]]}',
+          'event: complete\ndata: {"kind":"sql","type":"complete","rowCount":2,"truncated":false,"elapsedMs":2}',
+        ]);
+      });
+      final adapter = MySQLAdapter()..httpClient = client;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        'connection_server_id_map',
+        jsonEncode({'local_mysql_1': 'srv-1'}),
+      );
+      await adapter.connect(_conn());
+
+      expect(await adapter.getTables(), <String>['orders']);
+      expect(_sentBody(queryReq!)['sql'], 'SHOW FULL TABLES');
+    });
+
+    test('getTables 带库（FU-18）：SHOW FULL TABLES FROM `db`；空串回落裸形态', () async {
+      final bodies = <Map<String, dynamic>>[];
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections') {
+          return _listResponse({'srv-1'});
+        }
+        bodies.add(_sentBody(req));
+        return _sse([
+          'event: meta\ndata: {"kind":"sql","type":"meta","columns":["Tables_in_northwind","Table_type"]}',
+          'event: rows\ndata: {"kind":"sql","type":"rows","rows":[["orders","BASE TABLE"]]}',
+          'event: complete\ndata: {"kind":"sql","type":"complete","rowCount":1,"truncated":false,"elapsedMs":2}',
+        ]);
+      });
+      final adapter = MySQLAdapter()..httpClient = client;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        'connection_server_id_map',
+        jsonEncode({'local_mysql_1': 'srv-1'}),
+      );
+      await adapter.connect(_conn());
+
+      expect(await adapter.getTables(database: 'northwind'), <String>['orders']);
+      expect(bodies.last['sql'], 'SHOW FULL TABLES FROM `northwind`');
+
+      await adapter.getTables(database: '');
+      expect(bodies.last['sql'], 'SHOW FULL TABLES');
+    });
+
+    test('Doris 覆写 getTables 带库（FU-18）：同款 FROM 子句 + 非 view 过滤不变', () async {
+      final bodies = <Map<String, dynamic>>[];
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections') {
+          return _jsonResp([
+            {'id': 'srv-1', 'dbType': 'doris'},
+          ], 200);
+        }
+        bodies.add(_sentBody(req));
+        return _sse([
+          'event: meta\ndata: {"kind":"sql","type":"meta","columns":["Tables_in_dw","Table_type"]}',
+          'event: rows\ndata: {"kind":"sql","type":"rows","rows":[["dws_orders","BASE TABLE"],["dws_view","VIEW"]]}',
+          'event: complete\ndata: {"kind":"sql","type":"complete","rowCount":2,"truncated":false,"elapsedMs":2}',
+        ]);
+      });
+      final adapter = DorisAdapter()..httpClient = client;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        'connection_server_id_map',
+        jsonEncode({'local_doris_1': 'srv-1'}),
+      );
+      await adapter.connect(
+        DatabaseConnection(
+          id: 'local_doris_1',
+          name: 'Doris Live',
+          type: DatabaseType.doris,
+          host: '192.0.2.128',
+          port: 9030,
+          username: 'root',
+          password: 'pw',
+          database: 'dw',
+          readOnly: false,
+        ),
+      );
+
+      expect(await adapter.getTables(database: 'dw'), <String>['dws_orders']);
+      expect(bodies.last['sql'], 'SHOW FULL TABLES FROM `dw`');
+      expect(bodies.last['database'], 'dw');
+    });
   });
 
   group('T29 网关口径语义补丁', () {

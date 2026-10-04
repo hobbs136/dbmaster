@@ -72,6 +72,8 @@ import 'package:dbmaster/models/ai_models.dart'
 import 'package:dbmaster/models/audit_log_entry.dart' show AgentGateDecision;
 import 'package:dbmaster/models/database_models.dart'
     show AiMessage, DatabaseType, DbColumn, DbIndex, ForeignKey;
+import 'package:dbmaster/models/query_optimizer/execution_plan.dart'
+    show PerformanceReport;
 import 'package:dbmaster/organisms/ai_workbench/agents/agent_trajectory_card.dart';
 import 'package:dbmaster/services/ai/agent/agent_gate.dart'
     show AgentGate, AgentRunContext;
@@ -223,8 +225,7 @@ class _ChatScript {
 
   void releaseHold() => _hold!.complete(_holdResponse!);
 
-  void enqueueAll(Iterable<ChatResponse> responses) =>
-      _queue.addAll(responses);
+  void enqueueAll(Iterable<ChatResponse> responses) => _queue.addAll(responses);
 
   Future<ChatResponse> call({
     required String provider,
@@ -341,7 +342,7 @@ class _ScriptedDb {
   }
 
   AgentDbAccess access() => AgentDbAccess(
-    getTables: (String? connectionId) async => <String>[
+    getTables: (String? connectionId, String? databaseName) async => <String>[
       for (var i = 1; i <= 12; i++) 'loop_table_$i',
     ],
     getTableColumns:
@@ -435,6 +436,12 @@ class _NoopUiPort implements AgentUiPort {
     String? database,
     String? table,
   }) => Future.value(const AgentUiOutcome.failure('noop port'));
+
+  @override
+  Future<AgentUiOutcome> openOptimization(
+    PerformanceReport report,
+    String sql,
+  ) => Future.value(const AgentUiOutcome.failure('noop port'));
 }
 
 // ---- 测试台（生产链：真 runner + 真 executor + 真 gate/analysis，脚本数据）──
@@ -711,7 +718,11 @@ Widget _buildHost({
     home: Scaffold(
       body: Center(
         child: SizedBox(
-          width: AppDesignSystem.workbenchChatMaxWidth,
+          // AI-CW 批（2026-09-29）：原对话列宽 design token（760）已退役
+          // （收起态列吃满 region），改显式 760.0 字面量单档——五门柱
+          // 判定对象是 runner/回路稳定性，宽度只是宿主几何（架构师定案：
+          // 收窄设计师双档建议），门柱阈值/相位/采样零改动。
+          width: 760.0,
           child: ListenableBuilder(
             listenable: Listenable.merge(<Listenable>[session, runner]),
             builder: (BuildContext context, _) {
@@ -779,8 +790,9 @@ Future<void> _checkLiveInteraction(
     await tester.pump();
   }
 
-  final List<AgentTrajectorySegment> diagSegments =
-      agentTrajectoryGrouping(h.sessionManager.currentMessages);
+  final List<AgentTrajectorySegment> diagSegments = agentTrajectoryGrouping(
+    h.sessionManager.currentMessages,
+  );
   _log(
     'diag: messages=${h.sessionManager.currentMessages.length} '
     'steps=${h.executor.stepsUsed} status=${h.runner.status.name} '
@@ -797,11 +809,7 @@ Future<void> _checkLiveInteraction(
   final Finder body = find.byKey(AgentTrajectoryCard.stepsScrollKey);
   expect(body, findsOneWidget, reason: 'live 卡默认展开（T13 _expanded=_isLive）');
   final double bodyHeight = tester.getSize(body).height;
-  expect(
-    bodyHeight,
-    lessThanOrEqualTo(362),
-    reason: '§1.8-5 卡体上限 362（不放宽）',
-  );
+  expect(bodyHeight, lessThanOrEqualTo(362), reason: '§1.8-5 卡体上限 362（不放宽）');
   expect(bodyHeight, moreOrLessEquals(360, epsilon: 2), reason: '360 钳应生效');
   final List<Element> containerScrollables = _containerScrollables(card);
   expect(
@@ -810,8 +818,7 @@ Future<void> _checkLiveInteraction(
     reason: '单一滚动区（无嵌套滚动；SelectableText 内部滚动器按 T13 口径排除）',
   );
   final ScrollableState cardScroll =
-      (containerScrollables.single as StatefulElement).state
-          as ScrollableState;
+      (containerScrollables.single as StatefulElement).state as ScrollableState;
   // 内部滚动可用（T13 M1-③ 口径：jumpTo 确定到位，避开 drag 惯性物理在
   // live 测试环境的落点歧义）。
   expect(
@@ -831,11 +838,7 @@ Future<void> _checkLiveInteraction(
   await tester.tap(find.byKey(AgentTrajectoryCard.headerKey));
   await tester.pump();
   final double collapsedHeight = tester.getSize(card).height;
-  expect(
-    collapsedHeight,
-    lessThanOrEqualTo(362),
-    reason: '折叠态整卡 ≤ 362（不放宽）',
-  );
+  expect(collapsedHeight, lessThanOrEqualTo(362), reason: '折叠态整卡 ≤ 362（不放宽）');
   await tester.tap(find.byKey(AgentTrajectoryCard.headerKey)); // 恢复展开
   await tester.pump();
 
@@ -845,8 +848,10 @@ Future<void> _checkLiveInteraction(
   chatController.jumpTo(0);
   await tester.pump();
   final double before = chatController.position.pixels;
-  await tester.drag(find.byKey(const ValueKey<String>('msg_seed_u_1')),
-      const Offset(0, -150));
+  await tester.drag(
+    find.byKey(const ValueKey<String>('msg_seed_u_1')),
+    const Offset(0, -150),
+  );
   await tester.pump();
   expect(
     chatController.position.pixels,
@@ -861,8 +866,10 @@ Future<void> _checkLiveInteraction(
 // 内部滚动器后，卡范围内容器级 Scrollable 恰为卡体一个 ────────────────────────
 
 List<Element> _containerScrollables(Finder cardScope) {
-  final Set<Element> selectableTexts =
-      find.byType(SelectableText).evaluate().toSet();
+  final Set<Element> selectableTexts = find
+      .byType(SelectableText)
+      .evaluate()
+      .toSet();
   bool insideSelectableText(Element el) {
     bool inside = false;
     el.visitAncestorElements((Element ancestor) {
@@ -979,8 +986,9 @@ void main() {
     // ── 终局卡几何（50 步全量在卡，rss50 采样之后——不污染内存对照窗）────
     // 注：运行中卡若已在视口构建（锚点后跳底），终局不自动收起（_expanded
     // 状态保持）——测量与初始展开态解耦：先强制折叠测整卡，再展开测卡体。
-    final List<AgentTrajectorySegment> diagA =
-        agentTrajectoryGrouping(h.sessionManager.currentMessages);
+    final List<AgentTrajectorySegment> diagA = agentTrajectoryGrouping(
+      h.sessionManager.currentMessages,
+    );
     _log(
       'diagA: messages=${h.sessionManager.currentMessages.length} '
       'segments=${diagA.length} '
@@ -1007,11 +1015,7 @@ void main() {
     final Finder bodyA = find.byKey(AgentTrajectoryCard.stepsScrollKey);
     expect(bodyA, findsOneWidget);
     final double bodyAHeight = tester.getSize(bodyA).height;
-    expect(
-      bodyAHeight,
-      lessThanOrEqualTo(362),
-      reason: '§1.8-5 卡体上限 362（不放宽）',
-    );
+    expect(bodyAHeight, lessThanOrEqualTo(362), reason: '§1.8-5 卡体上限 362（不放宽）');
     expect(bodyAHeight, moreOrLessEquals(360, epsilon: 2), reason: '360 钳应生效');
     final List<Element> containerScrollablesA = _containerScrollables(cardA);
     expect(
@@ -1073,8 +1077,13 @@ void main() {
         Curves.easeOutCubic,
         'round ${round + 1} leg-down',
       );
-      await _pumpDrivenLeg(tester, chatA, 0, Curves.easeInCubic,
-          'round ${round + 1} leg-up');
+      await _pumpDrivenLeg(
+        tester,
+        chatA,
+        0,
+        Curves.easeInCubic,
+        'round ${round + 1} leg-up',
+      );
       await _flushFrameTimings(tester, collector);
       collector.markRoundEnd();
     }
@@ -1137,8 +1146,7 @@ void main() {
 
     unawaited(h2.start());
     final bool inflight = await _waitUntil(
-      () =>
-          h2.executor.stepsUsed >= _stopRunSteps && h2.chat.holdPending,
+      () => h2.executor.stepsUsed >= _stopRunSteps && h2.chat.holdPending,
       timeout: const Duration(seconds: 60),
     );
     expect(inflight, isTrue, reason: '脚本应推进到第 ${_stopRunSteps + 1} 次调用在途挂起');
@@ -1164,13 +1172,13 @@ void main() {
       timeout: _stopBound,
     );
     final int stopMs = stopWatch.elapsedMilliseconds;
-    expect(converged, isTrue, reason: 'requestStop 后 ${_stopBound.inSeconds}s 内到终态');
-    expect(h2.runner.status, AgentRunStatus.stoppedByUser);
     expect(
-      h2.executor.stepsUsed,
-      _stopRunSteps,
-      reason: 'AC1.3：停止后不再派发新调用',
+      converged,
+      isTrue,
+      reason: 'requestStop 后 ${_stopBound.inSeconds}s 内到终态',
     );
+    expect(h2.runner.status, AgentRunStatus.stoppedByUser);
+    expect(h2.executor.stepsUsed, _stopRunSteps, reason: 'AC1.3：停止后不再派发新调用');
     expect(h2.chat.calls, _stopRunSteps + 1, reason: 'AC1.3：不再发起新轮');
     await tester.pumpAndSettle();
 
@@ -1237,14 +1245,16 @@ void main() {
       expect(
         p95All,
         lessThanOrEqualTo(_gateP95Ms),
-        reason: 'NF1.4 P95 帧(build+raster 合计) ≤ $_gateP95Ms ms'
+        reason:
+            'NF1.4 P95 帧(build+raster 合计) ≤ $_gateP95Ms ms'
             '（M1 T01 探针口径；不达标须停止上报，不得放宽）',
       );
     }
     expect(
       memorySuperLinear,
       isFalse,
-      reason: 'NF1.4 RSS 25→50 增量相对 0→25 增量非超线性'
+      reason:
+          'NF1.4 RSS 25→50 增量相对 0→25 增量非超线性'
           '（M1 判据：second ≤ 2× first；不达标须停止上报）',
     );
 
@@ -1253,11 +1263,7 @@ void main() {
     _log('mode: $mode');
     _log(
       'gate P95: ${p95All.toStringAsFixed(2)}ms vs $_gateP95Ms ms → '
-      '${kDebugMode
-          ? (p95All <= _gateP95Ms
-                ? "PASS（debug 相对参考）"
-                : "DEBUG 超限（仅相对参考；profile 复测为结论口径）")
-          : (p95All <= _gateP95Ms ? "PASS" : "FAIL（停止上报，不放宽）")} '
+      '${kDebugMode ? (p95All <= _gateP95Ms ? "PASS（debug 相对参考）" : "DEBUG 超限（仅相对参考；profile 复测为结论口径）") : (p95All <= _gateP95Ms ? "PASS" : "FAIL（停止上报，不放宽）")} '
       '(frames=${collector.frameMs.length}, run-phase=${collector.runPhaseFrames}, '
       'legs=${collector.frameMs.length - collector.runPhaseFrames})',
     );

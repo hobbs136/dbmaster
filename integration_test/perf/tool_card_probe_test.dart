@@ -55,10 +55,15 @@ const int _memoryHalfCards = 25;
 const List<int> _nLadder = <int>[20, 10, 5];
 
 // 复刻卡几何（R1 复跑：消费 T02 已落库的真实 token，对齐真实卡形态，
-// 替换首轮「token 由 T02 落库，探针自持常量」的过渡做法；数值同为 34/360/760）
+// 替换首轮「token 由 T02 落库，探针自持常量」的过渡做法；数值同为 34/360。
+// 对话列宽原引 design token（760，已随 AI-CW 批 2026-09-29 退役——收起态列
+// 吃满 region），探针改双档字面量：760 基线档
+// （N 阶梯主判定锚定档，保与 design §10/R1 存档基线可比）+ 1680 宽档
+// （1920 窗收起态 region 实况，判读输出）。gate 阈值逐字不动。
 const double _cardHeaderHeight = AppDesignSystem.toolCardHeaderHeight;
 const double _cardContentMaxHeight = AppDesignSystem.toolCardContentMaxHeight;
-const double _chatColumnWidth = AppDesignSystem.workbenchChatMaxWidth;
+const double _chatColumnWidth = 760.0;
+const double _chatColumnWidthWide = 1680.0;
 
 // 行高/表头高 = ResultSnapshotTable 组件常量（design §8【二】R1：沿用 VDT
 // 默认 26/28 作为组件常量，不新增 token；组件无底栏，自然高 = 表头 28 + N×26）
@@ -102,8 +107,7 @@ const List<String> _columns = <String>[
 List<List<String>> _makeRows(int rows) {
   return List<List<String>>.generate(rows, (r) {
     return <String>[
-      for (var c = 0; c < _columns.length; c++)
-        c == 0 ? '$r' : 'value_${r}_$c',
+      for (var c = 0; c < _columns.length; c++) c == 0 ? '$r' : 'value_${r}_$c',
     ];
   });
 }
@@ -129,10 +133,12 @@ class _ProbeToolCard extends StatelessWidget {
     // 传入「表头 28 + N×26」自然高与 360 上限取小的有界高度，保持首轮探针的
     // cap 语义（行少时收拢，行多时 360 内部滚动）。RepaintBoundary 由组件内部
     // 自持（整表单一重绘边界，R1 性能不变式），探针不再外包。
-    final natural = ResultSnapshotTable.headerHeight +
+    final natural =
+        ResultSnapshotTable.headerHeight +
         rows.length * ResultSnapshotTable.rowHeight;
-    final contentHeight =
-        natural <= _cardContentMaxHeight ? natural : _cardContentMaxHeight;
+    final contentHeight = natural <= _cardContentMaxHeight
+        ? natural
+        : _cardContentMaxHeight;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -183,12 +189,13 @@ class _ProbeToolCard extends StatelessWidget {
   }
 }
 
-// ---- 场景宿主：1280×800 视口 + 760 宽对话列 + 卡滚动列表 ----
+// ---- 场景宿主：1280×800 视口 + 指定宽对话列（760 基线档 / 1680 宽档）+ 卡滚动列表 ----
 
 Widget _buildProbeApp({
   Key? appKey,
   required ScrollController scrollController,
-    required List<List<List<String>>> cardDatasets,
+  required double chatColumnWidth,
+  required List<List<List<String>>> cardDatasets,
 }) {
   return MaterialApp(
     key: appKey,
@@ -202,7 +209,7 @@ Widget _buildProbeApp({
     home: Scaffold(
       body: Center(
         child: SizedBox(
-          width: _chatColumnWidth,
+          width: chatColumnWidth,
           child: ListView.builder(
             controller: scrollController,
             itemCount: cardDatasets.length,
@@ -340,13 +347,18 @@ Future<void> _flushFrameTimings(
 }
 
 /// 构建场景并执行 3 轮全程滚动，返回该 N 档的帧统计
-Future<_LevelResult> _runLevel(WidgetTester tester, int n) async {
+Future<_LevelResult> _runLevel(
+  WidgetTester tester,
+  int n, {
+  double chatColumnWidth = _chatColumnWidth,
+}) async {
   final controller = ScrollController();
   _createdControllers.add(controller);
   await tester.pumpWidget(
     _buildProbeApp(
       appKey: UniqueKey(),
       scrollController: controller,
+      chatColumnWidth: chatColumnWidth,
       cardDatasets: _makeCardDatasets(_cardCount, n),
     ),
   );
@@ -422,13 +434,15 @@ Future<double> _sampleRssMedianMb() async {
 Future<double> _pumpAndSampleRss(
   WidgetTester tester,
   int cardCount,
-  int rowsPerCard,
-) async {
+  int rowsPerCard, {
+  double chatColumnWidth = _chatColumnWidth,
+}) async {
   final controller = ScrollController();
   await tester.pumpWidget(
     _buildProbeApp(
       appKey: UniqueKey(),
       scrollController: controller,
+      chatColumnWidth: chatColumnWidth,
       cardDatasets: _makeCardDatasets(cardCount, rowsPerCard),
     ),
   );
@@ -460,7 +474,8 @@ void main() {
     _log('MODE: $mode');
     _log(
       'scenario: $_cardCount cards × N rows × ${_columns.length} cols, '
-      'chat column width $_chatColumnWidth, viewport 1280×800',
+      'chat column width $_chatColumnWidth (baseline gate anchor) / '
+      '$_chatColumnWidthWide (wide readout, AI-CW), viewport 1280×800',
     );
     _log(
       'driving: $_rounds rounds × (down ${_legDuration.inMilliseconds}ms '
@@ -529,6 +544,36 @@ void main() {
       '$_memoryHalfCards→$_cardCount=${secondHalfMb.toStringAsFixed(1)}MB '
       '(linear if second ≤ $_memoryLinearitySlack× first)',
     );
+
+    // ---- 阶段 3：1680 宽档判读输出（AI-CW 批 2026-09-29：收起态对话列吃满
+    // region 后的实况宽度档；非 gate 主判定——gate 阈值与 N 阶梯仅在 760
+    // 基线档执行、逐字不动。宽档若 profile 下触 16.7ms → 沿既有升级条款：
+    // 原样输出数据、不自行改设计）----
+    _log('---- wide readout at width=$_chatColumnWidthWide, N=$memoryN ----');
+    final wideResult = await _runLevel(
+      tester,
+      memoryN,
+      chatColumnWidth: _chatColumnWidthWide,
+    );
+    _log(
+      'frames=${wideResult.frameCount} '
+      'p50=${wideResult.p50Ms.toStringAsFixed(2)}ms '
+      'p95=${wideResult.p95Ms.toStringAsFixed(2)}ms '
+      'avg=${wideResult.avgMs.toStringAsFixed(2)}ms '
+      'max=${wideResult.maxMs.toStringAsFixed(2)}ms',
+    );
+    _log(
+      'split p95: build=${wideResult.p95BuildMs.toStringAsFixed(2)}ms '
+      '(p50 ${wideResult.p50BuildMs.toStringAsFixed(2)}) '
+      'raster=${wideResult.p95RasterMs.toStringAsFixed(2)}ms '
+      '(p50 ${wideResult.p50RasterMs.toStringAsFixed(2)})',
+    );
+    if (wideResult.p95Ms > _gateHalveMs) {
+      _log(
+        '⚠ wide-tier p95 ${wideResult.p95Ms.toStringAsFixed(2)}ms > $_gateHalveMs ms '
+        '→ ESCALATION（沿既有条款）：原样输出数据、不自行改设计，升级回主对话复核',
+      );
+    }
 
     // ---- 收尾：卸载场景树，释放暂存 controller（组件级资源纪律）----
     await tester.pumpWidget(const SizedBox.shrink());

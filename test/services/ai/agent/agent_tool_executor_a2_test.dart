@@ -18,6 +18,7 @@ import 'package:dbmaster/models/ai_models.dart' show AiToolCall;
 import 'package:dbmaster/models/audit_log_entry.dart' show AgentGateDecision;
 import 'package:dbmaster/models/database_models.dart'
     show DatabaseType, DbColumn, DbIndex, ForeignKey;
+import 'package:dbmaster/models/query_optimizer/execution_plan.dart';
 import 'package:dbmaster/services/ai/agent/agent_gate.dart';
 import 'package:dbmaster/services/ai/agent/agent_permission_ledger.dart';
 import 'package:dbmaster/services/ai/agent/agent_plan.dart';
@@ -26,6 +27,8 @@ import 'package:dbmaster/services/ai/agent/agent_tool_catalog.dart'
 import 'package:dbmaster/services/ai/agent/agent_tool_executor.dart';
 import 'package:dbmaster/services/ai/agent/agent_ui_port.dart'
     show AgentResultRef, AgentUiOutcome, AgentUiPort, GateCardResult;
+import 'package:dbmaster/services/sql_statement_gate_runner.dart'
+    show SqlStatementOutcome;
 
 // ── fakes / spies ───────────────────────────────────────────────────────────
 
@@ -115,7 +118,23 @@ class _UiPortSpy implements AgentUiPort {
   final List<({String? database, String? table})> focusTargets =
       <({String? database, String? table})>[];
 
+  // 2b.3：optimization 推送记录（report/sql 载荷断言）。
+  int openOptimizationCalls = 0;
+  final List<PerformanceReport> reports = <PerformanceReport>[];
+  final List<String> optimizationSqls = <String>[];
+
   AgentUiOutcome outcome = const AgentUiOutcome.ok();
+
+  @override
+  Future<AgentUiOutcome> openOptimization(
+    PerformanceReport report,
+    String sql,
+  ) {
+    openOptimizationCalls++;
+    reports.add(report);
+    optimizationSqls.add(sql);
+    return Future<AgentUiOutcome>.value(outcome);
+  }
 
   @override
   Future<AgentUiOutcome> openResultGrid(AgentResultRef ref, String? title) {
@@ -238,7 +257,7 @@ class _Harness {
   int failAtStep = -1; // 1 基；命中步抛错（partialFailed 构造）
 
   AgentDbAccess dbAccess() => AgentDbAccess(
-    getTables: (String? connectionId) async => <String>[],
+    getTables: (String? connectionId, String? databaseName) async => <String>[],
     getTableColumns:
         (
           String tableName, {
@@ -284,8 +303,8 @@ class _Harness {
           if (i == failAtStep) {
             throw StateError('injected step failure');
           }
-          return Future<List<Map<String, dynamic>>>.value(
-            <Map<String, dynamic>>[],
+          return Future<SqlStatementOutcome>.value(
+            const SqlStatementOutcome(rows: <Map<String, dynamic>>[]),
           );
         },
       ),
@@ -712,6 +731,50 @@ void main() {
     );
   });
 
+  group('2b.3 explain_plan → uiPort.openOptimization 旁挂推送（R6）', () {
+    test('explain 成功 → openOptimization 收到 report 且 sql 一致（零拦截主链）', () async {
+      final h = _Harness();
+      h.db.explainResult = <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 1,
+          'select_type': 'SIMPLE',
+          'table': 'big_table',
+          'type': 'ALL',
+          'possible_keys': null,
+          'key': null,
+          'rows': 20000,
+          'Extra': null,
+        },
+      ];
+      const sql = 'SELECT * FROM big_table WHERE val = 42';
+
+      final out = await h.run('explain_plan', <String, dynamic>{'sql': sql});
+
+      expect(out.ok, isTrue, reason: '旁挂不影响主链回喂');
+      expect(h.uiPort.openOptimizationCalls, 1);
+      expect(h.uiPort.optimizationSqls.single, sql);
+      final PerformanceReport report = h.uiPort.reports.single;
+      expect(report.executionPlan.originalQuery, sql);
+      expect(report.executionPlan.steps, isNotEmpty);
+      expect(report.bottlenecks, isNotEmpty);
+      expect(report.indexRecommendations, isNotEmpty);
+    });
+
+    test('uiPort 缺位 → 跳过推送不失败（与界面七工具 fail-closed 不同：'
+        '旁挂缺席不拦截）', () async {
+      final h = _Harness();
+      h.db.explainResult = <Map<String, dynamic>>[
+        <String, dynamic>{'type': 'ALL', 'rows': 10},
+      ];
+      final out = await h.run('explain_plan', <String, dynamic>{
+        'sql': 'SELECT * FROM big_table',
+      }, withUiPort: false);
+
+      expect(out.ok, isTrue, reason: 'R6：null uiPort 跳过推送，结果照常');
+      expect(h.uiPort.openOptimizationCalls, 0);
+    });
+  });
+
   group('AC4.4 库级限定名执法（P2-4 并入 T28，保守方案）', () {
     test('MySQL 族：get_sample_data 跨库限定表名 → INVALID_ARGUMENTS 零执行', () async {
       final h = _Harness();
@@ -765,7 +828,13 @@ void main() {
       });
       expect(out.ok, isTrue, reason: 'SQLite ATTACH 面登记不覆盖');
 
-      final noDb = _Harness(databaseName: '');
+      // 修订（T2 方案 B）：原 mysql 无库面现在于门 ②b / executor fail-closed
+      // 防御层即 CONTEXT_REQUIRED 终止（handler 不可达）——「无比较基准不拦」
+      // 分支改用 SQL Server 覆盖（SS 豁免 ②b 且具库级执法语义，可达 handler）。
+      final noDb = _Harness(
+        dbType: DatabaseType.sqlserver,
+        databaseName: '',
+      );
       final out2 = await noDb.run('execute_readonly_sql', <String, dynamic>{
         'sql': 'SELECT * FROM anywhere.users',
       });
@@ -960,6 +1029,77 @@ void main() {
       });
       expect(ok.ok, isTrue);
       expect(h.db.explainCalls, 1);
+    });
+  });
+
+  group('T2：AC4.4 information_schema 限定名首段白名单（目录元数据窄豁免）', () {
+    test('放行：MySQL 目录元数据查询（原形/大小写/反引号变体）→ 执行', () async {
+      final h = _Harness(databaseName: 'dbA');
+      const canonical =
+          "SELECT table_name, table_comment, table_rows FROM "
+          "information_schema.tables WHERE table_schema = 'dbA'";
+      final out = await h.run('execute_readonly_sql', <String, dynamic>{
+        'sql': canonical,
+      });
+      expect(out.ok, isTrue);
+      expect(h.db.executeQueryCalls, 1);
+      expect(h.db.executedSql.single, canonical);
+
+      final upper = await h.run('execute_readonly_sql', <String, dynamic>{
+        'sql': 'SELECT table_name FROM INFORMATION_SCHEMA.tables',
+      });
+      expect(upper.ok, isTrue, reason: '大小写变体整段 toLowerCase 比对');
+      expect(h.db.executeQueryCalls, 2);
+
+      final backtick = await h.run('execute_readonly_sql', <String, dynamic>{
+        'sql': 'SELECT table_name FROM `information_schema`.`tables`',
+      });
+      expect(backtick.ok, isTrue, reason: '反引号形态去引界后比对');
+      expect(h.db.executeQueryCalls, 3);
+    });
+
+    test('放行：CH 方言 information_schema 两段式 + describe_table table 参数', () async {
+      final ch = _Harness(dbType: DatabaseType.clickhouse, databaseName: 'db1');
+      final out = await ch.run('execute_readonly_sql', <String, dynamic>{
+        'sql': 'SELECT name FROM information_schema.tables',
+      });
+      expect(out.ok, isTrue, reason: 'CH 两段式首段白名单豁免（与 system.* 分立）');
+      expect(ch.db.executeQueryCalls, 1);
+
+      final d = _Harness(databaseName: 'dbA');
+      final describe = await d.run('describe_table', <String, dynamic>{
+        'table': 'information_schema.tables',
+      });
+      expect(describe.ok, isTrue, reason: 'table 参数面同吃白名单（共用判定）');
+    });
+
+    test('仍拒：仿冒前缀 / mysql / performance_schema / SHOW 库位段 / 跨库直查', () async {
+      final h = _Harness(databaseName: 'dbA');
+      const List<String> crossDb = <String>[
+        'SELECT * FROM other_db.t',
+        'SELECT * FROM information_schema_evil.t',
+        'SELECT * FROM mysql.user',
+        'SELECT * FROM performance_schema.tables',
+        'SHOW TABLES FROM information_schema',
+      ];
+      for (final String sql in crossDb) {
+        final out = await h.run('execute_readonly_sql', <String, dynamic>{
+          'sql': sql,
+        });
+        expect(out.ok, isFalse, reason: sql);
+        expect(out.errorMessage, contains('cross-database'), reason: sql);
+      }
+      expect(h.db.executeQueryCalls, 0, reason: '全拒零执行');
+    });
+
+    test('仍拒：CH system.* 不吃白名单（敏感度超界，M5 守卫语义维持）', () async {
+      final ch = _Harness(dbType: DatabaseType.clickhouse, databaseName: 'db1');
+      final out = await ch.run('execute_readonly_sql', <String, dynamic>{
+        'sql': 'SELECT * FROM system.query_log',
+      });
+      expect(out.ok, isFalse);
+      expect(out.errorMessage, contains('cross-database'));
+      expect(ch.db.executeQueryCalls, 0);
     });
   });
 }

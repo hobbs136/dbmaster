@@ -759,8 +759,12 @@ class _ConnectionManager {
 // 内部组件：查询执行器
 // ============================================================================
 
-/// 内部查询执行结果，包含数据和元数据
-class _QueryExecutionResult {
+/// 查询执行完整结果（裁决选项 A detailed 通道公共载荷）：
+/// rows + affectedRows + executionTimeMs 及截断/列元数据。
+///
+/// [executeQueryDetailed]（及双 bypass detailed 孪生）返回本型；
+/// [executeQuery] 解包层只取 [rows]（既有签名与语义零改动）。
+class QueryExecutionResult {
   final List<Map<String, dynamic>> rows;
   final int? affectedRows;
   final int? executionTimeMs;
@@ -769,7 +773,7 @@ class _QueryExecutionResult {
   final Map<String, String>? columnTypes;
   final Set<String> truncatedColumns; // (max)→capped 截断列名
 
-  _QueryExecutionResult(
+  QueryExecutionResult(
     this.rows, {
     this.affectedRows,
     this.executionTimeMs,
@@ -778,6 +782,19 @@ class _QueryExecutionResult {
     this.columnTypes,
     this.truncatedColumns = const <String>{},
   });
+
+  /// 行集替换投影（SELECT PII 脱敏后重建，其余元数据原样）。
+  QueryExecutionResult copyWith({List<Map<String, dynamic>>? rows}) {
+    return QueryExecutionResult(
+      rows ?? this.rows,
+      affectedRows: affectedRows,
+      executionTimeMs: executionTimeMs,
+      isTruncated: isTruncated,
+      limitValue: limitValue,
+      columnTypes: columnTypes,
+      truncatedColumns: truncatedColumns,
+    );
+  }
 }
 
 class _RowLimitResult {
@@ -828,7 +845,7 @@ class _QueryExecutor {
   }
 
   /// 执行查询并返回完整元数据
-  Future<_QueryExecutionResult> executeQueryWithStats(
+  Future<QueryExecutionResult> executeQueryWithStats(
     String sql, {
     String? connectionId,
     String? database,
@@ -890,7 +907,7 @@ class _QueryExecutor {
             limitResult.sql,
             limit: limitResult.limitValue,
           );
-          return _QueryExecutionResult(
+          return QueryExecutionResult(
             result.rows,
             affectedRows: result.affectedRows,
             executionTimeMs: result.executionTime,
@@ -921,7 +938,7 @@ class _QueryExecutor {
               database: currentDatabase,
               limit: limitResult.limitValue,
             );
-            return _QueryExecutionResult(
+            return QueryExecutionResult(
               result.rows,
               affectedRows: result.affectedRows,
               executionTimeMs: result.executionTime,
@@ -988,7 +1005,7 @@ class _QueryExecutor {
       final executionTimeMs = DateTime.now()
           .difference(startTime)
           .inMilliseconds;
-      return _QueryExecutionResult(
+      return QueryExecutionResult(
         rows,
         affectedRows: affectedRows,
         executionTimeMs: executionTimeMs,
@@ -1344,9 +1361,15 @@ class _SchemaManager {
   /// [schemaName]：SQLite ATTACH 附加库 alias（getDatabaseInfo 透传），
   /// 限定到 `<alias>.sqlite_master`；非 SQLite 调用方不传（MySQL/Doris 走
   /// 上方专用分支不受影响）。
+  ///
+  /// [databaseName]：库限定枚举（agent 作用域锁 run 快照路由，FU-18）——
+  /// 仅对 [DatabaseQualifiedTablesAdapter] 实现者生效（MySQL 族网关壳 /
+  /// ClickHouse：显式 `SHOW TABLES FROM` 不落连接初始库）；其余 adapter
+  /// 与 null/空串一律走原路径（零行为变化）。与 [schemaName] 语义分立。
   Future<List<String>> getTables({
     String? connectionId,
     String? schemaName,
+    String? databaseName,
   }) async {
     final targetConnectionId = connectionId ?? _state.activeConnectionId;
     if (targetConnectionId == null) return [];
@@ -1356,6 +1379,16 @@ class _SchemaManager {
 
     final adapter = _state.adapters[targetConnectionId];
     if (adapter == null || !adapter.isConnected) return [];
+    // 库限定分支（FU-18）：与 schemaName 分支互斥使用（调用方不同源）。
+    final qualified =
+        databaseName != null &&
+            databaseName.isNotEmpty &&
+            adapter is DatabaseQualifiedTablesAdapter
+        ? adapter as DatabaseQualifiedTablesAdapter
+        : null;
+    if (qualified != null) {
+      return await qualified.getTables(database: databaseName);
+    }
     // 注：`is` 提升后 getTables 成员解析仍落基类签名（接口合并怪癖），
     // 须显式收窄局部变量再带 schemaName 调用。
     final multi =
@@ -3339,7 +3372,31 @@ class DatabaseService {
       _connMgr.testConnection(server);
 
   // 查询执行
+  /// 执行查询并返回结果行（既有契约，签名零改动）：解包
+  /// [executeQueryDetailed] 的 [QueryExecutionResult.rows]——拦截器/双门/
+  /// 审计链在 detailed 通道承载（裁决选项 A：只加不删，只扩返回载荷）。
   Future<List<Map<String, dynamic>>> executeQuery(
+    String sql, {
+    String? connectionId,
+    String? database,
+    String? sessionId,
+    bool skipDdlAnalysis = false,
+  }) async {
+    final result = await executeQueryDetailed(
+      sql,
+      connectionId: connectionId,
+      database: database,
+      sessionId: sessionId,
+      skipDdlAnalysis: skipDdlAnalysis,
+    );
+    return result.rows;
+  }
+
+  /// [executeQuery] 的 detailed 孪生（裁决选项 A 并行通道）：返回完整
+  /// [QueryExecutionResult]（rows + affectedRows + executionTimeMs 及截断/
+  /// 列元数据）。执行语义/拦截器/双门/审计与 [executeQuery] 同一份实现
+  /// （原 executeQuery 主体整体迁入，零行为差异）。
+  Future<QueryExecutionResult> executeQueryDetailed(
     String sql, {
     String? connectionId,
     String? database,
@@ -3439,7 +3496,7 @@ class DatabaseService {
 
     // 执行查询
     final startTime = DateTime.now();
-    _QueryExecutionResult? queryResult;
+    QueryExecutionResult? queryResult;
     bool isSuccess = true;
     String? errorMessage;
 
@@ -3455,7 +3512,7 @@ class DatabaseService {
       _lastColumnTypes = queryResult.columnTypes;
       _lastTruncatedColumns = queryResult.truncatedColumns;
       _lastDataShape = ResultDataShape.shapeForDatabaseType(server.type);
-      return queryResult.rows;
+      return queryResult;
     } catch (e) {
       isSuccess = false;
       errorMessage = e.toString();
@@ -3554,6 +3611,53 @@ class DatabaseService {
     _interceptor.enableDdlAnalysis = false;
     try {
       return await executeQuery(
+        sql,
+        connectionId: connectionId,
+        database: database,
+        sessionId: sessionId,
+      );
+    } finally {
+      _interceptor.enableDmlCheck = wasDmlEnabled;
+      _interceptor.enableDdlAnalysis = wasDdlEnabled;
+    }
+  }
+
+  /// [executeQueryBypassDdl] 的 detailed 孪生（裁决选项 A）：拦截器开关
+  /// 镜像逐行一致，返回完整 [QueryExecutionResult]（含 affectedRows）。
+  Future<QueryExecutionResult> executeQueryBypassDdlDetailed(
+    String sql, {
+    String? connectionId,
+    String? database,
+    String? sessionId,
+  }) async {
+    final wasEnabled = _interceptor.enableDdlAnalysis;
+    _interceptor.enableDdlAnalysis = false;
+    try {
+      return await executeQueryDetailed(
+        sql,
+        connectionId: connectionId,
+        database: database,
+        sessionId: sessionId,
+      );
+    } finally {
+      _interceptor.enableDdlAnalysis = wasEnabled;
+    }
+  }
+
+  /// [executeQueryBypassDml] 的 detailed 孪生（裁决选项 A）：拦截器开关
+  /// 镜像逐行一致，返回完整 [QueryExecutionResult]（含 affectedRows）。
+  Future<QueryExecutionResult> executeQueryBypassDmlDetailed(
+    String sql, {
+    String? connectionId,
+    String? database,
+    String? sessionId,
+  }) async {
+    final wasDmlEnabled = _interceptor.enableDmlCheck;
+    final wasDdlEnabled = _interceptor.enableDdlAnalysis;
+    _interceptor.enableDmlCheck = false;
+    _interceptor.enableDdlAnalysis = false;
+    try {
+      return await executeQueryDetailed(
         sql,
         connectionId: connectionId,
         database: database,
@@ -3828,8 +3932,16 @@ class DatabaseService {
   );
   void updateServerDatabase(String dbName, {String? connectionId}) =>
       _schemaMgr.updateServerDatabase(dbName, connectionId: connectionId);
-  Future<List<String>> getTables({String? connectionId}) =>
-      _schemaMgr.getTables(connectionId: connectionId);
+
+  /// [databaseName]：库限定枚举（FU-18，agent 作用域锁 run 快照路由）——
+  /// 仅 [DatabaseQualifiedTablesAdapter] 实现者消费，其余零行为变化。
+  Future<List<String>> getTables({
+    String? connectionId,
+    String? databaseName,
+  }) => _schemaMgr.getTables(
+    connectionId: connectionId,
+    databaseName: databaseName,
+  );
   Future<List<String>> getViews({String? connectionId}) =>
       _schemaMgr.getViews(connectionId: connectionId);
   Future<List<String>> getMaterializedViews({String? connectionId}) =>

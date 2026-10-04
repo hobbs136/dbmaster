@@ -636,6 +636,26 @@ void main() {
       expect(body['database'], 'ch_test_db');
     });
 
+    test('getTables 带库（FU-18）：SHOW TABLES FROM `db`；不带库回落裸形态', () async {
+      final bodies = <Map<String, dynamic>>[];
+      final adapter = await connectedAdapter((req) {
+        bodies.add(_sentBody(req));
+        return _sse([
+          'event: meta\ndata: {"kind":"sql","type":"meta","columns":["name"]}',
+          'event: rows\ndata: {"kind":"sql","type":"rows","rows":[["t1"],["t2"]]}',
+          'event: complete\ndata: {"kind":"sql","type":"complete","rowCount":2,"truncated":false,"elapsedMs":3}',
+        ]);
+      });
+
+      expect(await adapter.getTables(database: 'other_db'), ['t1', 't2']);
+      expect(bodies.last['sql'], 'SHOW TABLES FROM `other_db`');
+      // database 路由字段仍随连接记录库（FROM 子句只加库限定，不改路由语义）。
+      expect(bodies.last['database'], 'ch_test_db');
+
+      await adapter.getTables();
+      expect(bodies.last['sql'], 'SHOW TABLES');
+    });
+
     test('useDatabase record-only：更新记录库 + 后续查询 database 路由', () async {
       http.Request? queryReq;
       final adapter = await connectedAdapter((req) {

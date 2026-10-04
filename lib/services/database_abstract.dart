@@ -337,6 +337,18 @@ abstract interface class MultiSchemaObjectAdapter {
   Future<List<String>> getProcedures({String? schemaName});
 }
 
+/// 库限定表枚举能力：agent 作用域锁 run 快照路由用（AC4.4——list_tables
+/// 只认 run 快照库，不依赖连接级当前库）。与 [MultiSchemaObjectAdapter] 的
+/// schemaName（PG/SS schema / SQLite ATTACH alias）语义分立。
+///
+/// 实现：MySQLGatewayBaseAdapter（含 Doris 覆写）、ClickhouseAdapter——
+/// 网关壳无会话态，`SHOW TABLES` 须显式带库才不落到连接初始库。
+/// 调用方用 `adapter is DatabaseQualifiedTablesAdapter` 判定（与
+/// [PragmaAdapter] 模式一致）。
+abstract interface class DatabaseQualifiedTablesAdapter {
+  Future<List<String>> getTables({String? database});
+}
+
 /// 支持 PostgreSQL 扩展查询的数据库适配器。
 /// 实现：PostgreSQLAdapter
 abstract interface class ExtensionAdapter {

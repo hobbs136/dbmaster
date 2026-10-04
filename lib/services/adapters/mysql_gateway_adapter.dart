@@ -103,7 +103,8 @@ abstract class MySQLGatewayBaseAdapter extends DatabaseAdapter
         CharsetAdapter,
         ProcessListAdapter,
         ReplicationAdapter,
-        JsonAdapter {
+        JsonAdapter,
+        DatabaseQualifiedTablesAdapter {
   /// serverConnId 映射表 key（与 ConnectionProvider / DbGatewayService 同源
   /// 的本地 id → 网关注册 id 映射；三方共享同一 SharedPreferences key）。
   static const String _kServerIdMapKey = 'connection_server_id_map';
@@ -639,13 +640,19 @@ abstract class MySQLGatewayBaseAdapter extends DatabaseAdapter
     }
   }
 
+  /// [database] 非空 → `SHOW FULL TABLES FROM \`db\``（库限定枚举，
+  /// `DatabaseQualifiedTablesAdapter`：网关壳无会话态，不带上库名会落到连接
+  /// 初始库）；省略/null → 与改动前逐字节一致的裸 `SHOW FULL TABLES`。
   @override
-  Future<List<String>> getTables() async {
+  Future<List<String>> getTables({String? database}) async {
     if (!isConnected) throw Exception('未连接到数据库');
 
     // SHOW FULL TABLES 返回 Table_type 列，过滤掉视图
     // 注意：某些 MySQL 版本返回小写的 'base table'
-    final results = await executeQuery('SHOW FULL TABLES');
+    final results = await executeQuery(
+      'SHOW FULL TABLES'
+      '${database != null && database.isNotEmpty ? ' FROM `$database`' : ''}',
+    );
     final tables = <String>[];
     for (final row in results.rows) {
       final values = row.values.toList();
@@ -1900,13 +1907,18 @@ class DorisAdapter extends MySQLGatewayBaseAdapter {
   @override
   DatabaseType get databaseType => DatabaseType.doris;
 
+  /// [database] 非空 → `SHOW FULL TABLES FROM \`db\``（库限定枚举，同基类
+  /// 先例）；省略/null → 与改动前逐字节一致的裸 `SHOW FULL TABLES`。
   @override
-  Future<List<String>> getTables() async {
+  Future<List<String>> getTables({String? database}) async {
     if (!isConnected) throw Exception('未连接到数据库');
 
     // Doris SHOW FULL TABLES 返回的 Table_type 不一定是 'base table'，
     // 因此只要不是 'view' 就视为表。
-    final results = await executeQuery('SHOW FULL TABLES');
+    final results = await executeQuery(
+      'SHOW FULL TABLES'
+      '${database != null && database.isNotEmpty ? ' FROM `$database`' : ''}',
+    );
     final tables = <String>[];
     for (final row in results.rows) {
       final values = row.values.toList();

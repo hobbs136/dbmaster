@@ -5,7 +5,10 @@ import 'package:dbmaster/models/database_models.dart';
 
 class MockDatabaseService extends DatabaseService {
   @override
-  Future<List<String>> getTables({String? connectionId}) async => ['users'];
+  Future<List<String>> getTables({
+    String? connectionId,
+    String? databaseName,
+  }) async => ['users'];
 
   @override
   Future<List<DbColumn>> getTableColumns(

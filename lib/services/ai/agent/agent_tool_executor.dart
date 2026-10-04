@@ -18,6 +18,10 @@
 /// 5. 门 evaluate——`AgentGate.evaluate` 判定序 ①-⑤（T06）：reject → 回喂
 ///    错误（审计 blocked）；allow → 执行（审计 allowed / allowed_session，
 ///    后者判据 = kind==allow && level==l05，T06 类注⑤）；
+/// 5b. T2 方案 B fail-closed 防御——门放行后仍以同一谓词
+///     [agentToolRequiresDatabaseContext] 复查：USE 语义族 db-less 快照上
+///     requiresDatabase 工具绝不触达 handler（绝不静默返回空表/空列，
+///     FU-10 收口；生产路径被 ②b 拦，本层防旁路）；
 /// 6. confirm(l05) → `GateCallbacks.onL05Confirm` 阻塞等人（D7：tool_call
 ///    不返回直到卡上决策落定；停止时 Completer 以 cancel 解决由 runner 协同，
 ///    T11）。approved → 执行（confirmed）；approvedForSession → 账本
@@ -65,6 +69,8 @@ library;
 import 'dart:convert';
 import 'dart:math' as math;
 
+import '../../../models/ai_memory_item.dart'
+    show AiMemoryItem, AiMemoryScope, AiMemorySource;
 import '../../../models/ai_message_type.dart' show AiMessageType;
 import '../../../models/ai_models.dart' show AiToolCall;
 import '../../../models/audit_log_entry.dart' show AgentGateDecision;
@@ -72,12 +78,20 @@ import '../../../models/database_models.dart'
     show AiMessage, DatabaseType, DbColumn, DbIndex, ForeignKey;
 import '../../../utils/app_logger.dart' show AppLogger;
 import '../../../utils/secret_redactor.dart' show redactSecrets;
+import '../../ai/ai_memory_service.dart' show AiMemoryService;
 import '../../audit_log_service.dart' show AuditLogService;
 import '../../query_optimizer/explain_parser.dart' show ExplainParser;
+import '../../query_optimizer/query_optimizer_service.dart'
+    show QueryOptimizerService;
 import '../../workbench_usage_stats_service.dart'
     show AgentL05Stat, WorkbenchUsageStatsService;
 import 'agent_gate.dart'
-    show AgentGate, AgentRunContext, GateDecision, GateDecisionKind;
+    show
+        AgentGate,
+        AgentRunContext,
+        GateDecision,
+        GateDecisionKind,
+        agentToolRequiresDatabaseContext;
 import 'agent_gate_analysis.dart' show ReadImpactAnalysis;
 import 'agent_permission_ledger.dart' show AgentPermissionLedger;
 import 'agent_plan.dart'
@@ -178,8 +192,13 @@ class AgentDbAccess {
     required this.executeQuery,
   });
 
-  /// 列表（list_tables；NoSQL 连接 = 集合名）。
-  final Future<List<String>> Function(String? connectionId) getTables;
+  /// 列表（list_tables；NoSQL 连接 = 集合名）。第二参 = run 快照库
+  /// （FU-18：库路由对齐快照，null/空串走 adapter 原路径）。
+  final Future<List<String>> Function(
+    String? connectionId,
+    String? databaseName,
+  )
+  getTables;
 
   final Future<List<DbColumn>> Function(
     String tableName, {
@@ -253,6 +272,98 @@ typedef AgentL05StatsRecorder = void Function(AgentL05Stat event);
 /// L1 撞门拒绝计数函数类型（T28 `recordL1Blocked`，R14 字段 6 / 风险 1）。
 typedef AgentL1BlockedStatsRecorder = void Function();
 
+/// save_saved_query 落库结论（T4）：供 executor 区分「同名冲突」回喂
+/// SAVED_QUERY_CONFLICT（模型自纠）与一般失败（EXECUTION_FAILED）。
+/// 实现在装配层（AppProvider 门面 → TabProvider.saveQuery），本类型留在
+/// services 层——provider 符号不进服务层（组件级 §0 MUST NOT 2/8）。
+enum AgentSavedQuerySaveStatus { saved, duplicateName, failed }
+
+/// save_saved_query 持久化回调（T4）：连接/库/方言绑定取自 run 快照
+/// （AC7.2 锁定语义），由装配层注入；null 装配 = 工具 fail-closed。
+typedef AgentSavedQuerySaver =
+    Future<AgentSavedQuerySaveStatus> Function({
+      required String name,
+      required String sql,
+      String? connectionId,
+      String? databaseName,
+      DatabaseType? databaseType,
+    });
+
+/// agent 读工具成功的 prefs 历史写回调（T4，source=agent；字段口径对齐 T1
+/// workbench_execution_actions 的 `recordAgentQueryHistory`）。写失败由
+/// executor 吞错记日志——历史是旁路观察面，绝不阻断工具回喂。
+typedef AgentQueryHistoryRecorder =
+    Future<void> Function({
+      required String sql,
+      required String connectionId,
+      String? connectionName,
+      String? database,
+      DatabaseType? databaseType,
+      required int durationMs,
+      required int affectedRows,
+      String? error,
+    });
+
+/// 记忆清单读面（全局 + 指定连接两作用域；连接缺省为空列）。
+typedef AgentMemoryLists = ({
+  List<AiMemoryItem> global,
+  List<AiMemoryItem> connection,
+});
+
+/// AI 记忆访问函数集（T4；AgentDbAccess 同构——services 层注入点，生产默认
+/// 绑 [AiMemoryService] 单例，测试注入 fake）。save 由服务层负责 500 字符
+/// 截断与容量淘汰；listFor/forTable 为同步内存读（服务初始化前空态降级，
+/// 不阻断工具链）。
+class AgentMemoryAccess {
+  const AgentMemoryAccess({
+    required this.save,
+    required this.listFor,
+    required this.forTable,
+  });
+
+  /// 新增一条记忆（source=agent 由默认适配器固定；返回落库条目）。
+  final Future<AiMemoryItem> Function({
+    required AiMemoryScope scope,
+    String? connectionId,
+    String? subject,
+    required String content,
+  })
+  save;
+
+  /// 全局 + 连接两作用域清单（list_memories / runner 记忆块同形消费）。
+  final AgentMemoryLists Function(String? connectionId) listFor;
+
+  /// 主题命中表名的记忆（describe_table memoryNotes 合并消费）。
+  final List<AiMemoryItem> Function(String table, String? connectionId)
+  forTable;
+}
+
+/// 生产默认记忆访问（[AiMemoryService] 单例适配；其持久化失败只记日志、
+/// 不抛出的纪律与本执行器「旁路面不阻断」一致）。
+AgentMemoryAccess defaultAgentMemoryAccess() => AgentMemoryAccess(
+  save:
+      ({
+        required AiMemoryScope scope,
+        String? connectionId,
+        String? subject,
+        required String content,
+      }) => AiMemoryService().add(
+        scope: scope,
+        connectionId: connectionId,
+        subject: subject,
+        content: content,
+        source: AiMemorySource.agent,
+      ),
+  listFor: (String? connectionId) => (
+    global: AiMemoryService().listGlobal(),
+    connection: connectionId == null
+        ? const <AiMemoryItem>[]
+        : AiMemoryService().listForConnection(connectionId),
+  ),
+  forTable: (String table, String? connectionId) =>
+      AiMemoryService().forTable(table, connectionId: connectionId),
+);
+
 /// 单次工具执行结果（T10 接口草案：`{ok, toLLMJson(), stepMessage,
 /// resultRef?}`）。
 ///
@@ -312,6 +423,9 @@ class AgentToolExecutor {
     AgentL05StatsRecorder? recordL05Event,
     AgentPlanRowsEstimator? planRowsEstimator,
     AgentL1BlockedStatsRecorder? recordL1Blocked,
+    AgentSavedQuerySaver? savedQuerySaver,
+    AgentQueryHistoryRecorder? recordAgentHistory,
+    AgentMemoryAccess? memory,
   }) : _gate = gate,
        _db = db,
        _audit = audit ?? AuditLogService().recordAgentEvent,
@@ -321,7 +435,10 @@ class AgentToolExecutor {
            recordL05Event ?? WorkbenchUsageStatsService().recordL05Event,
        _planRowsEstimatorOverride = planRowsEstimator,
        _recordL1Blocked =
-           recordL1Blocked ?? WorkbenchUsageStatsService().recordL1Blocked;
+           recordL1Blocked ?? WorkbenchUsageStatsService().recordL1Blocked,
+       _savedQuerySaver = savedQuerySaver,
+       _recordAgentHistory = recordAgentHistory,
+       _memory = memory ?? defaultAgentMemoryAccess();
 
   /// D19：LLM 行快照上限（与 UI 侧 N=10 独立）。
   static const int _llmRowSnapshotCap = 20;
@@ -340,6 +457,16 @@ class AgentToolExecutor {
   static const int _sampleLimitMin = 1;
   static const int _sampleLimitMax = 100;
   static const int _sampleLimitDefault = 10;
+
+  /// T4 list_memories 单条 content 摘要截断（回喂摘要面；全文在记忆服务/
+  /// 管理对话框消费，不在此搬运）。
+  static const int _memoryExcerptChars = 120;
+
+  /// T4 describe_table memoryNotes 合并上限：条数与单条 content 截断——
+  /// describe 载荷另有 D19 4000 字符总帽，笔记面预算内收敛避免挤掉列主体
+  /// （全文可经 list_memories / save_memory 回路再取）。
+  static const int _memoryNotesMaxEntries = 8;
+  static const int _memoryNoteContentChars = 200;
 
   /// get_sample_data table 参数标识符白名单（Fix-B 中-2，方案①）：只放行
   /// 字母 / 数字 / 下划线 / 点——点号在白名单内是为容纳 `schema.table` /
@@ -396,6 +523,24 @@ class AgentToolExecutor {
   final AgentL05StatsRecorder _recordL05Event;
   final AgentPlanRowsEstimator? _planRowsEstimatorOverride;
   final AgentL1BlockedStatsRecorder _recordL1Blocked;
+
+  /// T4：save_saved_query 持久化回调（装配层注入；null = 工具 fail-closed）。
+  final AgentSavedQuerySaver? _savedQuerySaver;
+
+  /// F-01（安全审查）：save_saved_query 单 run 调用上限——同 run 第 4 次
+  /// 及以后不执行保存，回喂 SAVED_QUERY_LIMIT_EXCEEDED 让模型停止并转告
+  /// 用户手动整理。executor 跨 run 复用（AiPanelProvider 单例装配），计数
+  /// 以 runId 为键：runId 变化即视为新 run 归零（同 [_resultRefsRunId] 的
+  /// run 边界语义）。
+  static const int _savedQuerySavesPerRunLimit = 3;
+  int _savedQuerySavesThisRun = 0;
+  String? _savedQuerySavesRunId;
+
+  /// T4：读工具成功的 prefs 历史写回调（null = 跳过；写失败吞错记日志）。
+  final AgentQueryHistoryRecorder? _recordAgentHistory;
+
+  /// T4：AI 记忆访问面（默认 [defaultAgentMemoryAccess] 绑服务单例）。
+  final AgentMemoryAccess _memory;
 
   int _stepsUsed = 0;
 
@@ -530,6 +675,29 @@ class AgentToolExecutor {
       runCtx: runCtx,
       ledger: ledger,
     );
+
+    // 5b. T2 方案 B fail-closed 防御（FU-10 收口）：生产路径门 ②b 已拦
+    //     CONTEXT_REQUIRED，此处防御任何旁路（脚本门 / 门漂移 / 直调链）
+    //     让 requiresDatabase 工具在 USE 语义族 db-less 快照上触达 handler
+    //     ——绝不静默返回空表/空列（describe_table 的索引/外键/DDL 吞错
+    //     通道在无库情形因此不可达）。与门共用同一谓词（唯一事实源）。
+    if (agentToolRequiresDatabaseContext(spec, runCtx)) {
+      return _assemble(
+        call: call,
+        args: args,
+        runCtx: runCtx,
+        stepNo: stepNo,
+        clock: clock,
+        auditLevel: spec.gateLevel,
+        auditDecision: AgentGateDecision.blocked,
+        ok: false,
+        errorCode: AgentToolErrorCodes.contextRequired,
+        errorMessage:
+            'data tools require a locked database context, but no database '
+            'is set on this connection; pick a database via the context chip '
+            'and resend',
+      );
+    }
 
     switch (decision.kind) {
       case GateDecisionKind.reject:
@@ -808,7 +976,7 @@ class AgentToolExecutor {
       case 'get_sample_data':
         return _handleGetSampleData(args, runCtx);
       case 'explain_plan':
-        return _handleExplainPlan(args, runCtx);
+        return _handleExplainPlan(args, runCtx, uiPort);
       case 'get_current_context':
         return _handleGetCurrentContext(runCtx);
       // ── A2 界面七工具（T28；suggest 级经 uiPort 落建议卡消息）──────────
@@ -826,6 +994,13 @@ class AgentToolExecutor {
         return _handleSuggestOpenInClassic(args, uiPort);
       case 'focus_sidebar':
         return _handleSuggestFocusSidebar(args, uiPort);
+      // ── T4 客户端本地状态三工具（deps 回调/记忆访问面，不经 uiPort）──
+      case 'save_saved_query':
+        return _handleSaveSavedQuery(args, runCtx);
+      case 'save_memory':
+        return _handleSaveMemory(args, runCtx);
+      case 'list_memories':
+        return _handleListMemories(runCtx);
       // submit_action_plan 不经 dispatch：l1 confirm 在链内先行（计划须在
       // onPlanApproval 之前构造——回调入参即计划对象）。
       default:
@@ -860,10 +1035,19 @@ class AgentToolExecutor {
       throw _rejectByValidator(sql, check.reason);
     }
 
+    final Stopwatch queryClock = Stopwatch()..start();
     final List<Map<String, dynamic>> rows = await _db.executeQuery(
       sql,
       connectionId: runCtx.connectionId,
       database: runCtx.databaseName,
+    );
+    // T4：成功读落 prefs 可见历史（source=agent；EXPLAIN/系统查询跳过，
+    // 写失败吞错不阻断回喂）。
+    await _recordAgentQueryHistory(
+      sql: sql,
+      runCtx: runCtx,
+      durationMs: queryClock.elapsedMilliseconds,
+      affectedRows: rows.length,
     );
     return _rowPayload(
       sql: sql,
@@ -873,9 +1057,13 @@ class AgentToolExecutor {
   }
 
   /// list_tables：作用域锁 run 快照（AC4.4）——connectionId/database 只取
-  /// 快照值。
+  /// 快照值。FU-18：库经 `databaseName` 传导（网关壳方言上不带库会枚举连接
+  /// 初始库或报 1046；非 USE 语义族/无库快照传 null 走 adapter 原路径）。
   Future<_HandlerPayload> _handleListTables(AgentRunContext runCtx) async {
-    final List<String> tables = await _db.getTables(runCtx.connectionId);
+    final List<String> tables = await _db.getTables(
+      runCtx.connectionId,
+      runCtx.databaseName,
+    );
     return _HandlerPayload(
       data: <String, dynamic>{'tables': tables},
       summary: 'listed ${tables.length} table(s)',
@@ -958,6 +1146,13 @@ class AgentToolExecutor {
       );
     }
 
+    // T4：记忆合并——用户/助手沉淀的字段与业务释义随结构一同回喂（连接级
+    // 优先；无记忆时字段省略，与现有可选字段 skip 风格一致）。
+    final List<Map<String, dynamic>>? memoryNotes = _memoryNotesFor(
+      table,
+      connectionId,
+    );
+
     return _HandlerPayload(
       data: <String, dynamic>{
         'table': table,
@@ -993,11 +1188,13 @@ class AgentToolExecutor {
                   },
               ],
         'createTableSql': createTableSql,
+        'memoryNotes': ?memoryNotes,
       },
       summary:
           'described $table: ${columns.length} column(s), '
           '${indexes?.length ?? 0} index(es), ${foreignKeys?.length ?? 0} '
-          'foreign key(s)',
+          'foreign key(s)'
+          '${memoryNotes == null ? '' : ', ${memoryNotes.length} memory note(s)'}',
     );
   }
 
@@ -1036,10 +1233,18 @@ class AgentToolExecutor {
       throw _rejectByValidator(sql, check.reason);
     }
 
+    final Stopwatch queryClock = Stopwatch()..start();
     final List<Map<String, dynamic>> rows = await _db.executeQuery(
       sql,
       connectionId: runCtx.connectionId,
       database: runCtx.databaseName,
+    );
+    // T4：同 execute_readonly_sql——成功采样落 prefs 历史（source=agent）。
+    await _recordAgentQueryHistory(
+      sql: sql,
+      runCtx: runCtx,
+      durationMs: queryClock.elapsedMilliseconds,
+      affectedRows: rows.length,
     );
     return _rowPayload(
       sql: sql,
@@ -1053,9 +1258,16 @@ class AgentToolExecutor {
   /// 同样会把其他库的元数据/计划信息带回，Fix-G 补齐），再过只读校验
   ///（拦 EXPLAIN ANALYZE 写形态与多语句）；不支持方言 →
   /// UNSUPPORTED_DIALECT（网关壳 UnsupportedError）。
+  ///
+  /// 2b.3（R6）：成功取到 plan 行后旁挂推送 optimization tab（组装
+  /// [QueryOptimizerService.analyzeQuery] → [AgentUiPort.openOptimization]，
+  /// 只读推送零执行）——只加旁挂，本方法门链路（只读校验/方言执法）一字
+  /// 不动（评审硬检查项）；推送/组装异常不吞结果：plan 照常回模型，
+  /// 旁挂 try/catch 只在 [_pushOptimizationToStage] 内收敛。
   Future<_HandlerPayload> _handleExplainPlan(
     Map<String, dynamic> args,
     AgentRunContext runCtx,
+    AgentUiPort? uiPort,
   ) async {
     final String sql = _requiredStringArg(args, 'sql');
 
@@ -1086,6 +1298,9 @@ class AgentToolExecutor {
         'EXPLAIN is not supported on this connection dialect',
       );
     }
+    // 2b.3（R6）旁挂推送：在门链路（上文 read-only 校验/方言执法）之后、
+    // 回喂组装之前——只加旁挂，不拦截主链路（内部全收敛）。
+    await _pushOptimizationToStage(uiPort, sql, plan, runCtx);
     return _HandlerPayload(
       data: <String, dynamic>{'plan': plan},
       summary: 'explain plan: ${plan.length} plan row(s)',
@@ -1093,6 +1308,42 @@ class AgentToolExecutor {
       shrinkKey: 'plan',
       shrinkList: plan,
     );
+  }
+
+  /// 2b.3（R6）：explain_plan 成功后的 optimization 旁挂推送。
+  ///
+  /// 组装 [QueryOptimizerService.analyzeQuery] 与 uiPort 派发全程 try/catch
+  /// 收敛：组装异常/端口异常一律 [AppLogger.w] 后静默——fail-closed 只影响
+  /// 旁挂，plan 照常回模型（主链路不拦截）。uiPort 为 null（未装配）直接
+  /// 跳过不失败（同 `_DetachedUiPort` 缺席语义，R6）。
+  ///
+  /// 方言串口径沿门读前分析同款（agent_gate_analysis.dart:202
+  /// `_dbType.name` 直传 ExplainParser）——[AgentRunContext.dbType.name]
+  /// 即 ExplainParser 消费的同一字符串（内部 lowercase + 方言 switch），
+  /// 不另立第二套映射（映射函数落点自决项 = executor 内直传）。
+  Future<void> _pushOptimizationToStage(
+    AgentUiPort? uiPort,
+    String sql,
+    List<Map<String, dynamic>> plan,
+    AgentRunContext runCtx,
+  ) async {
+    final AgentUiPort? port = uiPort;
+    if (port == null) return;
+    try {
+      final report = QueryOptimizerService.analyzeQuery(
+        rawExplainResults: plan,
+        originalQuery: sql,
+        databaseType: runCtx.dbType.name,
+      );
+      await port.openOptimization(report, sql);
+    } catch (e) {
+      // 推送失败不吞结果：outcome 失败值/异常均只落旁挂日志，
+      // explain plan 回喂不受影响。
+      AppLogger.w(
+        'AgentToolExecutor',
+        'optimization stage push failed (side channel only): $e',
+      );
+    }
   }
 
   /// get_current_context：返回 run 快照（连接名/库/类型/readOnly，与芯片
@@ -1116,6 +1367,243 @@ class AgentToolExecutor {
                 '${runCtx.readOnly ? ', read-only' : ''})'
           : 'context: no connection locked',
     );
+  }
+
+  // ── T4 客户端本地状态三工具（不触达 DB；deps 回调/记忆访问面注入）──────
+
+  /// save_saved_query：连接/库/方言绑定取自 run 快照（AC7.2 锁定语义，
+  /// requiresConnection 已由门 ② 保证 connectionId 在场）。同名冲突 →
+  /// SAVED_QUERY_CONFLICT 回喂自纠；上限 20 移最旧由 TabProvider 管线执法
+  /// （工具 description 已声明）。装配缺位（null saver）fail-closed。
+  /// F-01（安全审查）：单 run 调用上限 3——有效调用（参数过校验、即将触达
+  /// 持久化）才计数，超限不执行保存并回喂 SAVED_QUERY_LIMIT_EXCEEDED。
+  Future<_HandlerPayload> _handleSaveSavedQuery(
+    Map<String, dynamic> args,
+    AgentRunContext runCtx,
+  ) async {
+    final String name = _requiredStringArg(args, 'name');
+    final String sql = _requiredStringArg(args, 'sql');
+    final AgentSavedQuerySaver? saver = _savedQuerySaver;
+    if (saver == null) {
+      throw _ToolException(
+        AgentToolErrorCodes.executionFailed,
+        'saved-query persistence is not wired for this run (failing closed)',
+      );
+    }
+    if (_savedQuerySavesRunId != runCtx.runId) {
+      _savedQuerySavesRunId = runCtx.runId;
+      _savedQuerySavesThisRun = 0;
+    }
+    if (_savedQuerySavesThisRun >= _savedQuerySavesPerRunLimit) {
+      throw _ToolException(
+        AgentToolErrorCodes.savedQueryLimitExceeded,
+        'the per-run limit of $_savedQuerySavesPerRunLimit saved-query saves '
+        'has been reached; stop saving further queries and tell the user '
+        'they can organize saved queries manually in the editor',
+      );
+    }
+    _savedQuerySavesThisRun += 1;
+    final AgentSavedQuerySaveStatus status = await saver(
+      name: name,
+      sql: sql,
+      connectionId: runCtx.connectionId,
+      databaseName: runCtx.databaseName,
+      databaseType: runCtx.dbType,
+    );
+    switch (status) {
+      case AgentSavedQuerySaveStatus.saved:
+        return _HandlerPayload(
+          data: <String, dynamic>{'saved': true, 'name': name},
+          summary: 'saved query "$name" for this connection',
+        );
+      case AgentSavedQuerySaveStatus.duplicateName:
+        throw _ToolException(
+          AgentToolErrorCodes.savedQueryConflict,
+          'a saved query named "$name" already exists on this connection; '
+          'choose a different name, or ask the user to rename/delete the '
+          'existing entry',
+        );
+      case AgentSavedQuerySaveStatus.failed:
+        throw _ToolException(
+          AgentToolErrorCodes.executionFailed,
+          'the saved query could not be persisted to local storage',
+        );
+    }
+  }
+
+  /// save_memory：scope 缺省 = 锁定连接在场时 connection、否则 global
+  /// （目录 description 已锁口径）；scope=connection 无锁定连接 →
+  /// CONTEXT_REQUIRED（工具声明 requiresConnection=false——global 路径
+  /// 无连接可用，故连接要求由 handler 按 scope 精化）。500 字符截断与容量
+  /// 淘汰由记忆服务执法，本层不重复。
+  Future<_HandlerPayload> _handleSaveMemory(
+    Map<String, dynamic> args,
+    AgentRunContext runCtx,
+  ) async {
+    final String content = _requiredStringArg(args, 'content');
+    final String? subject = _optionalStringArg(args, 'subject');
+    final String? scopeRaw = _optionalStringArg(args, 'scope')?.toLowerCase();
+    final String? lockedConnectionId = runCtx.connectionId;
+    final bool hasConnection =
+        lockedConnectionId != null && lockedConnectionId.isNotEmpty;
+
+    final AiMemoryScope scope;
+    if (scopeRaw == null) {
+      scope = hasConnection ? AiMemoryScope.connection : AiMemoryScope.global;
+    } else if (scopeRaw == 'global') {
+      scope = AiMemoryScope.global;
+    } else if (scopeRaw == 'connection') {
+      scope = AiMemoryScope.connection;
+    } else {
+      throw _ToolException(
+        AgentToolErrorCodes.invalidArguments,
+        'argument \'scope\' must be "global" or "connection"',
+      );
+    }
+
+    String? connectionId;
+    if (scope == AiMemoryScope.connection) {
+      if (!hasConnection) {
+        throw _ToolException(
+          AgentToolErrorCodes.contextRequired,
+          'scope "connection" needs a connection locked to this run; lock one '
+          'via the context chip, or save with scope "global"',
+        );
+      }
+      connectionId = lockedConnectionId;
+    }
+
+    final AiMemoryItem item = await _memory.save(
+      scope: scope,
+      connectionId: connectionId,
+      subject: subject,
+      content: content,
+    );
+    return _HandlerPayload(
+      data: <String, dynamic>{
+        'memoryId': item.id,
+        'scope': item.scope.name,
+        'subject': ?item.subject,
+        'contentChars': item.content.length,
+      },
+      summary:
+          'memory saved (${item.scope.name}'
+          '${item.subject == null ? '' : ': ${item.subject}'})',
+    );
+  }
+
+  /// list_memories：全局 + 锁定连接（如有）两作用域摘要（id/subject/content
+  /// 截断），供模型保存前查重。条目按作用域分段、段内 updatedAt 新→旧
+  /// （服务清单语义）；超限由 D19 shrink 机制收敛。
+  Future<_HandlerPayload> _handleListMemories(AgentRunContext runCtx) async {
+    final AgentMemoryLists lists = _memory.listFor(runCtx.connectionId);
+    final List<Map<String, dynamic>> entries = <Map<String, dynamic>>[
+      for (final AiMemoryItem m in lists.global) _memoryEntry(m),
+      for (final AiMemoryItem m in lists.connection) _memoryEntry(m),
+    ];
+    return _HandlerPayload(
+      data: <String, dynamic>{
+        'globalCount': lists.global.length,
+        'connectionCount': lists.connection.length,
+        'memories': entries,
+      },
+      summary:
+          'memories: ${lists.global.length} global, '
+          '${lists.connection.length} for this connection',
+      shrinkKey: 'memories',
+      shrinkList: entries,
+    );
+  }
+
+  /// 记忆摘要条目（list_memories 用；content 截断 [_memoryExcerptChars]）。
+  static Map<String, dynamic> _memoryEntry(AiMemoryItem item) =>
+      <String, dynamic>{
+        'id': item.id,
+        'scope': item.scope.name,
+        'subject': ?item.subject,
+        'content': item.content.length <= _memoryExcerptChars
+            ? item.content
+            : '${item.content.substring(0, _memoryExcerptChars)}…',
+      };
+
+  /// describe_table 的记忆合并面：连接级优先、同级保持服务的 updatedAt
+  /// 新→旧序；条数/单条长度预算内收敛（[_memoryNotesMaxEntries] /
+  /// [_memoryNoteContentChars]——全文可经 list_memories 再取）。记忆面异常
+  /// 不拖垮 describe 主体（与 indexes/foreignKeys/DDL 的容忍口径一致）。
+  List<Map<String, dynamic>>? _memoryNotesFor(
+    String table,
+    String? connectionId,
+  ) {
+    final List<AiMemoryItem> matches;
+    try {
+      matches = _memory.forTable(table, connectionId);
+    } catch (e) {
+      AppLogger.e(
+        'AgentToolExecutor',
+        'describe_table: memory notes unavailable for "$table"',
+        e,
+      );
+      return null;
+    }
+    if (matches.isEmpty) return null;
+    final List<AiMemoryItem> ordered = <AiMemoryItem>[
+      ...matches.where((AiMemoryItem m) => m.scope == AiMemoryScope.connection),
+      ...matches.where((AiMemoryItem m) => m.scope == AiMemoryScope.global),
+    ];
+    return <Map<String, dynamic>>[
+      for (final AiMemoryItem m in ordered.take(_memoryNotesMaxEntries))
+        <String, dynamic>{
+          'subject': m.subject,
+          'content': m.content.length <= _memoryNoteContentChars
+              ? m.content
+              : '${m.content.substring(0, _memoryNoteContentChars)}…',
+        },
+    ];
+  }
+
+  /// T4 读工具历史挂钩：成功执行落 prefs 可见历史（source=agent，字段口径
+  /// 对齐 T1 workbench_execution_actions）。EXPLAIN / INFORMATION_SCHEMA /
+  /// PERFORMANCE_SCHEMA / SHOW 跳过（[_shouldSkipAgentHistory] 镜像 T1 判定
+  /// ——原判定为 organisms 私有静态，取共用需改不可触碰文件，镜像为任务书
+  /// 允许的自决项）；写失败吞错记日志，不阻断工具回喂。
+  Future<void> _recordAgentQueryHistory({
+    required String sql,
+    required AgentRunContext runCtx,
+    required int durationMs,
+    required int affectedRows,
+  }) async {
+    final AgentQueryHistoryRecorder? recorder = _recordAgentHistory;
+    if (recorder == null || _shouldSkipAgentHistory(sql)) return;
+    try {
+      await recorder(
+        sql: sql,
+        connectionId: runCtx.connectionId ?? '',
+        connectionName: runCtx.connectionName,
+        database: runCtx.databaseName,
+        databaseType: runCtx.dbType,
+        durationMs: durationMs,
+        affectedRows: affectedRows,
+        error: null,
+      );
+    } catch (e) {
+      AppLogger.e(
+        'AgentToolExecutor',
+        'agent query history write failed (tool result unaffected)',
+        e,
+      );
+    }
+  }
+
+  /// 跳过历史记录判定（镜像 T1 `workbench_execution_actions.dart`
+  /// `_shouldSkipAgentHistoryRecording` / `QueryExecutionInterceptor`
+  /// `_shouldSkipRecording` 口径——三处需同步）。
+  static bool _shouldSkipAgentHistory(String sql) {
+    final String normalized = sql.trim().toUpperCase();
+    if (normalized.startsWith('EXPLAIN')) return true;
+    if (normalized.contains('INFORMATION_SCHEMA')) return true;
+    if (normalized.contains('PERFORMANCE_SCHEMA')) return true;
+    if (normalized.startsWith('SHOW')) return true;
+    return false;
   }
 
   // ── L1 计划链（T28，design §6.3 / AC9.x / AC11.4 / AC15.1）──────────────
@@ -1891,6 +2379,20 @@ class AgentToolExecutor {
   // 基准不拦（快照语义一致）；比较大小写不敏感（SQL 标识符惯例）。
   // 写通道（submit_action_plan 步 SQL）**不扩**本执法（M5 明示：计划卡
   // 逐语句全文人审即同意门）。
+  //
+  // 目录元数据白名单（T2，2026-09-29）：`information_schema` 限定名首段在
+  // [_databaseQualifierDialects] 方言上**豁免**执法（精确语义与安全论证见
+  // [_catalogSchemaWhitelist]）——agent 需一条 `SELECT table_name, ... FROM
+  // information_schema.tables WHERE table_schema='<锁定库>'` 拿全表名/注释/
+  // 行数估计（大库分析主径），两段式执法会一并拦掉该目录元数据查询。三不扩：
+  // SHOW 通道**单段**库位段不白名单（该路径走 [_databaseNameProblem]，白名单
+  // 不挂——`SHOW TABLES FROM information_schema` 仍拒；**多段** SHOW FROM 段经
+  // [_showFromInPattern] 取最后匹配后走 [_qualifiedNameProblem]，**会**吃
+  // 白名单——`SHOW FULL COLUMNS FROM information_schema.tables` 放行，元数据
+  // 之元数据，无害）；performance_schema / mysql / sys / CH `system.*` 一律
+  // 不放；写通道本就不走此执法。SS 三段式不吃白名单（SS 不在
+  // [_databaseQualifierDialects]，其两段式 `information_schema.tables` = 库内
+  // schema 寻址本就放行）。
 
   /// 两段式限定符 `db.table` 首段语义 = 库的方言（MySQL 协议族 +
   /// ClickHouse——M5 真库实证 CH2P 探针 `system.one` 穿透后扩入）。
@@ -1902,6 +2404,49 @@ class AgentToolExecutor {
     DatabaseType.starrocks,
     DatabaseType.mariadb,
     DatabaseType.clickhouse,
+  };
+
+  /// 目录元数据 schema 首段白名单（T2，2026-09-29）：限定名首段 ∈ 本集合
+  /// 且方言 ∈ [_databaseQualifierDialects] → 豁免 AC4.4 跨库执法（仅此一
+  /// 元素，禁扩——扩即需重新过安全论证）。目的：放行 agent 的目录元数据
+  /// 查询（`SELECT table_name, table_comment, table_rows FROM
+  /// information_schema.tables WHERE table_schema='<锁定库>'` 一条语句拿
+  /// 全表名/注释/行数估计，大库分析主径；MySQL 族/CH 两段式首段 = 库语义
+  /// 的执法会一并拦掉它）。**比对在去引界之后**（[_stripQuotes] +
+  /// `toLowerCase` 整段精确匹配，禁 contains/startsWith——
+  /// `information_schema_evil.t` 前缀仿冒不匹配）。
+  ///
+  /// 安全论证（security-reviewer 专项复审面）：
+  /// 1. AC4.4 威胁模型 = 「未经锁定的库上的**数据**读写」；
+  ///    information_schema 是目录元数据（表名/列定义/统计），非行数据；
+  /// 2. 跨库**行数据**读取走 `other_db.t` 直查路径——该路径被整段精确比对
+  ///    **形态级拦截**（仿冒前缀不匹配本白名单，见上）。⚠ 定位 = **纵深
+  ///    第一层**，非硬边界：表位置扫描正则 [_tablePositionPattern] 保守，
+  ///    security-reviewer 实证（2026-09-29）**批次前既有**的三类穿透形态：
+  ///    (a) 逗号 join 续表 `SELECT * FROM locked.t, otherdb.users`——只扫
+  ///        FROM/JOIN 等关键字后首个限定名，逗号后续表不扫；
+  ///    (b) `STRAIGHT_JOIN`——单词含下划线，`\bJOIN\b` 不命中；
+  ///    (c) 引界内非 [A-Za-z0-9_] 段字符（如 `` `other-db`.users ``）——段
+  ///        字符类不含连字符，匹配失败 = 无执法。
+  ///    三类均与白名单无关（表位置扫描面收口缺口，批次前既有）→ 待正则
+  ///    扩面收口（跟进项）；收口前本条论证按「形态级」读，不得读作硬边界；
+  /// 3. 客户端产品本就全库可见（getDatabases 连接级浏览），agent 与用户
+  ///    同权限，无越权增量；
+  /// 4. 放行后的语句仍必经 ReadonlySqlValidator 拦写（AC9.7 第二道）；
+  /// 5. 注释混淆与字面量假名由既有掩码消解（见 [_crossDatabaseSqlProblem]）。
+  ///
+  /// 三不扩（M5 定案维持）：
+  /// - SHOW 通道**单段**库位段**不**白名单（该路径走 [_databaseNameProblem]，
+  ///   白名单不挂——否则连带放开 `SHOW TABLES FROM information_schema` 库位
+  ///   段）；**多段** SHOW FROM|IN 段**会**吃白名单（[_showFromInPattern] 取
+  ///   最后匹配后走 [_qualifiedNameProblem]）——`SHOW FULL COLUMNS FROM
+  ///   information_schema.tables` 放行（元数据之元数据，无害）；
+  /// - `performance_schema` / `mysql` / `sys` 与 CH `system.*` 一律不放：
+  ///   CH `system.query_log` / `processes` / `users` 含查询文本与凭据指纹，
+  ///   敏感度超出「目录元数据」边界，且 M5 探针守卫语义 = system 拒；
+  /// - 写通道（submit_action_plan 步 SQL）本就不走此执法，零涉及。
+  static const Set<String> _catalogSchemaWhitelist = <String>{
+    'information_schema',
   };
 
   /// 本方言是否存在任一库级限定名执法形态（MySQL 族 + CH 两段式 / SS
@@ -1927,6 +2472,10 @@ class AgentToolExecutor {
   /// 首个限定标识符，2~3 段；支持反引号 / 双引号 / 方括号引界与段间空白）。
   /// 保守正则：只扫表位置首段，函数调用 / 列限定（`t.col`）不在这些关键字
   /// 后，不误伤；ORDER BY 尾部的 DESC 后无限定标识符形态，不误伤。
+  /// ⚠ 形态级拦截（非硬边界）——已知未覆盖形态（待正则扩面收口，跟进项；
+  /// 三类清单与安全定位见 [_catalogSchemaWhitelist] 安全论证 2 条）：逗号 join
+  /// 续表、`STRAIGHT_JOIN`（下划线使 `\bJOIN\b` 不命中）、引界内非
+  /// [A-Za-z0-9_] 段字符（如 `` `other-db`.users ``）。
   static final RegExp _tablePositionPattern = RegExp(
     r'\b(?:FROM|JOIN|INTO|UPDATE|DESCRIBE|DESC)\s+'
     r'((?:[`"\[]?)[A-Za-z0-9_]+(?:[`"\]]?)'
@@ -1969,15 +2518,31 @@ class AgentToolExecutor {
   }
 
   /// 限定名判定：段数与方言达执法形态（[_firstSegmentIsDatabaseQualifier]）
-  /// 且首段 ≠ 锁定库 → 拒绝文案。
+  /// 且首段 ≠ 锁定库 → 拒绝文案。首段 ∈ 目录元数据白名单
+  /// （[_catalogSchemaWhitelist]，仅 [_databaseQualifierDialects] 方言——
+  /// SS 三段式不吃白名单）→ 豁免返回 null。
   static String? _qualifiedNameProblem(
     List<String> segments,
     DatabaseType dbType,
     String locked,
   ) {
+    // 防御：空段列不比对（理论不可达——[_splitQualified] 已滤空段，且下方
+    // 段数门槛要求 ≥2 段）；置前保证 `.first` 永不越界。
+    if (segments.isEmpty) return null;
     if (!_firstSegmentIsDatabaseQualifier(dbType, segments.length)) {
       return null;
     }
+    if (_databaseQualifierDialects.contains(dbType) &&
+        _catalogSchemaWhitelist.contains(
+          _stripQuotes(segments.first).toLowerCase(),
+        )) {
+      return null;
+    }
+    // 三段形态：本判定**只执法首段**，中段不校验——今日
+    // [_databaseQualifierDialects] 方言（MySQL 族 / CH）无三段表名（引擎层
+    // 拒绝 `db.schema.table`，无害）。前置条件标注：若未来把支持三段名的方言
+    // 扩入 [_databaseQualifierDialects]，须先补中段执法再扩（否则
+    // `locked.otherdb.t` 形态中段越界不拦）。
     return _databaseNameProblem(segments.first, locked);
   }
 
