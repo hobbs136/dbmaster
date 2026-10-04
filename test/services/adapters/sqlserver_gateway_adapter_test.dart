@@ -549,4 +549,137 @@ void main() {
       expect(_sentBody(queryReq!)['database'], 'northwind');
     });
   });
+
+  group('dropDatabase：AG-F-8 master 路由 + 清记录库', () {
+    /// 已连接 adapter + 记录全部 /query 请求（映射预置 → 复用注册，零注册流量）。
+    (SqlServerAdapter, List<http.Request>) connectRecording({
+      required http.StreamedResponse Function(http.Request req) onQuery,
+    }) {
+      final queryReqs = <http.Request>[];
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections') {
+          return _listResponse({'srv-1'});
+        }
+        queryReqs.add(req);
+        return onQuery(req);
+      });
+      final adapter = SqlServerAdapter()..httpClient = client;
+      return (adapter, queryReqs);
+    }
+
+    Future<void> primeAdapter(
+      SqlServerAdapter adapter, {
+      bool readOnly = false,
+    }) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        'connection_server_id_map',
+        jsonEncode({'local_ss_1': 'srv-1'}),
+      );
+      await adapter.connect(_conn(readOnly: readOnly));
+    }
+
+    http.StreamedResponse completeOk(http.Request _) => _sse([
+      'event: complete\ndata: {"kind":"sql","type":"complete","rowCount":0,"truncated":false,"elapsedMs":1}',
+    ]);
+
+    test('drop 当前记录库：ALTER/DROP 均经 master 路由，SQL 文本正确，返回 true 且清记录库', () async {
+      final (adapter, queryReqs) = connectRecording(onQuery: completeOk);
+      await primeAdapter(adapter);
+      await adapter.useDatabase('dbx');
+      expect(adapter.currentConnection?.database, 'dbx');
+
+      final ok = await adapter.dropDatabase('dbx');
+      expect(ok, isTrue);
+      expect(queryReqs.length, 2, reason: 'ALTER + DROP 各一条 query 请求');
+      final alter = _sentBody(queryReqs[0]);
+      expect(
+        alter['sql'],
+        'ALTER DATABASE [dbx] SET SINGLE_USER WITH ROLLBACK IMMEDIATE',
+      );
+      expect(alter['database'], 'master');
+      final drop = _sentBody(queryReqs[1]);
+      expect(drop['sql'], 'DROP DATABASE [dbx]');
+      expect(drop['database'], 'master');
+      expect(adapter.currentConnection?.database, isNull);
+    });
+
+    test('承前：drop 当前库后 executeQuery 请求体不含 database 键（回落 defaultDatabase）', () async {
+      final (adapter, queryReqs) = connectRecording(onQuery: completeOk);
+      await primeAdapter(adapter);
+      await adapter.useDatabase('dbx');
+      await adapter.dropDatabase('dbx');
+
+      await adapter.executeQuery('SELECT 1');
+      expect(queryReqs.length, 3);
+      final body = _sentBody(queryReqs[2]);
+      expect(body['sql'], 'SELECT 1');
+      expect(body.containsKey('database'), isFalse);
+    });
+
+    test('drop 非当前库：同样 master 路由，记录库保持 Y 不清，后续请求仍路由 Y', () async {
+      final (adapter, queryReqs) = connectRecording(onQuery: completeOk);
+      await primeAdapter(adapter);
+      await adapter.useDatabase('otherdb');
+      await adapter.dropDatabase('dbx');
+
+      final alter = _sentBody(queryReqs[0]);
+      expect(alter['database'], 'master');
+      expect(_sentBody(queryReqs[1])['database'], 'master');
+      expect(adapter.currentConnection?.database, 'otherdb');
+
+      await adapter.executeQuery('SELECT 1');
+      expect(_sentBody(queryReqs[2])['database'], 'otherdb');
+    });
+
+    test('DROP 网关错误（SSE error）→ 返回 false 不抛，记录库不清', () async {
+      var queryCount = 0;
+      final (adapter, queryReqs) = connectRecording(
+        onQuery: (req) {
+          queryCount++;
+          // ALTER 成功，DROP 收到 SSE error（如 SINGLE_USER 后仍有连接抢占）。
+          return queryCount == 1
+              ? completeOk(req)
+              : _sse([
+                  'event: error\ndata: {"kind":"sql","type":"error","code":"DB_ERROR","message":"Cannot drop database","engineCode":"3702"}',
+                ]);
+        },
+      );
+      await primeAdapter(adapter);
+      await adapter.useDatabase('dbx');
+
+      final ok = await adapter.dropDatabase('dbx');
+      expect(ok, isFalse);
+      expect(queryReqs.length, 2);
+      expect(_sentBody(queryReqs[0])['database'], 'master');
+      expect(_sentBody(queryReqs[1])['database'], 'master');
+      // 清记录库只在两条语句全部成功后执行——失败路径不清。
+      expect(adapter.currentConnection?.database, 'dbx');
+    });
+
+    test('大小写：useDatabase(x) 后 dropDatabase(X) 也清记录库', () async {
+      final (adapter, queryReqs) = connectRecording(onQuery: completeOk);
+      await primeAdapter(adapter);
+      await adapter.useDatabase('dbx');
+
+      final ok = await adapter.dropDatabase('DBX');
+      expect(ok, isTrue);
+      expect(_sentBody(queryReqs[0])['database'], 'master');
+      expect(_sentBody(queryReqs[1])['database'], 'master');
+      expect(adapter.currentConnection?.database, isNull);
+    });
+
+    test('readOnly 连接 dropDatabase → false（executeQuery 层只读守卫拦截，零网关请求）', () async {
+      final (adapter, queryReqs) = connectRecording(onQuery: completeOk);
+      await primeAdapter(adapter, readOnly: true);
+      await adapter.useDatabase('dbx');
+
+      // guardReadOnlyQuery 在 executeQuery 层拦截 ALTER（写关键词）→
+      // dropDatabase catch 后返回 false；不发出任何 /query 请求。
+      final ok = await adapter.dropDatabase('dbx');
+      expect(ok, isFalse);
+      expect(queryReqs, isEmpty);
+      expect(adapter.currentConnection?.database, 'dbx');
+    });
+  });
 }

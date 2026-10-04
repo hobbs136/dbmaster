@@ -827,10 +827,9 @@ void main() {
       final seed = seedAdapter;
       if (seed != null && seed.isConnected) {
         try {
-          // SS 网关 dropDatabase 的 ALTER/DROP 经「当前记录库」路由——tearDown
-          // 时仍指向测试库的话，DROP 会落在连着目标库的会话上（SS 3702
-          // in-use，SINGLE_USER 也被 drop 语句自身的连接占用）→ 先切回
-          // master 再删（adapter 路由缺陷的测试侧规避，见 T17 汇报遗留问题）。
+          // AG-F-8 已修复：dropDatabase 自身经 master 路由（真库回归待
+          // 环境恢复补跑）。此处的 useDatabase 切库为修复前的测试侧规避
+          // 残留，无害保留。
           await seed.useDatabase(SQLServerTestConfig.database);
           // adapter.dropDatabase 内部 SINGLE_USER + ROLLBACK IMMEDIATE
           // 处理网关池在用连接后 DROP。

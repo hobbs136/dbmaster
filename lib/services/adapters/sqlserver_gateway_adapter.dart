@@ -550,6 +550,27 @@ class SqlServerAdapter extends DatabaseAdapter
     }
   }
 
+  /// 清空记录库（`copyWith(database: null)` 的 `??` 语义无法置空，需显式
+  /// 重建）。dropDatabase drop 当前库后调用，避免后续每语句连带 stale
+  /// 库路由（形态对齐 MySQL 族壳 mysql_gateway_adapter.dart）。
+  void _clearRecordedDatabase() {
+    final c = _currentConnection;
+    if (c == null) return;
+    _currentConnection = DatabaseConnection(
+      id: c.id,
+      name: c.name,
+      type: c.type,
+      host: c.host,
+      port: c.port,
+      username: c.username,
+      password: c.password,
+      connected: c.connected,
+      connectedAt: c.connectedAt,
+      readOnly: c.readOnly,
+      extra: c.extra,
+    );
+  }
+
   @override
   Future<List<String>> getTables({String? schemaName}) async {
     if (!isConnected) throw Exception('未连接到数据库');
@@ -976,13 +997,21 @@ class SqlServerAdapter extends DatabaseAdapter
 
     final escapedName = SqlEscapeUtils.escapeSqlServerIdentifier(dbName);
     try {
-      // 网关逐语句独立连接：不存在「本连接绑定目标库」的 3702 场景，
-      // 直接置 SINGLE_USER 回滚其它连接后 DROP（原 FFI 版 master 切换
-      // 仅为此场景服务，网关模型下天然满足）。
+      // AG-F-8：网关按「当前记录库」路由时，drop 当前库的两条语句会落在
+      // 连着目标库的会话上（SS 3702 in-use——SINGLE_USER 也被 drop 语句
+      // 自身的连接占用，无法完成）→ ALTER/DROP 一律经 master 路由。
       await executeQuery(
         'ALTER DATABASE $escapedName SET SINGLE_USER WITH ROLLBACK IMMEDIATE',
+        database: 'master',
       );
-      await executeQuery('DROP DATABASE $escapedName');
+      await executeQuery('DROP DATABASE $escapedName', database: 'master');
+      // 对齐 MySQL 族壳：drop 当前库后连接存活但无 schema——清掉本地
+      // 记录库，避免后续每语句连带 stale 库路由（大小写口径对齐
+      // useDatabase 的大小写不敏感比较）。
+      if ((_currentConnection?.database)?.toLowerCase() ==
+          dbName.toLowerCase()) {
+        _clearRecordedDatabase();
+      }
       return true;
     } catch (e) {
       AppLogger.e('SqlServerAdapter', '删除数据库失败', e);
