@@ -17,11 +17,20 @@
 # integration_test/ is NOT part of `flutter test` and needs real DBs — out of
 # scope here by design).
 #
-# Platform fallback: the test job is believed platform-neutral (no platform
-# pins in test/, 4 Platform.isWindows uses are binary-name adaptive, and the
-# only native dependency sqlite3 FFI is covered by libsqlite3-dev). If a run
-# still fails on genuinely platform-related issues, switch the test job's
-# runs-on to windows-latest (public repo — no billing concern).
+# Platform fallback (EXECUTED 2026-10-04): the ubuntu runs proved the suite
+# is NOT fully platform-neutral — 3 tests are Windows-bound:
+#   1. test/organisms/ai_workbench/workbench_context_picker_test.dart
+#      (R2-8 connect-failure path: FileSystemException on linux)
+#   2. test/organisms/sidebar/sidebar_connection_selector_failure_test.dart
+#      (P1-3: exclusive file-lock open semantics do not hold on linux)
+#   3. test/theme/design_system_test.dart
+#      (border-radius scan of lib/: asserts on linux-only findings)
+# The product is Windows-first and the local baseline (5765 passed / 0 failed
+# / 1 skip) is green on Windows, so the test job runs on windows-latest
+# (public repo — no billing concern). DEBT: fix the 3 tests' platform
+# assumptions (registered as follow-up debt, not part of this batch); after
+# that the test job can switch back to ubuntu-latest, restoring the
+# libsqlite3-dev apt step that used to sit in it.
 #
 # SDK pin: flutter-version is pinned to the version the baselines were
 # measured with (local dev SDK). First CI run on unpinned channel:stable
@@ -76,8 +85,8 @@ jobs:
           fi
 
   test:
-    name: test (ubuntu-latest)
-    runs-on: ubuntu-latest
+    name: test (windows-latest)
+    runs-on: windows-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -88,10 +97,11 @@ jobs:
           flutter-version: 3.41.4
           cache: true
 
-      # sqlite3 FFI (the only native dependency of test/) resolves against the
-      # system SQLite; libsqlite3-dev provides the shared library on ubuntu.
-      - name: Install libsqlite3-dev
-        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+      # No libsqlite3-dev apt step here — that was ubuntu-only (removed with
+      # the fallback switch). sqlite3 FFI (the only native dependency of
+      # test/) resolves against the system SQLite via the pubspec
+      # hooks.user_defines config: Windows uses the OS built-in
+      # winsqlite3.dll, so no package install is needed on this runner.
 
       - name: flutter pub get
         run: flutter pub get
