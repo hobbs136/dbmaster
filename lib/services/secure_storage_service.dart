@@ -31,7 +31,7 @@ class SecureStorageService {
       accessibility: KeychainAccessibility.first_unlock_this_device,
       // 使用 legacy macOS keychain，避免 Data Protection Keychain 在开发/本地构建时
       // 要求 provisioning profile 和 keychain-access-groups 签名。
-      // Release (App Store) 构建仍会在 entitlements 中声明 keychain-access-groups。
+      // Release 构建仍会在 entitlements 中声明 keychain-access-groups。
       useDataProtectionKeyChain: false,
     ),
   );

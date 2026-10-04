@@ -1,5 +1,5 @@
 #!/bin/bash
-# DbMaster App Store 截图辅助脚本
+# DbMaster 截图辅助脚本
 # 用法: bash scripts/capture_screenshots.sh
 
 set -e
@@ -7,7 +7,7 @@ set -e
 OUTPUT_DIR="screenshots"
 mkdir -p "$OUTPUT_DIR"
 
-echo "=== DbMaster App Store 截图脚本 ==="
+echo "=== DbMaster 截图脚本 ==="
 echo "输出目录: $OUTPUT_DIR"
 
 # 检查是否在项目根目录
