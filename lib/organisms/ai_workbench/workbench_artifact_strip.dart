@@ -3,11 +3,14 @@
 //! 判定（§6.3）：产物项 ≡ 舞台 tab——本组件是
 //! [WorkbenchStageController.pinnedTabs] 的投影，**不持有第二份数据**；
 //! 点击项 = 开舞台并激活对应 tab、× / Delete = 取消钉住（tab 保留）、
-//! tab 关闭 = 项同步消失。左端常驻舞台开合开关（收起舞台后条是唯一入口）。
+//! tab 关闭 = 项同步消失。左端「舞台」钮为**收起态展开入口**（走查修复批
+//! 件①：开合开关收窄——展开态本钮与分隔线一并消失，收起动作移至舞台
+//! tab 条右端收起钮；收起态下条是舞台唯一入口）。
 //!
 //! 数值逐字 ui 规格 §6.1：条高 32（`artifactStripHeight`，bgSecondary +
-//! 顶部 1px divider，shell 全宽常驻）；开关 [panelRight/panelRightClose 14 +
-//! 11px textSecondary 标签，tooltip 同步]；1px 竖线分隔（高 16 居中 + space2）；
+//! 顶部 1px divider，shell 全宽常驻）；展开钮 [panelRight 14 + 11px
+//! textSecondary 标签，tooltip 同步，仅收起态渲染]；1px 竖线分隔（高 16
+//! 居中 + space2，随展开钮同隐现）；
 //! 产物项 [类型图标 12 textMuted + 标签 11px 上限 160 ellipsis + tooltip +
 //! × 12 textMuted]，项高 24 + padding h space2 + radiusSm，间距 4；
 //! 激活项 bgTertiary + 标签 textPrimary（200ms 过渡）；溢出横向滚动不换行、
@@ -15,8 +18,10 @@
 //! + Enter 开舞台激活 + Delete/Backspace 取消钉住，× 独立可聚焦。
 //!
 //! 动效（§6.2 明示）：结构增删零动效（不引入 AnimatedList），仅激活底色
-//! 200ms 过渡。不持久化（shell 级内存态）。类型图标映射与舞台 tab 同一套
-//! （§6.1）；舞台侧实现为文件私有，此处按同一映射表落（不跨文件扩其 API）。
+//! 200ms 过渡。不持久化（shell 级内存态）。类型图标/默认标签映射与舞台 tab
+//! 同源（§6.1）：单一注册表 = workbench_stage_tab_visuals.dart 的
+//! [WorkbenchStageTabKindVisuals]，本文件为纯消费方，不含映射副本
+//! （C1 注册化后舞台侧原「文件私有 + 此处按同一映射表落」双份结构已撤销）。
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,18 +29,32 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_colors.dart';
+import 'workbench_focus_zones.dart';
 import 'workbench_stage.dart';
+import 'workbench_stage_tab_visuals.dart';
 
-/// 产物条（§6）：舞台 tab pinned 子集投影 + 舞台开合开关。
+/// 产物条（§6）：舞台 tab pinned 子集投影 + 收起态展开入口。
 ///
 /// 挂载归 T27 shell（底部全宽常驻条）；本组件自身不持任何状态，
 /// 全部经 [controller] 读写（§6.3 单一事实源）。
+///
+/// A5（v2 先行批）：注册为 F6 第六区 [WorkbenchFocusZone.artifactStrip]——
+/// 条恒在（挂载注册 / 卸载注销），入口 = 聚焦首个条目（零条目且舞台收起 →
+/// 聚焦展开钮——死档②消除，走查修复批 S5b；零条目且舞台可见 → 入口返回
+/// false，F6 轮转动态跳过）。
 class WorkbenchArtifactStrip extends StatefulWidget {
-  const WorkbenchArtifactStrip({super.key, required this.controller});
+  const WorkbenchArtifactStrip({
+    super.key,
+    required this.controller,
+    this.zoneRegistry,
+  });
 
   /// 舞台状态宿主（与 [WorkbenchStage] 共享同一实例；T27 shell 创建注入，
   /// 测试自建）。
   final WorkbenchStageController controller;
+
+  /// F6 六区注册表（A5；null = 不注册，既有组件面测试零改动）。
+  final WorkbenchFocusZoneRegistry? zoneRegistry;
 
   /// 条容器（§6.4-1 高度/常驻探针）。
   static const Key stripKey = ValueKey('workbench_artifact_strip');
@@ -70,11 +89,21 @@ class _WorkbenchArtifactStripState extends State<WorkbenchArtifactStrip> {
   /// 上一次 pinned 数量（识别「新增」触发自动滚入；移除不滚）。
   int _lastPinnedCount = 0;
 
+  /// 产物条区聚焦入口（身份稳定闭包：注册/注销成对使用同一实例）。
+  late final WorkbenchZoneFocusEntry _zoneEntry = _focusFirstItem;
+
+  /// 展开钮焦点节点（收起态 F6 死档②回退目标；InkWell focusNode 注入）。
+  late final FocusNode _toggleFocusNode = FocusNode(
+    debugLabel: 'artifact_toggle_button',
+  );
+
   @override
   void initState() {
     super.initState();
     widget.controller.addListener(_onControllerChanged);
     _lastPinnedCount = widget.controller.pinnedTabs.length;
+    // A5：条恒在 → 挂载即注册（零条目时入口返回 false，轮转动态跳过）。
+    _syncZoneRegistration();
   }
 
   @override
@@ -85,17 +114,53 @@ class _WorkbenchArtifactStripState extends State<WorkbenchArtifactStrip> {
       widget.controller.addListener(_onControllerChanged);
       _lastPinnedCount = widget.controller.pinnedTabs.length;
     }
+    // 注册表实例变更（防御）：旧表注销、新表重登记。
+    if (!identical(oldWidget.zoneRegistry, widget.zoneRegistry)) {
+      _unregisterZone(oldWidget.zoneRegistry);
+      _syncZoneRegistration();
+    }
   }
 
   @override
   void dispose() {
     widget.controller.removeListener(_onControllerChanged);
+    _unregisterZone(widget.zoneRegistry);
     _stripScroll.dispose();
+    _toggleFocusNode.dispose();
     for (final node in _itemFocusNodes.values) {
       node.dispose();
     }
     _itemFocusNodes.clear();
     super.dispose();
+  }
+
+  /// 产物条区注册（未注入注册表时跳过）。
+  void _syncZoneRegistration() {
+    final registry = widget.zoneRegistry;
+    if (registry == null) return;
+    registry.register(WorkbenchFocusZone.artifactStrip, _zoneEntry);
+  }
+
+  /// 产物条区注销（[registry] 为 null 或不含本实例条目时安全空转——身份比对）。
+  void _unregisterZone(WorkbenchFocusZoneRegistry? registry) {
+    if (registry == null) return;
+    registry.unregister(WorkbenchFocusZone.artifactStrip, _zoneEntry);
+  }
+
+  /// 产物条区入口：聚焦首个条目（pinned 时间序首位）；零 pinned 且舞台收起
+  /// → 聚焦展开钮（死档②消除，走查修复批 S5b——收起态下展开钮是舞台唯一
+  /// 入口）；零 pinned 且舞台可见 → false（轮转动态跳过）。
+  bool _focusFirstItem() {
+    final pinned = widget.controller.pinnedTabs;
+    if (pinned.isNotEmpty) {
+      _focusItem(0);
+      return true;
+    }
+    if (!widget.controller.stageVisible) {
+      _toggleFocusNode.requestFocus();
+      return true;
+    }
+    return false;
   }
 
   void _onControllerChanged() {
@@ -191,28 +256,32 @@ class _WorkbenchArtifactStripState extends State<WorkbenchArtifactStrip> {
       ),
       child: Row(
         children: [
-          _buildToggle(context),
-          _buildSeparator(context),
+          // 展开钮 + 分隔线仅在收起态渲染（走查修复批 S4：舞台可见时整钮
+          // + 1px 分隔线一并消失——收起动作已移至舞台 tab 条右端收起钮）。
+          if (!widget.controller.stageVisible) ...[
+            _buildToggle(context),
+            _buildSeparator(context),
+          ],
           Expanded(child: _buildItems(context)),
         ],
       ),
     );
   }
 
-  /// 左端舞台开合开关（§6.1）：收起 = panelRight + 「舞台」、展开 =
-  /// panelRightClose + 「收起舞台」；icon 14 + 11px textSecondary 标签，
-  /// tooltip 同步；内容自适应宽 + padding h space2_5。
+  /// 左端收起态展开钮（§6.1 语义收窄，走查修复批 S4）：panelRight 14 +
+  /// 11px textSecondary 标签（agentStageToggle），tooltip 同步；onTap 恒
+  /// `setStageVisible(true)`（本钮只在舞台收起态渲染，无双态翻转）。
+  /// 点 pinned 项自动展开入口（[_activateFromStrip]）原样保留。
   Widget _buildToggle(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colors = context.themeColors;
-    final visible = widget.controller.stageVisible;
-    final label = visible ? l10n.agentStageCollapse : l10n.agentStageToggle;
     return InkWell(
       key: WorkbenchArtifactStrip.toggleKey,
-      onTap: () => widget.controller.setStageVisible(!visible),
+      focusNode: _toggleFocusNode,
+      onTap: () => widget.controller.setStageVisible(true),
       borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
       child: Tooltip(
-        message: label,
+        message: l10n.agentStageToggle,
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppDesignSystem.space2_5,
@@ -221,13 +290,13 @@ class _WorkbenchArtifactStripState extends State<WorkbenchArtifactStrip> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                visible ? LucideIcons.panelRightClose : LucideIcons.panelRight,
+                LucideIcons.panelRight,
                 size: 14,
                 color: colors.textSecondary,
               ),
               const SizedBox(width: AppDesignSystem.space1_5),
               Text(
-                label,
+                l10n.agentStageToggle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -242,7 +311,8 @@ class _WorkbenchArtifactStripState extends State<WorkbenchArtifactStrip> {
     );
   }
 
-  /// 左端分隔：1px 竖线（dividerColor，高 16 居中）+ 两侧 space2（§6.1）。
+  /// 左端分隔：1px 竖线（dividerColor，高 16 居中）+ 两侧 space2（§6.1）；
+  /// 随展开钮同隐现（仅收起态渲染）。
   Widget _buildSeparator(BuildContext context) {
     final colors = context.themeColors;
     return Padding(
@@ -316,7 +386,7 @@ class _WorkbenchArtifactStripState extends State<WorkbenchArtifactStrip> {
       focusNode: node,
       pinnedIndex: pinnedIndex,
       pinnedCount: widget.controller.pinnedTabs.length,
-      displayLabel: tab.title ?? _kindLabel(l10n, tab.kind),
+      displayLabel: tab.title ?? tab.kind.label(l10n),
       onActivate: () {
         node.requestFocus();
         _activateFromStrip(tab);
@@ -324,19 +394,6 @@ class _WorkbenchArtifactStripState extends State<WorkbenchArtifactStrip> {
       onUnpin: () => _unpin(tab),
       onMoveFocus: _focusItem,
     );
-  }
-
-  String _kindLabel(AppLocalizations l10n, WorkbenchStageTabKind kind) {
-    switch (kind) {
-      case WorkbenchStageTabKind.grid:
-        return l10n.agentStageTabGrid;
-      case WorkbenchStageTabKind.structure:
-        return l10n.agentStageTabStructure;
-      case WorkbenchStageTabKind.editor:
-        return l10n.agentStageTabEditor;
-      case WorkbenchStageTabKind.chart:
-        return l10n.agentStageTabChart;
-    }
   }
 }
 
@@ -413,7 +470,7 @@ class _ArtifactItem extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      _kindIcon(tab.kind),
+                      tab.kind.icon,
                       size: 12,
                       color: colors.textMuted,
                     ),
@@ -512,17 +569,3 @@ class _ArtifactItem extends StatelessWidget {
 
 /// 产物项组内遍历策略（项 → ×；OrderedTraversalPolicy 无 const 构造）。
 final OrderedTraversalPolicy _itemTraversalPolicy = OrderedTraversalPolicy();
-
-/// 类型图标映射（§6.1：与舞台 tab 同一套）。
-IconData _kindIcon(WorkbenchStageTabKind kind) {
-  switch (kind) {
-    case WorkbenchStageTabKind.grid:
-      return LucideIcons.table;
-    case WorkbenchStageTabKind.structure:
-      return LucideIcons.listTree;
-    case WorkbenchStageTabKind.editor:
-      return LucideIcons.code;
-    case WorkbenchStageTabKind.chart:
-      return LucideIcons.chartColumn;
-  }
-}
