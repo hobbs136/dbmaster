@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/database_models.dart';
 import '../models/connection_event.dart';
 import '../models/connection_failure.dart';
+import '../services/ai/ai_memory_service.dart';
 import '../services/database_service.dart';
 import '../services/sqlite_alias_validator.dart';
 import '../services/adapters/redis_adapter.dart';
@@ -803,6 +804,9 @@ class ConnectionProvider extends ChangeNotifier {
       _savedConnections.removeWhere((s) => s.id == id);
       await SecureStorageService.deleteConnection(id);
       await _persistConnections();
+      // T3 · AI 记忆清理钩子：连接删除后清空其连接作用域记忆。best-effort
+      // （service 内部吞错落日志），失败不阻断删除（provider→service 合法）。
+      unawaited(AiMemoryService().clearForConnection(id));
       notifyListeners();
     } catch (e, stackTrace) {
       AppLogger.e(

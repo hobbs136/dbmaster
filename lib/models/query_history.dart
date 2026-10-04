@@ -7,6 +7,10 @@ enum QueryHistorySource {
 
   /// 通过 Ctrl+S 手动保存
   saved,
+
+  /// AI 工作台执行（手动执行 / agent 计划链；序列化为 `'agent'` 字符串，
+  /// 旧版本数据无此值——fromJson 未知来源回落 executed，双向兼容）。
+  agent,
 }
 
 class QueryHistory {

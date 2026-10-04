@@ -83,6 +83,7 @@ class QueryHistoryProvider extends ChangeNotifier {
     String? database,
     DatabaseType? databaseType,
     DateTime? timestamp,
+    QueryHistorySource source = QueryHistorySource.executed,
   }) async {
     final now = timestamp ?? DateTime.now();
     final history = QueryHistory(
@@ -96,6 +97,7 @@ class QueryHistoryProvider extends ChangeNotifier {
       executionTime: executionTime,
       affectedRows: affectedRows,
       error: error,
+      source: source,
     );
 
     // 去重：相同的 SQL + connectionId 移到最前面
