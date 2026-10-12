@@ -11,7 +11,9 @@
 // pg_terminate_backend）。能力位经 port 门控（process.kill 含 pg）。
 // DBT-T4（2026-10 工具面板补齐批，feat/db-tooling-completion）增补：
 // Extensions / pgvector / Table Maintenance 三项（全部路由既有目标，
-// 零新执行通道；pg.queryPlan 无面板级既有可路由目标，主代理裁定暂缓）。
+// 零新执行通道；pg.queryPlan 无面板级既有可路由目标，已销项——R2 裁定，
+// 呈报包 #11 备查）。DBT-T8 增补 Locks（只读锁分析）与聚合入口
+// VACUUM/REINDEX 动作位。
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -29,6 +31,7 @@ import '../../../theme/app_colors.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/app_logger.dart';
 import '../../connection/pg_extension_panel.dart';
+import '../../dialogs/pg_locks_dialog.dart';
 import '../../dialogs/postgresql_table_maintenance_entry_dialog.dart';
 import '../builders/tree_utils.dart';
 import '../capability/capability_menu_assembly.dart';
@@ -64,8 +67,8 @@ class PostgresqlSidebarPlugin implements SidebarPlugin {
           // ── DBT-T4 新增（2026-10 工具面板补齐批，feat/db-tooling-completion）──
           // 全部路由既有目标，零新执行通道。注：任务书原列 pg.queryPlan
           // （query.explain）与 T3 mysql.queryPlan 同因——EXPLAIN 入口深
-          // 耦合编辑器 SQL 文本，无面板级既有可路由目标，主代理裁定暂缓，
-          // 本批未加该项（后续批处理）。
+          // 耦合编辑器 SQL 文本，无面板级既有可路由目标，已销项
+          // （R2 裁定，呈报包 #11 备查——不在后续批补做）。
           SidebarCapabilityItem(
             id: 'pg.extension',
             capabilityId: 'pg.extension',
@@ -90,6 +93,16 @@ class PostgresqlSidebarPlugin implements SidebarPlugin {
             label: (l10n) => l10n.pgCapMaintenance,
             icon: LucideIcons.wrench,
             onActivate: () => _showMaintenanceEntry(context),
+          ),
+          // ── DBT-T8 新增（W-10）──
+          SidebarCapabilityItem(
+            id: 'pg.locks',
+            // id 与 T2 `_releaseNewItemIds` 锁定值一致（命中「新建」徽标）；
+            // cap 为 T0 预登记位 pg.locks（只读锁分析）。
+            capabilityId: 'pg.locks',
+            label: (l10n) => l10n.pgLocksTitle,
+            icon: LucideIcons.lock,
+            onActivate: () => _showLocks(context),
           ),
         ],
       ),
@@ -197,6 +210,9 @@ class PostgresqlSidebarPlugin implements SidebarPlugin {
     final provider = context.read<AppProvider>();
     showDialog(
       context: context,
+      // R4-d：维护执行中禁屏障关闭（dialog 内 PopScope 拦 Esc/屏障的
+      // maybePop 路径，这里关掉屏障点击通道双保险）。
+      barrierDismissible: false,
       builder: (_) => PostgresqlTableMaintenanceEntryDialog(
         connectionId: server.id,
         loadDatabases: (cid) =>
@@ -217,6 +233,34 @@ class PostgresqlSidebarPlugin implements SidebarPlugin {
             provider.runTableMaintenance(db, table, command, connectionId: cid),
       ),
     );
+  }
+
+  // ── DBT-T8 能力项动作（W-10 锁分析：只读）────────────────────────────
+
+  /// 锁/等待分析面板（W-10）：只读 dialog——pg_locks × pg_stat_activity
+  /// 聚合（查询与 PgLocksDialog 同源常量），手动刷新；**无 terminate**
+  /// （进程终止走既有 process.kill 链路，任务书约束）。loader 经
+  /// provider.executeQuery 既有只读执行路径（零新执行通道）。
+  void _showLocks(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    final provider = context.read<AppProvider>();
+    PgLocksDialog.show(
+      context,
+      connectionId: server.id,
+      loader: (cid) => _loadLocks(provider, cid),
+    );
+  }
+
+  Future<List<PgLockEntry>> _loadLocks(
+    AppProvider provider,
+    String connectionId,
+  ) async {
+    final rows = await provider.executeQuery(
+      pgLocksQuery,
+      connectionId: connectionId,
+    );
+    return [for (final row in rows) PgLockEntry.fromRow(row)];
   }
 
   /// PG loader：pg_stat_activity 直查（provider 进程缓存路径为 MySQL

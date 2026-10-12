@@ -8,19 +8,29 @@
 //
 // 铁律 3 落点：原 builder 三处直连 adapter（insertOne / dropTable /
 // dropIndex 经 cast）收编为 provider 级调用（provider.insertMongoDocument
-// 新增；dropTable/dropIndex 走既有 facade），本文件零 adapter import。
+// 新增；dropTable/dropIndex 走既有 facade）。DBT-T10 起 currentOp 面板
+// 动作经 dbService.getAdapter 检索 + `is MongoDBAdapter` 类型判定消费
+// adapter 薄包装（T4 PG 插件 is! ExtensionAdapter 同模式——禁止的是
+// **直接实例化**，检索式消费不违；树装配仍零 adapter 触达）。
 //
 // C03 发现 #3 处置：原 _showValidationRulesDialog 为「未实现」占位弹窗，
 // 本迁移实做为真验证规则查看器（listCollections options 的 validator /
 // validationLevel / validationAction 只读展示，无规则与加载失败状态区分）。
 //
-// capabilityGroups：Mongo 专有能力（集合/索引/视图浏览）即树本体，连接级
-// 无真实独立入口（聚合构建器/KillOp 为 C03 backlog），故恒空——能力菜单
-// 由 core 项 + port 门控自然裁决。
+// capabilityGroups：DBT-T7（2026-10 工具面板补齐批）起连接级有 5 项——
+// 验证规则浏览器 / 聚合 shell 入口 / 索引建议面板 / 副本集·分片面板 /
+// Schema 视图。全部路由既有服务或树同源数据（provider facade），零新执行
+// 通道；聚合只路由 shell 编辑器（聚合构建器显式不做，plan §5-3）；schemaView
+// 无能力位 = 纯导航恒显。DBT-T10（W3 串行链 T7→T10）追加第 6 项
+// mongo.currentOp——进程/KillOp 面板（currentOp 只读 + killOp 确认门 +
+// 审计，C03/T10 backlog 销项）；经 adapter 薄包装 + dbService.getAdapter
+// 检索（T4 PG 插件同模式——铁律 3「不直接实例化」语义保持，本文件为此
+// 引入 adapters import，树装配仍零 adapter 触达）。
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../models/database_models.dart' hide QueryTab;
@@ -28,9 +38,15 @@ import '../../../plugins/plugin_descriptor.dart';
 import '../../../plugins/sidebar_plugin.dart';
 import '../../../providers/app_provider.dart';
 import '../../../providers/tab_provider.dart';
+import '../../../services/adapters/mongodb_gateway_adapter.dart';
+import '../../../services/mongo_index_advisor.dart';
+import '../../../services/mongodb_shell_parser.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/app_logger.dart';
+import '../../ai_workbench/workbench_mongo_schema_view.dart';
+import '../../dialogs/mongo_process_dialog.dart';
 import '../builders/tree_utils.dart';
+import '../capability/capability_menu_assembly.dart';
 import '../tree_item.dart';
 import '../../../molecules/compact_popup_menu_item.dart';
 
@@ -47,8 +63,66 @@ class MongodbSidebarPlugin implements SidebarPlugin {
 
   @override
   List<SidebarCapabilityGroup> capabilityGroups(BuildContext context) {
-    // 见文件头：连接级无真实独立入口，恒空（core 项 + port 门控裁决）。
-    return const [];
+    // DBT-T7：id 与 T2 `_releaseNewItemIds` 锁定口径同源（本批 5 项中
+    // mongo.currentOp/mongo.gridfs/mongo.explain 属 T10/T11/T12，后续串行
+    // 波次追加）。位门控归宿主 + port；schemaView 无位 = 纯导航恒显。
+    return [
+      SidebarCapabilityGroup(
+        id: 'advanced',
+        label: (l10n) => l10n.sidebarCapGroupAdvanced,
+        icon: LucideIcons.wrench,
+        items: [
+          SidebarCapabilityItem(
+            id: 'mongo.validation',
+            capabilityId: 'mongo.validation',
+            label: (l10n) => l10n.mongoValidationTitle,
+            icon: LucideIcons.listChecks,
+            onActivate: () => _showValidationBrowser(context),
+          ),
+          SidebarCapabilityItem(
+            id: 'mongo.aggregate',
+            capabilityId: 'mongo.aggregate',
+            label: (l10n) => l10n.mongoCapAggregate,
+            icon: LucideIcons.braces,
+            onActivate: () => _showAggregateShellEntry(context),
+          ),
+          SidebarCapabilityItem(
+            id: 'mongo.indexAdvice',
+            capabilityId: 'mongo.indexAdvice',
+            label: (l10n) => l10n.mongoCapIndexAdvice,
+            icon: LucideIcons.lightbulb,
+            onActivate: () => _showIndexAdvicePanel(context),
+          ),
+          SidebarCapabilityItem(
+            id: 'mongo.replication',
+            capabilityId: 'mongo.replication',
+            label: (l10n) => l10n.mongoNodeReplication,
+            icon: LucideIcons.refreshCw,
+            onActivate: () => _showReplicationPanel(context),
+          ),
+          SidebarCapabilityItem(
+            id: 'mongo.schemaView',
+            // 纯导航项（任务书 T7 锁定）：无能力位，恒显。
+            capabilityId: null,
+            label: (l10n) => l10n.mongoCapSchemaView,
+            icon: LucideIcons.table2,
+            onActivate: () => _showSchemaViewEntry(context),
+          ),
+          // ── DBT-T10 新增（2026-10 工具面板补齐批，串行链 T7→T10）──
+          // id 与 T2 `_releaseNewItemIds` 预登记锁定值一致（命中「新建」
+          // 徽标，徽标渲染归框架）。KillOp = 修改操作状态（高风险面）：
+          // 确认门 + 审计在 MongoProcessDialog；readonly 语义转 security
+          // 裁决（TODO 见 mongodb_gateway_adapter.killOp 注释）。
+          SidebarCapabilityItem(
+            id: 'mongo.currentOp',
+            capabilityId: 'mongo.currentOp',
+            label: (l10n) => l10n.mongoCurrentOpTitle,
+            icon: LucideIcons.circleStop,
+            onActivate: () => _showCurrentOpPanel(context),
+          ),
+        ],
+      ),
+    ];
   }
 
   @override
@@ -78,6 +152,173 @@ class MongodbSidebarPlugin implements SidebarPlugin {
       onToggleExpand: db.onToggleExpand,
       onToggleCollection: db.onToggleTable,
     ).build(db.db);
+  }
+
+  // ── DBT-T7 能力项动作（全部路由既有目标，零新执行通道）──────────
+  // 连接断开时点面板项 → resolveSidebarActionServer null 直接返回
+  //（capability_menu_assembly 锚定，与 T3 MySQL 面板项同模式）。
+
+  /// 验证规则浏览器：数据源与树内集合右键「Validation Rules」同源
+  /// （provider.getMongoCollectionOptions）；面板无集合上下文 → 先选库
+  /// 再列集合，点选集合后展示 validator。
+  void _showValidationBrowser(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    final provider = context.read<AppProvider>();
+    showDialog(
+      context: context,
+      builder: (_) => _MongoValidationBrowserDialog(
+        connectionId: server.id,
+        loadDatabases: (cid) =>
+            provider.dbService.getDatabases(connectionId: cid),
+        // 集合清单与树同源：loadDatabaseInfo（内部 useDatabase + getTables；
+        // mongo 网关壳 getTables 只看当前库上下文，databaseName 直参对其
+        // 不生效——须先切库，面板选库与树内 changeDatabase 同语义）。
+        loadCollections: (cid, db) async {
+          final info = await provider.loadDatabaseInfo(cid, db);
+          return info?.tables.map((t) => t.name).toList() ??
+              const <String>[];
+        },
+        loadCollectionOptions: provider.getMongoCollectionOptions,
+      ),
+    );
+  }
+
+  /// 聚合 shell 入口（plan §5-3：只路由 shell 编辑器，聚合构建器显式
+  /// 不做）：选库选集合 → 打开预填 aggregate 模板的查询 tab。与树内
+  /// `_browseCollection` 同一 addTab 形态；载入不自动执行。
+  void _showAggregateShellEntry(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    final provider = context.read<AppProvider>();
+    showDialog(
+      context: context,
+      builder: (_) => _MongoAggregateShellEntryDialog(
+        connectionId: server.id,
+        loadDatabases: (cid) =>
+            provider.dbService.getDatabases(connectionId: cid),
+        // 集合清单与树同源：loadDatabaseInfo（内部 useDatabase + getTables；
+        // mongo 网关壳 getTables 只看当前库上下文，databaseName 直参对其
+        // 不生效——须先切库，面板选库与树内 changeDatabase 同语义）。
+        loadCollections: (cid, db) async {
+          final info = await provider.loadDatabaseInfo(cid, db);
+          return info?.tables.map((t) => t.name).toList() ??
+              const <String>[];
+        },
+        onOpen: (database, collection) {
+          final data = MongoCollectionDragData(
+            collectionName: collection,
+            databaseName: database,
+            connectionId: server.id,
+          );
+          provider.addTab(
+            QueryTab(
+              id: DateTime.now().millisecondsSinceEpoch.toString(),
+              title: '$collection.aggregate()',
+              sql: data.aggregateStatement,
+              connectionId: server.id,
+              databaseName: database,
+              isAutoTitle: true,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// 索引建议面板：消费既有纯函数服务 MongoIndexAdvisorService（ESR
+  /// 规则，ai_panel 索引建议同源），面板化 = 查询输入 → 既有索引对照
+  /// → 建议报告。只读，零写路径。
+  void _showIndexAdvicePanel(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    final provider = context.read<AppProvider>();
+    showDialog(
+      context: context,
+      builder: (_) => _MongoIndexAdviceDialog(
+        connectionId: server.id,
+        loadIndexes: (cid, collection) => provider.dbService.getTableIndexes(
+          collection,
+          connectionId: cid,
+        ),
+      ),
+    );
+  }
+
+  /// 副本集/分片面板：数据与树内 Replication/Sharding 节点同源
+  /// （provider.loadMongoDB*Status facade），面板化呈现两段状态。
+  void _showReplicationPanel(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    final provider = context.read<AppProvider>();
+    showDialog(
+      context: context,
+      builder: (_) => _MongoReplicationPanelDialog(
+        connectionId: server.id,
+        loadReplicaStatus: (cid) async {
+          await provider.loadMongoDBReplicaSetStatus(cid);
+          return provider.getMongoDBReplicaSetStatus(cid);
+        },
+        loadShardingStatus: (cid) async {
+          await provider.loadMongoDBShardingStatus(cid);
+          return provider.getMongoDBShardingStatus(cid);
+        },
+      ),
+    );
+  }
+
+  /// Schema 视图：复用既有舞台内容件 `WorkbenchMongoSchemaView`（2b.2b
+  /// 接线目标，消费同一 per-connection facade——树内集合展开同源；
+  /// import 复用零改动，未触 ai_workbench/ 任何文件）。面板无集合上下文
+  /// → 先选库再选集合。
+  void _showSchemaViewEntry(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    final provider = context.read<AppProvider>();
+    showDialog(
+      context: context,
+      builder: (_) => _MongoSchemaViewDialog(
+        connectionId: server.id,
+        loadDatabases: (cid) =>
+            provider.dbService.getDatabases(connectionId: cid),
+        // 集合清单与树同源：loadDatabaseInfo（内部 useDatabase + getTables；
+        // mongo 网关壳 getTables 只看当前库上下文，databaseName 直参对其
+        // 不生效——须先切库，面板选库与树内 changeDatabase 同语义）。
+        loadCollections: (cid, db) async {
+          final info = await provider.loadDatabaseInfo(cid, db);
+          return info?.tables.map((t) => t.name).toList() ??
+              const <String>[];
+        },
+      ),
+    );
+  }
+
+  /// 进程/KillOp 面板（DBT-T10，W-11）：currentOp 只读列表 + killOp 逐行
+  /// 确认门 + 审计。取数/终止经 adapter 薄包装（getCurrentOp/killOp——
+  /// 既有 kind:"mongo" runCommand 通道，零 server 改动）；经
+  /// `dbService.getAdapter` 消费端检索（PG 插件 DBT-T4 `is!
+  /// ExtensionAdapter` 同一模式，非直接实例化——铁律 3 语义保持）。
+  void _showCurrentOpPanel(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    final provider = context.read<AppProvider>();
+    MongoProcessDialog.show(
+      context,
+      connectionId: server.id,
+      loadOps: (cid) async {
+        final adapter = provider.dbService.getAdapter(cid);
+        if (adapter is! MongoDBAdapter) {
+          throw StateError('MongoDB 连接不可用（currentOp 需要 MongoDB 连接）');
+        }
+        return MongoOpEntry.listFromCurrentOp(await adapter.getCurrentOp());
+      },
+      killOp: (cid, opId) async {
+        final adapter = provider.dbService.getAdapter(cid);
+        if (adapter is! MongoDBAdapter) return false;
+        final resp = await adapter.killOp(opId);
+        return resp['ok'] == 1.0 || resp['ok'] == 1;
+      },
+    );
   }
 }
 
@@ -1889,4 +2130,985 @@ class MongoCollectionDragData {
 
   @override
   String toString() => 'MongoCollectionDragData($collectionName)';
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// DBT-T7 能力项面板（私有件，全部只读、经构造注入取数回调以便测试）。
+// 数据源一律 provider/dbService 既有 facade，零新执行通道。
+// ═══════════════════════════════════════════════════════════════════════
+
+/// 验证规则浏览器：选库 → 列集合 → 点选集合展示 validator /
+/// validationLevel / validationAction（与树内验证规则查看器同源同渲染）。
+/// 无规则与加载失败分态。
+class _MongoValidationBrowserDialog extends StatefulWidget {
+  const _MongoValidationBrowserDialog({
+    required this.connectionId,
+    required this.loadDatabases,
+    required this.loadCollections,
+    required this.loadCollectionOptions,
+  });
+
+  final String connectionId;
+  final Future<List<String>> Function(String connectionId) loadDatabases;
+  final Future<List<String>> Function(String connectionId, String database)
+  loadCollections;
+  final Future<Map<String, dynamic>?> Function(
+    String connectionId,
+    String database,
+    String collection,
+  )
+  loadCollectionOptions;
+
+  @override
+  State<_MongoValidationBrowserDialog> createState() =>
+      _MongoValidationBrowserDialogState();
+}
+
+class _MongoValidationBrowserDialogState
+    extends State<_MongoValidationBrowserDialog> {
+  List<String> _databases = const [];
+  List<String> _collections = const [];
+  String? _selectedDatabase;
+  String? _selectedCollection;
+  bool _loadingCollections = false;
+  String? _listError;
+
+  bool _loadingOptions = false;
+  Map<String, dynamic>? _options;
+  String? _optionsError;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDatabases());
+  }
+
+  Future<void> _loadDatabases() async {
+    try {
+      final dbs = await widget.loadDatabases(widget.connectionId);
+      if (!mounted) return;
+      setState(() {
+        _databases = dbs;
+        _listError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _listError = e.toString());
+    }
+  }
+
+  Future<void> _selectDatabase(String database) async {
+    if (database == _selectedDatabase) return;
+    setState(() {
+      _selectedDatabase = database;
+      _selectedCollection = null;
+      _options = null;
+      _optionsError = null;
+      _collections = const [];
+      _loadingCollections = true;
+    });
+    try {
+      final collections = await widget.loadCollections(
+        widget.connectionId,
+        database,
+      );
+      if (!mounted) return;
+      setState(() {
+        _collections = collections;
+        _loadingCollections = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _listError = e.toString();
+        _loadingCollections = false;
+      });
+    }
+  }
+
+  Future<void> _selectCollection(String collection) async {
+    final database = _selectedDatabase;
+    if (database == null) return;
+    setState(() {
+      _selectedCollection = collection;
+      _loadingOptions = true;
+      _options = null;
+      _optionsError = null;
+    });
+    try {
+      final options = await widget.loadCollectionOptions(
+        widget.connectionId,
+        database,
+        collection,
+      );
+      if (!mounted) return;
+      setState(() {
+        _options = options;
+        _loadingOptions = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _optionsError = e.toString();
+        _loadingOptions = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AlertDialog(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      title: Text(l10n.mongoValidationTitle),
+      content: SizedBox(
+        width: 480,
+        height: 440,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDatabaseSelector(),
+            const SizedBox(height: AppDesignSystem.space2),
+            if (_listError != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  l10n.loadFailed(_listError ?? ''),
+                  style: TextStyle(
+                    color: context.themeColors.error,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            Expanded(flex: 2, child: _buildCollectionList()),
+            const Divider(height: 1),
+            Expanded(flex: 3, child: _buildValidationDetail()),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.commonClose),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDatabaseSelector() {
+    return DropdownButton<String>(
+      value: _selectedDatabase,
+      isExpanded: true,
+      hint: Text(AppLocalizations.of(context)!.connectionDatabase),
+      items: [
+        for (final db in _databases)
+          DropdownMenuItem<String>(value: db, child: Text(db)),
+      ],
+      onChanged: (db) {
+        if (db != null) _selectDatabase(db);
+      },
+    );
+  }
+
+  Widget _buildCollectionList() {
+    if (_loadingCollections) {
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+    }
+    if (_selectedDatabase == null) {
+      return const SizedBox.shrink();
+    }
+    return ListView.builder(
+      itemCount: _collections.length,
+      itemBuilder: (context, index) {
+        final collection = _collections[index];
+        final selected = collection == _selectedCollection;
+        return ListTile(
+          dense: true,
+          selected: selected,
+          title: Text(collection),
+          onTap: () => _selectCollection(collection),
+        );
+      },
+    );
+  }
+
+  /// 选中集合的验证规则详情（与树内 _showValidationRulesDialog 同源渲染）。
+  Widget _buildValidationDetail() {
+    final l10n = AppLocalizations.of(context)!;
+    final selected = _selectedCollection;
+    if (selected == null) {
+      return const SizedBox.shrink();
+    }
+    if (_loadingOptions) {
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+    }
+    final optionsError = _optionsError;
+    if (optionsError != null) {
+      return Text(
+        l10n.mongoValidationLoadFailed(optionsError),
+        style: TextStyle(color: context.themeColors.error, fontSize: 13),
+      );
+    }
+    final options = _options;
+    if (options == null) {
+      // 集合在列取后被删等边缘：按加载失败呈报（facade 找不到集合返回 null）。
+      return Text(
+        l10n.mongoValidationLoadFailed(selected),
+        style: TextStyle(color: context.themeColors.error, fontSize: 13),
+      );
+    }
+    final validator = options['validator'];
+    if (validator == null) {
+      return Text(
+        l10n.mongoValidationNoValidator,
+        style: TextStyle(
+          color: context.themeColors.textSecondary,
+          fontSize: 13,
+        ),
+      );
+    }
+    final encoder = JsonEncoder.withIndent('  ');
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildInfoRow(
+            l10n.mongoValidationLevel,
+            options['validationLevel']?.toString() ?? 'strict',
+          ),
+          _buildInfoRow(
+            l10n.mongoValidationAction,
+            options['validationAction']?.toString() ?? 'error',
+          ),
+          const SizedBox(height: AppDesignSystem.space2),
+          SelectableText(
+            encoder.convert(validator),
+            style: TextStyle(
+              fontFamily: AppDesignSystem.monoFontFamily,
+              fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
+              fontSize: 12,
+              color: context.themeColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppDesignSystem.space1),
+      child: Row(
+        children: [
+          Text(
+            '$label: ',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: context.themeColors.textSecondary,
+            ),
+          ),
+          Text(value, style: TextStyle(color: context.themeColors.textPrimary)),
+        ],
+      ),
+    );
+  }
+}
+
+/// 聚合 shell 入口：选库选集合 → [onOpen] 打开预填 aggregate 模板的查询
+/// tab（模板复用 [MongoCollectionDragData.aggregateStatement]）。零执行。
+class _MongoAggregateShellEntryDialog extends StatefulWidget {
+  const _MongoAggregateShellEntryDialog({
+    required this.connectionId,
+    required this.loadDatabases,
+    required this.loadCollections,
+    required this.onOpen,
+  });
+
+  final String connectionId;
+  final Future<List<String>> Function(String connectionId) loadDatabases;
+  final Future<List<String>> Function(String connectionId, String database)
+  loadCollections;
+  final void Function(String database, String collection) onOpen;
+
+  @override
+  State<_MongoAggregateShellEntryDialog> createState() =>
+      _MongoAggregateShellEntryDialogState();
+}
+
+class _MongoAggregateShellEntryDialogState
+    extends State<_MongoAggregateShellEntryDialog> {
+  List<String> _databases = const [];
+  List<String> _collections = const [];
+  String? _selectedDatabase;
+  String? _selectedCollection;
+  bool _loadingCollections = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDatabases());
+  }
+
+  Future<void> _loadDatabases() async {
+    try {
+      final dbs = await widget.loadDatabases(widget.connectionId);
+      if (!mounted) return;
+      setState(() => _databases = dbs);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    }
+  }
+
+  Future<void> _selectDatabase(String database) async {
+    if (database == _selectedDatabase) return;
+    setState(() {
+      _selectedDatabase = database;
+      _selectedCollection = null;
+      _collections = const [];
+      _loadingCollections = true;
+    });
+    try {
+      final collections = await widget.loadCollections(
+        widget.connectionId,
+        database,
+      );
+      if (!mounted) return;
+      setState(() {
+        _collections = collections;
+        _loadingCollections = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loadingCollections = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final database = _selectedDatabase;
+    final collection = _selectedCollection;
+    final ready = database != null && collection != null;
+    return AlertDialog(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      title: Text(l10n.mongoCapAggregate),
+      content: SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DropdownButton<String>(
+              value: _selectedDatabase,
+              isExpanded: true,
+              hint: Text(l10n.connectionDatabase),
+              items: [
+                for (final db in _databases)
+                  DropdownMenuItem<String>(value: db, child: Text(db)),
+              ],
+              onChanged: (db) {
+                if (db != null) _selectDatabase(db);
+              },
+            ),
+            const SizedBox(height: AppDesignSystem.space2),
+            DropdownButton<String>(
+              value: _selectedCollection,
+              isExpanded: true,
+              hint: Text(l10n.sidebarCollections),
+              items: [
+                for (final collection in _collections)
+                  DropdownMenuItem<String>(
+                    value: collection,
+                    child: Text(collection),
+                  ),
+              ],
+              onChanged: (collection) {
+                if (collection != null) {
+                  setState(() => _selectedCollection = collection);
+                }
+              },
+            ),
+            if (_loadingCollections)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  l10n.loadFailed(_error ?? ''),
+                  style: TextStyle(
+                    color: context.themeColors.error,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.commonCancel),
+        ),
+        ElevatedButton(
+          onPressed: ready
+              ? () {
+                  Navigator.pop(context);
+                  widget.onOpen(database, collection);
+                }
+              : null,
+          child: Text(l10n.commonConfirm),
+        ),
+      ],
+    );
+  }
+}
+
+/// 索引建议面板：查询输入 → 既有索引对照（dbService.getTableIndexes）→
+/// MongoIndexAdvisorService（ESR）建议报告。纯只读。
+class _MongoIndexAdviceDialog extends StatefulWidget {
+  const _MongoIndexAdviceDialog({
+    required this.connectionId,
+    required this.loadIndexes,
+  });
+
+  final String connectionId;
+  final Future<List<DbIndex>> Function(String connectionId, String collection)
+  loadIndexes;
+
+  @override
+  State<_MongoIndexAdviceDialog> createState() =>
+      _MongoIndexAdviceDialogState();
+}
+
+class _MongoIndexAdviceDialogState extends State<_MongoIndexAdviceDialog> {
+  final TextEditingController _queryController = TextEditingController();
+  bool _analyzing = false;
+  String? _report;
+  String? _error;
+
+  @override
+  void dispose() {
+    _queryController.dispose();
+    super.dispose();
+  }
+
+  /// 与 ai_panel 索引建议同源流程：解析集合 → 既有索引 → ESR 建议 → 报告。
+  Future<void> _analyze() async {
+    final l10n = AppLocalizations.of(context)!;
+    final query = _queryController.text.trim();
+    if (query.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.pleaseEnterSql)),
+      );
+      return;
+    }
+    setState(() {
+      _analyzing = true;
+      _report = null;
+      _error = null;
+    });
+    try {
+      final parsed = MongoShellQueryParser.parseQuery(query);
+      final collection = parsed?['collection']?.toString() ?? '';
+      var existingIndexes = const <DbIndex>[];
+      if (collection.isNotEmpty) {
+        existingIndexes = await widget.loadIndexes(
+          widget.connectionId,
+          collection,
+        );
+      }
+      final advisor = MongoIndexAdvisorService();
+      final recommendations = advisor.analyzeForIndex(
+        query,
+        existingIndexes: existingIndexes,
+        collection: collection,
+      );
+      final report = advisor.generateReport(query, recommendations);
+      if (!mounted) return;
+      setState(() {
+        _report = report;
+        _analyzing = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _analyzing = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final report = _report;
+    return AlertDialog(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      title: Text(l10n.mongoCapIndexAdvice),
+      content: SizedBox(
+        width: 520,
+        height: 400,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _queryController,
+              maxLines: 5,
+              decoration: const InputDecoration(
+                hintText: 'db.collection.find({ status: "A" }).sort({ ts: -1 })',
+                border: OutlineInputBorder(),
+              ),
+              style: TextStyle(
+                fontFamily: AppDesignSystem.monoFontFamily,
+                fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
+                fontSize: 13,
+                color: context.themeColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppDesignSystem.space2),
+            Row(
+              children: [
+                ElevatedButton(
+                  onPressed: _analyzing ? null : _analyze,
+                  child: Text(l10n.indexSuggestion),
+                ),
+                if (_analyzing)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 12),
+                    child: SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppDesignSystem.space2),
+            if (_error != null)
+              Expanded(
+                child: Text(
+                  '${l10n.analysisFailed}: $_error',
+                  style: TextStyle(
+                    color: context.themeColors.error,
+                    fontSize: 13,
+                  ),
+                ),
+              )
+            else if (report != null)
+              Expanded(
+                child: SingleChildScrollView(
+                  child: SelectableText(
+                    report,
+                    style: TextStyle(
+                      fontFamily: AppDesignSystem.monoFontFamily,
+                      fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
+                      fontSize: 12,
+                      color: context.themeColors.textPrimary,
+                    ),
+                  ),
+                ),
+              )
+            else
+              const Expanded(child: SizedBox.shrink()),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.commonClose),
+        ),
+      ],
+    );
+  }
+}
+
+/// 副本集/分片面板：与树内 Replication/Sharding 节点同源数据
+///（provider.loadMongoDB*Status facade），两段状态呈现（单机分别显示
+/// 非副本集 / 非分片集群的真实状态）。
+class _MongoReplicationPanelDialog extends StatefulWidget {
+  const _MongoReplicationPanelDialog({
+    required this.connectionId,
+    required this.loadReplicaStatus,
+    required this.loadShardingStatus,
+  });
+
+  final String connectionId;
+  final Future<Map<String, dynamic>?> Function(String connectionId)
+  loadReplicaStatus;
+  final Future<Map<String, dynamic>?> Function(String connectionId)
+  loadShardingStatus;
+
+  @override
+  State<_MongoReplicationPanelDialog> createState() =>
+      _MongoReplicationPanelDialogState();
+}
+
+class _MongoReplicationPanelDialogState
+    extends State<_MongoReplicationPanelDialog> {
+  Map<String, dynamic>? _replicaStatus;
+  Map<String, dynamic>? _shardingStatus;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  Future<void> _load() async {
+    try {
+      final results = await Future.wait([
+        widget.loadReplicaStatus(widget.connectionId),
+        widget.loadShardingStatus(widget.connectionId),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _replicaStatus = results[0];
+        _shardingStatus = results[1];
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AlertDialog(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      title: Text(l10n.mongoNodeReplication),
+      content: SizedBox(
+        width: 440,
+        height: 380,
+        child: _loading
+            ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+            : _error != null
+            ? _ErrorLine('Failed to load: $_error')
+            : ListView(
+                children: [
+                  _SectionHeader(
+                    icon: LucideIcons.refreshCw,
+                    label: l10n.mongoNodeReplication,
+                  ),
+                  _replicaContent(),
+                  const SizedBox(height: AppDesignSystem.space3),
+                  _SectionHeader(
+                    icon: LucideIcons.gitFork,
+                    label: l10n.mongoNodeSharding,
+                  ),
+                  _shardingContent(),
+                ],
+              ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.commonClose),
+        ),
+      ],
+    );
+  }
+
+  /// 与树内 _buildReplicationContent 同语义（facade 哨兵区分未加载/非副本集）。
+  Widget _replicaContent() {
+    final status = _replicaStatus;
+    if (status == null ||
+        (status['__loaded'] == true && status['isReplicaSet'] == false)) {
+      // 树内同款文案（树内 :341 同一硬编码先例）；独立 l10n key 缺口随任务回报。
+      return const _MutedLine('Not a replica set');
+    }
+    if (status['error'] != null) {
+      return _ErrorLine('Failed to load: ${status['error']}');
+    }
+    final setName = status['setName'] ?? 'unknown';
+    final myState = status['myState'];
+    final members = (status['members'] as List<dynamic>?) ?? const [];
+    // myState 1 = PRIMARY（MongoDB 文档，与树内判定一致）
+    final roleStr = (myState == 1) ? 'PRIMARY' : 'SECONDARY';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _MutedLine('Set: $setName'),
+        _MutedLine('This node: $roleStr'),
+        for (final m in members)
+          _MutedLine(_formatMember(m as Map<String, dynamic>)),
+      ],
+    );
+  }
+
+  Widget _shardingContent() {
+    final l10n = AppLocalizations.of(context)!;
+    final status = _shardingStatus;
+    if (status == null ||
+        (status['__loaded'] == true && status['isShardedCluster'] == false)) {
+      return _MutedLine(l10n.mongoShardingNotSharded);
+    }
+    if (status['error'] != null) {
+      return _ErrorLine('Failed to load: ${status['error']}');
+    }
+    final shards = (status['shards'] as List<dynamic>?) ?? const [];
+    final totalShards = status['totalShards'] ?? shards.length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _MutedLine('$totalShards shards'),
+        for (final s in shards)
+          _MutedLine(_formatShard(s as Map<String, dynamic>)),
+      ],
+    );
+  }
+
+  String _formatShard(Map<String, dynamic> shard) {
+    final id = shard['id'] ?? 'unknown';
+    final host = shard['host'] ?? '';
+    return '$id — $host';
+  }
+
+  String _formatMember(Map<String, dynamic> m) {
+    final name = m['name'] ?? 'unknown';
+    final state = m['state'] ?? 'UNKNOWN';
+    final ping = m['pingMs'];
+    final pingStr = (ping != null) ? ' (${ping}ms)' : '';
+    return '$name ($state$pingStr)';
+  }
+}
+
+/// Schema 视图：复用既有舞台内容件 [WorkbenchMongoSchemaView]（2b.2b 接线
+/// 目标；其自身消费 per-connection facade loadMongoDBSchema/getMongoDBSchema
+/// ——树内集合展开同源，加载/空/失败三态齐备）。本 dialog 只做库/集合选择
+/// 与承载，零重复实现；import 复用零改动，未触 ai_workbench/ 任何文件。
+class _MongoSchemaViewDialog extends StatefulWidget {
+  const _MongoSchemaViewDialog({
+    required this.connectionId,
+    required this.loadDatabases,
+    required this.loadCollections,
+  });
+
+  final String connectionId;
+  final Future<List<String>> Function(String connectionId) loadDatabases;
+  final Future<List<String>> Function(String connectionId, String database)
+  loadCollections;
+
+  @override
+  State<_MongoSchemaViewDialog> createState() => _MongoSchemaViewDialogState();
+}
+
+class _MongoSchemaViewDialogState extends State<_MongoSchemaViewDialog> {
+  List<String> _databases = const [];
+  List<String> _collections = const [];
+  String? _selectedDatabase;
+  String? _selectedCollection;
+  bool _loadingCollections = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDatabases());
+  }
+
+  Future<void> _loadDatabases() async {
+    try {
+      final dbs = await widget.loadDatabases(widget.connectionId);
+      if (!mounted) return;
+      setState(() => _databases = dbs);
+    } catch (_) {
+      // 库列表失败保持空下拉（无库可选即无操作入口），不弹错——纯导航入口。
+    }
+  }
+
+  Future<void> _selectDatabase(String database) async {
+    if (database == _selectedDatabase) return;
+    setState(() {
+      _selectedDatabase = database;
+      _selectedCollection = null;
+      _collections = const [];
+      _loadingCollections = true;
+    });
+    try {
+      final collections = await widget.loadCollections(
+        widget.connectionId,
+        database,
+      );
+      if (!mounted) return;
+      setState(() {
+        _collections = collections;
+        _loadingCollections = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingCollections = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final database = _selectedDatabase;
+    final collection = _selectedCollection;
+    final selected = database != null && collection != null;
+    return AlertDialog(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      title: Text(l10n.mongoCapSchemaView),
+      content: SizedBox(
+        width: 560,
+        height: 480,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButton<String>(
+                    value: _selectedDatabase,
+                    isExpanded: true,
+                    hint: Text(l10n.connectionDatabase),
+                    items: [
+                      for (final db in _databases)
+                        DropdownMenuItem<String>(value: db, child: Text(db)),
+                    ],
+                    onChanged: (db) {
+                      if (db != null) _selectDatabase(db);
+                    },
+                  ),
+                ),
+                const SizedBox(width: AppDesignSystem.space2),
+                Expanded(
+                  child: DropdownButton<String>(
+                    value: _selectedCollection,
+                    isExpanded: true,
+                    hint: Text(l10n.sidebarCollections),
+                    items: [
+                      for (final collection in _collections)
+                        DropdownMenuItem<String>(
+                          value: collection,
+                          child: Text(collection),
+                        ),
+                    ],
+                    onChanged: (collection) {
+                      if (collection != null) {
+                        setState(() => _selectedCollection = collection);
+                      }
+                    },
+                  ),
+                ),
+                if (_loadingCollections)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8),
+                    child: SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppDesignSystem.space2),
+            Expanded(
+              child: selected
+                  ? WorkbenchMongoSchemaView(
+                      connectionId: widget.connectionId,
+                      databaseName: database,
+                      collectionName: collection,
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.commonClose),
+        ),
+      ],
+    );
+  }
+}
+
+/// 面板内弱化文本行。
+class _MutedLine extends StatelessWidget {
+  const _MutedLine(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: context.themeColors.textSecondary,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+}
+
+/// 面板内错误文本行。
+class _ErrorLine extends StatelessWidget {
+  const _ErrorLine(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Text(
+        text,
+        style: TextStyle(color: context.themeColors.error, fontSize: 12),
+      ),
+    );
+  }
+}
+
+/// 面板内分组头（图标 + 标签）。
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: AppDesignSystem.dbMongodb),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              color: context.themeColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

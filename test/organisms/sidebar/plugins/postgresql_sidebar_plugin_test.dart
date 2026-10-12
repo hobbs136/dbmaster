@@ -3,7 +3,13 @@
 // 断言保持）；另覆盖全局树节点与能力分组。
 // DBT-T4 增补：新增 3 项位映射锁定 + 装配可见项数（core 5 + 插件 4）
 // + 表维护聚合入口 dialog（确认门取消 = 零执行 / 确认执行一次）。
+// DBT-T8 增补：pg.locks 项位（装配 10 项）+ VACUUM/REINDEX 动作位
+// （确认门取消 = 零执行零审计 / 执行+审计+结果行 / 失败路径 / 库级
+// VACUUM）+ R4-d PopScope 执行中不可关。
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -349,13 +355,14 @@ void main() {
               final groups = const PostgresqlSidebarPlugin()
                   .capabilityGroups(context);
               // DBT-T4：新增项 capabilityId 映射逐项锁定（pg.vector 复用
-              // pg.extension 位 = 扩展管理能力面；pg.queryPlan 主代理裁定
-              // 暂缓，本批无该项）。
+              // pg.extension 位 = 扩展管理能力面；pg.queryPlan 已销项——
+              // R2 裁定，呈报包 #11 备查，本批无该项；DBT-T8 增 pg.locks）。
               const expected = <String, String>{
                 'process.kill': 'process.kill',
                 'pg.extension': 'pg.extension',
                 'pg.vector': 'pg.extension',
                 'pg.maintenance': 'table.analyze',
+                'pg.locks': 'pg.locks',
               };
               final items = groups.first.items;
               expect(items.map((i) => i.id).toList(), expected.keys.toList());
@@ -376,6 +383,8 @@ void main() {
         'process.kill',
         'pg.extension',
         'table.analyze',
+        // DBT-T8：锁分析位（T0 预登记，本批接线消费）。
+        'pg.locks',
       ];
       for (final cap in caps) {
         expect(CapabilityTable.has(DatabaseType.postgresql, cap), isTrue,
@@ -383,7 +392,7 @@ void main() {
       }
     });
 
-    testWidgets('PostgreSQL 装配可见项数 = core 5 + 插件 4 = 9（CapabilityTable 门控后）',
+    testWidgets('PostgreSQL 装配可见项数 = core 5 + 插件 5 = 10（CapabilityTable 门控后）',
         (tester) async {
       SharedPreferences.setMockInitialValues({});
       await tester.pumpWidget(
@@ -404,7 +413,7 @@ void main() {
                 for (final g in groups)
                   ...g.items.map((i) => i.item.id),
               ];
-              expect(ids, hasLength(9));
+              expect(ids, hasLength(10));
               expect(
                 ids,
                 containsAll(const [
@@ -414,11 +423,12 @@ void main() {
                   'trigger.list',
                   'schema.diff',
                   'ai.assistant',
-                  // 插件 4
+                  // 插件 5（DBT-T8 增 pg.locks）
                   'process.kill',
                   'pg.extension',
                   'pg.vector',
                   'pg.maintenance',
+                  'pg.locks',
                 ]),
               );
               return const SizedBox.shrink();
@@ -459,17 +469,19 @@ void main() {
       return dialog;
     }
 
-    testWidgets('渲染库下拉 / ANALYZE 动作 chip（T4 单动作，T8 预留位）/ 表清单', (
+    testWidgets('渲染库下拉 / 三动作 chip（ANALYZE + T8 VACUUM/REINDEX）/ 表清单', (
       tester,
     ) async {
       await _pumpEntry(tester, onRun: (_, _) {});
 
       expect(find.text('chinook'), findsOneWidget); // 默认选首库
       expect(find.text('Maintenance'), findsOneWidget); // 标题
-      expect(find.text('Analyze Table'), findsOneWidget); // 唯一动作 chip
+      expect(find.text('Analyze Table'), findsOneWidget); // T4 既有动作 chip
+      expect(find.text('VACUUM'), findsOneWidget); // DBT-T8 扩展动作位
+      expect(find.text('REINDEX'), findsOneWidget); // DBT-T8 扩展动作位
       expect(find.text('artist'), findsOneWidget);
       expect(find.text('Select Tables (leave empty for all)'), findsOneWidget);
-      // 未选表 → 执行（Confirm）禁用
+      // 未选表 + 默认 ANALYZE → 执行（Confirm）禁用
       final confirmBtn = tester.widget<TextButton>(
         find.widgetWithText(TextButton, 'Confirm'),
       );
@@ -550,6 +562,362 @@ void main() {
         find.byType(PostgresqlTableMaintenanceEntryDialog),
         findsOneWidget,
       );
+    });
+  });
+
+  group('PostgresqlTableMaintenanceEntryDialog VACUUM/REINDEX（DBT-T8）', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    Widget _wrap(Widget child) => MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: Scaffold(body: child),
+        );
+
+    Future<void> _pumpOps(
+      WidgetTester tester, {
+      required PgMaintenanceExecutor execute,
+      required PgMaintenanceAuditor audit,
+    }) async {
+      await tester.pumpWidget(
+        _wrap(PostgresqlTableMaintenanceEntryDialog(
+          connectionId: 'c1',
+          loadDatabases: (_) async => ['chinook', 'dbmaster_test'],
+          loadTables: (_, __) async => ['artist', 'album', 'track'],
+          runMaintenance: (_, __, ___, ____) async =>
+              const <Map<String, dynamic>>[],
+          executeMaintenance: execute,
+          auditMaintenance: audit,
+        )),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    /// 选动作 chip → 勾表 → 执行 → 到达专属确认门（返回是否已出现）。
+    Future<bool> _startOp(WidgetTester tester, String chipLabel) async {
+      await tester.tap(find.text(chipLabel));
+      await tester.pump();
+      await tester.tap(find.text('artist'));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(TextButton, 'Confirm'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      return tester.any(find.byType(DestructiveConfirmDialog));
+    }
+
+    testWidgets('VACUUM 确认门取消 = 零执行零审计（执行计数断言）', (tester) async {
+      var execCount = 0;
+      var auditCount = 0;
+      await _pumpOps(
+        tester,
+        execute: (_, __, ___) async => execCount++,
+        audit: (_) async => auditCount++,
+      );
+
+      expect(await _startOp(tester, 'VACUUM'), isTrue,
+          reason: '专属确认门应出现');
+      expect(find.text('Run VACUUM on artist?'), findsOneWidget);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DestructiveConfirmDialog),
+          matching: find.widgetWithText(TextButton, 'Cancel'),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      expect(execCount, 0, reason: '取消 = 零执行');
+      expect(auditCount, 0, reason: '取消 = 零审计');
+      expect(find.byType(PostgresqlTableMaintenanceEntryDialog), findsOneWidget);
+    });
+
+    testWidgets('VACUUM 确认后执行一次 + 审计落账（SQL 逐字断言）+ 结果行', (
+      tester,
+    ) async {
+      final executedSql = <String>[];
+      final audits = <PgMaintenanceAuditRecord>[];
+      await _pumpOps(
+        tester,
+        execute: (_, __, sql) async => executedSql.add(sql),
+        audit: (r) async => audits.add(r),
+      );
+
+      expect(await _startOp(tester, 'VACUUM'), isTrue);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DestructiveConfirmDialog),
+          matching: find.text('Confirm'),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      // SQL 与 runTableMaintenance 内 buildSql PG 分支同源（标识符双引号）。
+      expect(executedSql, ['VACUUM "artist"']);
+      expect(audits, hasLength(1));
+      expect(audits.first.sql, 'VACUUM "artist"');
+      expect(audits.first.databaseName, 'chinook');
+      expect(audits.first.connectionId, 'c1');
+      expect(audits.first.success, isTrue);
+      expect(audits.first.errorMessage, isNull);
+      // 成功结果行（pgMaintainSuccess + 目标 + 耗时）。
+      expect(find.textContaining('VACUUM completed'), findsOneWidget);
+      expect(find.textContaining('artist'), findsWidgets);
+    });
+
+    testWidgets('REINDEX 执行 REINDEX TABLE 形态 + 审计', (tester) async {
+      final executedSql = <String>[];
+      await _pumpOps(
+        tester,
+        execute: (_, __, sql) async => executedSql.add(sql),
+        audit: (_) async {},
+      );
+
+      expect(await _startOp(tester, 'REINDEX'), isTrue);
+      expect(find.text('Run REINDEX on artist?'), findsOneWidget);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DestructiveConfirmDialog),
+          matching: find.text('Confirm'),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      expect(executedSql, ['REINDEX TABLE "artist"']);
+      expect(find.textContaining('REINDEX completed'), findsOneWidget);
+    });
+
+    testWidgets('失败路径：引擎错误原文进结果行 + 审计 success=false', (tester) async {
+      final audits = <PgMaintenanceAuditRecord>[];
+      await _pumpOps(
+        tester,
+        execute: (_, __, ___) async => throw StateError('engine boom'),
+        audit: (r) async => audits.add(r),
+      );
+
+      expect(await _startOp(tester, 'VACUUM'), isTrue);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DestructiveConfirmDialog),
+          matching: find.text('Confirm'),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      expect(audits, hasLength(1));
+      expect(audits.first.success, isFalse);
+      expect(audits.first.errorMessage, contains('engine boom'));
+      // 失败结果行（pgMaintainFailed + SelectableText 错误原文）。
+      expect(find.textContaining('VACUUM failed'), findsOneWidget);
+      expect(find.textContaining('engine boom'), findsOneWidget);
+    });
+
+    testWidgets('库级 VACUUM：未选表可执行，SQL = 裸 VACUUM，确认门明示库名', (
+      tester,
+    ) async {
+      final executedSql = <String>[];
+      await _pumpOps(
+        tester,
+        execute: (_, __, sql) async => executedSql.add(sql),
+        audit: (_) async {},
+      );
+
+      // 切 VACUUM chip，不勾任何表。
+      await tester.tap(find.text('VACUUM'));
+      await tester.pump();
+      final confirmBtn = tester.widget<TextButton>(
+        find.widgetWithText(TextButton, 'Confirm'),
+      );
+      expect(confirmBtn.onPressed, isNotNull,
+          reason: 'VACUUM 未选表 = 库级全量，应可执行');
+
+      await tester.tap(find.widgetWithText(TextButton, 'Confirm'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(DestructiveConfirmDialog), findsOneWidget);
+      // 确认门 target = 当前所选库（默认首库 chinook）。
+      expect(find.text('Run VACUUM on chinook?'), findsOneWidget);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DestructiveConfirmDialog),
+          matching: find.text('Confirm'),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      expect(executedSql, ['VACUUM']);
+      expect(find.textContaining('VACUUM completed'), findsOneWidget);
+    });
+
+    testWidgets('REINDEX 未选表 = 无目标（按钮禁用，防御性返回）', (tester) async {
+      var execCount = 0;
+      await _pumpOps(
+        tester,
+        execute: (_, __, ___) async => execCount++,
+        audit: (_) async {},
+      );
+
+      await tester.tap(find.text('REINDEX'));
+      await tester.pump();
+      final confirmBtn = tester.widget<TextButton>(
+        find.widgetWithText(TextButton, 'Confirm'),
+      );
+      expect(confirmBtn.onPressed, isNull, reason: 'REINDEX 无库级形态');
+      expect(execCount, 0);
+    });
+
+    testWidgets('默认执行器路径（不注入接缝）经 AppProvider.executeQuery', (
+      tester,
+    ) async {
+      // 生产默认 executor = context.read<AppProvider>().executeQuery——
+      // e2e 曾暴露 tear-off 签名错配只在默认路径可现（接缝注入的单测覆盖
+      // 不到），此处锁默认路径的接线（未连接库 → 引擎侧报 Not connected
+      // 进失败结果行 = 默认路径真实触达 provider 执行面的证据）。
+      final audits = <PgMaintenanceAuditRecord>[];
+      final provider = AppProvider();
+      await tester.pumpWidget(
+        ChangeNotifierProvider<AppProvider>.value(
+          value: provider,
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('en'),
+            home: Scaffold(
+              body: PostgresqlTableMaintenanceEntryDialog(
+                connectionId: 'c1',
+                loadDatabases: (_) async => ['chinook'],
+                loadTables: (_, __) async => ['artist'],
+                runMaintenance: (_, __, ___, ____) async =>
+                    const <Map<String, dynamic>>[],
+                auditMaintenance: (r) async => audits.add(r),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('VACUUM'));
+      await tester.pump();
+      await tester.tap(find.text('artist'));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(TextButton, 'Confirm'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DestructiveConfirmDialog),
+          matching: find.text('Confirm'),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      // 未连接库 → 默认执行器触达 provider.executeQuery 并以失败收口
+      // （失败行 + 审计 success=false；NoSuchMethodError 类接线缺陷不会
+      // 产生该形态——错误原文为引擎/服务层异常文本）。
+      expect(find.textContaining('VACUUM failed'), findsOneWidget);
+      expect(audits, hasLength(1));
+      expect(audits.first.success, isFalse);
+      expect(audits.first.errorMessage, isNotNull);
+    });
+
+    testWidgets('R4-d：执行中 PopScope 拦 Esc/屏障，完成后 Cancel 可关', (
+      tester,
+    ) async {
+      // 经 showDialog 路由泵（barrierDismissible:false 沿插件生产形态），
+      // 执行器挂起以稳定处于 _running 态。
+      final executorGate = Completer<void>();
+      late StateSetter dialogHostSetState;
+      var opened = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                dialogHostSetState = setState;
+                return TextButton(
+                  onPressed: () {
+                    showDialog<void>(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (_) => PostgresqlTableMaintenanceEntryDialog(
+                        connectionId: 'c1',
+                        loadDatabases: (_) async => ['chinook'],
+                        loadTables: (_, __) async => ['artist'],
+                        runMaintenance: (_, __, ___, ____) async =>
+                            const <Map<String, dynamic>>[],
+                        executeMaintenance: (_, __, ___) => executorGate.future,
+                        auditMaintenance: (_) async {},
+                      ),
+                    );
+                    setState(() => opened = true);
+                  },
+                  child: const Text('open'),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      expect(find.byType(PostgresqlTableMaintenanceEntryDialog), findsOneWidget);
+
+      // 进入执行中态：勾表 → Confirm → 门内确认 → executor 挂起。
+      await tester.tap(find.text('VACUUM'));
+      await tester.pump();
+      await tester.tap(find.text('artist'));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(TextButton, 'Confirm'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DestructiveConfirmDialog),
+          matching: find.text('Confirm'),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(DestructiveConfirmDialog), findsNothing,
+          reason: '门已确认，进入执行中');
+
+      // 执行中：Esc 与屏障点击都不关（PopScope canPop:false 拦 maybePop）。
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pump();
+      expect(find.byType(PostgresqlTableMaintenanceEntryDialog), findsOneWidget,
+          reason: '执行中不可 Esc/屏障关闭');
+
+      // 放行 executor → 结果行 → Cancel 正常关闭（canPop 复位）。
+      executorGate.complete();
+      await tester.pump();
+      await tester.pumpAndSettle();
+      expect(find.textContaining('VACUUM completed'), findsOneWidget);
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.byType(PostgresqlTableMaintenanceEntryDialog), findsNothing);
+      // 防御：StatefulBuilder 变量闭合使用（避免未用告警）。
+      dialogHostSetState(() => opened = opened);
+      expect(opened, isTrue);
     });
   });
 }

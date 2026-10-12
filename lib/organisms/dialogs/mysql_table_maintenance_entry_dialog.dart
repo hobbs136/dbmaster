@@ -212,39 +212,44 @@ class _MysqlTableMaintenanceEntryDialogState
     final l10n = AppLocalizations.of(context)!;
     final colors = context.themeColors;
 
-    return AlertDialog(
-      backgroundColor: colors.bgSecondary,
-      title: Row(
-        children: [
-          Icon(LucideIcons.wrench, size: 20, color: colors.accentBlue),
-          const SizedBox(width: AppDesignSystem.space2),
-          Text(l10n.mysqlCapMaintenance),
+    // R4-d（reviewer P3#10，DBT-T8 顺带同改）：动作执行中禁止 Esc/屏障
+    // 关闭（PopScope 拦 maybePop，屏障/Esc 同走该路径）。
+    return PopScope(
+      canPop: !_running,
+      child: AlertDialog(
+        backgroundColor: colors.bgSecondary,
+        title: Row(
+          children: [
+            Icon(LucideIcons.wrench, size: 20, color: colors.accentBlue),
+            const SizedBox(width: AppDesignSystem.space2),
+            Text(l10n.mysqlCapMaintenance),
+          ],
+        ),
+        content: SizedBox(
+          width: 560,
+          height: 480,
+          child: _databases == null
+              ? const Center(child: CircularProgressIndicator())
+              : _buildBody(l10n, colors),
+        ),
+        actions: [
+          TextButton(
+            onPressed: _running ? null : () => Navigator.pop(context),
+            child: Text(l10n.commonCancel),
+          ),
+          TextButton(
+            onPressed:
+                _selectedTables.isNotEmpty && !_running ? _execute : null,
+            child: _running
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(l10n.commonConfirm),
+          ),
         ],
       ),
-      content: SizedBox(
-        width: 560,
-        height: 480,
-        child: _databases == null
-            ? const Center(child: CircularProgressIndicator())
-            : _buildBody(l10n, colors),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _running ? null : () => Navigator.pop(context),
-          child: Text(l10n.commonCancel),
-        ),
-        TextButton(
-          onPressed:
-              _selectedTables.isNotEmpty && !_running ? _execute : null,
-          child: _running
-              ? const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(l10n.commonConfirm),
-        ),
-      ],
     );
   }
 

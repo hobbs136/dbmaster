@@ -2444,6 +2444,48 @@ class MongoDBAdapter extends DatabaseAdapter
     }
   }
 
+  // ── DBT-T10 · 进程管理（currentOp 只读列表 + killOp；W-11）──────────
+
+  /// currentOp 只读列表（DBT-T10）：admin 库 `{currentOp: 1}` 的单文档
+  /// 响应（非游标分支 → `_commandDoc` 直得嵌套对象；`inprog` 数组由消费方
+  /// 解——进程面板映射 opid/ns/op/secs_running/client/command）。
+  /// 返回原始响应文档；未连接/通道失败上抛。
+  Future<Map<String, dynamic>> getCurrentOp() async {
+    if (!isConnected) throw Exception('未连接到 MongoDB');
+    return _commandDoc(
+      {'currentOp': 1},
+      database: 'admin',
+      timeoutMs: _timeoutMs,
+    );
+  }
+
+  /// killOp（DBT-T10 高风险面：修改操作状态，非数据写）。**fire-and-forget
+  /// 语义**：Mongo 对已结束/不存在的 opid 亦回 `ok:1`（不报错）——「目标
+  /// 已消失」错误态只能由 kill 后 currentOp 复查派生（面板已接复查刷新）。
+  ///
+  /// [opid] 保持 wire 原生类型直传：standalone 为数值、分片集群为
+  /// `"shard:nnn"` 字符串——不经字符串往返解析，防精度/形态漂移（任务书
+  /// 「opid 映射取舍」落点：display 才 stringify）。
+  ///
+  /// 返回 killOp 响应文档（`{info, ok}`，info = "attempting to kill op"）；
+  /// 未连接/通道失败上抛。
+  ///
+  /// TODO(DBT-T10 · readonly 语义转 security 裁决，2026-10-12)：killOp
+  /// 未列入 server 端 WRITE_COMMANDS（dbmaster-server
+  /// `crates/automation/src/mongo.rs`，read_only 连接写命令硬执行位）与
+  /// 本壳 `validateCommand`/基类 `isWriteCommand` 关键字面 → **只读连接
+  /// 当前可发 killOp**。readonly 语义（拦 or 放行+标注）已转
+  /// security-reviewer 裁决；落定前本包装不增删 guardReadOnly（不预占
+  /// 裁决结论），确认门 + 审计（mongo_process_dialog）照任务书交付。
+  Future<Map<String, dynamic>> killOp(Object opid) async {
+    if (!isConnected) throw Exception('未连接到 MongoDB');
+    return _commandDoc(
+      {'killOp': 1, 'op': opid},
+      database: 'admin',
+      timeoutMs: _timeoutMs,
+    );
+  }
+
   // ==========================================================================
   // 网关 plumbing（认证 / 注册 / 映射 / 错误形状——与 SQL 族壳同构）
   // ==========================================================================

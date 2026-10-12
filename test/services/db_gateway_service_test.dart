@@ -135,6 +135,50 @@ void main() {
         isTrue,
       );
     });
+
+    // DBT-T8 R4-b（security P2-2）：维护命令语句级排除——消「HTTP 30s 客户端
+    // 超时 → database_service 透明降级 → 同一维护命令本地重跑」双跑面；
+    // 暴露面 = sqlite（非 gateway-backed 且 server-syncable，T5 维护三件
+    // embedded 模式命中），fixture 沿本组 pg()（实为 sqlite）形态。
+    test('false for maintenance statements (VACUUM/REINDEX/ANALYZE/OPTIMIZE)',
+        () {
+      wireEmbedded();
+      for (final sql in [
+        'VACUUM',
+        'VACUUM t',
+        'vacuum "artist"',
+        'REINDEX TABLE t',
+        'REINDEX t',
+        'ANALYZE t',
+        'ANALYZE',
+        'OPTIMIZE TABLE `db`.`t`',
+        '(VACUUM t)', // wrapper-paren 形态沿 _isTransactionControlStatement 先例
+        '  VACUUM t', // 前导空白
+      ]) {
+        expect(
+          DbGatewayService.instance.shouldRouteViaGateway(pg(), sql),
+          isFalse,
+          reason: '"$sql" should bypass the gateway (maintenance stays local)',
+        );
+      }
+      // 普通查询行为不回退：SELECT 仍走网关（含语句体含维护词的普通查询——
+      // 前缀判定不误伤）。
+      expect(
+        DbGatewayService.instance.shouldRouteViaGateway(pg(), 'SELECT * FROM t'),
+        isTrue,
+      );
+      expect(
+        DbGatewayService.instance
+            .shouldRouteViaGateway(pg(), 'SELECT * FROM vacuum_log'),
+        isTrue,
+      );
+      // EXPLAIN ANALYZE 前缀不在排除面（首关键字为 EXPLAIN，路由语义不变）。
+      expect(
+        DbGatewayService.instance
+            .shouldRouteViaGateway(pg(), 'EXPLAIN ANALYZE SELECT 1'),
+        isTrue,
+      );
+    });
   });
 
   group('lookupServerConnId', () {

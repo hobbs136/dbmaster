@@ -9,9 +9,12 @@
 // 迁入；6 个内嵌对话框拆至 redis_dialogs/（树右键与能力菜单双入口共享）。
 //
 // 能力菜单（capabilityGroups）：键空间组「新建键」（树 db 右键同流程双轨）
-// + advanced 组 9 面板入口（Workbench/Pub-Sub/Lua/Pipeline/Transaction/
-// Memory Analysis/Keyspace Notifications/ACL/Edit Config——与树内全局节点
-// 同一 showDialog 路径，能力位经 port 门控）。
+// + advanced 组面板入口（Workbench/Pub-Sub/Memory Analysis/ACL/Edit Config
+// + DBT-T6 新增 Slow Log/Expiring Soon）+ more 组（DBT-T6 归并次要项
+// Lua/Pipeline/Transaction/Keyspace Notifications——项 id 不变仅组归属调整）
+// ——与树内全局节点同一打开路径，能力位经 port 门控。
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -93,6 +96,52 @@ class RedisSidebarPlugin implements SidebarPlugin {
             onActivate: () => _activatePubsub(context),
           ),
           SidebarCapabilityItem(
+            id: 'redis.memory',
+            label: (l10n) => l10n.redisCapMemoryAnalysis,
+            icon: LucideIcons.chartPie,
+            onActivate: () => _activateMemoryAnalysis(context),
+          ),
+          SidebarCapabilityItem(
+            id: 'redis.acl',
+            label: (l10n) => l10n.redisCapAcl,
+            icon: LucideIcons.shieldCheck,
+            onActivate: () => _activateAcl(context),
+          ),
+          SidebarCapabilityItem(
+            id: 'redis.config',
+            capabilityId: 'redis.config',
+            label: (l10n) => l10n.redisCapConfig,
+            icon: LucideIcons.settings,
+            onActivate: () => _activateEditConfig(context),
+          ),
+          // ── DBT-T6 新增（2026-10 工具面板补齐批，feat/db-tooling-completion）
+          // ── 全部路由既有目标，零新执行通道。
+          SidebarCapabilityItem(
+            id: 'redis.slowlog',
+            capabilityId: 'redis.slowlog',
+            label: (l10n) => l10n.redisCapSlowlog,
+            // 图标与树内 Slow Log 节点同款（同源）。
+            icon: LucideIcons.gauge,
+            onActivate: () => _activateSlowlog(context),
+          ),
+          SidebarCapabilityItem(
+            id: 'redis.expiring',
+            capabilityId: 'redis.keyspace.expiring',
+            label: (l10n) => l10n.redisCapExpiring,
+            // 图标与树内 Expiring Soon 节点同款（同源）。
+            icon: LucideIcons.timer,
+            onActivate: () => _activateExpiring(context),
+          ),
+        ],
+      ),
+      // DBT-T6「更多」折叠组：次要项归并（项 id 不变，仅组归属调整；
+      // 组内保持既有相对顺序 lua → pipeline → transaction → notifications）。
+      SidebarCapabilityGroup(
+        id: 'more',
+        label: (l10n) => l10n.redisCapGroupMore,
+        icon: LucideIcons.ellipsis,
+        items: [
+          SidebarCapabilityItem(
             id: 'redis.lua',
             capabilityId: 'redis.lua',
             label: (l10n) => l10n.redisCapLua,
@@ -112,29 +161,10 @@ class RedisSidebarPlugin implements SidebarPlugin {
             onActivate: () => _activateTransaction(context),
           ),
           SidebarCapabilityItem(
-            id: 'redis.memory',
-            label: (l10n) => l10n.redisCapMemoryAnalysis,
-            icon: LucideIcons.chartPie,
-            onActivate: () => _activateMemoryAnalysis(context),
-          ),
-          SidebarCapabilityItem(
             id: 'redis.keyspace.notifications',
             label: (l10n) => l10n.redisCapKeyspaceNotifications,
             icon: LucideIcons.bellRing,
             onActivate: () => _activateKeyspaceNotifications(context),
-          ),
-          SidebarCapabilityItem(
-            id: 'redis.acl',
-            label: (l10n) => l10n.redisCapAcl,
-            icon: LucideIcons.shieldCheck,
-            onActivate: () => _activateAcl(context),
-          ),
-          SidebarCapabilityItem(
-            id: 'redis.config',
-            capabilityId: 'redis.config',
-            label: (l10n) => l10n.redisCapConfig,
-            icon: LucideIcons.settings,
-            onActivate: () => _activateEditConfig(context),
           ),
         ],
       ),
@@ -323,6 +353,240 @@ class RedisSidebarPlugin implements SidebarPlugin {
       builder: (ctx) => RedisEditConfigDialog(
         provider: context.read<AppProvider>(),
         connectionId: server.id,
+      ),
+    );
+  }
+
+  // ── DBT-T6 能力项动作（2026-10 工具面板补齐批，feat/db-tooling-completion）
+  // ── 全部路由既有目标，零新执行通道；连接断开 → 锚定 null 直接返回
+  // （resolveSidebarActionServer 既有模式）。
+
+  /// Slow Log 面板项：树内连接级「Slow Log」节点同源打开——一次性展开信号
+  /// （2b.1 R3 通道，pg.extension 同款；已展开时消费方 no-op，幂等安全）+
+  /// 树节点 onTap 同款数据加载（展开通道只补 expandedItems，不触发节点取数；
+  /// loadRedisSlowLog 即树内唯一取数路径）。既有 UI = 树节点本身，可路由，
+  /// 不新建面板实现（任务书边界条款未触发）。
+  void _activateSlowlog(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    final provider = context.read<AppProvider>();
+    provider.sidebar.requestSidebarExpand('${server.id}:redis_slowlog');
+    provider.loadRedisSlowLog(server.id);
+  }
+
+  /// Expiring Soon（TTL 监控）面板项：树内 per-db「Expiring Soon」节点同源
+  /// 复刻为对话框——同一取数路径（loadRedisTTLKeys/getRedisTTLKeys，零新
+  /// 执行通道），渲染口径与树节点一致。db 取侧栏选中库（_actionDb 同源），
+  /// 无选中兜底 '0'（与新建键入口同规则——树内该节点 per-db，连接级菜单
+  /// 无库上下文，无法直接展开定位，故复刻视图）。
+  void _activateExpiring(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    final provider = context.read<AppProvider>();
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: context.themeColors.bgSecondary,
+        child: _RedisExpiringView(
+          provider: provider,
+          connectionId: server.id,
+          databaseName: _actionDb(provider, server.id),
+        ),
+      ),
+    );
+  }
+}
+
+/// DBT-T6 · Expiring Soon 连接级视图：树内 per-db「Expiring Soon」节点
+/// 同源复刻（同一取数路径 loadRedisTTLKeys/getRedisTTLKeys，零新执行通道；
+/// 渲染口径逐行对齐 _RedisConnectionTree._buildDatabaseChildren 的
+/// Expiring Soon 分支——头部精确统计 + 采样说明 + 键明细 + 空态）。
+/// 文案沿树内既有英文标签（树装配体硬编码英文先例；ARB 已由 T0 冻结，
+/// 视图内容无既有 l10n key）。
+class _RedisExpiringView extends StatefulWidget {
+  final AppProvider provider;
+  final String connectionId;
+  final String databaseName;
+
+  const _RedisExpiringView({
+    required this.provider,
+    required this.connectionId,
+    required this.databaseName,
+  });
+
+  @override
+  State<_RedisExpiringView> createState() => _RedisExpiringViewState();
+}
+
+class _RedisExpiringViewState extends State<_RedisExpiringView> {
+  @override
+  void initState() {
+    super.initState();
+    // 树节点展开 onTap 同款加载（打开即取新快照；load 失败在 provider 内
+    // 捕获并记 AppLogger，缓存保持 null → 视图停留加载态，不崩溃）。
+    unawaited(
+      widget.provider.loadRedisTTLKeys(
+        widget.connectionId,
+        widget.databaseName,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 520,
+      height: 520,
+      padding: const EdgeInsets.all(AppDesignSystem.space4),
+      child: ListenableBuilder(
+        listenable: widget.provider,
+        builder: (context, _) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(),
+            const SizedBox(height: AppDesignSystem.space3),
+            Expanded(child: _buildBody()),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(AppLocalizations.of(context)!.commonClose),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        Icon(LucideIcons.timer, color: AppDesignSystem.dbRedis, size: 24),
+        const SizedBox(width: AppDesignSystem.space3),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Expiring Soon',
+                style: TextStyle(
+                  color: context.themeColors.textPrimary,
+                  fontSize: AppDesignSystem.fontSizeLg,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                'db${widget.databaseName}',
+                style: TextStyle(
+                  color: context.themeColors.textMuted,
+                  fontSize: AppDesignSystem.fontSizeSm,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 列表体：与树节点展开区同款三段（统计头 / 采样说明 / 键明细），
+  /// 阈值着色口径一致（<60s error / <300s warning / 其余次级色）。
+  Widget _buildBody() {
+    final result = widget.provider.getRedisTTLKeys(
+      widget.connectionId,
+      widget.databaseName,
+    );
+    if (result == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final totalKeys = result['totalKeys'] as int? ?? 0;
+    final expires = result['expires'] as int? ?? 0;
+    final avgTtlMs = result['avgTtlMs'] as int? ?? 0;
+    final sampled = result['sampled'] as int? ?? 0;
+    final keys = result['keys'] as List? ?? const [];
+    return ListView(
+      children: [
+        _infoRow(
+          LucideIcons.chartColumn,
+          'Keys ${formatNumber(totalKeys)} · With TTL ${formatNumber(expires)}'
+          '${avgTtlMs > 0 ? ' · Avg ${formatTTL(avgTtlMs ~/ 1000)}' : ''}',
+        ),
+        _infoRow(
+          LucideIcons.filter,
+          'Sampled ${formatNumber(sampled)} keys (sampling)',
+        ),
+        if (keys.isEmpty)
+          _infoRow(
+            LucideIcons.circleCheckBig,
+            'No keys expiring soon',
+            color: context.themeColors.success,
+          ),
+        for (final entry in keys.take(20))
+          _keyRow(entry['key'].toString(), entry['ttl'] as int),
+        if (keys.length > 20)
+          _infoRow(
+            LucideIcons.ellipsis,
+            '... and ${keys.length - 20} more (in sample)',
+          ),
+      ],
+    );
+  }
+
+  Widget _infoRow(IconData icon, String label, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppDesignSystem.space1),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: color ?? context.themeColors.textMuted),
+          const SizedBox(width: AppDesignSystem.space2),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: AppDesignSystem.fontSizeSm,
+                color: color ?? context.themeColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _keyRow(String key, int ttl) {
+    final ttlColor = ttl < 60
+        ? context.themeColors.error
+        : (ttl < 300
+              ? context.themeColors.warning
+              : context.themeColors.textSecondary);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppDesignSystem.space1),
+      child: Row(
+        children: [
+          Icon(LucideIcons.clock, size: 14, color: ttlColor),
+          const SizedBox(width: AppDesignSystem.space2),
+          Expanded(
+            child: Text(
+              key,
+              style: TextStyle(
+                fontSize: AppDesignSystem.fontSizeSm,
+                fontFamily: AppDesignSystem.monoFontFamily,
+                fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
+                color: context.themeColors.textPrimary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Text(
+            formatTTL(ttl),
+            style: TextStyle(
+              fontSize: AppDesignSystem.fontSizeXs,
+              color: ttlColor,
+            ),
+          ),
+        ],
       ),
     );
   }

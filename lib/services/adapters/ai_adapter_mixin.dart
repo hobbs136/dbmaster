@@ -175,7 +175,18 @@ mixin AiAdapterMixin {
       'REPLACE',
       'GRANT',
       'REVOKE',
+      // 维护命令（R4-a，2026-10-12 security P2-1，与 database_service
+      // `_isWriteQuery` 双层同面）：改库文件/统计/索引 = 只读语义下的写。
+      'VACUUM',
+      'REINDEX',
+      'ANALYZE',
+      'OPTIMIZE',
     ];
+    // PRAGMA 边界（R4-a 评估结论，与 `_isWriteQuery` 同口径）：不纳入——
+    // 写形态（`PRAGMA x = v` / 裸式 `PRAGMA optimize` /
+    // `PRAGMA wal_checkpoint(...)`）与只读形态（`PRAGMA x` /
+    // `PRAGMA table_info(t)`）无法可靠语法判别；整族拦截会误杀既有只读
+    // PRAGMA 浏览。残余风险：只读连接上 PRAGMA 写形态不被拦截。
     for (final keyword in writeKeywords) {
       if (upper.startsWith(keyword) ||
           RegExp('\\b$keyword\\b').hasMatch(upper)) {

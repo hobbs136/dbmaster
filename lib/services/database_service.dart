@@ -3675,7 +3675,9 @@ class DatabaseService {
   /// 判断 SQL 是否为写入操作
   bool _isWriteQuery(String sql) {
     final upper = sql.trim().toUpperCase();
-    // INSERT, UPDATE, DELETE, DROP, CREATE, ALTER, TRUNCATE, REPLACE
+    // INSERT, UPDATE, DELETE, DROP, CREATE, ALTER, TRUNCATE, REPLACE, GRANT,
+    // REVOKE + 维护命令（VACUUM/REINDEX/ANALYZE/OPTIMIZE——R4-a，2026-10-12
+    // security P2-1：改库文件/统计/索引的维护语句在只读语义下同为写）。
     final writeKeywords = [
       'INSERT',
       'UPDATE',
@@ -3687,7 +3689,18 @@ class DatabaseService {
       'REPLACE',
       'GRANT',
       'REVOKE',
+      'VACUUM',
+      'REINDEX',
+      'ANALYZE',
+      'OPTIMIZE',
     ];
+    // PRAGMA 边界（R4-a 评估结论，2026-10-12）：不纳入本关键字面。SQLite
+    // PRAGMA 写形态无可靠语法判别——`PRAGMA x = v` 可判，但 `PRAGMA
+    // optimize`（裸式，跑 ANALYZE 类优化 = 写）与 `PRAGMA
+    // wal_checkpoint(...)`（变更 WAL 状态）与只读形态 `PRAGMA x` /
+    // `PRAGMA table_info(t)` 无法在不引入 pragma 名单白名单的情况下区分；
+    // 整族 fail-closed 又会拦死既有只读 PRAGMA 浏览能力（sqlite.pragma）。
+    // 残余风险登记：只读连接上 PRAGMA 写形态不被本闸门拦截。
     for (final keyword in writeKeywords) {
       // startsWith 覆盖常规形态；\b 正则覆盖 CTE（WITH ... INSERT）/ 前置
       // 注释等不以关键字开头的写语句。注意 raw 字符串必须单反斜杠——此前

@@ -133,6 +133,12 @@ class DbGatewayService {
     if (!mapping.isServerSyncable(server)) return false; // only SQL libs
     if (inTransaction) return false; // transactions stay local
     if (_isTransactionControlStatement(sql)) return false;
+    // 维护命令恒走本地 adapter 直跑（R4-b，2026-10-12 security P2-2）：
+    // HTTP 30s 客户端超时 → 透明降级本地重跑的双跑面——长时维护命令
+    // （VACUUM/REINDEX 等）超 30s 即先网关后本地各跑一遍。现状实际暴露面
+    // = sqlite（非 gateway-backed 且 server-syncable；T5 维护三件 embedded
+    // 模式命中此路径），本排除对旧通道剩余/未来消费方同防。
+    if (_isMaintenanceStatement(sql)) return false;
     return true;
   }
 
@@ -151,6 +157,23 @@ class DbGatewayService {
         trimmed.startsWith('SET AUTOCOMMIT') ||
         trimmed.startsWith('SAVEPOINT') ||
         trimmed.startsWith('RELEASE SAVEPOINT');
+  }
+
+  /// Detect maintenance commands (VACUUM / REINDEX / ANALYZE / OPTIMIZE) at
+  /// the statement level（沿 [_isTransactionControlStatement] 同形态先例，
+  /// R4-b）。前缀形态判定：维护命令恒为语句首关键字；前缀匹配不把语句体
+  /// 中出现该词的普通查询（如 `SELECT * FROM vacuum_log`）误排除——与
+  /// readonly 闸门的词面正则（需覆盖 CTE/前置注释）判据不同，属有意差异。
+  static bool _isMaintenanceStatement(String sql) {
+    final trimmed = sql.trimLeft().toUpperCase();
+    // Strip a leading '(' for wrapper calls; rare but harmless.
+    if (trimmed.startsWith('(')) {
+      return _isMaintenanceStatement(trimmed.substring(1));
+    }
+    return trimmed.startsWith('VACUUM') ||
+        trimmed.startsWith('REINDEX') ||
+        trimmed.startsWith('ANALYZE') ||
+        trimmed.startsWith('OPTIMIZE');
   }
 
   /// Look up the server connection id for a given client-local connection id.
