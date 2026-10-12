@@ -154,16 +154,23 @@ void main() {
         expect(CapabilityTable.bits['sqlite.pragma'], {DatabaseType.sqlite});
         expect(CapabilityTable.bits['sqlite.attach'], {DatabaseType.sqlite});
         expect(CapabilityTable.bits['pg.extension'], {DatabaseType.postgresql});
+        // DBT 批预登记位（T5 维护三件 / T8 VACUUM·REINDEX·锁分析）。
+        expect(CapabilityTable.bits['sqlite.maintain'], {DatabaseType.sqlite});
+        expect(CapabilityTable.bits['pg.vacuum'], {DatabaseType.postgresql});
+        expect(CapabilityTable.bits['pg.reindex'], {DatabaseType.postgresql});
+        expect(CapabilityTable.bits['pg.locks'], {DatabaseType.postgresql});
       },
     );
   });
 
   group('§3.3 DS 分支位', () {
     test(
-      'server.users / engine.status 仅 mysql；dataSync/aiAnalyze 为 {my,do}',
+      'server.users / engine.status / server.variables 仅 mysql；dataSync/aiAnalyze 为 {my,do}',
       () {
         expect(CapabilityTable.bits['server.users'], {DatabaseType.mysql});
         expect(CapabilityTable.bits['engine.status'], {DatabaseType.mysql});
+        // DBT 批预登记：SHOW VARIABLES 浏览器（T3）。
+        expect(CapabilityTable.bits['server.variables'], {DatabaseType.mysql});
         expect(CapabilityTable.bits['io.dataSync'], {
           DatabaseType.mysql,
           DatabaseType.doris,
@@ -295,6 +302,12 @@ void main() {
         'mongo.validation',
         'mongo.gridfs',
         'mongo.insertDocument',
+        // DBT 批预登记位（T7 副本集/索引建议、T10 currentOp、T12 explain——
+        // explain 为条件任务预登记，未接线不删）。
+        'mongo.currentOp',
+        'mongo.replication',
+        'mongo.indexAdvice',
+        'mongo.explain',
       ]) {
         expect(CapabilityTable.bits[bit], {DatabaseType.mongodb}, reason: bit);
       }

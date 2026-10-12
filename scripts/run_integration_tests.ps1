@@ -2,7 +2,8 @@
 # Equivalent to scripts/run_integration_tests.sh for Windows
 
 $ErrorActionPreference = "Continue"
-$projectDir = "C:\Users\hobbs\Projects\dbmaster\dbmaster-flutter"
+# Project root = parent of the scripts/ directory this file lives in.
+$projectDir = Split-Path -Parent $PSScriptRoot
 $resultsLog = Join-Path $projectDir "integration_test_results.txt"
 $perTestLogDir = Join-Path $projectDir "integration_test_logs"
 $timeout = 600  # 10 minutes
@@ -23,11 +24,9 @@ $defineKeys = @(
     "DBMASTER_TDENGINE_HOST",
     "DBMASTER_ES_HOST"
 )
-$defineHost = $env:DBMASTER_TEST_HOST
-if (-not $defineHost) {
-    Write-Error "DBMASTER_TEST_HOST is required (test DB host). Credentials are forwarded from DBMASTER_* env vars (see integration_test/config/*_test_config.dart)."
-    exit 1
-}
+# Default host = WSL local test matrix (see D:\workspace\dbmaster\test_db_local_wsl.txt).
+# Passwords etc. are forwarded from DBMASTER_* env vars and never committed.
+$defineHost = if ($env:DBMASTER_TEST_HOST) { $env:DBMASTER_TEST_HOST } else { "127.0.0.1" }
 $dartDefinesList = @()
 foreach ($k in $defineKeys) {
     $dartDefinesList += "--dart-define=$k=$defineHost"

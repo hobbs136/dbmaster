@@ -3,14 +3,16 @@
 
 set -e
 
-PROJECT_DIR="/Users/jacky/development/dbmaster-flutter"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_DIR"
 
-# 数据库连接配置（开源剥离：默认凭据已从 config 清空）
-# - 主机：必填 DBMASTER_TEST_HOST（统一注入各 DB 的 *_HOST define）
-# - 用户名/密码等：从环境里其余 DBMASTER_* 变量原样透传（键名见
-#   integration_test/config/*_test_config.dart）
-TEST_HOST="${DBMASTER_TEST_HOST:?需要 DBMASTER_TEST_HOST（测试库主机）；用户名/密码经 DBMASTER_* 环境变量提供}"
+# 数据库连接配置（默认主机 = WSL 本地测试矩阵，见
+# D:\workspace\dbmaster\test_db_local_wsl.txt）
+# - 主机：DBMASTER_TEST_HOST 可覆盖（缺省 127.0.0.1，统一注入各 DB 的
+#   *_HOST define）
+# - 口令等：从环境里其余 DBMASTER_* 变量原样透传（键名见
+#   integration_test/config/*_test_config.dart；口令不入库）
+TEST_HOST="${DBMASTER_TEST_HOST:-127.0.0.1}"
 DART_DEFINES=""
 for db in MYSQL PG MONGO REDIS DORIS SQLSERVER ORACLE TDENGINE ES; do
   DART_DEFINES="$DART_DEFINES --dart-define=DBMASTER_${db}_HOST=$TEST_HOST"

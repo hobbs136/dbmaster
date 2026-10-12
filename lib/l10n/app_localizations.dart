@@ -19318,6 +19318,372 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open the scheduled tasks tab (coming with the next batch)'**
   String get commandDescOpenScheduledTasks;
+
+  /// DBT capability menu title with database type name
+  ///
+  /// In en, this message translates to:
+  /// **'Capabilities: {type}'**
+  String sidebarCapabilityTitleWithType(String type);
+
+  /// DBT capability menu new-item badge
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get sidebarCapabilityNewBadge;
+
+  /// DBT shortcut: toggle the sidebar capability panel
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle capability panel'**
+  String get shortcutToggleCapabilityPanel;
+
+  /// DBT MySQL variables browser dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Variables'**
+  String get mysqlVariablesTitle;
+
+  /// DBT MySQL variables browser search hint
+  ///
+  /// In en, this message translates to:
+  /// **'Search variables'**
+  String get mysqlVariablesSearchHint;
+
+  /// DBT MySQL variables browser column: variable name
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get mysqlVariablesColName;
+
+  /// DBT MySQL variables browser column: variable value
+  ///
+  /// In en, this message translates to:
+  /// **'Value'**
+  String get mysqlVariablesColValue;
+
+  /// DBT MySQL variables browser empty state
+  ///
+  /// In en, this message translates to:
+  /// **'No variables'**
+  String get mysqlVariablesEmpty;
+
+  /// DBT MySQL variables browser load failure
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load variables'**
+  String get mysqlVariablesLoadFailed;
+
+  /// DBT MySQL capability item: table maintenance aggregate entry
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance'**
+  String get mysqlCapMaintenance;
+
+  /// DBT pg capability item: pgvector view
+  ///
+  /// In en, this message translates to:
+  /// **'Vectors'**
+  String get pgCapVector;
+
+  /// DBT pg capability item: table maintenance aggregate entry
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance'**
+  String get pgCapMaintenance;
+
+  /// DBT SQLite maintenance dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance'**
+  String get sqliteMaintainTitle;
+
+  /// DBT SQLite maintenance action: VACUUM
+  ///
+  /// In en, this message translates to:
+  /// **'VACUUM'**
+  String get sqliteMaintainVacuum;
+
+  /// DBT SQLite maintenance action: ANALYZE
+  ///
+  /// In en, this message translates to:
+  /// **'ANALYZE'**
+  String get sqliteMaintainAnalyze;
+
+  /// DBT SQLite maintenance action: REINDEX
+  ///
+  /// In en, this message translates to:
+  /// **'REINDEX'**
+  String get sqliteMaintainReindex;
+
+  /// DBT SQLite maintenance per-action confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Run {action} on this database?'**
+  String sqliteMaintainConfirmAction(String action);
+
+  /// DBT SQLite maintenance running state
+  ///
+  /// In en, this message translates to:
+  /// **'Running {action}…'**
+  String sqliteMaintainRunning(String action);
+
+  /// DBT SQLite maintenance success result
+  ///
+  /// In en, this message translates to:
+  /// **'{action} completed'**
+  String sqliteMaintainSuccess(String action);
+
+  /// DBT SQLite maintenance failure result
+  ///
+  /// In en, this message translates to:
+  /// **'{action} failed'**
+  String sqliteMaintainFailed(String action);
+
+  /// DBT redis capability menu group: more (secondary items)
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get redisCapGroupMore;
+
+  /// DBT redis capability item: slow log panel
+  ///
+  /// In en, this message translates to:
+  /// **'Slow Log'**
+  String get redisCapSlowlog;
+
+  /// DBT redis capability item: expiring-soon TTL view
+  ///
+  /// In en, this message translates to:
+  /// **'Expiring Soon'**
+  String get redisCapExpiring;
+
+  /// DBT mongo capability item: aggregation shell
+  ///
+  /// In en, this message translates to:
+  /// **'Aggregation Shell'**
+  String get mongoCapAggregate;
+
+  /// DBT mongo capability item: index advice panel
+  ///
+  /// In en, this message translates to:
+  /// **'Index Advice'**
+  String get mongoCapIndexAdvice;
+
+  /// DBT mongo capability item: schema view
+  ///
+  /// In en, this message translates to:
+  /// **'Schema View'**
+  String get mongoCapSchemaView;
+
+  /// DBT pg maintenance dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance'**
+  String get pgMaintainTitle;
+
+  /// DBT pg maintenance VACUUM confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Run VACUUM on {target}?'**
+  String pgVacuumConfirm(String target);
+
+  /// DBT pg maintenance REINDEX confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Run REINDEX on {target}?'**
+  String pgReindexConfirm(String target);
+
+  /// DBT pg maintenance success result
+  ///
+  /// In en, this message translates to:
+  /// **'{action} completed'**
+  String pgMaintainSuccess(String action);
+
+  /// DBT pg maintenance failure result
+  ///
+  /// In en, this message translates to:
+  /// **'{action} failed'**
+  String pgMaintainFailed(String action);
+
+  /// DBT pg locks dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Locks'**
+  String get pgLocksTitle;
+
+  /// DBT pg locks dialog empty state
+  ///
+  /// In en, this message translates to:
+  /// **'No locks'**
+  String get pgLocksEmpty;
+
+  /// DBT pg locks column: lock type
+  ///
+  /// In en, this message translates to:
+  /// **'Lock Type'**
+  String get pgLocksColLocktype;
+
+  /// DBT pg locks column: PID
+  ///
+  /// In en, this message translates to:
+  /// **'PID'**
+  String get pgLocksColPid;
+
+  /// DBT pg locks column: lock mode
+  ///
+  /// In en, this message translates to:
+  /// **'Mode'**
+  String get pgLocksColMode;
+
+  /// DBT pg locks column: granted
+  ///
+  /// In en, this message translates to:
+  /// **'Granted'**
+  String get pgLocksColGranted;
+
+  /// DBT pg locks column: waiting query
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting Query'**
+  String get pgLocksColWaitingQuery;
+
+  /// DBT pg locks column: duration
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get pgLocksColDuration;
+
+  /// DBT mongo currentOp dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Current Operations'**
+  String get mongoCurrentOpTitle;
+
+  /// DBT mongo currentOp empty state
+  ///
+  /// In en, this message translates to:
+  /// **'No active operations'**
+  String get mongoCurrentOpEmpty;
+
+  /// DBT mongo killOp confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Kill operation {opId}?'**
+  String mongoCurrentOpKillConfirm(String opId);
+
+  /// DBT mongo killOp success
+  ///
+  /// In en, this message translates to:
+  /// **'Operation {opId} killed'**
+  String mongoCurrentOpKilled(String opId);
+
+  /// DBT mongo killOp failure
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to kill operation {opId}'**
+  String mongoCurrentOpKillFailed(String opId);
+
+  /// DBT mongo currentOp column: opid
+  ///
+  /// In en, this message translates to:
+  /// **'Op ID'**
+  String get mongoCurrentOpColOpId;
+
+  /// DBT mongo currentOp column: namespace
+  ///
+  /// In en, this message translates to:
+  /// **'Namespace'**
+  String get mongoCurrentOpColNamespace;
+
+  /// DBT mongo currentOp column: command
+  ///
+  /// In en, this message translates to:
+  /// **'Command'**
+  String get mongoCurrentOpColCommand;
+
+  /// DBT mongo currentOp column: seconds
+  ///
+  /// In en, this message translates to:
+  /// **'Seconds'**
+  String get mongoCurrentOpColSeconds;
+
+  /// DBT mongo currentOp column: client
+  ///
+  /// In en, this message translates to:
+  /// **'Client'**
+  String get mongoCurrentOpColClient;
+
+  /// DBT mongo GridFS viewer title
+  ///
+  /// In en, this message translates to:
+  /// **'GridFS Files'**
+  String get mongoGridfsTitle;
+
+  /// DBT mongo GridFS viewer empty state
+  ///
+  /// In en, this message translates to:
+  /// **'No files'**
+  String get mongoGridfsEmpty;
+
+  /// DBT mongo GridFS metadata section
+  ///
+  /// In en, this message translates to:
+  /// **'Metadata'**
+  String get mongoGridfsMetadata;
+
+  /// DBT mongo GridFS download action
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get mongoGridfsDownload;
+
+  /// DBT mongo GridFS download success
+  ///
+  /// In en, this message translates to:
+  /// **'Download complete'**
+  String get mongoGridfsDownloadSuccess;
+
+  /// DBT mongo GridFS download failure
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed'**
+  String get mongoGridfsDownloadFailed;
+
+  /// DBT mongo GridFS column: object id
+  ///
+  /// In en, this message translates to:
+  /// **'Object ID'**
+  String get mongoGridfsColObjectId;
+
+  /// DBT mongo GridFS column: filename
+  ///
+  /// In en, this message translates to:
+  /// **'File Name'**
+  String get mongoGridfsColFilename;
+
+  /// DBT mongo GridFS column: length (size)
+  ///
+  /// In en, this message translates to:
+  /// **'Size'**
+  String get mongoGridfsColLength;
+
+  /// DBT mongo GridFS column: upload date
+  ///
+  /// In en, this message translates to:
+  /// **'Upload Date'**
+  String get mongoGridfsColUploadDate;
+
+  /// DBT mongo GridFS column: chunk size
+  ///
+  /// In en, this message translates to:
+  /// **'Chunk Size'**
+  String get mongoGridfsColChunkSize;
+
+  /// DBT mongo explain view title
+  ///
+  /// In en, this message translates to:
+  /// **'Explain Plan'**
+  String get mongoExplainTitle;
 }
 
 class _AppLocalizationsDelegate

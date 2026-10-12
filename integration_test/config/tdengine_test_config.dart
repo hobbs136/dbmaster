@@ -2,13 +2,15 @@ import 'dart:math';
 
 /// TDengine 集成测试配置
 ///
-/// 凭据不随仓库分发（开源剥离）：连接参数经
-/// `--dart-define=DBMASTER_TDENGINE_*` 注入；未提供时 [available] 为
-/// false，消费方应跳过而非空跑。
+/// 默认指向 WSL 本地测试矩阵（127.0.0.1，TDengine 3.3 REST 6041）——
+/// 引擎/端口/账号表唯一来源见仓库外
+/// `D:\workspace\dbmaster\test_db_local_wsl.txt`。口令不入库：经
+/// `--dart-define=DBMASTER_TDENGINE_PASSWORD` 注入，缺省时真连认证
+/// 失败；其它参数仍可用同名 dart-define 覆盖。
 class TDengineTestConfig {
-  static const String _defaultHost = '';
+  static const String _defaultHost = '127.0.0.1';
   static const int _defaultPort = 6041;
-  static const String _defaultUser = '';
+  static const String _defaultUser = 'root';
   static const String _defaultPassword = '';
   static const String _defaultDatabase = 'test';
 

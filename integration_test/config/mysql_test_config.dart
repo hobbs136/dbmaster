@@ -2,9 +2,12 @@ import 'dart:math';
 
 /// MySQL 集成测试配置
 ///
-/// 凭据不随仓库分发（开源剥离）：所有连接参数经
-/// `--dart-define=DBMASTER_MYSQL_*` 注入；未提供时 [available] 为 false，
-/// 消费方应以可 grep 的 MYSQL_E2E_SKIP 跳过（不连真实库的空跑禁止）。
+/// 默认指向 WSL 本地测试矩阵（127.0.0.1：主 8.0@3306 / 从 5.7@3307）——
+/// 引擎/端口/账号表唯一来源见仓库外
+/// `D:\workspace\dbmaster\test_db_local_wsl.txt`。口令不入库：经
+/// `--dart-define=DBMASTER_MYSQL_PASSWORD`（及 ALT/MYSQL57 变体）注入，
+/// 缺省时真连认证失败；其它参数仍可用同名 dart-define 覆盖
+/// （不连真实库的空跑禁止）。
 ///
 /// 键（主服务器）：DBMASTER_MYSQL_HOST / PORT / USER / PASSWORD / DATABASE；
 /// 键（从服务器 3307 remote_user）：DBMASTER_MYSQL_ALT_HOST / ALT_PORT /
@@ -13,9 +16,9 @@ import 'dart:math';
 /// PASSWORD。
 class MySQLTestConfig {
   // ===== 主服务器 =====
-  static const String _defaultHost = '';
+  static const String _defaultHost = '127.0.0.1';
   static const int _defaultPort = 3306;
-  static const String _defaultUser = '';
+  static const String _defaultUser = 'root';
   static const String _defaultPassword = '';
   static const String _defaultDatabase = ''; // 不指定默认数据库，在测试中动态创建
 
@@ -60,7 +63,7 @@ class MySQLTestConfig {
 
   static String get altHost => const String.fromEnvironment(
         'DBMASTER_MYSQL_ALT_HOST',
-        defaultValue: '',
+        defaultValue: '127.0.0.1',
       );
 
   static int get altPort {
@@ -73,7 +76,7 @@ class MySQLTestConfig {
 
   static String get altUsername => const String.fromEnvironment(
         'DBMASTER_MYSQL_ALT_USER',
-        defaultValue: '',
+        defaultValue: 'remote_user',
       );
 
   static String get altPassword => const String.fromEnvironment(
@@ -98,7 +101,7 @@ class MySQLTestConfig {
 
   static String get legacy57Host => const String.fromEnvironment(
         'DBMASTER_MYSQL57_HOST',
-        defaultValue: '',
+        defaultValue: '127.0.0.1',
       );
 
   static int get legacy57Port {
@@ -111,7 +114,7 @@ class MySQLTestConfig {
 
   static String get legacy57Username => const String.fromEnvironment(
         'DBMASTER_MYSQL57_USER',
-        defaultValue: '',
+        defaultValue: 'root',
       );
 
   static String get legacy57Password => const String.fromEnvironment(

@@ -11023,4 +11023,212 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get commandDescOpenScheduledTasks =>
       'Den Tab für geplante Aufgaben öffnen (folgt im nächsten Batch)';
+
+  @override
+  String sidebarCapabilityTitleWithType(String type) {
+    return 'Funktionen: $type';
+  }
+
+  @override
+  String get sidebarCapabilityNewBadge => 'Neu';
+
+  @override
+  String get shortcutToggleCapabilityPanel => 'Funktionspanel umschalten';
+
+  @override
+  String get mysqlVariablesTitle => 'Variablen';
+
+  @override
+  String get mysqlVariablesSearchHint => 'Variablen durchsuchen';
+
+  @override
+  String get mysqlVariablesColName => 'Name';
+
+  @override
+  String get mysqlVariablesColValue => 'Wert';
+
+  @override
+  String get mysqlVariablesEmpty => 'Keine Variablen';
+
+  @override
+  String get mysqlVariablesLoadFailed =>
+      'Variablen konnten nicht geladen werden';
+
+  @override
+  String get mysqlCapMaintenance => 'Wartung';
+
+  @override
+  String get pgCapVector => 'Vektoren';
+
+  @override
+  String get pgCapMaintenance => 'Wartung';
+
+  @override
+  String get sqliteMaintainTitle => 'Wartung';
+
+  @override
+  String get sqliteMaintainVacuum => 'VACUUM';
+
+  @override
+  String get sqliteMaintainAnalyze => 'ANALYZE';
+
+  @override
+  String get sqliteMaintainReindex => 'REINDEX';
+
+  @override
+  String sqliteMaintainConfirmAction(String action) {
+    return '$action auf dieser Datenbank ausführen?';
+  }
+
+  @override
+  String sqliteMaintainRunning(String action) {
+    return '$action wird ausgeführt…';
+  }
+
+  @override
+  String sqliteMaintainSuccess(String action) {
+    return '$action abgeschlossen';
+  }
+
+  @override
+  String sqliteMaintainFailed(String action) {
+    return '$action fehlgeschlagen';
+  }
+
+  @override
+  String get redisCapGroupMore => 'Mehr';
+
+  @override
+  String get redisCapSlowlog => 'Slow Log';
+
+  @override
+  String get redisCapExpiring => 'Läuft bald ab';
+
+  @override
+  String get mongoCapAggregate => 'Aggregation-Shell';
+
+  @override
+  String get mongoCapIndexAdvice => 'Index-Hinweise';
+
+  @override
+  String get mongoCapSchemaView => 'Schemaansicht';
+
+  @override
+  String get pgMaintainTitle => 'Wartung';
+
+  @override
+  String pgVacuumConfirm(String target) {
+    return 'VACUUM auf $target ausführen?';
+  }
+
+  @override
+  String pgReindexConfirm(String target) {
+    return 'REINDEX auf $target ausführen?';
+  }
+
+  @override
+  String pgMaintainSuccess(String action) {
+    return '$action abgeschlossen';
+  }
+
+  @override
+  String pgMaintainFailed(String action) {
+    return '$action fehlgeschlagen';
+  }
+
+  @override
+  String get pgLocksTitle => 'Sperren';
+
+  @override
+  String get pgLocksEmpty => 'Keine Sperren';
+
+  @override
+  String get pgLocksColLocktype => 'Sperrtyp';
+
+  @override
+  String get pgLocksColPid => 'PID';
+
+  @override
+  String get pgLocksColMode => 'Modus';
+
+  @override
+  String get pgLocksColGranted => 'Erteilt';
+
+  @override
+  String get pgLocksColWaitingQuery => 'Wartende Abfrage';
+
+  @override
+  String get pgLocksColDuration => 'Dauer';
+
+  @override
+  String get mongoCurrentOpTitle => 'Aktuelle Operationen';
+
+  @override
+  String get mongoCurrentOpEmpty => 'Keine aktiven Operationen';
+
+  @override
+  String mongoCurrentOpKillConfirm(String opId) {
+    return 'Operation $opId abbrechen?';
+  }
+
+  @override
+  String mongoCurrentOpKilled(String opId) {
+    return 'Operation $opId abgebrochen';
+  }
+
+  @override
+  String mongoCurrentOpKillFailed(String opId) {
+    return 'Operation $opId konnte nicht abgebrochen werden';
+  }
+
+  @override
+  String get mongoCurrentOpColOpId => 'Op-ID';
+
+  @override
+  String get mongoCurrentOpColNamespace => 'Namespace';
+
+  @override
+  String get mongoCurrentOpColCommand => 'Befehl';
+
+  @override
+  String get mongoCurrentOpColSeconds => 'Sekunden';
+
+  @override
+  String get mongoCurrentOpColClient => 'Client';
+
+  @override
+  String get mongoGridfsTitle => 'GridFS-Dateien';
+
+  @override
+  String get mongoGridfsEmpty => 'Keine Dateien';
+
+  @override
+  String get mongoGridfsMetadata => 'Metadaten';
+
+  @override
+  String get mongoGridfsDownload => 'Herunterladen';
+
+  @override
+  String get mongoGridfsDownloadSuccess => 'Download abgeschlossen';
+
+  @override
+  String get mongoGridfsDownloadFailed => 'Download fehlgeschlagen';
+
+  @override
+  String get mongoGridfsColObjectId => 'Objekt-ID';
+
+  @override
+  String get mongoGridfsColFilename => 'Dateiname';
+
+  @override
+  String get mongoGridfsColLength => 'Größe';
+
+  @override
+  String get mongoGridfsColUploadDate => 'Upload-Datum';
+
+  @override
+  String get mongoGridfsColChunkSize => 'Chunk-Größe';
+
+  @override
+  String get mongoExplainTitle => 'Explain-Plan';
 }

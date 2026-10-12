@@ -10696,6 +10696,213 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get commandDescOpenScheduledTasks => '打开定时任务 tab（随下一批上线）';
+
+  @override
+  String sidebarCapabilityTitleWithType(String type) {
+    return '能力：$type';
+  }
+
+  @override
+  String get sidebarCapabilityNewBadge => '新';
+
+  @override
+  String get shortcutToggleCapabilityPanel => '切换能力面板';
+
+  @override
+  String get mysqlVariablesTitle => '变量';
+
+  @override
+  String get mysqlVariablesSearchHint => '搜索变量';
+
+  @override
+  String get mysqlVariablesColName => '名称';
+
+  @override
+  String get mysqlVariablesColValue => '值';
+
+  @override
+  String get mysqlVariablesEmpty => '无变量';
+
+  @override
+  String get mysqlVariablesLoadFailed => '变量加载失败';
+
+  @override
+  String get mysqlCapMaintenance => '维护';
+
+  @override
+  String get pgCapVector => '向量';
+
+  @override
+  String get pgCapMaintenance => '维护';
+
+  @override
+  String get sqliteMaintainTitle => '维护';
+
+  @override
+  String get sqliteMaintainVacuum => 'VACUUM';
+
+  @override
+  String get sqliteMaintainAnalyze => 'ANALYZE';
+
+  @override
+  String get sqliteMaintainReindex => 'REINDEX';
+
+  @override
+  String sqliteMaintainConfirmAction(String action) {
+    return '对当前数据库执行 $action？';
+  }
+
+  @override
+  String sqliteMaintainRunning(String action) {
+    return '正在执行 $action…';
+  }
+
+  @override
+  String sqliteMaintainSuccess(String action) {
+    return '$action 执行成功';
+  }
+
+  @override
+  String sqliteMaintainFailed(String action) {
+    return '$action 执行失败';
+  }
+
+  @override
+  String get redisCapGroupMore => '更多';
+
+  @override
+  String get redisCapSlowlog => '慢查询日志';
+
+  @override
+  String get redisCapExpiring => '即将过期';
+
+  @override
+  String get mongoCapAggregate => '聚合 Shell';
+
+  @override
+  String get mongoCapIndexAdvice => '索引建议';
+
+  @override
+  String get mongoCapSchemaView => '结构视图';
+
+  @override
+  String get pgMaintainTitle => '维护';
+
+  @override
+  String pgVacuumConfirm(String target) {
+    return '对 $target 执行 VACUUM？';
+  }
+
+  @override
+  String pgReindexConfirm(String target) {
+    return '对 $target 执行 REINDEX？';
+  }
+
+  @override
+  String pgMaintainSuccess(String action) {
+    return '$action 执行成功';
+  }
+
+  @override
+  String pgMaintainFailed(String action) {
+    return '$action 执行失败';
+  }
+
+  @override
+  String get pgLocksTitle => '锁';
+
+  @override
+  String get pgLocksEmpty => '无锁';
+
+  @override
+  String get pgLocksColLocktype => '锁类型';
+
+  @override
+  String get pgLocksColPid => 'PID';
+
+  @override
+  String get pgLocksColMode => '模式';
+
+  @override
+  String get pgLocksColGranted => '已授予';
+
+  @override
+  String get pgLocksColWaitingQuery => '等待查询';
+
+  @override
+  String get pgLocksColDuration => '时长';
+
+  @override
+  String get mongoCurrentOpTitle => '当前操作';
+
+  @override
+  String get mongoCurrentOpEmpty => '无活动操作';
+
+  @override
+  String mongoCurrentOpKillConfirm(String opId) {
+    return '终止操作 $opId？';
+  }
+
+  @override
+  String mongoCurrentOpKilled(String opId) {
+    return '操作 $opId 已终止';
+  }
+
+  @override
+  String mongoCurrentOpKillFailed(String opId) {
+    return '终止操作 $opId 失败';
+  }
+
+  @override
+  String get mongoCurrentOpColOpId => '操作 ID';
+
+  @override
+  String get mongoCurrentOpColNamespace => '命名空间';
+
+  @override
+  String get mongoCurrentOpColCommand => '命令';
+
+  @override
+  String get mongoCurrentOpColSeconds => '秒';
+
+  @override
+  String get mongoCurrentOpColClient => '客户端';
+
+  @override
+  String get mongoGridfsTitle => 'GridFS 文件';
+
+  @override
+  String get mongoGridfsEmpty => '无文件';
+
+  @override
+  String get mongoGridfsMetadata => '元数据';
+
+  @override
+  String get mongoGridfsDownload => '下载';
+
+  @override
+  String get mongoGridfsDownloadSuccess => '下载完成';
+
+  @override
+  String get mongoGridfsDownloadFailed => '下载失败';
+
+  @override
+  String get mongoGridfsColObjectId => '对象 ID';
+
+  @override
+  String get mongoGridfsColFilename => '文件名';
+
+  @override
+  String get mongoGridfsColLength => '大小';
+
+  @override
+  String get mongoGridfsColUploadDate => '上传时间';
+
+  @override
+  String get mongoGridfsColChunkSize => '块大小';
+
+  @override
+  String get mongoExplainTitle => '执行计划';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -18836,4 +19043,211 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get commandDescOpenScheduledTasks => '開啟排程任務分頁（隨下一批上線）';
+
+  @override
+  String sidebarCapabilityTitleWithType(String type) {
+    return '能力：$type';
+  }
+
+  @override
+  String get sidebarCapabilityNewBadge => '新';
+
+  @override
+  String get shortcutToggleCapabilityPanel => '切換能力面板';
+
+  @override
+  String get mysqlVariablesTitle => '變數';
+
+  @override
+  String get mysqlVariablesSearchHint => '搜尋變數';
+
+  @override
+  String get mysqlVariablesColName => '名稱';
+
+  @override
+  String get mysqlVariablesColValue => '值';
+
+  @override
+  String get mysqlVariablesEmpty => '無變數';
+
+  @override
+  String get mysqlVariablesLoadFailed => '變數載入失敗';
+
+  @override
+  String get mysqlCapMaintenance => '維護';
+
+  @override
+  String get pgCapVector => '向量';
+
+  @override
+  String get pgCapMaintenance => '維護';
+
+  @override
+  String get sqliteMaintainTitle => '維護';
+
+  @override
+  String get sqliteMaintainVacuum => 'VACUUM';
+
+  @override
+  String get sqliteMaintainAnalyze => 'ANALYZE';
+
+  @override
+  String get sqliteMaintainReindex => 'REINDEX';
+
+  @override
+  String sqliteMaintainConfirmAction(String action) {
+    return '對目前資料庫執行 $action？';
+  }
+
+  @override
+  String sqliteMaintainRunning(String action) {
+    return '正在執行 $action…';
+  }
+
+  @override
+  String sqliteMaintainSuccess(String action) {
+    return '$action 執行成功';
+  }
+
+  @override
+  String sqliteMaintainFailed(String action) {
+    return '$action 執行失敗';
+  }
+
+  @override
+  String get redisCapGroupMore => '更多';
+
+  @override
+  String get redisCapSlowlog => '慢查詢日誌';
+
+  @override
+  String get redisCapExpiring => '即將到期';
+
+  @override
+  String get mongoCapAggregate => '聚合 Shell';
+
+  @override
+  String get mongoCapIndexAdvice => '索引建議';
+
+  @override
+  String get mongoCapSchemaView => '結構檢視';
+
+  @override
+  String get pgMaintainTitle => '維護';
+
+  @override
+  String pgVacuumConfirm(String target) {
+    return '對 $target 執行 VACUUM？';
+  }
+
+  @override
+  String pgReindexConfirm(String target) {
+    return '對 $target 執行 REINDEX？';
+  }
+
+  @override
+  String pgMaintainSuccess(String action) {
+    return '$action 執行成功';
+  }
+
+  @override
+  String pgMaintainFailed(String action) {
+    return '$action 執行失敗';
+  }
+
+  @override
+  String get pgLocksTitle => '鎖';
+
+  @override
+  String get pgLocksEmpty => '無鎖';
+
+  @override
+  String get pgLocksColLocktype => '鎖類型';
+
+  @override
+  String get pgLocksColPid => 'PID';
+
+  @override
+  String get pgLocksColMode => '模式';
+
+  @override
+  String get pgLocksColGranted => '已授予';
+
+  @override
+  String get pgLocksColWaitingQuery => '等待查詢';
+
+  @override
+  String get pgLocksColDuration => '時長';
+
+  @override
+  String get mongoCurrentOpTitle => '目前操作';
+
+  @override
+  String get mongoCurrentOpEmpty => '無活動操作';
+
+  @override
+  String mongoCurrentOpKillConfirm(String opId) {
+    return '終止操作 $opId？';
+  }
+
+  @override
+  String mongoCurrentOpKilled(String opId) {
+    return '操作 $opId 已終止';
+  }
+
+  @override
+  String mongoCurrentOpKillFailed(String opId) {
+    return '終止操作 $opId 失敗';
+  }
+
+  @override
+  String get mongoCurrentOpColOpId => '操作 ID';
+
+  @override
+  String get mongoCurrentOpColNamespace => '命名空間';
+
+  @override
+  String get mongoCurrentOpColCommand => '命令';
+
+  @override
+  String get mongoCurrentOpColSeconds => '秒';
+
+  @override
+  String get mongoCurrentOpColClient => '用戶端';
+
+  @override
+  String get mongoGridfsTitle => 'GridFS 檔案';
+
+  @override
+  String get mongoGridfsEmpty => '無檔案';
+
+  @override
+  String get mongoGridfsMetadata => '中繼資料';
+
+  @override
+  String get mongoGridfsDownload => '下載';
+
+  @override
+  String get mongoGridfsDownloadSuccess => '下載完成';
+
+  @override
+  String get mongoGridfsDownloadFailed => '下載失敗';
+
+  @override
+  String get mongoGridfsColObjectId => '物件 ID';
+
+  @override
+  String get mongoGridfsColFilename => '檔案名稱';
+
+  @override
+  String get mongoGridfsColLength => '大小';
+
+  @override
+  String get mongoGridfsColUploadDate => '上傳時間';
+
+  @override
+  String get mongoGridfsColChunkSize => '區塊大小';
+
+  @override
+  String get mongoExplainTitle => '執行計畫';
 }

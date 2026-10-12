@@ -247,6 +247,11 @@ const Map<String, Set<DatabaseType>> _capabilityBits = {
     DatabaseType.mariadb,
   },
   'pg.extension': {DatabaseType.postgresql},
+  // DBT 批（2026-10 工具面板补齐，feat/db-tooling-completion）预登记位：
+  // 消费任务见 .specs/tasks-db-tooling-completion.md（先登记后接线）。
+  'pg.vacuum': {DatabaseType.postgresql}, // VACUUM 执行包装（T8）
+  'pg.reindex': {DatabaseType.postgresql}, // REINDEX 执行包装（T8）
+  'pg.locks': {DatabaseType.postgresql}, // 锁/等待分析，只读（T8）
   'json.columns': {
     DatabaseType.mysql,
     DatabaseType.doris,
@@ -260,9 +265,11 @@ const Map<String, Set<DatabaseType>> _capabilityBits = {
   },
   'sqlite.pragma': {DatabaseType.sqlite},
   'sqlite.attach': {DatabaseType.sqlite},
+  'sqlite.maintain': {DatabaseType.sqlite}, // 维护三件 VACUUM/ANALYZE/REINDEX（T5）
 
   // ── §3.3 DS 分支位（收编 87 处字面量的语义；引用随区块重建清零）──
   'server.users': {DatabaseType.mysql}, // getServerUsers 仅 MY
+  'server.variables': {DatabaseType.mysql}, // SHOW VARIABLES 浏览器，只读（T3）
   'query.explain': _sqlFamily, // EXPLAIN 族，SQL 类
   'engine.status': {DatabaseType.mysql}, // MySQL 专有
   'io.dataSync': {DatabaseType.mysql, DatabaseType.doris},
@@ -307,6 +314,12 @@ const Map<String, Set<DatabaseType>> _capabilityBits = {
   'mongo.validation': {DatabaseType.mongodb},
   'mongo.gridfs': {DatabaseType.mongodb},
   'mongo.insertDocument': {DatabaseType.mongodb},
+  'mongo.currentOp': {DatabaseType.mongodb}, // currentOp 列表 + killOp（T10）
+  'mongo.replication': {DatabaseType.mongodb}, // 副本集/分片面板（T7）
+  'mongo.indexAdvice': {DatabaseType.mongodb}, // 索引建议面板化（T7）
+  // 预登记位：T12 为条件任务，未接线也不得删除本位（删除 = 契约变更，
+  // 需架构师批准，见任务书 T0）。
+  'mongo.explain': {DatabaseType.mongodb},
   'td.supertable': {DatabaseType.tdengine},
   'td.subtable': {DatabaseType.tdengine},
   'td.tag': {DatabaseType.tdengine},
