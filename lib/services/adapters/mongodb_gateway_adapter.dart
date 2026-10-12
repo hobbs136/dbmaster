@@ -50,6 +50,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -765,7 +766,10 @@ class MongoDBAdapter extends DatabaseAdapter
 
     try {
       // 构造真正的 explain 命令（research D4）——与旧版同形。
-      final explainCmd = <String, dynamic>{'verbosity': 'allPlansExecution'};
+      // MongoDB 命令名 = 文档首键，explain 必须为首键（首键错位会被当作
+      // 命令名报 CommandNotFound）；verbosity 未传，MongoDB explain 命令
+      // 缺省 = allPlansExecution，与旧意图行为等价。
+      final explainCmd = <String, dynamic>{'explain': <String, dynamic>{}};
 
       final isAggregate = parsed['isAggregate'] as bool? ?? false;
       if (isAggregate) {
@@ -2470,13 +2474,12 @@ class MongoDBAdapter extends DatabaseAdapter
   /// 返回 killOp 响应文档（`{info, ok}`，info = "attempting to kill op"）；
   /// 未连接/通道失败上抛。
   ///
-  /// TODO(DBT-T10 · readonly 语义转 security 裁决，2026-10-12)：killOp
-  /// 未列入 server 端 WRITE_COMMANDS（dbmaster-server
-  /// `crates/automation/src/mongo.rs`，read_only 连接写命令硬执行位）与
-  /// 本壳 `validateCommand`/基类 `isWriteCommand` 关键字面 → **只读连接
-  /// 当前可发 killOp**。readonly 语义（拦 or 放行+标注）已转
-  /// security-reviewer 裁决；落定前本包装不增删 guardReadOnly（不预占
-  /// 裁决结论），确认门 + 审计（mongo_process_dialog）照任务书交付。
+  /// 裁决结论（security 裁决 b，2026-10-12）：killOp **放行** + UI 标注
+  /// （mongoCurrentOpReadonlyNote 挂 currentOp 面板），与 MySQL kill query
+  /// 先例一致（db_handler.rs:883-913 无 read_only 检查）；server 端
+  /// WRITE_COMMANDS 保持不加（mongo.rs 注释登记归呈报包）。本包装维持
+  /// 不加 guardReadOnly（与裁决一致，非暂挂）；确认门 + 审计
+  /// （mongo_process_dialog）照任务书交付。
   Future<Map<String, dynamic>> killOp(Object opid) async {
     if (!isConnected) throw Exception('未连接到 MongoDB');
     return _commandDoc(
@@ -2484,6 +2487,125 @@ class MongoDBAdapter extends DatabaseAdapter
       database: 'admin',
       timeoutMs: _timeoutMs,
     );
+  }
+
+  // ── DBT-T11 · GridFS 只读取数面（W-12；fs.files/fs.chunks 集合查询）──
+  //
+  // 取数实现裁定（任务书允许自决「GridFS API vs 集合查询」）：走
+  // fs.files/fs.chunks **集合查询**——本壳无 mongo_dart 连接（T29 直连已
+  // 下线，mongo_dart 亦非依赖），GridFS 驱动 API 不可达；集合查询经既有
+  // kind:"mongo" runCommand 通道即可覆盖三个只读面（列表/元数据/取内容）。
+  //
+  // ⚠ wire 依赖（与文件头「extended JSON 入向不解析」行为边界注记不同——
+  // 该注记为 T29 时点快照，server 现已支持入向反解）：filter 内
+  // `{'$oid': <hex>}` 由 server `extended_json_to_bson` 还原为原生
+  // ObjectId（dbmaster-server crates/automation/src/mongo.rs:232）；出向
+  // Binary 到达为 `{$binary:{base64,subType}}` 子文档（bson_to_json），
+  // [readGridFsFileBytes] 在本壳完成 base64 解码。全部只读（find 族），无
+  // guardReadOnly 面。
+
+  /// ObjectId hex 校验（24 位 hex；不合法即抛——防坏参空跑网关）。
+  static void _assertObjectIdHex(String objectIdHex) {
+    final valid = objectIdHex.length == 24 &&
+        RegExp(r'^[0-9a-fA-F]{24}$').hasMatch(objectIdHex);
+    if (!valid) {
+      throw ArgumentError('非法 GridFS ObjectId（期望 24 位 hex）');
+    }
+  }
+
+  /// GridFS bucket 文件元数据列表（`<bucket>.files` find，uploadDate 降序，
+  /// 列表列 projection 收窄——用户 metadata 子文档可大，详情走
+  /// [getGridFsFileMetadata]）。返回 wire 原始文档列表（`_id` 为
+  /// `{$oid}`、`uploadDate` 为 `{$date}` 扩展 JSON 子文档，映射归消费方）。
+  Future<List<Map<String, dynamic>>> listGridFsFiles(
+    String bucket, {
+    String? database,
+    int limit = 500,
+  }) async {
+    _assertConnected();
+    return _cursorDocs(
+      {
+        'find': '$bucket.files',
+        'sort': {'uploadDate': -1},
+        'limit': limit,
+        'projection': {
+          '_id': 1,
+          'filename': 1,
+          'length': 1,
+          'chunkSize': 1,
+          'uploadDate': 1,
+          'md5': 1,
+          'contentType': 1,
+        },
+      },
+      database: database,
+      rowLimit: limit,
+      timeoutMs: _timeoutMs,
+    );
+  }
+
+  /// GridFS 单文件完整元数据（`<bucket>.files` 按 `_id` 精确取，含用户
+  /// metadata 子文档）。未连接/通道失败上抛；文件不存在返回 null。
+  Future<Map<String, dynamic>?> getGridFsFileMetadata(
+    String bucket,
+    String objectIdHex, {
+    String? database,
+  }) async {
+    _assertObjectIdHex(objectIdHex);
+    _assertConnected();
+    final docs = await _cursorDocs(
+      {
+        'find': '$bucket.files',
+        'filter': {
+          '_id': {'\$oid': objectIdHex},
+        },
+        'limit': 1,
+      },
+      database: database,
+      timeoutMs: _timeoutMs,
+    );
+    return docs.isEmpty ? null : docs.first;
+  }
+
+  /// GridFS 文件内容字节（`<bucket>.chunks` 按 `files_id` 取、按 `n` 升序
+  /// 拼接 base64 解码——与预置内容逐字节一致）。
+  ///
+  /// chunk 上限 100 万（默认 chunkSize 255KB → ~250GB）：超界文件属查看器
+  /// 边界（同步取数 + 内存聚合，无流式/进度框架——任务书边界节「沿用既有
+  /// 导出交互」）。chunk 缺 `data.$binary`（非 GridFS 形态的手工脏数据）
+  /// → 抛错失败态，不静默截断。
+  Future<List<int>> readGridFsFileBytes(
+    String bucket,
+    String objectIdHex, {
+    String? database,
+  }) async {
+    _assertObjectIdHex(objectIdHex);
+    _assertConnected();
+    // 高 limit（> server 行限 10000）→ _findDocsPaged 走 skip 分页直到
+    // 游标耗尽（已带 n 升序排序，分页序稳定）。
+    final chunks = await _findDocsPaged(
+      {
+        'find': '$bucket.chunks',
+        'filter': {
+          'files_id': {'\$oid': objectIdHex},
+        },
+        'sort': {'n': 1},
+        'limit': 1000000,
+      },
+      database: database,
+      timeoutMs: _timeoutMs,
+    );
+    final builder = BytesBuilder(copy: false);
+    for (final chunk in chunks) {
+      final data = chunk['data'];
+      final binary = data is Map ? data['\$binary'] : null;
+      final base64 = binary is Map ? binary['base64'] : null;
+      if (base64 is! String || base64.isEmpty) {
+        throw StateError('GridFS chunk 数据缺失或非二进制形态（n=${chunk['n']}）');
+      }
+      builder.add(base64Decode(base64));
+    }
+    return builder.toBytes();
   }
 
   // ==========================================================================

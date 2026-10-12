@@ -124,7 +124,11 @@ Future<void> _auditMaintenance(SqliteMaintenanceAuditRecord record) async {
 /// 三动作各带独立确认门；执行经 [SqliteMaintenanceExecutor]（默认
 /// provider 既有执行面）；结果行内联展示。[execute]/[audit] 为
 /// `@visibleForTesting` 注入接缝（AI-SEX 批先例），生产经 [show] 走默认。
-class SqliteMaintenanceDialog extends StatelessWidget {
+///
+/// R4-d 同款（收口追加批，2026-10-12）：任一动作执行中禁止 Esc/屏障关闭
+/// （[PopScope] 拦 maybePop，两路径同走该路径）——执行半途关窗会留下不可见
+/// 在途维护命令。
+class SqliteMaintenanceDialog extends StatefulWidget {
   final String connectionId;
 
   /// 展示用（库路径/别名），随审计 databaseName 一并落账。
@@ -159,49 +163,66 @@ class SqliteMaintenanceDialog extends StatelessWidget {
   }
 
   @override
+  State<SqliteMaintenanceDialog> createState() =>
+      _SqliteMaintenanceDialogState();
+}
+
+class _SqliteMaintenanceDialogState extends State<SqliteMaintenanceDialog> {
+  /// 执行中动作行计数（>0 = 执行中；多动作可并行发起，计数归零才恢复可关）。
+  int _runningCount = 0;
+
+  void _notifyRunning(bool running) {
+    setState(() => _runningCount += running ? 1 : -1);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return AlertDialog(
-      backgroundColor: context.themeColors.bgSecondary,
-      title: Text(
-        l10n.sqliteMaintainTitle,
-        style: TextStyle(color: context.themeColors.textPrimary),
-      ),
-      content: SizedBox(
-        width: 440,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                databaseName,
-                style: TextStyle(
-                  color: context.themeColors.textMuted,
-                  fontSize: 11,
+    return PopScope(
+      canPop: _runningCount == 0,
+      child: AlertDialog(
+        backgroundColor: context.themeColors.bgSecondary,
+        title: Text(
+          l10n.sqliteMaintainTitle,
+          style: TextStyle(color: context.themeColors.textPrimary),
+        ),
+        content: SizedBox(
+          width: 440,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  widget.databaseName,
+                  style: TextStyle(
+                    color: context.themeColors.textMuted,
+                    fontSize: 11,
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppDesignSystem.space3),
-              for (final action in SqliteMaintenanceAction.values) ...[
-                _MaintenanceActionRow(
-                  action: action,
-                  connectionId: connectionId,
-                  databaseName: databaseName,
-                  execute: execute ?? _executeViaDbService,
-                  audit: audit ?? _auditMaintenance,
-                ),
-                const SizedBox(height: AppDesignSystem.space2),
+                const SizedBox(height: AppDesignSystem.space3),
+                for (final action in SqliteMaintenanceAction.values) ...[
+                  _MaintenanceActionRow(
+                    action: action,
+                    connectionId: widget.connectionId,
+                    databaseName: widget.databaseName,
+                    execute: widget.execute ?? _executeViaDbService,
+                    audit: widget.audit ?? _auditMaintenance,
+                    onRunningChanged: _notifyRunning,
+                  ),
+                  const SizedBox(height: AppDesignSystem.space2),
+                ],
               ],
-            ],
+            ),
           ),
         ),
+        actions: [
+          TextButton(
+            onPressed: _runningCount == 0 ? () => Navigator.pop(context) : null,
+            child: Text(l10n.commonClose),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l10n.commonClose),
-        ),
-      ],
     );
   }
 }
@@ -216,12 +237,16 @@ class _MaintenanceActionRow extends StatefulWidget {
   final SqliteMaintenanceExecutor execute;
   final SqliteMaintenanceAuditor audit;
 
+  /// 运行态上报（R4-d：对话框按执行中行数收放 PopScope 可关性）。
+  final ValueChanged<bool> onRunningChanged;
+
   const _MaintenanceActionRow({
     required this.action,
     required this.connectionId,
     required this.databaseName,
     required this.execute,
     required this.audit,
+    required this.onRunningChanged,
   });
 
   @override
@@ -257,6 +282,8 @@ class _MaintenanceActionRowState extends State<_MaintenanceActionRow> {
       _error = null;
       _elapsedMs = null;
     });
+    // R4-d：进入执行态即上报（对话框此间禁 Esc/屏障关闭）。
+    widget.onRunningChanged(true);
 
     final stopwatch = Stopwatch()..start();
     var success = true;
@@ -292,6 +319,8 @@ class _MaintenanceActionRowState extends State<_MaintenanceActionRow> {
     }
 
     if (!mounted) return;
+    // R4-d：执行结束先解除关闭屏障，再落结果态。
+    widget.onRunningChanged(false);
     setState(() {
       _phase = _MaintainPhase.done;
       _elapsedMs = stopwatch.elapsedMilliseconds;

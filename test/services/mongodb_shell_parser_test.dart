@@ -249,6 +249,90 @@ void main() {
       });
     });
 
+    group('parseQuery - null 字面量保留（哨兵修复）', () {
+      test('aggregate \$group._id: null 应完整保留 _id 与后续键', () {
+        final result = MongoShellQueryParser.parseQuery(
+          'db.c.aggregate([{\$group: {_id: null, count: {\$sum: 1}}}])',
+        );
+        expect(result, isNotNull);
+        expect(result!['isAggregate'], true);
+        final pipeline = result['pipeline'] as List<dynamic>;
+        expect(pipeline, hasLength(1));
+        expect(pipeline[0], <String, dynamic>{
+          '\$group': <String, dynamic>{
+            '_id': null,
+            'count': <String, dynamic>{'\$sum': 1},
+          },
+        });
+      });
+
+      test('find({a: null}) filter 应保留（不被丢弃成空 filter）', () {
+        final result = MongoShellQueryParser.parseQuery('db.c.find({a: null})');
+        expect(result, isNotNull);
+        expect(result!['filter'], <String, dynamic>{'a': null});
+      });
+
+      test('find({a: null, b: 1}) null 之后的键不应被连带丢弃', () {
+        final result = MongoShellQueryParser.parseQuery(
+          'db.c.find({a: null, b: 1})',
+        );
+        expect(result, isNotNull);
+        expect(
+          result!['filter'],
+          <String, dynamic>{'a': null, 'b': 1},
+        );
+      });
+
+      test('数组内字面 null 不丢元素：{\$in: [null, "x"]}', () {
+        final result = MongoShellQueryParser.parseQuery(
+          'db.c.find({tags: {\$in: [null, "x"]}})',
+        );
+        expect(result, isNotNull);
+        expect(
+          result!['filter'],
+          <String, dynamic>{
+            'tags': <String, dynamic>{
+              '\$in': <dynamic>[null, 'x'],
+            },
+          },
+        );
+      });
+
+      test('findOne({deleted: null}) filter 应保留', () {
+        final result = MongoShellQueryParser.parseQuery(
+          'db.products.findOne({deleted: null})',
+        );
+        expect(result, isNotNull);
+        expect(result!['filter'], <String, dynamic>{'deleted': null});
+      });
+
+      test('null 之后的截断值仍应触发 break（b 被丢弃，a 保留）', () {
+        final result = MongoShellQueryParser.parseQuery(
+          'db.c.find({a: null, b: })',
+        );
+        expect(result, isNotNull);
+        expect(result!['filter'], <String, dynamic>{'a': null});
+      });
+
+      test('混合字面量不回归：true/false/数字/字符串/null 并存', () {
+        final result = MongoShellQueryParser.parseQuery(
+          'db.c.find({t: true, f: false, n: 1, d: 2.5, s: "str", z: null})',
+        );
+        expect(result, isNotNull);
+        expect(
+          result!['filter'],
+          <String, dynamic>{
+            't': true,
+            'f': false,
+            'n': 1,
+            'd': 2.5,
+            's': 'str',
+            'z': null,
+          },
+        );
+      });
+    });
+
     group('parseQuery - 无效输入', () {
       test('空字符串应返回 null', () {
         final result = MongoShellQueryParser.parseQuery('');

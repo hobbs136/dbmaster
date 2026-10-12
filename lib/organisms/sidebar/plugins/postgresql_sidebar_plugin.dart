@@ -166,8 +166,9 @@ class PostgresqlSidebarPlugin implements SidebarPlugin {
   /// 的 PgVectorPanel（pg_extension_panel.dart 按 ext.name == 'vector' 注入，
   /// 即任务书「扩展管理的向量化视图」形态；零新 UI、零新执行通道，取数走
   /// 树内 Extensions 节点同一 ExtensionAdapter.getExtensions 只读路径）。
-  /// vector 未安装 = 无既有落点 → AppLogger 记录后静默返回（无语义匹配的
-  /// 既有 l10n key；ARB 由 T0 冻结，缺 key 已登记回报，不自行加）。
+  /// vector 未安装 = 无既有落点 → AppLogger 记录 + SnackBar 用户可见反馈
+  /// （pgVectorNotInstalled；收口追加批补齐——T0 时 ARB 冻结无 key 静默，
+  /// 本批解锁后挂载）。
   Future<void> _showVectorView(BuildContext context) async {
     final server = resolveSidebarActionServer(context);
     if (server == null) return;
@@ -187,6 +188,12 @@ class PostgresqlSidebarPlugin implements SidebarPlugin {
         AppLogger.w(
           'PgSidebarPlugin',
           'pg.vector: vector extension not installed; no routable target',
+        );
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.pgVectorNotInstalled),
+          ),
         );
         return;
       }

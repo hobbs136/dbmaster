@@ -359,11 +359,13 @@ void main() {
     });
 
     testWidgets('数字直达边界：序号超可见项数 = 忽略', (tester) async {
-      // 用 mongo（当前仅 core 2 项，批内各路由任务并入后仍 <9）：压到
+      // 用 sqlserver（capabilityGroups 恒空 = 仅 core 2 项）：压到
       // items.length+1 序号必超界，且可达项不含可观察激活面以外的副作用。
-      // （sqlite + 测试注入件已满 9 项，超界序号不存在，不适用本用例。）
+      // （sqlite + 测试注入件已满 9 项，超界序号不存在，不适用本用例；
+      // 原主体 mongo 在 DBT-T11 后 core 2 + 插件 7 = 9 项满额，同因换型——
+      // sqlserver/tdengine 恒空裁定见各自插件头注。）
       final provider = AppProvider();
-      provider.connection.setCurrentServer(_server(DatabaseType.mongodb));
+      provider.connection.setCurrentServer(_server(DatabaseType.sqlserver));
       await tester.pumpWidget(_host(provider));
       await tester.pump();
       await _sendAltQ(tester);
@@ -378,7 +380,7 @@ void main() {
 
       // 无激活、无崩溃、面板仍在（可达项 ai.assistant 处于 digit2，未被触发）
       expect(provider.aiPanel.aiPanelOpen, isFalse);
-      expect(find.text('Capabilities: MongoDB'), findsOneWidget);
+      expect(find.text('Capabilities: SQL Server'), findsOneWidget);
     });
   });
 }

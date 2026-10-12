@@ -363,7 +363,9 @@ class MongoShellQueryParser {
         if (i >= json.length) break;
 
         final valueResult = _parseJsonValue(json, i);
-        if (valueResult.$1 != null) {
+        // $2 < 0 = 解析失败哨兵；值本身可为 null（字面 null），不能以
+        // $1 != null 判定成败，否则 null 值会连带丢弃后续所有键。
+        if (valueResult.$2 >= 0) {
           result[key] = valueResult.$1;
           i = valueResult.$2;
         } else {
@@ -381,12 +383,15 @@ class MongoShellQueryParser {
     }
   }
 
+  /// 解析 JSON 值。返回 (值, 结束位置)：
+  /// - 成功时值可为任意类型（含字面 null），位置 >= 0 指向值之后；
+  /// - 失败时返回 (null, -1)，以 -1 位置哨兵区分「解析出 null」与「失败」。
   static (dynamic, int) _parseJsonValue(String json, int start) {
     var i = start;
     while (i < json.length && ' \t\n\r'.contains(json[i])) {
       i++;
     }
-    if (i >= json.length) return (null, i);
+    if (i >= json.length) return (null, -1);
 
     final char = json[i];
 
@@ -431,7 +436,8 @@ class MongoShellQueryParser {
         }
         if (j >= arrContent.length) break;
         final item = _parseJsonValue(arrContent, j);
-        if (item.$1 != null) {
+        // 同 _parseJson：以 -1 位置哨兵判定失败，数组内字面 null 不丢元素。
+        if (item.$2 >= 0) {
           items.add(item.$1);
           j = item.$2;
         } else {

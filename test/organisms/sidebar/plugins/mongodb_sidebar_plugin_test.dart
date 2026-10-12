@@ -8,6 +8,14 @@
 // DBT-T10 增补（串行链 T7→T10）：+mongo.currentOp 项（位映射/装配计数
 // 7→8/激活打开断言）；T7 锁定 5 项顺序不变（currentOp 追加于尾部），
 // 真库链路由 mongodb_currentop_killop_e2e_test.dart 覆盖。
+// DBT-T11 增补（串行链尾）：+mongo.gridfs 项（位映射/装配计数 8→9/激活
+// 打开断言）；T7/T10 锁定 6 项顺序不变（gridfs 追加于尾部），真库链路
+// 由 mongodb_gridfs_viewer_e2e_test.dart 覆盖。
+// DBT-T12 增补（W5 串行链尾，T9 结论 = 可行·方案 A）：+mongo.explain 项
+// （位映射/装配计数 9→10/激活打开断言 + 空查询守卫）；T7/T10/T11 锁定
+// 7 项顺序不变（explain 追加于尾部），真库两态（find→IXSCAN 摘要 /
+// aggregate→SBE unknown→JSON 默认展开）由 mongodb_explain_e2e_test.dart
+// 覆盖。
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -166,7 +174,7 @@ void main() {
       expect(d.source, PluginSource.databaseType);
     });
 
-    testWidgets('capabilityGroups：advanced 组 6 项（T7 5 + T10 追加 1），位映射逐项锁定', (
+    testWidgets('capabilityGroups：advanced 组 8 项（T7 5 + T10/T11/T12 各追加 1），位映射逐项锁定', (
       tester,
     ) async {
       BuildContext? captured;
@@ -191,7 +199,11 @@ void main() {
       // DBT-T7：id → capabilityId 映射逐项锁定；schemaView 纯导航无位恒显。
       //（mongo.validation/aggregate 复用既有位；indexAdvice/replication 为
       // T0 新登记位。）DBT-T10：mongo.currentOp 追加于尾部（T7 锁定 5 项
-      // 顺序不回归），位为 T0 预登记的 mongo.currentOp。
+      // 顺序不回归），位为 T0 预登记的 mongo.currentOp。DBT-T11：
+      // mongo.gridfs 追加于尾部（T7/T10 锁定 6 项顺序不回归），位为既有
+      // mongo.gridfs（capability_table.dart 在册）。DBT-T12：mongo.explain
+      // 追加于尾部（T7/T10/T11 锁定 7 项顺序不回归），位为 T0 预登记的
+      // mongo.explain。
       const expected = <String, String?>{
         'mongo.validation': 'mongo.validation',
         'mongo.aggregate': 'mongo.aggregate',
@@ -199,6 +211,8 @@ void main() {
         'mongo.replication': 'mongo.replication',
         'mongo.schemaView': null,
         'mongo.currentOp': 'mongo.currentOp',
+        'mongo.gridfs': 'mongo.gridfs',
+        'mongo.explain': 'mongo.explain',
       };
       final items = groups.first.items;
       expect(items.map((i) => i.id).toList(), expected.keys.toList());
@@ -209,13 +223,15 @@ void main() {
       expect(items.every((i) => i.onActivate != null), isTrue);
     });
 
-    test('DBT-T7/T10 项位全在 CapabilityTable 对 mongodb 取真（T0 预登记）', () {
+    test('DBT-T7/T10/T11/T12 项位全在 CapabilityTable 对 mongodb 取真（T0 预登记）', () {
       const caps = [
         'mongo.validation',
         'mongo.aggregate',
         'mongo.indexAdvice',
         'mongo.replication',
         'mongo.currentOp',
+        'mongo.gridfs',
+        'mongo.explain',
       ];
       for (final cap in caps) {
         expect(CapabilityTable.has(DatabaseType.mongodb, cap), isTrue,
@@ -223,7 +239,7 @@ void main() {
       }
     });
 
-    testWidgets('MongoDB 装配可见项数 = core 2 + 插件 6 = 8（CapabilityTable 门控后）',
+    testWidgets('MongoDB 装配可见项数 = core 2 + 插件 8 = 10（CapabilityTable 门控后）',
         (tester) async {
       SharedPreferences.setMockInitialValues({});
       await tester.pumpWidget(
@@ -244,7 +260,7 @@ void main() {
                 for (final g in groups)
                   ...g.items.map((i) => i.item.id),
               ];
-              expect(ids, hasLength(8));
+              expect(ids, hasLength(10));
               expect(
                 ids,
                 containsAll(const [
@@ -259,6 +275,10 @@ void main() {
                   'mongo.schemaView',
                   // 插件 1（DBT-T10）
                   'mongo.currentOp',
+                  // 插件 1（DBT-T11）
+                  'mongo.gridfs',
+                  // 插件 1（DBT-T12）
+                  'mongo.explain',
                 ]),
               );
               return const SizedBox.shrink();
@@ -464,6 +484,48 @@ void main() {
       expect(find.text('Current Operations'), findsOneWidget);
       expect(find.textContaining('MongoDB'), findsOneWidget);
       expect(find.text('Close'), findsOneWidget);
+    });
+
+    testWidgets('mongo.gridfs → 打开 GridFS 查看器（DBT-T11；未连接 = 空库下拉）', (
+      tester,
+    ) async {
+      await pumpHarness(tester);
+      await activateItem(tester, 'mongo.gridfs');
+
+      // 面板标题 + 库下拉渲染（未连接 provider 下 loadDatabases 返回空，
+      // 无 bucket 无列表——打开不崩溃即可，真库链路由
+      // mongodb_gridfs_viewer_e2e_test.dart 覆盖）。
+      expect(find.text('GridFS Files'), findsOneWidget);
+      expect(find.text('Database'), findsOneWidget);
+      expect(find.text('Close'), findsOneWidget);
+    });
+
+    testWidgets('mongo.explain → 打开 Explain 计划面板（DBT-T12；未连接 = 空库下拉）', (
+      tester,
+    ) async {
+      await pumpHarness(tester);
+      await activateItem(tester, 'mongo.explain');
+
+      // 面板标题 + 库下拉 + 查询输入 + 运行按钮（未连接 provider 下
+      // loadDatabases 返回空，无集合可选——打开不崩溃即可，真库两态链路
+      // 由 mongodb_explain_e2e_test.dart 覆盖）。
+      expect(find.text('Explain Plan'), findsOneWidget);
+      expect(find.text('Database'), findsOneWidget);
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.text('Explain Query'), findsOneWidget);
+      expect(find.text('Close'), findsOneWidget);
+    });
+
+    testWidgets('mongo.explain → 空查询点运行 = 守卫拦截（零取数）', (tester) async {
+      await pumpHarness(tester);
+      await activateItem(tester, 'mongo.explain');
+
+      // 未选集合（无预填）→ 查询框空 → explainQuery 守卫 = pleaseEnterSql
+      // 提示（index advice 面板同款前置校验），不触达取数闭包。
+      await tester.tap(find.byKey(const Key('explain_run')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Please enter an SQL statement first'), findsOneWidget);
     });
   });
 }

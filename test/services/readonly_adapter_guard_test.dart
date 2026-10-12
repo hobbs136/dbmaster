@@ -278,5 +278,60 @@ void main() {
       );
       expect(rows, isNotEmpty);
     });
+
+    // ── 收口追加批（security W2-S1，2026-10-12）词面权衡两例锚定 ──────────
+
+    test('SELECT * FROM vacuum_log 放行（下划线非词边界，\\bVACUUM\\b 不误杀）', () async {
+      // 表名含维护命令前缀是真实场景（R4-a 加关键字面后的误杀面锚定）：
+      // \b 词边界判定下 vacuum_log 整词不匹配 VACUUM（_ 为 word 字符），
+      // 闸门必须放行。表经独立**非只读** adapter 直开同一 db 文件预建
+      // （只读通道上 CREATE 会先被 adapter 读路径守卫拦，本用例锚定的是
+      // service 闸门对 SELECT 读路径的放行）。
+      final setup = SQLiteAdapter();
+      await setup.connect(
+        DatabaseConnection(
+          id: 'ro_gate_setup',
+          name: 'RO Gate Setup',
+          host: dbPath,
+          port: 0,
+          type: DatabaseType.sqlite,
+          username: '',
+          password: '',
+        ),
+      );
+      await setup.executeQuery('CREATE TABLE vacuum_log (id INTEGER)');
+      try {
+        await setup.disconnect();
+      } catch (_) {}
+
+      final service = await roService('ro_gate');
+      final rows = await service.executeQuery(
+        'SELECT * FROM vacuum_log',
+        connectionId: 'ro_gate',
+      );
+      expect(rows, isNotNull, reason: '含 vacuum_log 表名的 SELECT 不得被只读闸门误杀');
+    });
+
+    test('EXPLAIN ANALYZE SELECT 按现状拦截（词面权衡登记，security W2-S1）', () async {
+      final service = await roService('ro_gate');
+      // PG 的 EXPLAIN ANALYZE SELECT 是只读语义（执行并返回计划），但
+      // \bANALYZE\b 词面命中 → 被拦。属既有权衡（fail-closed 保守面）：
+      // 本例锚定现状行为，不据此改判定——若未来放行需走白名单式 EXPLAIN
+      // 前缀判别，另立任务。
+      await expectLater(
+        service.executeQuery(
+          'EXPLAIN ANALYZE SELECT 1',
+          connectionId: 'ro_gate',
+        ),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            contains('只读模式下禁止执行修改操作'),
+          ),
+        ),
+        reason: 'EXPLAIN ANALYZE 按现状被 ANALYZE 词面拦截（登记的权衡）',
+      );
+    });
   });
 }

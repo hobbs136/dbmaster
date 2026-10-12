@@ -11168,4 +11168,67 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mongoExplainTitle => 'Explain Plan';
+
+  @override
+  String get pgVectorNotInstalled => 'pgvector extension not installed';
+
+  @override
+  String pgVacuumConfirmDb(String db) {
+    return 'Run VACUUM on all tables in database $db?';
+  }
+
+  @override
+  String get mongoReplicaSetNotReplicaSet => 'Not a replica set';
+
+  @override
+  String mongoReplicaSetSetLabel(String set) {
+    return 'Set: $set';
+  }
+
+  @override
+  String mongoReplicaSetThisNode(String role) {
+    return 'This node: $role';
+  }
+
+  @override
+  String mongoReplicaSetShardCount(String count) {
+    return '$count shards';
+  }
+
+  @override
+  String mongoReplicaSetLoadFailed(String error) {
+    return 'Failed to load: $error';
+  }
+
+  @override
+  String get mongoCurrentOpReadonlyNote =>
+      'Kill operations are not restricted by read-only mode';
+
+  @override
+  String redisTtlStatsKeys(String count) {
+    return 'Keys $count';
+  }
+
+  @override
+  String redisTtlStatsWithTtl(String count) {
+    return 'With TTL $count';
+  }
+
+  @override
+  String redisTtlStatsAvg(String ttl) {
+    return 'Avg $ttl';
+  }
+
+  @override
+  String redisTtlSampledNote(String count) {
+    return 'Sampled $count keys (sampling)';
+  }
+
+  @override
+  String get redisTtlEmpty => 'No keys expiring soon';
+
+  @override
+  String redisTtlMoreInSample(String count) {
+    return '... and $count more (in sample)';
+  }
 }

@@ -324,6 +324,8 @@ class _PostgresqlTableMaintenanceEntryDialogState
   }
 
   /// 专属确认门（取消 = 零执行零审计，跳过该目标继续下一目标）。
+  /// VACUUM 未选表 = 库级形态，确认文案与表级区分
+  /// （pgVacuumConfirmDb 明示「所有表」，收口追加批）。
   Future<bool> _confirmPgOp(String target) async {
     final l10n = AppLocalizations.of(context)!;
     final isVacuum = _command == TableMaintenanceCommand.vacuum;
@@ -334,7 +336,9 @@ class _PostgresqlTableMaintenanceEntryDialogState
         title: _chipLabel(l10n, _command),
         impactTone: DestructiveTone.warning,
         body: isVacuum
-            ? l10n.pgVacuumConfirm(target)
+            ? (_selectedTables.isEmpty
+                  ? l10n.pgVacuumConfirmDb(target)
+                  : l10n.pgVacuumConfirm(target))
             : l10n.pgReindexConfirm(target),
         confirmLabel: l10n.commonConfirm,
         onConfirm: () => Navigator.pop(ctx, true),

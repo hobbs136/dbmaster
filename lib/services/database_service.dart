@@ -3701,6 +3701,9 @@ class DatabaseService {
     // `PRAGMA table_info(t)` 无法在不引入 pragma 名单白名单的情况下区分；
     // 整族 fail-closed 又会拦死既有只读 PRAGMA 浏览能力（sqlite.pragma）。
     // 残余风险登记：只读连接上 PRAGMA 写形态不被本闸门拦截。
+    // 另一词面权衡（security W2-S1，2026-10-12）：`EXPLAIN ANALYZE SELECT`
+    // 会被 \bANALYZE\b 词面拦截，属既有权衡（fail-closed 保守面），行为
+    // 由 readonly_adapter_guard_test 锚定，不据此改判定。
     for (final keyword in writeKeywords) {
       // startsWith 覆盖常规形态；\b 正则覆盖 CTE（WITH ... INSERT）/ 前置
       // 注释等不以关键字开头的写语句。注意 raw 字符串必须单反斜杠——此前

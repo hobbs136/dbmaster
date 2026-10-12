@@ -5673,7 +5673,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get toolbarRollback => 'ROLLBACK';
 
   @override
-  String get toolbarQueryPlan => 'Query Plan';
+  String get toolbarQueryPlan => 'Plan de requête';
 
   @override
   String get toolbarPiiMasking => 'PII Masking Settings';
@@ -11255,4 +11255,67 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get mongoExplainTitle => 'Plan d\'exécution';
+
+  @override
+  String get pgVectorNotInstalled => 'Extension pgvector non installée';
+
+  @override
+  String pgVacuumConfirmDb(String db) {
+    return 'Exécuter VACUUM sur toutes les tables de la base de données $db ?';
+  }
+
+  @override
+  String get mongoReplicaSetNotReplicaSet => 'Pas un replica set';
+
+  @override
+  String mongoReplicaSetSetLabel(String set) {
+    return 'Set : $set';
+  }
+
+  @override
+  String mongoReplicaSetThisNode(String role) {
+    return 'Ce nœud : $role';
+  }
+
+  @override
+  String mongoReplicaSetShardCount(String count) {
+    return '$count shards';
+  }
+
+  @override
+  String mongoReplicaSetLoadFailed(String error) {
+    return 'Échec du chargement : $error';
+  }
+
+  @override
+  String get mongoCurrentOpReadonlyNote =>
+      'Les opérations de kill ne sont pas limitées par le mode lecture seule';
+
+  @override
+  String redisTtlStatsKeys(String count) {
+    return 'Clés $count';
+  }
+
+  @override
+  String redisTtlStatsWithTtl(String count) {
+    return 'Avec TTL $count';
+  }
+
+  @override
+  String redisTtlStatsAvg(String ttl) {
+    return 'Moy. $ttl';
+  }
+
+  @override
+  String redisTtlSampledNote(String count) {
+    return '$count clés échantillonnées (échantillonnage)';
+  }
+
+  @override
+  String get redisTtlEmpty => 'Aucune clé expirant bientôt';
+
+  @override
+  String redisTtlMoreInSample(String count) {
+    return '... et $count de plus (dans l\'échantillon)';
+  }
 }

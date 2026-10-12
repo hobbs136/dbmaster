@@ -5519,7 +5519,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get toolbarRollback => 'ROLLBACK';
 
   @override
-  String get toolbarQueryPlan => 'Query Plan';
+  String get toolbarQueryPlan => '查询计划';
 
   @override
   String get toolbarPiiMasking => 'PII Masking Settings';
@@ -10903,6 +10903,68 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mongoExplainTitle => '执行计划';
+
+  @override
+  String get pgVectorNotInstalled => 'pgvector 扩展未安装';
+
+  @override
+  String pgVacuumConfirmDb(String db) {
+    return '对数据库 $db 的所有表执行 VACUUM？';
+  }
+
+  @override
+  String get mongoReplicaSetNotReplicaSet => '不是副本集';
+
+  @override
+  String mongoReplicaSetSetLabel(String set) {
+    return '副本集：$set';
+  }
+
+  @override
+  String mongoReplicaSetThisNode(String role) {
+    return '本节点：$role';
+  }
+
+  @override
+  String mongoReplicaSetShardCount(String count) {
+    return '$count 个分片';
+  }
+
+  @override
+  String mongoReplicaSetLoadFailed(String error) {
+    return '加载失败：$error';
+  }
+
+  @override
+  String get mongoCurrentOpReadonlyNote => '终止操作不受只读模式限制';
+
+  @override
+  String redisTtlStatsKeys(String count) {
+    return '键 $count';
+  }
+
+  @override
+  String redisTtlStatsWithTtl(String count) {
+    return '含 TTL $count';
+  }
+
+  @override
+  String redisTtlStatsAvg(String ttl) {
+    return '平均 $ttl';
+  }
+
+  @override
+  String redisTtlSampledNote(String count) {
+    return '已采样 $count 个键（采样统计）';
+  }
+
+  @override
+  String get redisTtlEmpty => '没有即将过期的键';
+
+  @override
+  String redisTtlMoreInSample(String count) {
+    return '...另有 $count 个（采样内）';
+  }
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -15555,6 +15617,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
+  String get toolbarQueryPlan => '查詢計畫';
+
+  @override
   String get sidebarDropEvent => '刪除事件';
 
   @override
@@ -19250,4 +19315,66 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get mongoExplainTitle => '執行計畫';
+
+  @override
+  String get pgVectorNotInstalled => 'pgvector 擴充功能未安裝';
+
+  @override
+  String pgVacuumConfirmDb(String db) {
+    return '對資料庫 $db 的所有資料表執行 VACUUM？';
+  }
+
+  @override
+  String get mongoReplicaSetNotReplicaSet => '不是副本集';
+
+  @override
+  String mongoReplicaSetSetLabel(String set) {
+    return '副本集：$set';
+  }
+
+  @override
+  String mongoReplicaSetThisNode(String role) {
+    return '本節點：$role';
+  }
+
+  @override
+  String mongoReplicaSetShardCount(String count) {
+    return '$count 個分片';
+  }
+
+  @override
+  String mongoReplicaSetLoadFailed(String error) {
+    return '載入失敗：$error';
+  }
+
+  @override
+  String get mongoCurrentOpReadonlyNote => '終止操作不受唯讀模式限制';
+
+  @override
+  String redisTtlStatsKeys(String count) {
+    return '鍵 $count';
+  }
+
+  @override
+  String redisTtlStatsWithTtl(String count) {
+    return '含 TTL $count';
+  }
+
+  @override
+  String redisTtlStatsAvg(String ttl) {
+    return '平均 $ttl';
+  }
+
+  @override
+  String redisTtlSampledNote(String count) {
+    return '已取樣 $count 個鍵（取樣統計）';
+  }
+
+  @override
+  String get redisTtlEmpty => '沒有即將過期的鍵';
+
+  @override
+  String redisTtlMoreInSample(String count) {
+    return '...另有 $count 個（取樣內）';
+  }
 }

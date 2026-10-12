@@ -5660,7 +5660,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get toolbarRollback => 'ROLLBACK';
 
   @override
-  String get toolbarQueryPlan => 'Query Plan';
+  String get toolbarQueryPlan => 'План запроса';
 
   @override
   String get toolbarPiiMasking => 'PII Masking Settings';
@@ -11213,4 +11213,67 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get mongoExplainTitle => 'План выполнения';
+
+  @override
+  String get pgVectorNotInstalled => 'Расширение pgvector не установлено';
+
+  @override
+  String pgVacuumConfirmDb(String db) {
+    return 'Выполнить VACUUM для всех таблиц базы данных $db?';
+  }
+
+  @override
+  String get mongoReplicaSetNotReplicaSet => 'Не является replica set';
+
+  @override
+  String mongoReplicaSetSetLabel(String set) {
+    return 'Set: $set';
+  }
+
+  @override
+  String mongoReplicaSetThisNode(String role) {
+    return 'Этот узел: $role';
+  }
+
+  @override
+  String mongoReplicaSetShardCount(String count) {
+    return '$count шардов';
+  }
+
+  @override
+  String mongoReplicaSetLoadFailed(String error) {
+    return 'Не удалось загрузить: $error';
+  }
+
+  @override
+  String get mongoCurrentOpReadonlyNote =>
+      'Операции Kill не ограничены режимом только для чтения';
+
+  @override
+  String redisTtlStatsKeys(String count) {
+    return 'Ключи $count';
+  }
+
+  @override
+  String redisTtlStatsWithTtl(String count) {
+    return 'С TTL $count';
+  }
+
+  @override
+  String redisTtlStatsAvg(String ttl) {
+    return 'Ср. $ttl';
+  }
+
+  @override
+  String redisTtlSampledNote(String count) {
+    return 'Выбрано $count ключей (выборка)';
+  }
+
+  @override
+  String get redisTtlEmpty => 'Нет ключей с истекающим TTL';
+
+  @override
+  String redisTtlMoreInSample(String count) {
+    return '... и ещё $count (в выборке)';
+  }
 }

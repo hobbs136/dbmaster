@@ -22,10 +22,12 @@
 //   [audit] 为 @visibleForTesting 可覆盖接缝（T5/AI-SEX 先例），生产走
 //   [_auditKillOp] 默认审计器。
 //
-// TODO(DBT-T10 · readonly 语义转 security 裁决，与 adapter.killOp 注释
-// 同源)：只读连接当前可发 killOp（server WRITE_COMMANDS 与客户端
-// validateCommand 关键字面均未判写）。拦 or 放行+标注待 security 评审
-// 结论，本面板不预占裁决（确认门 + 审计为任务书既定交付）。
+// 裁决结论（security 裁决 b，2026-10-12，与 adapter.killOp 注释同源）：
+// 只读连接当前可发 killOp（server WRITE_COMMANDS 与客户端 validateCommand
+// 关键字面均未判写），**放行 + UI 标注**（面板顶部
+// mongoCurrentOpReadonlyNote 常显；与 MySQL kill query 先例一致，
+// db_handler.rs:883-913 无 read_only 检查；server 端 WRITE_COMMANDS 保持
+// 不加，mongo.rs 注释登记归呈报包）。确认门 + 审计为任务书既定交付。
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -346,13 +348,29 @@ class _MongoProcessDialogState extends State<MongoProcessDialog> {
       content: SizedBox(
         width: 680,
         height: 440,
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-            ? _buildError(colors)
-            : (_entries?.isEmpty ?? true)
-            ? _buildEmpty(l10n, colors)
-            : _buildTable(l10n, colors),
+        // security 裁决 b（2026-10-12）：killOp 放行 + UI 标注——只读
+        // 语义说明常显面板顶部（一行 muted，不随加载态消失）。
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppDesignSystem.space2),
+              child: Text(
+                l10n.mongoCurrentOpReadonlyNote,
+                style: TextStyle(color: colors.textMuted, fontSize: 11),
+              ),
+            ),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                  ? _buildError(colors)
+                  : (_entries?.isEmpty ?? true)
+                  ? _buildEmpty(l10n, colors)
+                  : _buildTable(l10n, colors),
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(

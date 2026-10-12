@@ -196,6 +196,9 @@ class MysqlSidebarPlugin implements SidebarPlugin {
     final provider = context.read<AppProvider>();
     showDialog(
       context: context,
+      // R4-d：维护执行中禁屏障关闭（dialog 内 PopScope 拦 Esc/屏障的
+      // maybePop 路径，这里关掉屏障点击通道双保险；与 PG 侧同款对称）。
+      barrierDismissible: false,
       builder: (_) => MysqlTableMaintenanceEntryDialog(
         connectionId: server.id,
         loadDatabases: (cid) =>

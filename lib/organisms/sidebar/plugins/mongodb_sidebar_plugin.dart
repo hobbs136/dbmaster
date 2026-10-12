@@ -25,7 +25,14 @@
 // mongo.currentOp——进程/KillOp 面板（currentOp 只读 + killOp 确认门 +
 // 审计，C03/T10 backlog 销项）；经 adapter 薄包装 + dbService.getAdapter
 // 检索（T4 PG 插件同模式——铁律 3「不直接实例化」语义保持，本文件为此
-// 引入 adapters import，树装配仍零 adapter 触达）。
+// 引入 adapters import，树装配仍零 adapter 触达）。DBT-T11（W4 串行链尾）
+// 追加第 7 项 mongo.gridfs——GridFS 只读查看器（列表/元数据/下载；上传/
+// 删除后置呈报），取数同走 adapter 只读薄包装（fs.files/fs.chunks 集合
+// 查询，零 server 改动）。DBT-T12（W5 串行链尾，T9 结论 = 可行·方案 A）
+// 追加第 8 项 mongo.explain——Explain 计划面板（选库/集合 + shell 查询
+// 输入 + 摘要两列表 + 可折叠完整 JSON）；数据经 dbService.getExplainPlan
+// 服务层既有面（零 adapter 直连；MongoVisualizationService/ExplainPlanTree
+// 孤挂断链，R2/核实结论双裁定禁止旁路消费）。
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -44,6 +51,7 @@ import '../../../services/mongodb_shell_parser.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/app_logger.dart';
 import '../../ai_workbench/workbench_mongo_schema_view.dart';
+import '../../dialogs/mongo_gridfs_dialog.dart';
 import '../../dialogs/mongo_process_dialog.dart';
 import '../builders/tree_utils.dart';
 import '../capability/capability_menu_assembly.dart';
@@ -119,6 +127,29 @@ class MongodbSidebarPlugin implements SidebarPlugin {
             label: (l10n) => l10n.mongoCurrentOpTitle,
             icon: LucideIcons.circleStop,
             onActivate: () => _showCurrentOpPanel(context),
+          ),
+          // ── DBT-T11 新增（2026-10 工具面板补齐批，串行链 T7→T10→T11）──
+          // id 与 T2 `_releaseNewItemIds` 预登记锁定值一致（命中「新建」
+          // 徽标，徽标渲染归框架）。GridFS 只读查看器：列表/元数据/下载
+          // （上传/删除后置呈报，tasks §5 #8）；取数经 adapter 只读薄包装
+          // + dbService.getAdapter 检索（T10 同模式）。
+          SidebarCapabilityItem(
+            id: 'mongo.gridfs',
+            capabilityId: 'mongo.gridfs',
+            label: (l10n) => l10n.mongoGridfsTitle,
+            icon: LucideIcons.folderOpen,
+            onActivate: () => _showGridFsViewer(context),
+          ),
+          // ── DBT-T12 新增（2026-10 工具面板补齐批，串行链 T7→T10→T11→T12）──
+          // id 与 T2 `_releaseNewItemIds` 预登记锁定值一致（命中「新建」
+          // 徽标，徽标渲染归框架）。Explain 只读面板：图标沿编辑器工具栏
+          // 查询计划入口（query_editor_toolbar.dart network 同语汇）。
+          SidebarCapabilityItem(
+            id: 'mongo.explain',
+            capabilityId: 'mongo.explain',
+            label: (l10n) => l10n.mongoExplainTitle,
+            icon: LucideIcons.network,
+            onActivate: () => _showExplainPanel(context),
           ),
         ],
       ),
@@ -318,6 +349,86 @@ class MongodbSidebarPlugin implements SidebarPlugin {
         final resp = await adapter.killOp(opId);
         return resp['ok'] == 1.0 || resp['ok'] == 1;
       },
+    );
+  }
+
+  /// GridFS 只读查看器（DBT-T11，W-12）：bucket 文件列表 + 元数据详情 +
+  /// 下载（写本地文件），**UI 无上传/删除入口**（后置呈报项）。取数经
+  /// adapter 只读薄包装（listGridFsFiles/getGridFsFileMetadata/
+  /// readGridFsFileBytes——fs.files/fs.chunks 集合查询，零 server 改动）；
+  /// 经 `dbService.getAdapter` 消费端检索（T10 同模式，铁律 3 语义保持）。
+  /// bucket 探测与树同源：loadDatabaseInfo 集合清单 → .files/.chunks 配对。
+  void _showGridFsViewer(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    final provider = context.read<AppProvider>();
+    MongoGridFsDialog.show(
+      context,
+      connectionId: server.id,
+      loadDatabases: (cid) =>
+          provider.dbService.getDatabases(connectionId: cid),
+      loadBuckets: (cid, db) async {
+        final info = await provider.loadDatabaseInfo(cid, db);
+        return MongoGridFsFileEntry.bucketNamesFrom(
+          info?.tables.map((t) => t.name) ?? const <String>[],
+        );
+      },
+      listFiles: (cid, db, bucket) async {
+        final adapter = provider.dbService.getAdapter(cid);
+        if (adapter is! MongoDBAdapter) {
+          throw StateError('MongoDB 连接不可用（GridFS 需要 MongoDB 连接）');
+        }
+        return MongoGridFsFileEntry.listFromFilesDocs(
+          await adapter.listGridFsFiles(bucket, database: db),
+        );
+      },
+      loadMetadata: (cid, db, bucket, objectIdHex) async {
+        final adapter = provider.dbService.getAdapter(cid);
+        if (adapter is! MongoDBAdapter) {
+          throw StateError('MongoDB 连接不可用（GridFS 需要 MongoDB 连接）');
+        }
+        return adapter.getGridFsFileMetadata(bucket, objectIdHex, database: db);
+      },
+      readFileBytes: (cid, db, bucket, objectIdHex) async {
+        final adapter = provider.dbService.getAdapter(cid);
+        if (adapter is! MongoDBAdapter) {
+          throw StateError('MongoDB 连接不可用（GridFS 需要 MongoDB 连接）');
+        }
+        return adapter.readGridFsFileBytes(bucket, objectIdHex, database: db);
+      },
+    );
+  }
+
+  /// Explain 计划面板（DBT-T12，W-13b；T9 核实结论方案 A）：选库/集合 →
+  /// shell 查询输入（选集合预填 find 模板）→ dbService.getExplainPlan
+  /// （服务层既有面，零 adapter 直连、零 MongoVisualizationService 旁路
+  /// 消费）→ 摘要两列表（直接消费 adapter 既有格式化行）+ 可折叠完整
+  /// JSON。只读——explain 命令零写语义。
+  void _showExplainPanel(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    final provider = context.read<AppProvider>();
+    showDialog(
+      context: context,
+      builder: (_) => _MongoExplainDialog(
+        connectionId: server.id,
+        loadDatabases: (cid) =>
+            provider.dbService.getDatabases(connectionId: cid),
+        // 集合清单与树同源：loadDatabaseInfo（内部 useDatabase + getTables；
+        // mongo 网关壳 getTables 只看当前库上下文，databaseName 直参对其
+        // 不生效——须先切库，面板选库与树内 changeDatabase 同语义。该切库
+        // 同时确立 explain 命令的库上下文——getExplainPlan 无 database 直参，
+        // 与树内集合查询一致走当前库）。
+        loadCollections: (cid, db) async {
+          final info = await provider.loadDatabaseInfo(cid, db);
+          return info?.tables.map((t) => t.name).toList() ??
+              const <String>[];
+        },
+        runExplain: (cid, query) => provider.dbService.getExplainPlan(
+          query,
+          connectionId: cid,
+        ),
+      ),
     );
   }
 }
@@ -2803,7 +2914,7 @@ class _MongoReplicationPanelDialogState
         child: _loading
             ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
             : _error != null
-            ? _ErrorLine('Failed to load: $_error')
+            ? _ErrorLine(l10n.mongoReplicaSetLoadFailed('$_error'))
             : ListView(
                 children: [
                   _SectionHeader(
@@ -2831,14 +2942,14 @@ class _MongoReplicationPanelDialogState
 
   /// 与树内 _buildReplicationContent 同语义（facade 哨兵区分未加载/非副本集）。
   Widget _replicaContent() {
+    final l10n = AppLocalizations.of(context)!;
     final status = _replicaStatus;
     if (status == null ||
         (status['__loaded'] == true && status['isReplicaSet'] == false)) {
-      // 树内同款文案（树内 :341 同一硬编码先例）；独立 l10n key 缺口随任务回报。
-      return const _MutedLine('Not a replica set');
+      return _MutedLine(l10n.mongoReplicaSetNotReplicaSet);
     }
     if (status['error'] != null) {
-      return _ErrorLine('Failed to load: ${status['error']}');
+      return _ErrorLine(l10n.mongoReplicaSetLoadFailed('${status['error']}'));
     }
     final setName = status['setName'] ?? 'unknown';
     final myState = status['myState'];
@@ -2848,8 +2959,8 @@ class _MongoReplicationPanelDialogState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _MutedLine('Set: $setName'),
-        _MutedLine('This node: $roleStr'),
+        _MutedLine(l10n.mongoReplicaSetSetLabel('$setName')),
+        _MutedLine(l10n.mongoReplicaSetThisNode(roleStr)),
         for (final m in members)
           _MutedLine(_formatMember(m as Map<String, dynamic>)),
       ],
@@ -2864,14 +2975,14 @@ class _MongoReplicationPanelDialogState
       return _MutedLine(l10n.mongoShardingNotSharded);
     }
     if (status['error'] != null) {
-      return _ErrorLine('Failed to load: ${status['error']}');
+      return _ErrorLine(l10n.mongoReplicaSetLoadFailed('${status['error']}'));
     }
     final shards = (status['shards'] as List<dynamic>?) ?? const [];
     final totalShards = status['totalShards'] ?? shards.length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _MutedLine('$totalShards shards'),
+        _MutedLine(l10n.mongoReplicaSetShardCount('$totalShards')),
         for (final s in shards)
           _MutedLine(_formatShard(s as Map<String, dynamic>)),
       ],
@@ -3108,6 +3219,432 @@ class _SectionHeader extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Explain 计划面板（DBT-T12，W-13b；私有件沿 T7 面板形态，经构造注入
+/// 取数回调以便测试驱动）。只读，零新执行通道（数据面只有 [runExplain]
+/// 注入闭包——T9 核实结论双裁定：`MongoVisualizationService`/
+/// `ExplainPlanTree` 孤挂断链禁止旁路消费）。
+///
+/// 结果消费 = adapter `_formatExplainResult`（mongodb_gateway_adapter.dart）
+/// 既有格式化行，按行 values 位次（{label, value} 两列）取数，不耦合列名：
+/// - 单值行（parser 不可解析提示 / explain 失败提示）→ 按错误态呈现；
+/// - 末行「完整计划(JSON)」不进摘要列表，其值进可折叠 JSON 节；
+/// - aggregate explain 的 winningPlan 为 SBE 包装 → stage 显示 'unknown'
+///   且索引判定失真 → stage=unknown 时 JSON 节默认展开（完整 JSON 为准，
+///   免新增提示文案 key——ARB 冻结口径，缺 key 登记见任务回报）。
+class _MongoExplainDialog extends StatefulWidget {
+  const _MongoExplainDialog({
+    required this.connectionId,
+    required this.loadDatabases,
+    required this.loadCollections,
+    required this.runExplain,
+  });
+
+  final String connectionId;
+  final Future<List<String>> Function(String connectionId) loadDatabases;
+  final Future<List<String>> Function(String connectionId, String database)
+  loadCollections;
+  final Future<List<Map<String, dynamic>>> Function(
+    String connectionId,
+    String query,
+  )
+  runExplain;
+
+  @override
+  State<_MongoExplainDialog> createState() => _MongoExplainDialogState();
+}
+
+class _MongoExplainDialogState extends State<_MongoExplainDialog> {
+  final TextEditingController _queryController = TextEditingController();
+
+  List<String> _databases = const [];
+  List<String> _collections = const [];
+  String? _selectedDatabase;
+  String? _selectedCollection;
+  bool _loadingCollections = false;
+  String? _listError;
+
+  bool _running = false;
+  List<Map<String, dynamic>>? _rows;
+  String? _error;
+
+  /// 完整 JSON 节展开态（每次 run 按 stage=unknown 重置默认态，用户可手动
+  /// 折叠/展开——aggregate SBE 结果以免读摘要、直读 JSON 为主）。
+  bool _jsonExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDatabases());
+  }
+
+  @override
+  void dispose() {
+    _queryController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadDatabases() async {
+    try {
+      final dbs = await widget.loadDatabases(widget.connectionId);
+      if (!mounted) return;
+      setState(() {
+        _databases = dbs;
+        _listError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _listError = e.toString());
+    }
+  }
+
+  Future<void> _selectDatabase(String database) async {
+    if (database == _selectedDatabase) return;
+    setState(() {
+      _selectedDatabase = database;
+      _selectedCollection = null;
+      _collections = const [];
+      _loadingCollections = true;
+    });
+    try {
+      final collections = await widget.loadCollections(
+        widget.connectionId,
+        database,
+      );
+      if (!mounted) return;
+      setState(() {
+        _collections = collections;
+        _loadingCollections = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _listError = e.toString();
+        _loadingCollections = false;
+      });
+    }
+  }
+
+  /// 选集合 → 预填 find 模板（每次覆盖——面板主流程从模板改过滤条件，
+  /// 需要保留自写语句时不再点集合即可）。零执行，纯输入预填。
+  void _selectCollection(String collection) {
+    setState(() {
+      _selectedCollection = collection;
+      _queryController.text = 'db.$collection.find({ })';
+    });
+  }
+
+  Future<void> _run() async {
+    final l10n = AppLocalizations.of(context)!;
+    final query = _queryController.text.trim();
+    if (query.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.pleaseEnterSql)),
+      );
+      return;
+    }
+    setState(() {
+      _running = true;
+      _error = null;
+    });
+    try {
+      final rows = await widget.runExplain(widget.connectionId, query);
+      if (!mounted) return;
+      setState(() {
+        _rows = rows;
+        _running = false;
+        _jsonExpanded = _stageUnknown(rows);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _running = false;
+        _jsonExpanded = false;
+      });
+    }
+  }
+
+  /// stage=unknown 判定（SBE 包装，见类头注）：摘要 stage 行值为 unknown。
+  static bool _stageUnknown(List<Map<String, dynamic>> rows) {
+    for (final row in rows) {
+      final cells = row.values.toList();
+      if (cells.length >= 2 && cells[0].toString() == 'winningPlan.stage') {
+        return cells[1].toString() == 'unknown';
+      }
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AlertDialog(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      title: Text(l10n.mongoExplainTitle),
+      content: SizedBox(
+        width: 620,
+        height: 540,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSelectors(l10n),
+            if (_listError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  l10n.loadFailed(_listError ?? ''),
+                  style: TextStyle(
+                    color: context.themeColors.error,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            const SizedBox(height: AppDesignSystem.space2),
+            _buildQueryInput(l10n),
+            const SizedBox(height: AppDesignSystem.space2),
+            _buildRunRow(l10n),
+            const SizedBox(height: AppDesignSystem.space2),
+            Expanded(child: _buildResult(l10n)),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.commonClose),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSelectors(AppLocalizations l10n) {
+    return Row(
+      children: [
+        Expanded(
+          child: DropdownButton<String>(
+            value: _selectedDatabase,
+            isExpanded: true,
+            hint: Text(l10n.connectionDatabase),
+            items: [
+              for (final db in _databases)
+                DropdownMenuItem<String>(value: db, child: Text(db)),
+            ],
+            onChanged: (db) {
+              if (db != null) _selectDatabase(db);
+            },
+          ),
+        ),
+        const SizedBox(width: AppDesignSystem.space2),
+        Expanded(
+          child: DropdownButton<String>(
+            value: _selectedCollection,
+            isExpanded: true,
+            hint: Text(l10n.sidebarCollections),
+            items: [
+              for (final collection in _collections)
+                DropdownMenuItem<String>(
+                  value: collection,
+                  child: Text(collection),
+                ),
+            ],
+            onChanged: (collection) {
+              if (collection != null) _selectCollection(collection);
+            },
+          ),
+        ),
+        if (_loadingCollections)
+          const Padding(
+            padding: EdgeInsets.only(left: 8),
+            child: SizedBox(
+              height: 16,
+              width: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildQueryInput(AppLocalizations l10n) {
+    return TextField(
+      controller: _queryController,
+      minLines: 3,
+      maxLines: 5,
+      decoration: const InputDecoration(
+        hintText: 'db.collection.find({ ... })',
+        border: OutlineInputBorder(),
+      ),
+      style: TextStyle(
+        fontFamily: AppDesignSystem.monoFontFamily,
+        fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
+        fontSize: 13,
+        color: context.themeColors.textPrimary,
+      ),
+    );
+  }
+
+  Widget _buildRunRow(AppLocalizations l10n) {
+    return Row(
+      children: [
+        ElevatedButton(
+          key: const Key('explain_run'),
+          onPressed: _running ? null : _run,
+          child: Text(l10n.explainQuery),
+        ),
+        if (_running)
+          const Padding(
+            padding: EdgeInsets.only(left: 12),
+            child: SizedBox(
+              height: 16,
+              width: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// 结果区：未运行空 / 运行中 spinner / 失败态（explainPlanFailed）/
+  /// 单值提示行错误态（parser 不可解析 / explain 失败，adapter 既有文案）
+  /// / 摘要两列表 + 可折叠完整 JSON。
+  Widget _buildResult(AppLocalizations l10n) {
+    if (_running) {
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+    }
+    final error = _error;
+    if (error != null) {
+      return SingleChildScrollView(
+        child: Text(
+          l10n.explainPlanFailed(error),
+          style: TextStyle(color: context.themeColors.error, fontSize: 13),
+        ),
+      );
+    }
+    final rows = _rows;
+    if (rows == null || rows.isEmpty) {
+      // 未运行（rows 恒非 null 前）/ adapter 恒返回 ≥1 行，防御空。
+      return const SizedBox.shrink();
+    }
+
+    final notices = <String>[];
+    final summary = <(String, String)>[];
+    String? jsonLabel;
+    String? jsonBody;
+    for (final row in rows) {
+      final cells = row.values.toList();
+      if (cells.length < 2) {
+        // 单值行 = adapter 不可解析/失败提示（既有文案，数据驱动呈现）。
+        notices.add(cells.isEmpty ? '' : cells.first.toString());
+        continue;
+      }
+      final label = cells[0].toString();
+      final value = cells[1].toString();
+      if (label.contains('JSON')) {
+        // 完整计划 JSON 行（adapter 末行，label 内含 'JSON'）→ 折叠节。
+        jsonLabel = label;
+        jsonBody = value;
+      } else {
+        summary.add((label, value));
+      }
+    }
+
+    if (notices.isNotEmpty) {
+      return SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final notice in notices)
+              Text(
+                notice,
+                style: TextStyle(
+                  color: context.themeColors.error,
+                  fontSize: 13,
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
+    return ListView(
+      children: [
+        for (final (label, value) in summary) _buildSummaryRow(label, value),
+        if (jsonBody != null) ...[
+          _buildJsonToggle(jsonLabel ?? 'JSON'),
+          if (_jsonExpanded)
+            SelectableText(
+              jsonBody,
+              key: const Key('explain_full_json'),
+              style: TextStyle(
+                fontFamily: AppDesignSystem.monoFontFamily,
+                fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
+                fontSize: 12,
+                color: context.themeColors.textPrimary,
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppDesignSystem.space1),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$label: ',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: context.themeColors.textSecondary,
+            ),
+          ),
+          Expanded(
+            child: SelectableText(
+              value,
+              style: TextStyle(color: context.themeColors.textPrimary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// JSON 节折叠开关（手写折叠而非 ExpansionTile——collapsed 态不把大 JSON
+  /// 构建进树，且展开态可被 find.byKey 精确断言）。标题复用 adapter 行
+  /// label（数据驱动，零新增文案 key）。
+  Widget _buildJsonToggle(String label) {
+    return InkWell(
+      key: const Key('explain_json_toggle'),
+      onTap: () => setState(() => _jsonExpanded = !_jsonExpanded),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Icon(
+              _jsonExpanded
+                  ? LucideIcons.chevronDown
+                  : LucideIcons.chevronRight,
+              size: 14,
+              color: context.themeColors.textSecondary,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+                color: context.themeColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

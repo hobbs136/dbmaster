@@ -745,8 +745,12 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byType(DestructiveConfirmDialog), findsOneWidget);
-      // 确认门 target = 当前所选库（默认首库 chinook）。
-      expect(find.text('Run VACUUM on chinook?'), findsOneWidget);
+      // 确认门 target = 当前所选库（默认首库 chinook）；库级形态文案与
+      // 表级区分（pgVacuumConfirmDb 明示「所有表」，收口追加批）。
+      expect(
+        find.text('Run VACUUM on all tables in database chinook?'),
+        findsOneWidget,
+      );
       await tester.tap(
         find.descendant(
           of: find.byType(DestructiveConfirmDialog),

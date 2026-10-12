@@ -19684,6 +19684,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Explain Plan'**
   String get mongoExplainTitle;
+
+  /// DBT pg vector view: notice shown when the vector extension is not installed
+  ///
+  /// In en, this message translates to:
+  /// **'pgvector extension not installed'**
+  String get pgVectorNotInstalled;
+
+  /// DBT pg maintenance VACUUM database-level confirmation (no table selected)
+  ///
+  /// In en, this message translates to:
+  /// **'Run VACUUM on all tables in database {db}?'**
+  String pgVacuumConfirmDb(String db);
+
+  /// DBT mongo replica set panel: target is not a replica set
+  ///
+  /// In en, this message translates to:
+  /// **'Not a replica set'**
+  String get mongoReplicaSetNotReplicaSet;
+
+  /// DBT mongo replica set panel: replica set name line
+  ///
+  /// In en, this message translates to:
+  /// **'Set: {set}'**
+  String mongoReplicaSetSetLabel(String set);
+
+  /// DBT mongo replica set panel: current node role (PRIMARY/SECONDARY)
+  ///
+  /// In en, this message translates to:
+  /// **'This node: {role}'**
+  String mongoReplicaSetThisNode(String role);
+
+  /// DBT mongo sharding panel: total shard count line
+  ///
+  /// In en, this message translates to:
+  /// **'{count} shards'**
+  String mongoReplicaSetShardCount(String count);
+
+  /// DBT mongo replication/sharding panel: load failure line with error detail
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load: {error}'**
+  String mongoReplicaSetLoadFailed(String error);
+
+  /// DBT mongo currentOp panel: note that killOp is allowed on read-only connections (security ruling b, 2026-10-12)
+  ///
+  /// In en, this message translates to:
+  /// **'Kill operations are not restricted by read-only mode'**
+  String get mongoCurrentOpReadonlyNote;
+
+  /// DBT redis expiring view: total key count segment
+  ///
+  /// In en, this message translates to:
+  /// **'Keys {count}'**
+  String redisTtlStatsKeys(String count);
+
+  /// DBT redis expiring view: keys with TTL segment
+  ///
+  /// In en, this message translates to:
+  /// **'With TTL {count}'**
+  String redisTtlStatsWithTtl(String count);
+
+  /// DBT redis expiring view: average TTL segment
+  ///
+  /// In en, this message translates to:
+  /// **'Avg {ttl}'**
+  String redisTtlStatsAvg(String ttl);
+
+  /// DBT redis expiring view: sampling note
+  ///
+  /// In en, this message translates to:
+  /// **'Sampled {count} keys (sampling)'**
+  String redisTtlSampledNote(String count);
+
+  /// DBT redis expiring view: empty state
+  ///
+  /// In en, this message translates to:
+  /// **'No keys expiring soon'**
+  String get redisTtlEmpty;
+
+  /// DBT redis expiring view: overflow note for keys beyond the displayed sample
+  ///
+  /// In en, this message translates to:
+  /// **'... and {count} more (in sample)'**
+  String redisTtlMoreInSample(String count);
 }
 
 class _AppLocalizationsDelegate

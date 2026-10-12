@@ -460,6 +460,7 @@ class _RedisExpiringViewState extends State<_RedisExpiringView> {
   }
 
   Widget _buildHeader() {
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       children: [
         Icon(LucideIcons.timer, color: AppDesignSystem.dbRedis, size: 24),
@@ -469,7 +470,9 @@ class _RedisExpiringViewState extends State<_RedisExpiringView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Expiring Soon',
+                // 标题与树内 Expiring Soon 节点同语义，复用能力项既有 key
+                // （redisCapExpiring；与 mongo 面板复用节点 label 先例同款）。
+                l10n.redisCapExpiring,
                 style: TextStyle(
                   color: context.themeColors.textPrimary,
                   fontSize: AppDesignSystem.fontSizeLg,
@@ -477,6 +480,7 @@ class _RedisExpiringViewState extends State<_RedisExpiringView> {
                 ),
               ),
               Text(
+                // Redis 库标识（db0/db1…）为技术名，不作 l10n。
                 'db${widget.databaseName}',
                 style: TextStyle(
                   color: context.themeColors.textMuted,
@@ -493,6 +497,7 @@ class _RedisExpiringViewState extends State<_RedisExpiringView> {
   /// 列表体：与树节点展开区同款三段（统计头 / 采样说明 / 键明细），
   /// 阈值着色口径一致（<60s error / <300s warning / 其余次级色）。
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context)!;
     final result = widget.provider.getRedisTTLKeys(
       widget.connectionId,
       widget.databaseName,
@@ -509,17 +514,21 @@ class _RedisExpiringViewState extends State<_RedisExpiringView> {
       children: [
         _infoRow(
           LucideIcons.chartColumn,
-          'Keys ${formatNumber(totalKeys)} · With TTL ${formatNumber(expires)}'
-          '${avgTtlMs > 0 ? ' · Avg ${formatTTL(avgTtlMs ~/ 1000)}' : ''}',
+          [
+            l10n.redisTtlStatsKeys(formatNumber(totalKeys)),
+            l10n.redisTtlStatsWithTtl(formatNumber(expires)),
+            if (avgTtlMs > 0)
+              l10n.redisTtlStatsAvg(formatTTL(avgTtlMs ~/ 1000)),
+          ].join(' · '),
         ),
         _infoRow(
           LucideIcons.filter,
-          'Sampled ${formatNumber(sampled)} keys (sampling)',
+          l10n.redisTtlSampledNote(formatNumber(sampled)),
         ),
         if (keys.isEmpty)
           _infoRow(
             LucideIcons.circleCheckBig,
-            'No keys expiring soon',
+            l10n.redisTtlEmpty,
             color: context.themeColors.success,
           ),
         for (final entry in keys.take(20))
@@ -527,7 +536,7 @@ class _RedisExpiringViewState extends State<_RedisExpiringView> {
         if (keys.length > 20)
           _infoRow(
             LucideIcons.ellipsis,
-            '... and ${keys.length - 20} more (in sample)',
+            l10n.redisTtlMoreInSample('${keys.length - 20}'),
           ),
       ],
     );

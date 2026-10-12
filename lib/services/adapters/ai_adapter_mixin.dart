@@ -187,6 +187,9 @@ mixin AiAdapterMixin {
     // `PRAGMA wal_checkpoint(...)`）与只读形态（`PRAGMA x` /
     // `PRAGMA table_info(t)`）无法可靠语法判别；整族拦截会误杀既有只读
     // PRAGMA 浏览。残余风险：只读连接上 PRAGMA 写形态不被拦截。
+    // 另一词面权衡（security W2-S1，与 `_isWriteQuery` 同口径）：
+    // `EXPLAIN ANALYZE SELECT` 会被 \bANALYZE\b 词面拦截，属既有权衡，
+    // 行为由 readonly_adapter_guard_test 锚定，不据此改判定。
     for (final keyword in writeKeywords) {
       if (upper.startsWith(keyword) ||
           RegExp('\\b$keyword\\b').hasMatch(upper)) {

@@ -8,6 +8,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -178,6 +179,75 @@ void main() {
     gate.complete();
     await tester.pumpAndSettle();
     expect(find.textContaining('VACUUM completed'), findsOneWidget);
+  });
+
+  testWidgets('执行中 Esc/屏障不关，完成后 Close 可关（PopScope，R4-d 同款）', (
+    tester,
+  ) async {
+    final gate = Completer<void>();
+    await pumpDialog(
+      tester,
+      execute: (_, _, _) => gate.future,
+      audit: (_) async {},
+    );
+
+    // 进入执行态（确认门确认 → execute 挂起）。
+    await tester.tap(find.text('VACUUM'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm'));
+    await tester.pump();
+    expect(find.textContaining('Running VACUUM'), findsOneWidget,
+        reason: '执行中态（execute 挂起）');
+
+    // 执行中：Esc 与屏障点击都不关。
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pump();
+    expect(find.byType(SqliteMaintenanceDialog), findsOneWidget,
+        reason: '执行中不可 Esc/屏障关闭（PopScope canPop:false）');
+
+    // 放行 → 结果行落 done（canPop 复位）→ Close 正常关闭。
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(find.textContaining('VACUUM completed'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, 'Close'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SqliteMaintenanceDialog), findsNothing);
+  });
+
+  testWidgets('执行中 Close 按钮禁用、完成后恢复可关（与 PG/MySQL 维护弹窗同款守卫）', (
+    tester,
+  ) async {
+    final gate = Completer<void>();
+    await pumpDialog(
+      tester,
+      execute: (_, _, _) => gate.future,
+      audit: (_) async {},
+    );
+
+    // 进入执行态（确认门确认 → execute 挂起 → _runningCount = 1）。
+    await tester.tap(find.text('VACUUM'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm'));
+    await tester.pump();
+    expect(find.textContaining('Running VACUUM'), findsOneWidget,
+        reason: '执行中态（execute 挂起）');
+
+    // 执行中：Close 按钮 onPressed 为 null（禁用）。
+    final closeWhileRunning = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, 'Close'),
+    );
+    expect(closeWhileRunning.onPressed, isNull, reason: '执行中 Close 需禁用');
+
+    // 完成 → 计数归零 → Close 恢复可用。
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(find.textContaining('VACUUM completed'), findsOneWidget);
+    final closeAfterDone = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, 'Close'),
+    );
+    expect(closeAfterDone.onPressed, isNotNull, reason: '完成后 Close 需可点');
   });
 
   testWidgets('审计写失败不阻塞 UI：结果行仍为成功态', (tester) async {
