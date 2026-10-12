@@ -11231,4 +11231,336 @@ class AppLocalizationsEn extends AppLocalizations {
   String redisTtlMoreInSample(String count) {
     return '... and $count more (in sample)';
   }
+
+  @override
+  String get rowEditMenuLabel => 'Edit Row…';
+
+  @override
+  String rowEditTitle(String table) {
+    return 'Edit Row — $table';
+  }
+
+  @override
+  String get rowEditNoPrimaryKey =>
+      'No usable primary key: row editing is unavailable for this result';
+
+  @override
+  String get rowEditReadonlyDisabled =>
+      'Row editing is disabled on read-only connections';
+
+  @override
+  String get rowEditZeroChanges => 'No changes to save';
+
+  @override
+  String get rowEditPreviewTitle => 'UPDATE Preview';
+
+  @override
+  String rowEditConfirmImpact(String table) {
+    return 'This will update one row in $table. Continue?';
+  }
+
+  @override
+  String get rowEditSuccess => 'Row updated';
+
+  @override
+  String get rowEditFailed => 'Update failed';
+
+  @override
+  String get rowEditRowMissing => 'The row no longer exists';
+
+  @override
+  String get rowEditBinaryColumnSkipped =>
+      'Binary or unknown-type columns are read-only and excluded from the update';
+
+  @override
+  String get commandRefreshObjects => 'Refresh Objects';
+
+  @override
+  String get commandOpenTableProperties => 'Table Properties';
+
+  @override
+  String get commandQuickSearch => 'Quick Search';
+
+  @override
+  String get commandDescEditConnection =>
+      'Edit the current connection settings';
+
+  @override
+  String get commandDescDisconnectConnection =>
+      'Disconnect the current connection';
+
+  @override
+  String get commandDescSwitchConnection => 'Switch to another connection';
+
+  @override
+  String get commandDescOpenConnectionManager => 'Open the connection manager';
+
+  @override
+  String get commandDescCreateTable =>
+      'Create a new table in the current database';
+
+  @override
+  String get commandDescRefreshObjects => 'Reload the database object tree';
+
+  @override
+  String get commandDescViewTableDdl => 'View the DDL of the current table';
+
+  @override
+  String get commandDescOpenTableProperties => 'Open the table properties view';
+
+  @override
+  String get commandDescSchemaDiff => 'Compare schemas between databases';
+
+  @override
+  String get commandDescDataSync => 'Start a data sync task';
+
+  @override
+  String get commandDescImportWizard => 'Open the data import wizard';
+
+  @override
+  String get commandDescExportData => 'Export query results or table data';
+
+  @override
+  String get commandDescQuickSearch => 'Search database objects';
+
+  @override
+  String get objectTabBadge => 'Object';
+
+  @override
+  String get objectTabUnavailable => 'Object unavailable';
+
+  @override
+  String objectTabErDiagramTitle(String db) {
+    return 'ER Diagram — $db';
+  }
+
+  @override
+  String objectTabTablePropertiesTitle(String table) {
+    return 'Table Properties — $table';
+  }
+
+  @override
+  String get objectTabRefresh => 'Refresh';
+
+  @override
+  String get mongoCapSchemaAnalysis => 'Schema Analysis';
+
+  @override
+  String get mongoSchemaDistTitle => 'Schema Type Distribution';
+
+  @override
+  String get mongoSchemaDistEmpty => 'No fields';
+
+  @override
+  String mongoSchemaDistFieldType(String type) {
+    return 'Type: $type';
+  }
+
+  @override
+  String mongoSchemaDistFieldCount(String count) {
+    return '$count fields';
+  }
+
+  @override
+  String mongoSchemaDistPresence(String ratio) {
+    return 'Presence: $ratio';
+  }
+
+  @override
+  String get mongoSchemaDistMixed => 'Mixed';
+
+  @override
+  String mongoSchemaDistSampled(String count) {
+    return 'Sampled $count documents';
+  }
+
+  @override
+  String get mongoSchemaDistNested => 'Nested';
+
+  @override
+  String get mysqlCapEvents => 'Events';
+
+  @override
+  String get mysqlEventsTitle => 'Events';
+
+  @override
+  String get mysqlEventsEmpty => 'No events';
+
+  @override
+  String get mysqlEventsNew => 'New Event';
+
+  @override
+  String mysqlEventsEdit(String name) {
+    return 'Edit Event $name';
+  }
+
+  @override
+  String get mysqlEventsDrop => 'Drop Event';
+
+  @override
+  String get mysqlEventsStatus => 'Status';
+
+  @override
+  String get mysqlEventsSchedule => 'Schedule';
+
+  @override
+  String get mysqlEventsEvery => 'Every';
+
+  @override
+  String get mysqlEventsStarts => 'Starts';
+
+  @override
+  String get mysqlEventsEnds => 'Ends';
+
+  @override
+  String get mysqlEventsAt => 'At';
+
+  @override
+  String get mysqlEventsOnCompletion => 'On Completion';
+
+  @override
+  String get mysqlEventsComment => 'Comment';
+
+  @override
+  String get mysqlEventsDoBody => 'DO Body (SQL)';
+
+  @override
+  String get mysqlEventsDdlPreview => 'DDL Preview';
+
+  @override
+  String mysqlEventsDropConfirm(String name) {
+    return 'Drop event $name?';
+  }
+
+  @override
+  String get mysqlEventsSchedulerOff =>
+      'The event scheduler is OFF; events will not run';
+
+  @override
+  String get mysqlEventsColName => 'Name';
+
+  @override
+  String get mysqlEventsColStatus => 'Status';
+
+  @override
+  String get mysqlEventsColType => 'Type';
+
+  @override
+  String get mysqlEventsColSchedule => 'Schedule';
+
+  @override
+  String get mysqlEventsColLastExecuted => 'Last Executed';
+
+  @override
+  String get mysqlEventsColDefiner => 'Definer';
+
+  @override
+  String get pgCapForeignTable => 'Foreign Table';
+
+  @override
+  String get pgPartitionSectionTitle => 'Partitioning';
+
+  @override
+  String get pgPartitionStrategy => 'Strategy';
+
+  @override
+  String get pgPartitionColumn => 'Partition Key Column';
+
+  @override
+  String pgPartitionNeedsPk(String column) {
+    return 'The primary key must include the partition key column \"$column\"';
+  }
+
+  @override
+  String get pgForeignTableTitle => 'Foreign Table';
+
+  @override
+  String get pgForeignTableServer => 'Foreign Server';
+
+  @override
+  String get pgForeignTableNoServers =>
+      'No foreign servers found. Create one first (CREATE SERVER).';
+
+  @override
+  String get pgForeignTableOptions => 'OPTIONS';
+
+  @override
+  String get pgForeignTableDdlPreview => 'DDL Preview';
+
+  @override
+  String get redisCapBackup => 'Backup';
+
+  @override
+  String get redisBackupTitle => 'Backup & Persistence';
+
+  @override
+  String redisBackupLastSave(String time) {
+    return 'Last save: $time';
+  }
+
+  @override
+  String redisBackupBgsaveStatus(String status) {
+    return 'Last BGSAVE: $status';
+  }
+
+  @override
+  String redisBackupChangesSince(String count) {
+    return 'Changes since last save: $count';
+  }
+
+  @override
+  String get redisBackupInProgress => 'BGSAVE in progress';
+
+  @override
+  String get redisBackupRefresh => 'Refresh';
+
+  @override
+  String get redisBackupTrigger => 'Trigger BGSAVE';
+
+  @override
+  String get redisBackupConfirmImpact =>
+      'BGSAVE forks the server process and may temporarily double memory usage. On production instances, run during off-peak hours. Continue?';
+
+  @override
+  String get redisBackupSuccess => 'BGSAVE triggered';
+
+  @override
+  String get redisBackupFailed => 'Failed to trigger BGSAVE';
+
+  @override
+  String get redisBackupConfigSection => 'Save Policy (CONFIG)';
+
+  @override
+  String get mongoGridfsUpload => 'Upload';
+
+  @override
+  String get mongoGridfsUploadPreviewTitle => 'Upload to GridFS';
+
+  @override
+  String mongoGridfsUploadChunkCount(String count) {
+    return '$count chunks';
+  }
+
+  @override
+  String get mongoGridfsUploadNewVersionNote =>
+      'A file with this name already exists; uploading adds a new version.';
+
+  @override
+  String mongoGridfsUploadSuccess(String filename) {
+    return 'Uploaded $filename';
+  }
+
+  @override
+  String mongoGridfsUploadFailed(String filename) {
+    return 'Failed to upload $filename';
+  }
+
+  @override
+  String mongoGridfsUploadTooLarge(String size) {
+    return 'File exceeds the $size upload limit';
+  }
+
+  @override
+  String get mongoGridfsUploadRollbackPartial =>
+      'Upload failed; the chunks already written were rolled back';
 }

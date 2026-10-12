@@ -9,6 +9,12 @@
 //      mysql.variables / mysql.maintenance / mysql.backup /
 //      mysql.performance（mysql.queryPlan 无既有可路由目标，任务书
 //      「停下回报」处理，本批无该项）；
+//   ⚠ DBT-T18 连带（2026-10 第二程序）：面板已追加 mysql.events（插件
+//      第 7 项，cap event.list 既有位零新增，装配 core 5 + 插件 7 = 12；
+//      项 id/位映射与装配计数由 mysql_sidebar_plugin_test.dart 锁定，
+//      事件设计器真库验证走专属 e2e mysql_events_designer_e2e_test.dart
+//      ——本文件 harness 无库上下文，events 项激活走「先选库」分支，不
+//      入本文件断言面）；本文件无总数/清单计数断言，各用例不受影响。
 //   ③ 表维护聚合：对 chinook 库 Artist 表 ANALYZE（逐表确认门 → 既有
 //      runTableMaintenance 链路）→ 结果 dialog → 重查断言执行成功返回。
 //

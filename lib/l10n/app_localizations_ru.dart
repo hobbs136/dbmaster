@@ -11276,4 +11276,340 @@ class AppLocalizationsRu extends AppLocalizations {
   String redisTtlMoreInSample(String count) {
     return '... и ещё $count (в выборке)';
   }
+
+  @override
+  String get rowEditMenuLabel => 'Изменить строку…';
+
+  @override
+  String rowEditTitle(String table) {
+    return 'Изменить строку — $table';
+  }
+
+  @override
+  String get rowEditNoPrimaryKey =>
+      'Нет пригодного первичного ключа: редактирование строк для этого результата недоступно';
+
+  @override
+  String get rowEditReadonlyDisabled =>
+      'Редактирование строк отключено для подключений только для чтения';
+
+  @override
+  String get rowEditZeroChanges => 'Нет изменений для сохранения';
+
+  @override
+  String get rowEditPreviewTitle => 'Предпросмотр UPDATE';
+
+  @override
+  String rowEditConfirmImpact(String table) {
+    return 'Будет обновлена одна строка в $table. Продолжить?';
+  }
+
+  @override
+  String get rowEditSuccess => 'Строка обновлена';
+
+  @override
+  String get rowEditFailed => 'Не удалось обновить строку';
+
+  @override
+  String get rowEditRowMissing => 'Строка больше не существует';
+
+  @override
+  String get rowEditBinaryColumnSkipped =>
+      'Столбцы с двоичным или неизвестным типом доступны только для чтения и не включаются в обновление';
+
+  @override
+  String get commandRefreshObjects => 'Обновить объекты';
+
+  @override
+  String get commandOpenTableProperties => 'Свойства таблицы';
+
+  @override
+  String get commandQuickSearch => 'Быстрый поиск';
+
+  @override
+  String get commandDescEditConnection =>
+      'Изменить настройки текущего подключения';
+
+  @override
+  String get commandDescDisconnectConnection => 'Отключить текущее подключение';
+
+  @override
+  String get commandDescSwitchConnection =>
+      'Переключиться на другое подключение';
+
+  @override
+  String get commandDescOpenConnectionManager =>
+      'Открыть управление подключениями';
+
+  @override
+  String get commandDescCreateTable =>
+      'Создать новую таблицу в текущей базе данных';
+
+  @override
+  String get commandDescRefreshObjects =>
+      'Перезагрузить дерево объектов базы данных';
+
+  @override
+  String get commandDescViewTableDdl => 'Показать DDL текущей таблицы';
+
+  @override
+  String get commandDescOpenTableProperties =>
+      'Открыть просмотр свойств таблицы';
+
+  @override
+  String get commandDescSchemaDiff => 'Сравнить схемы между базами данных';
+
+  @override
+  String get commandDescDataSync => 'Запустить задачу синхронизации данных';
+
+  @override
+  String get commandDescImportWizard => 'Открыть мастер импорта данных';
+
+  @override
+  String get commandDescExportData =>
+      'Экспортировать результаты запроса или данные таблицы';
+
+  @override
+  String get commandDescQuickSearch => 'Поиск объектов базы данных';
+
+  @override
+  String get objectTabBadge => 'Объект';
+
+  @override
+  String get objectTabUnavailable => 'Объект недоступен';
+
+  @override
+  String objectTabErDiagramTitle(String db) {
+    return 'ER-диаграмма — $db';
+  }
+
+  @override
+  String objectTabTablePropertiesTitle(String table) {
+    return 'Свойства таблицы — $table';
+  }
+
+  @override
+  String get objectTabRefresh => 'Обновить';
+
+  @override
+  String get mongoCapSchemaAnalysis => 'Анализ схемы';
+
+  @override
+  String get mongoSchemaDistTitle => 'Распределение типов схемы';
+
+  @override
+  String get mongoSchemaDistEmpty => 'Нет полей';
+
+  @override
+  String mongoSchemaDistFieldType(String type) {
+    return 'Тип: $type';
+  }
+
+  @override
+  String mongoSchemaDistFieldCount(String count) {
+    return 'Полей: $count';
+  }
+
+  @override
+  String mongoSchemaDistPresence(String ratio) {
+    return 'Присутствие: $ratio';
+  }
+
+  @override
+  String get mongoSchemaDistMixed => 'Смешанный';
+
+  @override
+  String mongoSchemaDistSampled(String count) {
+    return 'Выборка: $count документов';
+  }
+
+  @override
+  String get mongoSchemaDistNested => 'Вложенный';
+
+  @override
+  String get mysqlCapEvents => 'События';
+
+  @override
+  String get mysqlEventsTitle => 'События';
+
+  @override
+  String get mysqlEventsEmpty => 'Нет событий';
+
+  @override
+  String get mysqlEventsNew => 'Новое событие';
+
+  @override
+  String mysqlEventsEdit(String name) {
+    return 'Изменить событие $name';
+  }
+
+  @override
+  String get mysqlEventsDrop => 'Удалить событие';
+
+  @override
+  String get mysqlEventsStatus => 'Статус';
+
+  @override
+  String get mysqlEventsSchedule => 'Расписание';
+
+  @override
+  String get mysqlEventsEvery => 'Интервал';
+
+  @override
+  String get mysqlEventsStarts => 'Начало';
+
+  @override
+  String get mysqlEventsEnds => 'Окончание';
+
+  @override
+  String get mysqlEventsAt => 'Время';
+
+  @override
+  String get mysqlEventsOnCompletion => 'После выполнения';
+
+  @override
+  String get mysqlEventsComment => 'Комментарий';
+
+  @override
+  String get mysqlEventsDoBody => 'Тело DO (SQL)';
+
+  @override
+  String get mysqlEventsDdlPreview => 'Предпросмотр DDL';
+
+  @override
+  String mysqlEventsDropConfirm(String name) {
+    return 'Удалить событие $name?';
+  }
+
+  @override
+  String get mysqlEventsSchedulerOff =>
+      'Планировщик событий выключен; события не будут выполняться';
+
+  @override
+  String get mysqlEventsColName => 'Имя';
+
+  @override
+  String get mysqlEventsColStatus => 'Статус';
+
+  @override
+  String get mysqlEventsColType => 'Тип';
+
+  @override
+  String get mysqlEventsColSchedule => 'Расписание';
+
+  @override
+  String get mysqlEventsColLastExecuted => 'Последнее выполнение';
+
+  @override
+  String get mysqlEventsColDefiner => 'Определитель';
+
+  @override
+  String get pgCapForeignTable => 'Внешняя таблица';
+
+  @override
+  String get pgPartitionSectionTitle => 'Секционирование';
+
+  @override
+  String get pgPartitionStrategy => 'Стратегия';
+
+  @override
+  String get pgPartitionColumn => 'Ключевой столбец секционирования';
+
+  @override
+  String pgPartitionNeedsPk(String column) {
+    return 'Первичный ключ должен включать ключевой столбец секционирования $column';
+  }
+
+  @override
+  String get pgForeignTableTitle => 'Внешняя таблица';
+
+  @override
+  String get pgForeignTableServer => 'Внешний сервер';
+
+  @override
+  String get pgForeignTableNoServers =>
+      'Внешние серверы не найдены. Сначала создайте их (CREATE SERVER).';
+
+  @override
+  String get pgForeignTableOptions => 'OPTIONS';
+
+  @override
+  String get pgForeignTableDdlPreview => 'Предпросмотр DDL';
+
+  @override
+  String get redisCapBackup => 'Резервная копия';
+
+  @override
+  String get redisBackupTitle => 'Резервное копирование и персистентность';
+
+  @override
+  String redisBackupLastSave(String time) {
+    return 'Последнее сохранение: $time';
+  }
+
+  @override
+  String redisBackupBgsaveStatus(String status) {
+    return 'Последний BGSAVE: $status';
+  }
+
+  @override
+  String redisBackupChangesSince(String count) {
+    return 'Изменений с последнего сохранения: $count';
+  }
+
+  @override
+  String get redisBackupInProgress => 'BGSAVE выполняется';
+
+  @override
+  String get redisBackupRefresh => 'Обновить';
+
+  @override
+  String get redisBackupTrigger => 'Запустить BGSAVE';
+
+  @override
+  String get redisBackupConfirmImpact =>
+      'BGSAVE создаёт форк процесса сервера и может временно удвоить потребление памяти. На рабочих экземплярах запускайте в часы наименьшей нагрузки. Продолжить?';
+
+  @override
+  String get redisBackupSuccess => 'BGSAVE запущен';
+
+  @override
+  String get redisBackupFailed => 'Не удалось запустить BGSAVE';
+
+  @override
+  String get redisBackupConfigSection => 'Политика сохранения (CONFIG)';
+
+  @override
+  String get mongoGridfsUpload => 'Загрузить';
+
+  @override
+  String get mongoGridfsUploadPreviewTitle => 'Загрузить в GridFS';
+
+  @override
+  String mongoGridfsUploadChunkCount(String count) {
+    return 'Чанков: $count';
+  }
+
+  @override
+  String get mongoGridfsUploadNewVersionNote =>
+      'Файл с таким именем уже существует; загрузка добавит новую версию.';
+
+  @override
+  String mongoGridfsUploadSuccess(String filename) {
+    return 'Загружено: $filename';
+  }
+
+  @override
+  String mongoGridfsUploadFailed(String filename) {
+    return 'Не удалось загрузить $filename';
+  }
+
+  @override
+  String mongoGridfsUploadTooLarge(String size) {
+    return 'Файл превышает лимит загрузки $size';
+  }
+
+  @override
+  String get mongoGridfsUploadRollbackPartial =>
+      'Загрузка не удалась; записанные чанки были отменены';
 }

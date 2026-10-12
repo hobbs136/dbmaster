@@ -28,7 +28,8 @@ import 'package:dbmaster/organisms/sidebar/sidebar_tree.dart';
 import 'package:dbmaster/organisms/sidebar/tree_item.dart';
 import 'package:dbmaster/providers/app_provider.dart';
 import 'package:dbmaster/providers/server_connection_provider.dart';
-import 'package:dbmaster/providers/tab_provider.dart' show QueryTab;
+import 'package:dbmaster/providers/tab_provider.dart'
+    show ObjectTabKind, QueryTab;
 import 'package:dbmaster/services/adapters/postgresql_adapter.dart';
 import 'package:dbmaster/services/database_abstract.dart';
 import 'package:dbmaster/services/schema_diff/schema_diff_service.dart';
@@ -1738,7 +1739,7 @@ void main() {
     // ----------------------------------------------------------------------
     // Table advanced actions
     // ----------------------------------------------------------------------
-    testWidgets('table menu > Properties opens table properties dialog', (
+    testWidgets('table menu > Properties opens table properties object tab', (
       tester,
     ) async {
       if (!pgE2EGatewayReady) {
@@ -1754,7 +1755,18 @@ void main() {
       await tapMenuItem(tester, 'Properties');
       await tester.pumpAndSettle(const Duration(seconds: 3));
 
-      expect(find.byType(TablePropertiesDialog), findsOneWidget);
+      // T16 J4：Properties 从模态 dialog 迁主标签栏只读对象 tab。harness
+      // 不含 tab 栏/工作区，断言走 provider 状态（对象 tab 已开且 ref 命中），
+      // 并锚定无 dialog 残留路径。
+      expect(find.byType(TablePropertiesDialog), findsNothing);
+      final objectTabs = appProvider.tab.tabs
+          .where((t) => appProvider.tab.objectTabFor(t.id) != null)
+          .toList();
+      expect(objectTabs, isNotEmpty, reason: '应打开对象 tab');
+      final ref = appProvider.tab.objectTabFor(objectTabs.last.id);
+      expect(ref?.kind, ObjectTabKind.tableProperties);
+      expect(ref?.objectName, 'seed_table');
+      expect(ref?.connectionId, appProvider.connection.currentServer?.id);
     });
 
     testWidgets('table menu > Edit Table opens edit table dialog', (

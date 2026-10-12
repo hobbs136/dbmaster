@@ -36,6 +36,23 @@ class SqlEscapeUtils {
     return "'${value.replaceAll("'", "''")}'";
   }
 
+  /// 转义 MySQL 协议族字符串字面量（mysql/mariadb/tidb/oceanbase/doris/
+  /// starrocks——这些方言把串内反斜杠当转义字符）。
+  ///
+  /// 与 [escapeString]（仅单引号双写，PG/SQLite 口径）的差异：必须先把
+  /// `\` 双写为 `\\`、再把 `'` 双写为 `''`，**顺序不可反**——否则值尾的
+  /// `\` 会把收尾引号转义进数据（`\'`），字符串不闭合即注入面。
+  ///
+  /// 示例:
+  /// ```dart
+  /// SqlEscapeUtils.escapeMySqlString("it's"); // => "'it''s'"
+  /// SqlEscapeUtils.escapeMySqlString('a\\b'); // => "'a\\\\b'"（串内反斜杠双写）
+  /// ```
+  static String escapeMySqlString(String value) {
+    final escaped = value.replaceAll(r'\', r'\\').replaceAll("'", "''");
+    return "'$escaped'";
+  }
+
   /// 转义 MySQL/Doris 标识符（反引号风格）
   static String escapeMySqlIdentifier(String name) =>
       escapeIdentifier(name, quote: '`');

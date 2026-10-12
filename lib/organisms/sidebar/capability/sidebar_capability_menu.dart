@@ -40,6 +40,9 @@ const Set<String> _releaseNewItemIds = {
   'sqlite.export', 'sqlite.smartImport', 'sqlite.maintain',
   // 后续波次预登记（T8/T10/T11/T12 任务书锁定项 id，queryPlan 已销项）：
   'pg.locks', 'mongo.currentOp', 'mongo.gridfs', 'mongo.explain',
+  // 第二程序预登记（T22 集中登记 4 id，消除 R1 的 T18×T20 同文件冲突；
+  // 消费任务：T17 分布图 / T18 事件设计器 / T19 外部表 / T20 Redis 备份）：
+  'mongo.schemaAnalysis', 'mysql.events', 'pg.foreignTable', 'redis.backup',
 };
 
 /// Alt+Q（切换能力面板折叠/展开并聚焦）全局快捷键 → 面板的一次性信号。

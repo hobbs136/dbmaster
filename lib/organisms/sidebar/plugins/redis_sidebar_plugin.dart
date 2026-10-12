@@ -29,6 +29,7 @@ import '../../../providers/app_provider.dart';
 import '../../../providers/tab_provider.dart' show QueryTab;
 import '../../../theme/app_theme.dart';
 import '../../connection/error_boundary.dart';
+import '../../dialogs/redis_backup_dialog.dart';
 import '../../redis_functions/redis_functions_panel.dart';
 import '../../redis_pubsub/redis_pubsub_panel.dart';
 import '../../redis_workbench/redis_workbench_panel.dart';
@@ -131,6 +132,18 @@ class RedisSidebarPlugin implements SidebarPlugin {
             // 图标与树内 Expiring Soon 节点同款（同源）。
             icon: LucideIcons.timer,
             onActivate: () => _activateExpiring(context),
+          ),
+          // ── DBT-T20 新增（W-17 备份触发，feat/db-tooling-completion）──
+          // 位 `redis.backup`（T22 预登记，徽标 id 同）；打开备份与持久化
+          // 对话框（RDB 状态只读区 + BGSAVE 确认门 + 审计；「还原」半项
+          // 不做，plan §5-13）。零新执行通道（dbService 薄方法 → adapter
+          // runCommand 既有面）。
+          SidebarCapabilityItem(
+            id: 'redis.backup',
+            capabilityId: 'redis.backup',
+            label: (l10n) => l10n.redisCapBackup,
+            icon: LucideIcons.databaseBackup,
+            onActivate: () => _activateBackup(context),
           ),
         ],
       ),
@@ -392,6 +405,21 @@ class RedisSidebarPlugin implements SidebarPlugin {
           connectionId: server.id,
           databaseName: _actionDb(provider, server.id),
         ),
+      ),
+    );
+  }
+
+  /// DBT-T20 · 备份与持久化对话框项（W-17）：RDB 状态只读区 + BGSAVE
+  /// 确认门 + 审计（「还原」半项不做——plan §5-13）。连接断开 → 锚定
+  /// null 直接返回（resolveSidebarActionServer 既有模式）。
+  void _activateBackup(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => RedisBackupDialog(
+        provider: context.read<AppProvider>(),
+        connectionId: server.id,
       ),
     );
   }

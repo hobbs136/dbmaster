@@ -25,10 +25,12 @@ import 'cell_value_viewer.dart';
 import 'json_field_picker.dart';
 import 'pii_export_dialog.dart';
 import 'result_subtab_bar.dart';
+import 'row_edit_dialog.dart';
 import 'statistics_panel.dart';
 import '../../services/result_statistics_service.dart';
 import '../../services/ai_summary_service.dart';
 import '../../services/ai_service.dart';
+import '../../utils/app_logger.dart';
 import 'query_history/result_history_view.dart';
 import '../../models/query_history.dart';
 import '../../l10n/app_localizations.dart';
@@ -95,16 +97,22 @@ class ResultsWidgetState extends State<ResultsWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // 精确选择：仅在 Tab ID / 活跃子标签索引 / 子标签数量变化时重建
-    // 避免了 sidebar / connection / aiPanel 等无关 Provider 变更导致的浪费
-    // （C22 M2 走查反馈二轮：语句层并入子标签层，内层结果索引已移除）
-    final resultKey = context.select<AppProvider, (String?, int, int)>(
-      (p) => (
-        p.tab.activeTab?.id,
-        p.tab.activeResultIndex,
-        p.tab.activeResults.length,
-      ),
-    );
+    // 精确选择：仅在 Tab ID / 活跃子标签索引 / 子标签数量 / 活跃子标签
+    // 时间戳变化时重建，避免 sidebar / connection / aiPanel 等无关 Provider
+    // 变更导致的浪费（C22 M2 走查反馈二轮：语句层并入子标签层，内层结果
+    // 索引已移除）。第 4 元（子标签 timestamp）是 J1-a 行编辑刷新批补充：
+    // 重跑同形浏览查询时 addResultToTab 原位替换子标签（id 复用、数量与
+    // 索引不变），三元组恒等会让网格停留在旧数据——timestamp 每次执行都
+    // 新生成，作为「内容已变」的观察面。
+    final resultKey = context
+        .select<AppProvider, (String?, int, int, DateTime?)>(
+          (p) => (
+            p.tab.activeTab?.id,
+            p.tab.activeResultIndex,
+            p.tab.activeResults.length,
+            p.tab.activeResultSubTab?.timestamp,
+          ),
+        );
     final currentTabId = resultKey.$1;
 
     // 非重建读取（已由 resultKey 变化保证数据新鲜）
@@ -667,6 +675,12 @@ class _ResultTabContentState extends State<ResultTabContent> {
   FocusNode? _activeFocusNode;
   final Map<String, CellEdit> _cellEdits = {};
 
+  // ---- J1-a 行级编辑（browse 数据 tab 专属，2026-10-13 用户重开）----
+  // PK 元数据缓存（键 = browseTarget）：一轮结果视图内右键只取一次，
+  // _initData（数据刷新）时失效。null = 未取。
+  List<DbColumn>? _rowEditColumns;
+  String? _rowEditColumnsTarget;
+
   @override
   void initState() {
     super.initState();
@@ -703,6 +717,9 @@ class _ResultTabContentState extends State<ResultTabContent> {
     _rowSearchQuery = widget.searchQuery;
     _columns = _data.isNotEmpty ? _data.first.keys.toList() : [];
     _filteredData = List.from(_data);
+    // J1-a：结果数据刷新 → 行编辑 PK 元数据缓存失效（表结构可能已变）。
+    _rowEditColumns = null;
+    _rowEditColumnsTarget = null;
 
     if (_columns.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1086,9 +1103,12 @@ class _ResultTabContentState extends State<ResultTabContent> {
   }
 
   void _handleCellEdit(int rowIndex, String columnName, dynamic value) {
-    // U07/D1-A + 2026-08-24 用户拍板：网格写回下线（永不进编辑态，无假保存
-    // 风险）。双击改为打开只读单元格查看器——长文本查看/复制的正式入口
-    // （原「暂不支持编辑」snackbar 退役，它对只想看内容的用户是噪音）。
+    // U07/D1-A + 2026-08-24 拍板「网格永不进编辑态」已于 2026-10-13 由用户
+    // 重开（J1 方案 a 显式化路线）：写回改为仅 browse 数据 tab 的行右键
+    // 「编辑此行」——行级表单 + UPDATE 预览 + 逐行确认 + 审计（「无假保存」
+    // 四铁律，见 _handleCellContextMenu/_openRowEdit 与 row_edit_dialog.dart）。
+    // 双击行为维持只读单元格查看器不变（长文本查看/复制的正式入口）；
+    // 内联单元格编辑（方案 b）仍不做。
     showCellValueViewer(context, columnName: columnName, value: value);
   }
 
@@ -1221,12 +1241,120 @@ class _ResultTabContentState extends State<ResultTabContent> {
     }
   }
 
-  void _handleCellContextMenu(
+  /// J1-a（2026-10-13 用户重开）：行右键「编辑此行」可用性判定，fail-closed。
+  ///
+  /// ① 活动结果子标签所属 tab 的 `browseTargetFor(tabId)` 非空（手写 SQL
+  /// 结果网格天然不开放——禁止用 `_currentTableName()` 正则推断）；
+  /// ② `getTableColumns` 成功且 PK 列 ≥1（无 PK 表/视图 → 入口不出现；
+  /// browseTarget 指向已删表 → 失败 snackbar + 不出现）；PK 列须全部在
+  /// 结果列集（部分投影 → 禁用 + 说明）；
+  /// ③ 连接 readonly → 禁用 + 只读说明 tooltip；
+  /// ④ 目标行 PK 值非 null 且字面量类型可靠（num/bool/String）→ 否则禁用。
+  /// 返回 null = 不出现入口。
+  Future<_RowEditMenuState?> _resolveRowEditMenuState(int rowIndex) async {
+    final provider = context.read<AppProvider>();
+    final l10n = AppLocalizations.of(context)!;
+    final tab = provider.tab.activeTab;
+    if (tab == null) return null;
+    final target = provider.browseTargetFor(tab.id);
+    if (target == null) return null;
+    final cid = tab.connectionId;
+    if (cid == null) return null;
+    // R1-P2：readonly 判定按 tab.connectionId 从 savedConnections 解析
+    // （与 row_edit_dialog._executeViaDbService 同源；currentServer 在多
+    // 连接场景可能指向另一连接）。连接已不存在 → 入口不出现（fail-closed）。
+    final server = provider.savedConnections
+        .where((s) => s.id == cid)
+        .firstOrNull;
+    if (server == null) return null;
+
+    // PK 元数据（一轮结果视图缓存；刷新后失效重取）。
+    List<DbColumn> columns;
+    if (_rowEditColumnsTarget == target && _rowEditColumns != null) {
+      columns = _rowEditColumns!;
+    } else {
+      try {
+        columns = await rowEditColumnsFetcher(
+          provider,
+          cid,
+          tab.databaseName,
+          target,
+        );
+      } catch (e) {
+        // 任务书边界条款：browseTarget 指向已删表等 → 错误 snackbar +
+        // 入口不出现（不吞错、不假可用）。
+        AppLogger.e('ResultsWidget', 'J1-a 行编辑元数据获取失败 target=$target', e);
+        if (mounted) {
+          AppErrorHandler.showErrorSnackBar(
+            context,
+            e.toString(),
+            duration: const Duration(seconds: 3),
+          );
+        }
+        return null;
+      }
+      _rowEditColumns = columns;
+      _rowEditColumnsTarget = target;
+    }
+
+    final pkColumns = columns.where((c) => c.isPrimaryKey).toList();
+    if (pkColumns.isEmpty) return null;
+    if (rowIndex < 0 || rowIndex >= _filteredData.length) return null;
+    final row = _filteredData[rowIndex];
+
+    if (!pkColumns.every((c) => row.containsKey(c.name))) {
+      return _RowEditMenuState.disabled(l10n.rowEditNoPrimaryKey);
+    }
+    if (server.readOnly) {
+      return _RowEditMenuState.disabled(l10n.rowEditReadonlyDisabled);
+    }
+    if (pkColumns.any((c) => !_RowEditMenuState.isLiteralSafe(row[c.name]))) {
+      return _RowEditMenuState.disabled(l10n.rowEditNoPrimaryKey);
+    }
+    return _RowEditMenuState.enabled(columns);
+  }
+
+  /// J1-a：打开行编辑 dialog。返回 true（已更新）→ 重跑浏览查询刷新网格。
+  Future<void> _openRowEdit(int rowIndex, List<DbColumn> columns) async {
+    if (rowIndex < 0 || rowIndex >= _filteredData.length) return;
+    final provider = context.read<AppProvider>();
+    final tab = provider.tab.activeTab;
+    if (tab == null) return;
+    final target = provider.browseTargetFor(tab.id);
+    final cid = tab.connectionId;
+    if (target == null || cid == null) return;
+    final row = Map<String, dynamic>.from(_filteredData[rowIndex]);
+
+    final updated = await RowEditDialog.show(
+      context,
+      connectionId: cid,
+      // R1-P3：不伪造空库名——null 交给服务层 `database ?? server.database`
+      // 回退（跨库浏览场景 tab.databaseName 为空时回退连接默认库）。
+      databaseName: tab.databaseName,
+      qualifiedTableName: target,
+      tableColumns: columns,
+      rowValues: row,
+    );
+    if (!mounted || !updated) return;
+    // 成功 → 成功反馈 + 重跑浏览查询刷新网格（executeCurrentQueryAndRecord
+    // 读活动 tab 的浏览 SQL，与 FilterBar Apply 同一刷新路径）。
+    AppErrorHandler.showSuccessSnackBar(
+      context,
+      AppLocalizations.of(context)!.rowEditSuccess,
+    );
+    try {
+      await provider.executeCurrentQueryAndRecord();
+    } catch (e) {
+      AppLogger.d('ResultsWidget', '行编辑后刷新浏览查询失败: $e');
+    }
+  }
+
+  Future<void> _handleCellContextMenu(
     int rowIndex,
     String columnName,
     dynamic value,
     Offset position,
-  ) {
+  ) async {
     final l10n = AppLocalizations.of(context)!;
     final supportsSqlExport = _supportsSqlExport();
     // Phase C — JSON column detection for context menu
@@ -1239,7 +1367,11 @@ class _ResultTabContentState extends State<ResultTabContent> {
                 ((value.trim().startsWith('{') && value.trim().endsWith('}')) ||
                     (value.trim().startsWith('[') &&
                         value.trim().endsWith(']')))));
-    showMenu(
+    // J1-a：可用性判定含异步 PK 元数据取列（browse tab 首次右键取一次，
+    // 之后走缓存）；fail-closed：不可用 = 不出现 / 禁用 + tooltip。
+    final rowEdit = await _resolveRowEditMenuState(rowIndex);
+    if (!mounted) return;
+    await showMenu(
       context: context,
       position: RelativeRect.fromLTRB(
         position.dx,
@@ -1274,6 +1406,12 @@ class _ResultTabContentState extends State<ResultTabContent> {
             child: Text(l10n.resultsContextExportAllInsert),
             onTap: () => _exportAllAsInsert(),
           ),
+        ],
+        // J1-a：行编辑入口（仅 browse 数据 tab 可达；disabled 时 tooltip
+        // 说明不可用原因）。
+        if (rowEdit != null) ...[
+          const PopupMenuDivider(height: _kCompactMenuDividerHeight),
+          _buildRowEditMenuItem(rowEdit, rowIndex),
         ],
         // Phase C — JSON-specific context menu items
         if (isJsonValue) ...[
@@ -1325,8 +1463,39 @@ class _ResultTabContentState extends State<ResultTabContent> {
             ),
         ],
         const PopupMenuDivider(height: _kCompactMenuDividerHeight),
-        // U07/D1-A：Set NULL 依赖编辑写回，随编辑态一并停用（完整版恢复）。
+        // U07/D1-A：Set NULL 快捷项不做——SQL NULL 置位已并入「编辑此行」
+        // 行级表单（J1-a），无编辑态外的静默写路径。
       ],
+    );
+  }
+
+  /// J1-a：「编辑此行」菜单项（enabled = 可发起；disabled = tooltip 说明）。
+  PopupMenuEntry<dynamic> _buildRowEditMenuItem(
+    _RowEditMenuState state,
+    int rowIndex,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = context.themeColors;
+    final editColumns = state.columns;
+    final label = Row(
+      children: [
+        Icon(
+          LucideIcons.pencilLine,
+          size: 16,
+          color: state.enabled ? colors.textSecondary : colors.textMuted,
+        ),
+        const SizedBox(width: AppDesignSystem.space2),
+        Text(l10n.rowEditMenuLabel),
+      ],
+    );
+    return CompactPopupMenuItem<dynamic>(
+      enabled: state.enabled,
+      onTap: state.enabled && editColumns != null
+          ? () => unawaited(_openRowEdit(rowIndex, editColumns))
+          : null,
+      child: state.disabledTooltip == null
+          ? label
+          : Tooltip(message: state.disabledTooltip, child: label),
     );
   }
 
@@ -1617,6 +1786,30 @@ class CellEdit {
   });
 
   bool get hasChanged => newValue != originalValue?.toString();
+}
+
+/// J1-a 行编辑菜单项可用性（`_resolveRowEditMenuState` 产物）：
+/// enabled = 携带 PK 元数据可发起；disabled = tooltip 说明原因；null（外层）
+/// = 入口不出现。
+class _RowEditMenuState {
+  final bool enabled;
+
+  /// enabled 时携带（传给 [RowEditDialog]）。
+  final List<DbColumn>? columns;
+  final String? disabledTooltip;
+
+  const _RowEditMenuState._(this.enabled, this.columns, this.disabledTooltip);
+
+  const _RowEditMenuState.enabled(List<DbColumn> columns)
+    : this._(true, columns, null);
+
+  const _RowEditMenuState.disabled(String tooltip)
+    : this._(false, null, tooltip);
+
+  /// PK 值字面量可靠性（UPDATE WHERE 锚仅接受 num/bool/String；null 不可）。
+  static bool isLiteralSafe(dynamic value) {
+    return value != null && (value is num || value is bool || value is String);
+  }
 }
 
 class ResultTabState {

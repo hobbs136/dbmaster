@@ -3,6 +3,7 @@
 // + 库级树恒空（分缝回退契约：MySQL 走 sidebar_tree 通用装配至 C19）。
 // DBT-T3 增补：新增 4 项位映射锁定 + 装配可见项数（core 5 + 插件 6）
 // + 表维护聚合入口 dialog（确认门取消 = 零执行 / 确认执行一次）。
+// DBT-T18 增补：mysql.events 项（cap event.list 既有位）→ 7 项/装配 12。
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -117,7 +118,7 @@ void main() {
       expect(find.text('30s'), findsOneWidget);
     });
 
-    testWidgets('capabilityGroups：advanced 组 6 项，位映射逐项锁定', (
+    testWidgets('capabilityGroups：advanced 组 7 项，位映射逐项锁定', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -141,6 +142,8 @@ void main() {
                 'mysql.maintenance': 'table.analyze',
                 'mysql.performance': 'ai.analyze',
                 'mysql.backup': 'io.export',
+                // DBT-T18（W-15 事件设计器）
+                'mysql.events': 'event.list',
               };
               final items = groups.first.items;
               expect(items.map((i) => i.id).toList(), expected.keys.toList());
@@ -164,6 +167,7 @@ void main() {
         'table.analyze',
         'ai.analyze',
         'io.export',
+        'event.list', // DBT-T18（既有位，零新增）
       ];
       for (final cap in caps) {
         expect(CapabilityTable.has(DatabaseType.mysql, cap), isTrue,
@@ -171,7 +175,7 @@ void main() {
       }
     });
 
-    testWidgets('MySQL 装配可见项数 = core 5 + 插件 6 = 11（CapabilityTable 门控后）',
+    testWidgets('MySQL 装配可见项数 = core 5 + 插件 7 = 12（CapabilityTable 门控后）',
         (tester) async {
       SharedPreferences.setMockInitialValues({});
       await tester.pumpWidget(
@@ -192,7 +196,7 @@ void main() {
                 for (final g in groups)
                   ...g.items.map((i) => i.item.id),
               ];
-              expect(ids, hasLength(11));
+              expect(ids, hasLength(12));
               expect(
                 ids,
                 containsAll(const [
@@ -209,6 +213,7 @@ void main() {
                   'mysql.maintenance',
                   'mysql.performance',
                   'mysql.backup',
+                  'mysql.events',
                 ]),
               );
               return const SizedBox.shrink();

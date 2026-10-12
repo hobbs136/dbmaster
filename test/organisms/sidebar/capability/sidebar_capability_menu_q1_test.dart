@@ -3,6 +3,7 @@
 // ① 五库型标题带库型名 + 装配内容切换；
 // ② 折叠记忆（toggle → 重建 widget 态保持，mock prefs）；
 // ③ 「新建」徽标只命中 _releaseNewItemIds（构造命中/不命中 id）；
+//    T22 追加：第二程序预登记 4 id 命中面（sqlserver 注入件）。
 // ④ Alt+Q 触发折叠切换 + 展开后聚焦面板根；聚焦后数字直达 / ↑↓ 移动 /
 //    Enter 激活（Focus 测试；数字直达边界 = 序号超可见项数忽略）。
 // ⑤ 无连接自隐藏由既有 sidebar_capability_menu_test.dart 锚定，不重复。
@@ -79,6 +80,67 @@ class _Q1TestSidebarPlugin implements SidebarPlugin {
 
 bool variablesActivated = false;
 bool noBadgeActivated = false;
+
+/// T22 徽标预登记测试注入件（仅 tdengine 命中）：第二程序预登记 4 id
+/// 各挂一个合成项（capabilityId null 纯导航），验 `_releaseNewItemIds`
+/// 追加集的徽标命中面。tdengine 插件 capabilityGroups 恒空（见其头注），
+/// 装配 = core 2 + 本注入 4 = 6 项（不触碰 sqlite 键盘用例与 sqlserver
+/// 数字直达边界用例的前置断言）。
+class _Q1T22BadgeTestPlugin implements SidebarPlugin {
+  @override
+  PluginDescriptor get descriptor => const PluginDescriptor(
+        id: 'q1-t22-badge-test-sidebar',
+        supportedTypes: {DatabaseType.tdengine},
+        source: PluginSource.databaseType,
+        icon: LucideIcons.wrench,
+      );
+
+  @override
+  List<SidebarCapabilityGroup> capabilityGroups(BuildContext context) => [
+        SidebarCapabilityGroup(
+          id: 'q1-t22-test',
+          label: (l10n) => 'Q1 T22 Test Group',
+          icon: LucideIcons.wrench,
+          items: [
+            SidebarCapabilityItem(
+              id: 'mongo.schemaAnalysis',
+              label: (l10n) => 'Q1 T22 SchemaAnalysis',
+              icon: LucideIcons.database,
+              onActivate: () {},
+            ),
+            SidebarCapabilityItem(
+              id: 'mysql.events',
+              label: (l10n) => 'Q1 T22 Events',
+              icon: LucideIcons.database,
+              onActivate: () {},
+            ),
+            SidebarCapabilityItem(
+              id: 'pg.foreignTable',
+              label: (l10n) => 'Q1 T22 ForeignTable',
+              icon: LucideIcons.database,
+              onActivate: () {},
+            ),
+            SidebarCapabilityItem(
+              id: 'redis.backup',
+              label: (l10n) => 'Q1 T22 Backup',
+              icon: LucideIcons.database,
+              onActivate: () {},
+            ),
+          ],
+        ),
+      ];
+
+  @override
+  List<Widget> buildGlobalTree(BuildContext context, SidebarTreeContext tree) =>
+      const [];
+
+  @override
+  List<Widget> buildDatabaseTree(
+    BuildContext context,
+    SidebarDatabaseTreeContext db,
+  ) =>
+      const [];
+}
 
 DbServer _server(DatabaseType type) => DbServer(
       id: 'conn-${type.name}',
@@ -169,6 +231,7 @@ void main() {
   setUpAll(() {
     // widget 经全局默认注册表取插件——追加测试注入件（本文件进程内生效）。
     defaultPluginRegistry.registerSidebar(_Q1TestSidebarPlugin());
+    defaultPluginRegistry.registerSidebar(_Q1T22BadgeTestPlugin());
   });
 
   group('Q1 标题带库型名 + 装配内容切换', () {
@@ -292,6 +355,48 @@ void main() {
         find.descendant(of: missRow, matching: find.text('New')),
         findsNothing,
       );
+    });
+
+    testWidgets('T22 预登记 4 id 徽标命中 + 集外既有项不命中（tdengine）',
+        (tester) async {
+      final provider = AppProvider();
+      provider.connection.setCurrentServer(_server(DatabaseType.tdengine));
+      await tester.pumpWidget(_host(provider));
+      await tester.pump();
+
+      // 集外既有项（core schema.diff 不在集内）不渲染徽标。
+      final missRow = find.byWidgetPredicate(
+        (w) => w is Tooltip && (w.message ?? '').contains('Schema Diff'),
+      );
+      expect(missRow, findsOneWidget);
+      expect(
+        find.descendant(of: missRow, matching: find.text('New')),
+        findsNothing,
+      );
+
+      // 4 个预登记 id（T17/T18/T19/T20 消费）全部渲染「New」徽标；
+      // 装配 6 项理论上全入 264px 视口，末行超界时拖拽兜底入树。
+      for (final label in const [
+        'Q1 T22 SchemaAnalysis',
+        'Q1 T22 Events',
+        'Q1 T22 ForeignTable',
+        'Q1 T22 Backup',
+      ]) {
+        final row = find.byWidgetPredicate(
+          (w) => w is Tooltip && (w.message ?? '').contains(label),
+        );
+        await tester.dragUntilVisible(
+          row,
+          find.byType(Scrollable),
+          const Offset(0, -40),
+        );
+        expect(row, findsOneWidget, reason: label);
+        expect(
+          find.descendant(of: row, matching: find.text('New')),
+          findsOneWidget,
+          reason: label,
+        );
+      }
     });
   });
 

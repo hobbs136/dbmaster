@@ -4,11 +4,14 @@ import 'package:flutter/gestures.dart' show kSecondaryButton;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:dbmaster/molecules/compact_popup_menu_item.dart';
+import 'package:dbmaster/models/database_models.dart' hide QueryTab;
 import 'package:dbmaster/models/execution_result.dart';
 import 'package:dbmaster/models/sql_statement.dart';
 import 'package:dbmaster/organisms/results/query_history/result_history_view.dart';
 import 'package:dbmaster/organisms/results/result_subtab_bar.dart';
 import 'package:dbmaster/organisms/results/results_widget.dart';
+import 'package:dbmaster/organisms/results/row_edit_dialog.dart';
 import 'package:dbmaster/providers/app_provider.dart';
 import 'package:dbmaster/providers/tab_provider.dart';
 
@@ -131,10 +134,7 @@ void main() {
         // 只读查看器打开：标题 = 列名，内容 = 完整单元格值。
         expect(find.byType(Dialog), findsOneWidget);
         expect(
-          find.descendant(
-            of: find.byType(Dialog),
-            matching: find.text('name'),
-          ),
+          find.descendant(of: find.byType(Dialog), matching: find.text('name')),
           findsOneWidget,
         );
         expect(
@@ -152,25 +152,24 @@ void main() {
     // 回归：Browse Data 跳变——data 模式（showSubTabs=false）下 History 子标签
     // 仅在新 tab 首执返回前激活，旧实现会闪出全屏 ResultHistoryView
     // （先跳 history 再跳结果），应显示执行中 loading。
-    testWidgets(
-      'data 模式（showSubTabs=false）history 激活态显示 loading 而非历史页',
-      (tester) async {
-        appProvider.tab.addTab(QueryTab(id: tabId, title: 'Tab 1'));
-        appProvider.tab.ensureHistorySubTab(tabId);
+    testWidgets('data 模式（showSubTabs=false）history 激活态显示 loading 而非历史页', (
+      tester,
+    ) async {
+      appProvider.tab.addTab(QueryTab(id: tabId, title: 'Tab 1'));
+      appProvider.tab.ensureHistorySubTab(tabId);
 
-        await tester.pumpWidget(
-          buildHistoryTestApp(
-            appProvider,
-            child: const ResultsWidget(showSubTabs: false),
-          ),
-        );
-        await tester.pump();
+      await tester.pumpWidget(
+        buildHistoryTestApp(
+          appProvider,
+          child: const ResultsWidget(showSubTabs: false),
+        ),
+      );
+      await tester.pump();
 
-        expect(find.byType(ResultHistoryView), findsNothing);
-        expect(find.byType(ResultSubTabBar), findsNothing);
-        expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      },
-    );
+      expect(find.byType(ResultHistoryView), findsNothing);
+      expect(find.byType(ResultSubTabBar), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    });
 
     testWidgets('switches from history view to result view after execution', (
       tester,
@@ -256,43 +255,245 @@ void main() {
 
     // 右键数据单元格弹出紧凑菜单：验证菜单项经 _compactMenuItem 改造后仍存在。
     // U07/D1-A：Set NULL 依赖编辑写回，随编辑态停用移除（完整版恢复）。
-    testWidgets(
-      '右键数据单元格弹出菜单，含 Copy Cell / Copy Row (JSON)，不含 Set NULL',
-      (tester) async {
-        appProvider.tab.addTab(QueryTab(id: tabId, title: 'Tab 1'));
-        appProvider.tab.ensureHistorySubTab(tabId);
-        appProvider.tab.addResultToTab(
-          tabId,
-          [
-            ExecutionResult(
-              statement: const SQLStatement(
-                index: 0,
-                sql: 'SELECT * FROM users',
-                type: SQLType.select,
-                lineStart: 1,
-                lineEnd: 1,
-              ),
-              success: true,
-              data: <Map<String, dynamic>>[
-                <String, dynamic>{'id': 1, 'name': 'Alice'},
-              ],
-              executionTime: const Duration(milliseconds: 1),
+    testWidgets('右键数据单元格弹出菜单，含 Copy Cell / Copy Row (JSON)，不含 Set NULL', (
+      tester,
+    ) async {
+      appProvider.tab.addTab(QueryTab(id: tabId, title: 'Tab 1'));
+      appProvider.tab.ensureHistorySubTab(tabId);
+      appProvider.tab.addResultToTab(
+        tabId,
+        [
+          ExecutionResult(
+            statement: const SQLStatement(
+              index: 0,
+              sql: 'SELECT * FROM users',
+              type: SQLType.select,
+              lineStart: 1,
+              lineEnd: 1,
             ),
-          ],
-          sql: 'SELECT * FROM users',
-          executionTime: const Duration(milliseconds: 1),
-        );
+            success: true,
+            data: <Map<String, dynamic>>[
+              <String, dynamic>{'id': 1, 'name': 'Alice'},
+            ],
+            executionTime: const Duration(milliseconds: 1),
+          ),
+        ],
+        sql: 'SELECT * FROM users',
+        executionTime: const Duration(milliseconds: 1),
+      );
 
-        await tester.pumpWidget(buildResultsWidget());
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(buildResultsWidget());
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Alice'), buttons: kSecondaryButton);
-        await tester.pumpAndSettle();
+      await tester.tap(find.text('Alice'), buttons: kSecondaryButton);
+      await tester.pumpAndSettle();
 
-        expect(find.text('Copy Cell'), findsOneWidget);
-        expect(find.text('Copy Row (JSON)'), findsOneWidget);
-        expect(find.text('Set NULL'), findsNothing);
-      },
-    );
+      expect(find.text('Copy Cell'), findsOneWidget);
+      expect(find.text('Copy Row (JSON)'), findsOneWidget);
+      expect(find.text('Set NULL'), findsNothing);
+    });
+
+    // ------------------------------------------------------------------
+    // J1-a（2026-10-13 用户重开）：browse 数据 tab 行右键「编辑此行」入口的
+    // 可用性判定（fail-closed 逐条）。PK 元数据经 rowEditColumnsFetcher
+    // 测试接缝注入（真库链路在 e2e）。
+    // ------------------------------------------------------------------
+
+    /// 右键第一行数据单元格并 settle 到菜单出现（含异步可用性判定）。
+    Future<void> rightClickRow(WidgetTester tester) async {
+      await tester.tap(find.text('Alice'), buttons: kSecondaryButton);
+      await tester.pumpAndSettle();
+    }
+
+    CompactPopupMenuItem<dynamic>? rowEditItem() {
+      final finder = find
+          .widgetWithText(CompactPopupMenuItem<dynamic>, 'Edit Row…')
+          .evaluate();
+      if (finder.isEmpty) return null;
+      return finder.first.widget as CompactPopupMenuItem<dynamic>;
+    }
+
+    Future<void> pumpBrowseGrid(
+      WidgetTester tester, {
+      required Future<List<DbColumn>> Function(
+        AppProvider,
+        String,
+        String?,
+        String,
+      )
+      fetcher,
+      bool readOnly = false,
+      bool withBrowseTarget = true,
+      List<Map<String, dynamic>>? data,
+    }) async {
+      final originalFetcher = rowEditColumnsFetcher;
+      rowEditColumnsFetcher = fetcher;
+      addTearDown(() => rowEditColumnsFetcher = originalFetcher);
+      // R1-P2：readonly 判定与方言解析都锚定 tab.connectionId ——
+      // savedConnections（入口 readonly 同源）+ dbService 连接态
+      //（RowEditDialog.show 经 getDatabaseType 解析方言）。
+      final server = DbServer(
+        id: 'c1',
+        name: 'Row Edit Test',
+        type: DatabaseType.mysql,
+        host: '127.0.0.1',
+        port: 3306,
+        readOnly: readOnly,
+      );
+      appProvider.connection.addSavedServerForTest(server);
+      appProvider.dbService.registerConnectedServerForTest(server);
+      appProvider.connection.setCurrentServer(server);
+      appProvider.tab.addTab(
+        QueryTab(id: tabId, title: 'Tab 1', connectionId: 'c1'),
+      );
+      if (withBrowseTarget) {
+        appProvider.setBrowseTarget(tabId, 'users');
+      }
+      appProvider.tab.ensureHistorySubTab(tabId);
+      appProvider.tab.addResultToTab(
+        tabId,
+        [
+          ExecutionResult(
+            statement: const SQLStatement(
+              index: 0,
+              sql: 'SELECT * FROM users',
+              type: SQLType.select,
+              lineStart: 1,
+              lineEnd: 1,
+            ),
+            success: true,
+            data:
+                data ??
+                <Map<String, dynamic>>[
+                  <String, dynamic>{'id': 1, 'name': 'Alice'},
+                ],
+            executionTime: const Duration(milliseconds: 1),
+          ),
+        ],
+        sql: 'SELECT * FROM users',
+        executionTime: const Duration(milliseconds: 1),
+      );
+
+      await tester.pumpWidget(buildResultsWidget());
+      await tester.pumpAndSettle();
+    }
+
+    final pkColumns = <DbColumn>[
+      DbColumn(name: 'id', type: 'int', isPrimaryKey: true, isNullable: false),
+      DbColumn(name: 'name', type: 'varchar(100)', isNullable: false),
+    ];
+
+    testWidgets('J1-a：browse tab + PK 就绪 → 菜单项可用，点开行编辑 dialog', (tester) async {
+      await pumpBrowseGrid(tester, fetcher: (_, _, _, _) async => pkColumns);
+
+      await rightClickRow(tester);
+      final item = rowEditItem();
+      expect(item, isNotNull, reason: 'browse tab + PK 就绪时入口应出现');
+      expect(item!.enabled, isTrue);
+
+      await tester.tap(find.text('Edit Row…'));
+      await tester.pumpAndSettle();
+      expect(find.text('Edit Row — users'), findsOneWidget);
+    });
+
+    testWidgets('J1-a：手写 SQL 结果网格（无 browseTarget）→ 入口不出现', (tester) async {
+      await pumpBrowseGrid(
+        tester,
+        fetcher: (_, _, _, _) async => pkColumns,
+        withBrowseTarget: false,
+      );
+
+      await rightClickRow(tester);
+      expect(rowEditItem(), isNull);
+    });
+
+    testWidgets('J1-a：readonly 连接 → 入口禁用（tooltip 只读说明）', (tester) async {
+      await pumpBrowseGrid(
+        tester,
+        fetcher: (_, _, _, _) async => pkColumns,
+        readOnly: true,
+      );
+
+      await rightClickRow(tester);
+      final item = rowEditItem();
+      expect(item, isNotNull, reason: 'readonly = 禁用项 + 说明，不是隐藏');
+      expect(item!.enabled, isFalse);
+      expect(
+        find.byTooltip('Row editing is disabled on read-only connections'),
+        findsOneWidget,
+      );
+
+      // 禁用项点击零副作用（不打开 dialog）。
+      await tester.tap(find.text('Edit Row…'));
+      await tester.pumpAndSettle();
+      expect(find.text('Edit Row — users'), findsNothing);
+    });
+
+    testWidgets('J1-a：无 PK 表（含视图）→ 入口不出现', (tester) async {
+      await pumpBrowseGrid(
+        tester,
+        fetcher: (_, _, _, _) async => [
+          DbColumn(name: 'id', type: 'int'),
+          DbColumn(name: 'name', type: 'varchar(100)'),
+        ],
+      );
+
+      await rightClickRow(tester);
+      expect(rowEditItem(), isNull);
+    });
+
+    testWidgets('J1-a：PK 列不在结果列集（部分投影）→ 入口禁用 + 说明', (tester) async {
+      await pumpBrowseGrid(
+        tester,
+        fetcher: (_, _, _, _) async => pkColumns,
+        data: <Map<String, dynamic>>[
+          <String, dynamic>{'name': 'Alice'},
+        ],
+      );
+
+      await rightClickRow(tester);
+      final item = rowEditItem();
+      expect(item, isNotNull);
+      expect(item!.enabled, isFalse);
+      expect(
+        find.byTooltip(
+          'No usable primary key: row editing is unavailable for this result',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('J1-a：目标行 PK 值为 null → 入口禁用', (tester) async {
+      await pumpBrowseGrid(
+        tester,
+        fetcher: (_, _, _, _) async => pkColumns,
+        data: <Map<String, dynamic>>[
+          <String, dynamic>{'id': null, 'name': 'Alice'},
+        ],
+      );
+
+      await rightClickRow(tester);
+      final item = rowEditItem();
+      expect(item, isNotNull);
+      expect(item!.enabled, isFalse);
+    });
+
+    testWidgets('J1-a：元数据获取失败（browseTarget 指向已删表）→ 错误 snackbar + 入口不出现', (
+      tester,
+    ) async {
+      await pumpBrowseGrid(
+        tester,
+        fetcher: (_, _, _, _) async =>
+            throw Exception("Table 'users' doesn't exist"),
+      );
+
+      await rightClickRow(tester);
+      expect(find.byType(SnackBar), findsOneWidget, reason: '失败不吞错');
+      expect(
+        find.textContaining("Table 'users' doesn't exist"),
+        findsOneWidget,
+      );
+      expect(rowEditItem(), isNull);
+    });
   });
 }

@@ -27,6 +27,7 @@ import '../../../theme/app_theme.dart';
 import '../../connection/connection_export_import_dialog.dart';
 import '../../connection/error_boundary.dart';
 import '../../connection/mysql_variables_browser_dialog.dart';
+import '../../dialogs/mysql_events_dialog.dart';
 import '../../dialogs/mysql_table_maintenance_entry_dialog.dart';
 import '../builders/tree_utils.dart';
 import '../capability/capability_menu_assembly.dart';
@@ -101,6 +102,16 @@ class MysqlSidebarPlugin implements SidebarPlugin {
             label: (l10n) => l10n.exportThisConnection,
             icon: LucideIcons.fileUp,
             onActivate: () => _showExport(context),
+          ),
+          // ── DBT-T18 新增（2026-10 工具面板补齐批第二程序，W-15）──
+          // 事件设计器：cap `event.list` 既有位（capability_table 零新增）；
+          // 徽标 id 由 T22 预登记（_releaseNewItemIds，徽标渲染归框架）。
+          SidebarCapabilityItem(
+            id: 'mysql.events',
+            capabilityId: 'event.list',
+            label: (l10n) => l10n.mysqlCapEvents,
+            icon: LucideIcons.calendarClock,
+            onActivate: () => _showEventsDesigner(context),
           ),
         ],
       ),
@@ -244,6 +255,31 @@ class MysqlSidebarPlugin implements SidebarPlugin {
     final server = resolveSidebarActionServer(context);
     if (server == null) return;
     ConnectionExportImportDialog.showExport(context, connections: [server]);
+  }
+
+  // ── DBT-T18 能力项动作（W-15 事件设计器）──────────────────────
+
+  /// 事件设计器入口：EVENT 是库级对象，需解析库上下文（连接默认库 →
+  /// 当前活动库）；无库上下文时提示先选库（不猜空串）。DDL 写路径的
+  /// 确认门/审计/只读拦截全在 MysqlEventsDialog 内闭环。
+  void _showEventsDesigner(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    final provider = context.read<AppProvider>();
+    final databaseName =
+        server.database ?? provider.connection.currentDatabase?.name;
+    if (databaseName == null || databaseName.isEmpty) {
+      AppErrorHandler.showWarningSnackBar(
+        context,
+        AppLocalizations.of(context)!.selectDatabaseFirst,
+      );
+      return;
+    }
+    MysqlEventsDialog.show(
+      context,
+      connectionId: server.id,
+      databaseName: databaseName,
+    );
   }
 }
 

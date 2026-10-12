@@ -16,12 +16,13 @@ import '../atoms/app_transitions.dart';
 import '../l10n/app_localizations.dart';
 import '../models/database_models.dart' show DatabaseType;
 import '../providers/app_provider.dart';
+import '../providers/tab_provider.dart' show ObjectTabKind, ObjectTabRef;
 import '../services/stored_procedure_service.dart';
 import '../services/trigger_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/responsive_helper.dart';
 import 'connection/connection_dialog.dart';
-import 'connection/er_diagram_dialog.dart';
+// T16 J4：ER 图入口已迁主标签栏对象 tab（er_diagram_dialog import 随迁移除）
 import 'connection/password_prompt_dialog.dart';
 import 'connection/settings_dialog.dart';
 import 'dialogs/stored_procedures_dialog.dart';
@@ -373,14 +374,17 @@ class _SidebarWidgetState extends State<SidebarWidget> {
     context.showAnimatedDialog(builder: (_) => const SettingsDialog());
   }
 
+  // T16 J4：ER 图从模态 dialog 迁主标签栏只读对象 tab（上下文取值与
+  // 原 dialog 一致）。
   void _showERDiagramDialog() {
     final provider = context.read<AppProvider>();
     final activeTab = provider.tab.activeTab;
-    context.showAnimatedDialog(
-      builder: (_) => ERDiagramDialog(
-        initialConnectionId:
+    provider.openObjectTab(
+      ObjectTabRef(
+        kind: ObjectTabKind.erDiagram,
+        connectionId:
             activeTab?.connectionId ?? provider.sidebar.selectedConnectionId,
-        initialDatabase:
+        databaseName:
             activeTab?.databaseName ?? provider.sidebar.selectedDatabaseName,
       ),
     );

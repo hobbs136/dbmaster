@@ -12,6 +12,7 @@ import '../providers/layout_preferences_provider.dart';
 import '../organisms/editor/query_editor_widget.dart';
 import '../organisms/editor/filter_bar_strip.dart'; // spec 041 US3: FilterBar widget
 import '../organisms/results/results_widget.dart';
+import '../organisms/connection/object_tabs/object_tab_view.dart';
 import '../molecules/resizer_widgets.dart';
 import '../theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
@@ -97,6 +98,18 @@ class _EditorResultsSplitState extends State<EditorResultsSplit> {
 
   @override
   Widget build(BuildContext context) {
+    // T16 J4：活动 tab 为只读对象 tab（ER 图/表属性）→ 内容占满
+    // （editor/FilterBar/results 全隐，沿 data 模式先例）。activeTabId
+    // 订阅保证对象 tab 之间切换（PanelLayout 值相同）也触发重建。
+    final activeTabId = context.select<AppProvider, String?>(
+      (p) => p.activeTab?.id,
+    );
+    if (activeTabId != null) {
+      final objectRef = widget.provider.tab.objectTabFor(activeTabId);
+      if (objectRef != null) {
+        return ObjectTabView(tabId: activeTabId, ref: objectRef);
+      }
+    }
     // spec 041：固定模式（不切换）。data 模式 = FilterBar + 数据网格；
     // query 模式 = editor + 工具栏 + 结果(子标签)。context.select 精确订阅。
     final layout = context.select<AppProvider, PanelLayout>(

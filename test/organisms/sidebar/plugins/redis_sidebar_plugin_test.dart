@@ -199,7 +199,7 @@ void main() {
       );
     });
 
-    testWidgets('capabilityGroups：三组装配（keyspace 1 + advanced 7 + more 4）',
+    testWidgets('capabilityGroups：三组装配（keyspace 1 + advanced 8 + more 4）',
       (tester) async {
       BuildContext? captured;
       await tester.pumpWidget(
@@ -230,7 +230,7 @@ void main() {
       expect(keyspace.items.single.capabilityId, isNull);
 
       final advanced = groups[1];
-      expect(advanced.items, hasLength(7));
+      expect(advanced.items, hasLength(8));
       expect(
         advanced.items.map((i) => i.id).toSet(),
         {
@@ -241,6 +241,7 @@ void main() {
           'redis.config',
           'redis.slowlog',
           'redis.expiring',
+          'redis.backup',
         },
       );
       // port 门控键逐项核对（无键项 = redis 连接恒真的基础操作）
@@ -254,6 +255,8 @@ void main() {
       // redis.keyspace.expiring，T0 前已在册）。
       expect(byId['redis.slowlog']!.capabilityId, 'redis.slowlog');
       expect(byId['redis.expiring']!.capabilityId, 'redis.keyspace.expiring');
+      // DBT-T20 新增项位门控：`redis.backup`（T22 预登记位）。
+      expect(byId['redis.backup']!.capabilityId, 'redis.backup');
       expect(byId['redis.memory']!.capabilityId, isNull);
       expect(byId['redis.acl']!.capabilityId, isNull);
 
@@ -280,7 +283,7 @@ void main() {
       }
     });
 
-    testWidgets('capabilityGroups：项 id 不变（既有 10 + 新 2 = 12，无增减）',
+    testWidgets('capabilityGroups：项 id 不变（既有 10 + T6 新 2 + T20 新 1 = 13，无增减）',
       (tester) async {
       BuildContext? captured;
       await tester.pumpWidget(
@@ -318,11 +321,13 @@ void main() {
         // DBT-T6 新 2：
         'redis.slowlog',
         'redis.expiring',
+        // DBT-T20 新 1：
+        'redis.backup',
       });
-      expect(allIds.length, 12, reason: '项 id 无重复');
+      expect(allIds.length, 13, reason: '项 id 无重复');
     });
 
-    testWidgets('装配门控：core 2 + 插件 12 = 14 项可见（CapabilityTable 实表）',
+    testWidgets('装配门控：core 2 + 插件 13 = 15 项可见（CapabilityTable 实表）',
       (tester) async {
       BuildContext? captured;
       await tester.pumpWidget(
@@ -350,11 +355,12 @@ void main() {
       );
 
       // 验收口径：可见项数 = 既有 12（core schema.diff/ai.assistant + 插件
-      // 10）+ 新 2 = 14；proc/func/trigger 位不含 redis，core 其余项不可见。
+      // 10）+ T6 新 2 + T20 新 1 = 15；proc/func/trigger 位不含 redis，
+      // core 其余项不可见。
       final visible = [
         for (final g in groups) ...g.items.map((i) => i.item.id),
       ];
-      expect(visible, hasLength(14));
+      expect(visible, hasLength(15));
       expect(visible, containsAll(<String>['schema.diff', 'ai.assistant']));
       expect(
         visible,
@@ -362,12 +368,13 @@ void main() {
       );
       expect(visible, contains('redis.slowlog'));
       expect(visible, contains('redis.expiring'));
+      expect(visible, contains('redis.backup'));
 
-      // 「更多」组装配后含且仅含 4 项；advanced 装配 = core 2 + 插件 7。
+      // 「更多」组装配后含且仅含 4 项；advanced 装配 = core 2 + 插件 8。
       final moreGroup = groups.singleWhere((g) => g.id == 'more');
       expect(moreGroup.items, hasLength(4));
       final advancedGroup = groups.singleWhere((g) => g.id == 'advanced');
-      expect(advancedGroup.items, hasLength(9));
+      expect(advancedGroup.items, hasLength(10));
     });
   });
 }

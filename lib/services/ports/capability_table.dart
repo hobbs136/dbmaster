@@ -252,6 +252,8 @@ const Map<String, Set<DatabaseType>> _capabilityBits = {
   'pg.vacuum': {DatabaseType.postgresql}, // VACUUM 执行包装（T8）
   'pg.reindex': {DatabaseType.postgresql}, // REINDEX 执行包装（T8）
   'pg.locks': {DatabaseType.postgresql}, // 锁/等待分析，只读（T8）
+  // 第二程序预登记位（T22）：消费任务 T19（外部表建表入口）。
+  'pg.foreignTable': {DatabaseType.postgresql},
   'json.columns': {
     DatabaseType.mysql,
     DatabaseType.doris,
@@ -310,6 +312,8 @@ const Map<String, Set<DatabaseType>> _capabilityBits = {
   'redis.functions': {DatabaseType.redis},
   'redis.config': {DatabaseType.redis},
   'redis.cli': {DatabaseType.redis},
+  // 第二程序预登记位（T22）：消费任务 T20（RDB 状态 + BGSAVE 触发）。
+  'redis.backup': {DatabaseType.redis},
   'mongo.aggregate': {DatabaseType.mongodb},
   'mongo.validation': {DatabaseType.mongodb},
   'mongo.gridfs': {DatabaseType.mongodb},
@@ -317,6 +321,8 @@ const Map<String, Set<DatabaseType>> _capabilityBits = {
   'mongo.currentOp': {DatabaseType.mongodb}, // currentOp 列表 + killOp（T10）
   'mongo.replication': {DatabaseType.mongodb}, // 副本集/分片面板（T7）
   'mongo.indexAdvice': {DatabaseType.mongodb}, // 索引建议面板化（T7）
+  // 第二程序预登记位（T22）：消费任务 T17（Schema 类型分布图，只读）。
+  'mongo.schemaAnalysis': {DatabaseType.mongodb},
   // 预登记位：T12 为条件任务，未接线也不得删除本位（删除 = 契约变更，
   // 需架构师批准，见任务书 T0）。
   'mongo.explain': {DatabaseType.mongodb},

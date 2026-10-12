@@ -11294,4 +11294,338 @@ class AppLocalizationsDe extends AppLocalizations {
   String redisTtlMoreInSample(String count) {
     return '... und $count weitere (in Stichprobe)';
   }
+
+  @override
+  String get rowEditMenuLabel => 'Zeile bearbeiten…';
+
+  @override
+  String rowEditTitle(String table) {
+    return 'Zeile bearbeiten — $table';
+  }
+
+  @override
+  String get rowEditNoPrimaryKey =>
+      'Kein verwendbarer Primärschlüssel: Zeilenbearbeitung für dieses Ergebnis nicht verfügbar';
+
+  @override
+  String get rowEditReadonlyDisabled =>
+      'Zeilenbearbeitung ist bei schreibgeschützten Verbindungen deaktiviert';
+
+  @override
+  String get rowEditZeroChanges => 'Keine zu speichernden Änderungen';
+
+  @override
+  String get rowEditPreviewTitle => 'UPDATE-Vorschau';
+
+  @override
+  String rowEditConfirmImpact(String table) {
+    return 'Eine Zeile in $table wird aktualisiert. Fortfahren?';
+  }
+
+  @override
+  String get rowEditSuccess => 'Zeile aktualisiert';
+
+  @override
+  String get rowEditFailed => 'Aktualisierung fehlgeschlagen';
+
+  @override
+  String get rowEditRowMissing => 'Die Zeile existiert nicht mehr';
+
+  @override
+  String get rowEditBinaryColumnSkipped =>
+      'Spalten mit Binär- oder unbekanntem Typ sind schreibgeschützt und werden nicht aktualisiert';
+
+  @override
+  String get commandRefreshObjects => 'Objekte aktualisieren';
+
+  @override
+  String get commandOpenTableProperties => 'Tabelleneigenschaften';
+
+  @override
+  String get commandQuickSearch => 'Schnellsuche';
+
+  @override
+  String get commandDescEditConnection =>
+      'Einstellungen der aktuellen Verbindung bearbeiten';
+
+  @override
+  String get commandDescDisconnectConnection => 'Aktuelle Verbindung trennen';
+
+  @override
+  String get commandDescSwitchConnection =>
+      'Zu einer anderen Verbindung wechseln';
+
+  @override
+  String get commandDescOpenConnectionManager => 'Verbindungsmanager öffnen';
+
+  @override
+  String get commandDescCreateTable =>
+      'Neue Tabelle in der aktuellen Datenbank anlegen';
+
+  @override
+  String get commandDescRefreshObjects => 'Datenbankobjektbaum neu laden';
+
+  @override
+  String get commandDescViewTableDdl => 'DDL der aktuellen Tabelle anzeigen';
+
+  @override
+  String get commandDescOpenTableProperties => 'Tabelleneigenschaften öffnen';
+
+  @override
+  String get commandDescSchemaDiff =>
+      'Schemata zwischen Datenbanken vergleichen';
+
+  @override
+  String get commandDescDataSync => 'Datensynchronisierungsaufgabe starten';
+
+  @override
+  String get commandDescImportWizard => 'Datenimport-Assistent öffnen';
+
+  @override
+  String get commandDescExportData =>
+      'Abfrageergebnisse oder Tabellendaten exportieren';
+
+  @override
+  String get commandDescQuickSearch => 'Datenbankobjekte durchsuchen';
+
+  @override
+  String get objectTabBadge => 'Objekt';
+
+  @override
+  String get objectTabUnavailable => 'Objekt nicht verfügbar';
+
+  @override
+  String objectTabErDiagramTitle(String db) {
+    return 'ER-Diagramm — $db';
+  }
+
+  @override
+  String objectTabTablePropertiesTitle(String table) {
+    return 'Tabelleneigenschaften — $table';
+  }
+
+  @override
+  String get objectTabRefresh => 'Aktualisieren';
+
+  @override
+  String get mongoCapSchemaAnalysis => 'Schema-Analyse';
+
+  @override
+  String get mongoSchemaDistTitle => 'Schema-Typverteilung';
+
+  @override
+  String get mongoSchemaDistEmpty => 'Keine Felder';
+
+  @override
+  String mongoSchemaDistFieldType(String type) {
+    return 'Typ: $type';
+  }
+
+  @override
+  String mongoSchemaDistFieldCount(String count) {
+    return '$count Felder';
+  }
+
+  @override
+  String mongoSchemaDistPresence(String ratio) {
+    return 'Vorkommen: $ratio';
+  }
+
+  @override
+  String get mongoSchemaDistMixed => 'Gemischt';
+
+  @override
+  String mongoSchemaDistSampled(String count) {
+    return '$count Dokumente abgetastet';
+  }
+
+  @override
+  String get mongoSchemaDistNested => 'Verschachtelt';
+
+  @override
+  String get mysqlCapEvents => 'Ereignisse';
+
+  @override
+  String get mysqlEventsTitle => 'Ereignisse';
+
+  @override
+  String get mysqlEventsEmpty => 'Keine Ereignisse';
+
+  @override
+  String get mysqlEventsNew => 'Neues Ereignis';
+
+  @override
+  String mysqlEventsEdit(String name) {
+    return 'Ereignis $name bearbeiten';
+  }
+
+  @override
+  String get mysqlEventsDrop => 'Ereignis löschen';
+
+  @override
+  String get mysqlEventsStatus => 'Status';
+
+  @override
+  String get mysqlEventsSchedule => 'Zeitplan';
+
+  @override
+  String get mysqlEventsEvery => 'Alle';
+
+  @override
+  String get mysqlEventsStarts => 'Beginnt';
+
+  @override
+  String get mysqlEventsEnds => 'Endet';
+
+  @override
+  String get mysqlEventsAt => 'Am';
+
+  @override
+  String get mysqlEventsOnCompletion => 'Nach Abschluss';
+
+  @override
+  String get mysqlEventsComment => 'Kommentar';
+
+  @override
+  String get mysqlEventsDoBody => 'DO-Body (SQL)';
+
+  @override
+  String get mysqlEventsDdlPreview => 'DDL-Vorschau';
+
+  @override
+  String mysqlEventsDropConfirm(String name) {
+    return 'Ereignis $name löschen?';
+  }
+
+  @override
+  String get mysqlEventsSchedulerOff =>
+      'Der Event-Scheduler ist AUS; Ereignisse werden nicht ausgeführt';
+
+  @override
+  String get mysqlEventsColName => 'Name';
+
+  @override
+  String get mysqlEventsColStatus => 'Status';
+
+  @override
+  String get mysqlEventsColType => 'Typ';
+
+  @override
+  String get mysqlEventsColSchedule => 'Zeitplan';
+
+  @override
+  String get mysqlEventsColLastExecuted => 'Zuletzt ausgeführt';
+
+  @override
+  String get mysqlEventsColDefiner => 'Definierer';
+
+  @override
+  String get pgCapForeignTable => 'Foreign Table';
+
+  @override
+  String get pgPartitionSectionTitle => 'Partitionierung';
+
+  @override
+  String get pgPartitionStrategy => 'Strategie';
+
+  @override
+  String get pgPartitionColumn => 'Partitionsschlüsselspalte';
+
+  @override
+  String pgPartitionNeedsPk(String column) {
+    return 'Der Primärschlüssel muss die Partitionsschlüsselspalte $column enthalten';
+  }
+
+  @override
+  String get pgForeignTableTitle => 'Foreign Table';
+
+  @override
+  String get pgForeignTableServer => 'Foreign Server';
+
+  @override
+  String get pgForeignTableNoServers =>
+      'Keine Foreign Server gefunden. Bitte zuerst erstellen (CREATE SERVER).';
+
+  @override
+  String get pgForeignTableOptions => 'OPTIONS';
+
+  @override
+  String get pgForeignTableDdlPreview => 'DDL-Vorschau';
+
+  @override
+  String get redisCapBackup => 'Backup';
+
+  @override
+  String get redisBackupTitle => 'Backup & Persistierung';
+
+  @override
+  String redisBackupLastSave(String time) {
+    return 'Letzte Sicherung: $time';
+  }
+
+  @override
+  String redisBackupBgsaveStatus(String status) {
+    return 'Letztes BGSAVE: $status';
+  }
+
+  @override
+  String redisBackupChangesSince(String count) {
+    return 'Änderungen seit letzter Sicherung: $count';
+  }
+
+  @override
+  String get redisBackupInProgress => 'BGSAVE läuft';
+
+  @override
+  String get redisBackupRefresh => 'Aktualisieren';
+
+  @override
+  String get redisBackupTrigger => 'BGSAVE auslösen';
+
+  @override
+  String get redisBackupConfirmImpact =>
+      'BGSAVE erzeugt einen Fork des Serverprozesses und kann den Speicherverbrauch vorübergehend verdoppeln. Führen Sie dies auf Produktivinstanzen außerhalb der Spitzenzeiten aus. Fortfahren?';
+
+  @override
+  String get redisBackupSuccess => 'BGSAVE ausgelöst';
+
+  @override
+  String get redisBackupFailed => 'BGSAVE konnte nicht ausgelöst werden';
+
+  @override
+  String get redisBackupConfigSection => 'Speicherstrategie (CONFIG)';
+
+  @override
+  String get mongoGridfsUpload => 'Hochladen';
+
+  @override
+  String get mongoGridfsUploadPreviewTitle => 'Zu GridFS hochladen';
+
+  @override
+  String mongoGridfsUploadChunkCount(String count) {
+    return '$count Chunks';
+  }
+
+  @override
+  String get mongoGridfsUploadNewVersionNote =>
+      'Eine Datei mit diesem Namen existiert bereits; das Hochladen fügt eine neue Version hinzu.';
+
+  @override
+  String mongoGridfsUploadSuccess(String filename) {
+    return '$filename hochgeladen';
+  }
+
+  @override
+  String mongoGridfsUploadFailed(String filename) {
+    return '$filename konnte nicht hochgeladen werden';
+  }
+
+  @override
+  String mongoGridfsUploadTooLarge(String size) {
+    return 'Datei überschreitet das $size-Upload-Limit';
+  }
+
+  @override
+  String get mongoGridfsUploadRollbackPartial =>
+      'Hochladen fehlgeschlagen; die bereits geschriebenen Chunks wurden zurückgerollt';
 }

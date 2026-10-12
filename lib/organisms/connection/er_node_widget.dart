@@ -24,50 +24,50 @@ class ERNodeWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      left: node.position.dx,
-      top: node.position.dy,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: node.size.width,
-          height: node.size.height,
-          decoration: BoxDecoration(
+    // T16 修复：定位（Positioned）唯一来源 = 消费方 ERCanvas 的归一化
+    // Positioned（er_canvas.dart 节点 map 处）。本组件此前自带内层
+    // Positioned 包裹，与外层形成 ParentData 双写竞争（debug 断言
+    // "Competing ParentDataWidgets"，ER 图进入对象 tab e2e 覆盖后暴露）。
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: node.size.width,
+        height: node.size.height,
+        decoration: BoxDecoration(
+          color: isSelected
+              ? context.themeColors.bgActive
+              : isHighlighted
+              ? context.themeColors.bgHover
+              : context.themeColors.bgSecondary,
+          border: Border.all(
             color: isSelected
-                ? context.themeColors.bgActive
+                ? context.themeColors.accentBlue
                 : isHighlighted
-                ? context.themeColors.bgHover
-                : context.themeColors.bgSecondary,
-            border: Border.all(
-              color: isSelected
-                  ? context.themeColors.accentBlue
-                  : isHighlighted
-                  ? context.themeColors.info
-                  : context.themeColors.borderColor,
-              width: isSelected ? 2 : 1,
+                ? context.themeColors.info
+                : context.themeColors.borderColor,
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(AppDesignSystem.radiusMd),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            borderRadius: BorderRadius.circular(AppDesignSystem.radiusMd),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with table name
-              _buildHeader(context),
-              // Divider
-              Container(height: 1, color: context.themeColors.dividerColor),
-              // Columns list
-              Expanded(child: _buildColumnsList(context)),
-              // Footer with row count
-              _buildFooter(context),
-            ],
-          ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with table name
+            _buildHeader(context),
+            // Divider
+            Container(height: 1, color: context.themeColors.dividerColor),
+            // Columns list
+            Expanded(child: _buildColumnsList(context)),
+            // Footer with row count
+            _buildFooter(context),
+          ],
         ),
       ),
     );

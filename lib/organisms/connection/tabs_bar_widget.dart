@@ -3,7 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../theme/app_colors.dart';
 import '../../providers/app_provider.dart';
-import '../../providers/tab_provider.dart' show QueryTab, TabProvider;
+import '../../providers/tab_provider.dart'
+    show QueryTab, TabProvider, ObjectTabKind;
 import '../../providers/bulk_close_controller.dart' show BulkCloseDecision;
 import '../../molecules/bulk_close_dialog.dart';
 import '../../molecules/tab_close_confirm_dialog.dart'
@@ -79,16 +80,30 @@ class _TabsBarWidgetState extends State<TabsBarWidget> {
                                     orElse: () => null,
                                   )
                             : null;
+                        // T16 J4：对象 tab 标题按 ref 经 l10n 渲染
+                        //（QueryTab.title 仅兜底锚定文本）。
+                        final objectRef = provider.tab.objectTabFor(tab.id);
+                        final displayTitle = objectRef != null
+                            ? (objectRef.kind == ObjectTabKind.erDiagram
+                                  ? l10n.objectTabErDiagramTitle(
+                                      objectRef.databaseName ?? '?',
+                                    )
+                                  : l10n.objectTabTablePropertiesTitle(
+                                      objectRef.objectName,
+                                    ))
+                            : _getDisplayTitle(
+                                tab.title,
+                                tab.isAutoTitle,
+                                l10n,
+                              );
                         return _TabItem(
-                          title: _getDisplayTitle(
-                            tab.title,
-                            tab.isAutoTitle,
-                            l10n,
-                          ),
+                          title: displayTitle,
                           tooltip:
                               '${tab.databaseName ?? "?"}@${server?.name ?? tab.connectionId ?? "?"}',
                           isActive: index == provider.activeTabIndex,
                           isSaved: tab.isSaved,
+                          isObjectTab: objectRef != null,
+                          objectBadgeTooltip: l10n.objectTabBadge,
                           isDifferentConnection:
                               tab.connectionId != provider.activeConnectionId,
                           environment: server?.environment,
@@ -649,6 +664,12 @@ class _TabItem extends StatelessWidget {
   final String? tooltip;
   final bool isActive;
   final bool isSaved;
+
+  /// T16 J4：只读对象 tab（ER 图/表属性）——类型点位渲染「对象」角标
+  /// （lucide box 图标）替代连接类型色圆点；关闭无确认（sql 恒空 →
+  /// `isTabUnsaved` 恒 false，走既有 `_closeTabWithConfirm` 直关路径）。
+  final bool isObjectTab;
+  final String? objectBadgeTooltip;
   final bool isDifferentConnection;
   final ConnectionEnvironment? environment;
 
@@ -664,6 +685,8 @@ class _TabItem extends StatelessWidget {
     this.tooltip,
     required this.isActive,
     required this.isSaved,
+    this.isObjectTab = false,
+    this.objectBadgeTooltip,
     this.isDifferentConnection = false,
     this.environment,
     this.dbType,
@@ -704,17 +727,28 @@ class _TabItem extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // 类型色圆点（8px，brandColor 暗色提亮变体自动分发）
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: dbType != null
-                        ? colors.brandColor(dbType!)
-                        : colors.textMuted,
-                    shape: BoxShape.circle,
+                // 类型点位：对象 tab = 「对象」角标（box 图标 + tooltip）；
+                // 普通 tab = 连接类型色圆点（8px，brandColor 暗色提亮变体自动分发）
+                if (isObjectTab)
+                  Tooltip(
+                    message: objectBadgeTooltip ?? '',
+                    child: Icon(
+                      LucideIcons.box,
+                      size: 12,
+                      color: colors.accentBlue,
+                    ),
+                  )
+                else
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: dbType != null
+                          ? colors.brandColor(dbType!)
+                          : colors.textMuted,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                ),
                 const SizedBox(width: AppDesignSystem.space2),
                 Expanded(
                   child: Text(

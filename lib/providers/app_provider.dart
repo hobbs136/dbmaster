@@ -814,6 +814,10 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> closeTab(int index) async => tab.closeTab(index);
 
+  /// T16 J4：打开只读对象 tab（ER 图/表属性进主标签栏）。去重/聚焦/布局
+  /// 语义见 [TabProvider.openObjectTab]；透传其返回的 tabId。
+  String openObjectTab(ObjectTabRef ref) => tab.openObjectTab(ref);
+
   Future<void> forceCloseTab(int index) async => tab.forceCloseTab(index);
 
   void setActiveTab(int index) => tab.setActiveTab(index);

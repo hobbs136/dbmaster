@@ -35,6 +35,33 @@ void main() {
     });
   });
 
+  // R1-P1（注入面修复）：MySQL 族串内反斜杠是转义字符——先 `\`→`\\`
+  // 再 `'`→`''`，顺序不可反。
+  group('SqlEscapeUtils.escapeMySqlString', () {
+    test('无特殊字符等价 escapeString', () {
+      expect(SqlEscapeUtils.escapeMySqlString('hello'), "'hello'");
+      expect(SqlEscapeUtils.escapeMySqlString(''), "''");
+    });
+
+    test('应转义单引号（双写）', () {
+      expect(SqlEscapeUtils.escapeMySqlString("it's"), "'it''s'");
+    });
+
+    test('应双写反斜杠', () {
+      expect(SqlEscapeUtils.escapeMySqlString(r'a\b'), "'a\\\\b'");
+    });
+
+    test('单引号与反斜杠混合：反斜杠先双写、引号后双写', () {
+      expect(SqlEscapeUtils.escapeMySqlString(r"a\b'c"), "'a\\\\b''c'");
+    });
+
+    test('尾随反斜杠：双写后不再吞掉收尾引号', () {
+      // 值 = `\`（单字符）：naive 只转义引号得 `'\'`（串未闭合=注入面）；
+      // 双写后 `'\\'` 引擎解析为字面单反斜杠。
+      expect(SqlEscapeUtils.escapeMySqlString('\\'), "'\\\\'");
+    });
+  });
+
   group('SqlEscapeUtils.escapeMySqlIdentifier', () {
     test('应使用反引号', () {
       expect(SqlEscapeUtils.escapeMySqlIdentifier('users'), '`users`');

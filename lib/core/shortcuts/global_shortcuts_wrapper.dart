@@ -14,7 +14,7 @@ import '../../organisms/dialogs/shortcuts_dialog.dart';
 import '../../organisms/connection/command_palette.dart';
 import '../../organisms/dialogs/performance_analyzer_dialog.dart';
 import '../../organisms/dialogs/audit_log_dialog.dart';
-import '../../organisms/connection/er_diagram_dialog.dart';
+// T16 J4：ER 图入口已迁主标签栏对象 tab（er_diagram_dialog import 随迁移除）
 // SettingsDialog（Ctrl+, 接线）
 import '../../organisms/connection/settings_dialog.dart';
 import '../../atoms/app_transitions.dart';
@@ -25,7 +25,7 @@ import '../../core/commands/query_execution_helper.dart';
 import 'editor_focus_state.dart';
 import '../../models/database_models.dart' show DbServer;
 import '../../providers/tab_provider.dart'
-    show DuplicateSavedQueryNameException, QueryTab;
+    show DuplicateSavedQueryNameException, QueryTab, ObjectTabKind, ObjectTabRef;
 import '../../theme/app_theme.dart';
 import '../../theme/app_colors.dart';
 // Q1 能力面板 Alt+Q 信号通道（面板折叠切换 + 聚焦；面板未挂载时信号自然丢弃）
@@ -719,16 +719,21 @@ class _GlobalShortcutsWrapperState extends State<GlobalShortcutsWrapper> {
     }
   }
 
+  // T16 J4：ER 图从模态 dialog 迁主标签栏只读对象 tab（上下文取值与
+  // 原 dialog 一致）。
   void _handleERDiagram() {
     try {
       final provider = context.read<AppProvider>();
       final currentTab = provider.activeTab;
-      context.showAnimatedDialog(
-        builder: (ctx) => ERDiagramDialog(
-          initialConnectionId:
-              currentTab?.connectionId ?? provider.sidebar.selectedConnectionId,
-          initialDatabase:
-              currentTab?.databaseName ?? provider.sidebar.selectedDatabaseName,
+      provider.openObjectTab(
+        ObjectTabRef(
+          kind: ObjectTabKind.erDiagram,
+          connectionId:
+              currentTab?.connectionId ??
+              provider.sidebar.selectedConnectionId,
+          databaseName:
+              currentTab?.databaseName ??
+              provider.sidebar.selectedDatabaseName,
         ),
       );
     } catch (e) {

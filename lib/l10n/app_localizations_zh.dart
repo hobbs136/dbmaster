@@ -10965,6 +10965,328 @@ class AppLocalizationsZh extends AppLocalizations {
   String redisTtlMoreInSample(String count) {
     return '...另有 $count 个（采样内）';
   }
+
+  @override
+  String get rowEditMenuLabel => '编辑此行…';
+
+  @override
+  String rowEditTitle(String table) {
+    return '编辑行 — $table';
+  }
+
+  @override
+  String get rowEditNoPrimaryKey => '没有可用主键，当前结果不支持行编辑';
+
+  @override
+  String get rowEditReadonlyDisabled => '只读连接上行编辑不可用';
+
+  @override
+  String get rowEditZeroChanges => '没有需要保存的变更';
+
+  @override
+  String get rowEditPreviewTitle => 'UPDATE 预览';
+
+  @override
+  String rowEditConfirmImpact(String table) {
+    return '将更新 $table 中的一行，是否继续？';
+  }
+
+  @override
+  String get rowEditSuccess => '行已更新';
+
+  @override
+  String get rowEditFailed => '更新失败';
+
+  @override
+  String get rowEditRowMissing => '该行已不存在';
+
+  @override
+  String get rowEditBinaryColumnSkipped => '二进制或未知类型列以只读展示，不参与更新';
+
+  @override
+  String get commandRefreshObjects => '刷新对象列表';
+
+  @override
+  String get commandOpenTableProperties => '表属性';
+
+  @override
+  String get commandQuickSearch => '快速搜索';
+
+  @override
+  String get commandDescEditConnection => '编辑当前连接的设置';
+
+  @override
+  String get commandDescDisconnectConnection => '断开当前连接';
+
+  @override
+  String get commandDescSwitchConnection => '切换到其它连接';
+
+  @override
+  String get commandDescOpenConnectionManager => '打开连接管理';
+
+  @override
+  String get commandDescCreateTable => '在当前数据库中新建表';
+
+  @override
+  String get commandDescRefreshObjects => '重新加载数据库对象树';
+
+  @override
+  String get commandDescViewTableDdl => '查看当前表的 DDL';
+
+  @override
+  String get commandDescOpenTableProperties => '打开表属性视图';
+
+  @override
+  String get commandDescSchemaDiff => '在数据库间对比结构';
+
+  @override
+  String get commandDescDataSync => '启动数据同步任务';
+
+  @override
+  String get commandDescImportWizard => '打开数据导入向导';
+
+  @override
+  String get commandDescExportData => '导出查询结果或表数据';
+
+  @override
+  String get commandDescQuickSearch => '搜索数据库对象';
+
+  @override
+  String get objectTabBadge => '对象';
+
+  @override
+  String get objectTabUnavailable => '对象不可用';
+
+  @override
+  String objectTabErDiagramTitle(String db) {
+    return 'ER 图 — $db';
+  }
+
+  @override
+  String objectTabTablePropertiesTitle(String table) {
+    return '表属性 — $table';
+  }
+
+  @override
+  String get objectTabRefresh => '刷新';
+
+  @override
+  String get mongoCapSchemaAnalysis => 'Schema 分析';
+
+  @override
+  String get mongoSchemaDistTitle => 'Schema 类型分布';
+
+  @override
+  String get mongoSchemaDistEmpty => '无字段';
+
+  @override
+  String mongoSchemaDistFieldType(String type) {
+    return '类型：$type';
+  }
+
+  @override
+  String mongoSchemaDistFieldCount(String count) {
+    return '$count 个字段';
+  }
+
+  @override
+  String mongoSchemaDistPresence(String ratio) {
+    return '出现率：$ratio';
+  }
+
+  @override
+  String get mongoSchemaDistMixed => '混合';
+
+  @override
+  String mongoSchemaDistSampled(String count) {
+    return '已抽样 $count 个文档';
+  }
+
+  @override
+  String get mongoSchemaDistNested => '嵌套';
+
+  @override
+  String get mysqlCapEvents => '事件';
+
+  @override
+  String get mysqlEventsTitle => '事件';
+
+  @override
+  String get mysqlEventsEmpty => '无事件';
+
+  @override
+  String get mysqlEventsNew => '新建事件';
+
+  @override
+  String mysqlEventsEdit(String name) {
+    return '编辑事件 $name';
+  }
+
+  @override
+  String get mysqlEventsDrop => '删除事件';
+
+  @override
+  String get mysqlEventsStatus => '状态';
+
+  @override
+  String get mysqlEventsSchedule => '调度';
+
+  @override
+  String get mysqlEventsEvery => '间隔';
+
+  @override
+  String get mysqlEventsStarts => '开始时间';
+
+  @override
+  String get mysqlEventsEnds => '结束时间';
+
+  @override
+  String get mysqlEventsAt => '执行时间';
+
+  @override
+  String get mysqlEventsOnCompletion => '完成后';
+
+  @override
+  String get mysqlEventsComment => '注释';
+
+  @override
+  String get mysqlEventsDoBody => 'DO 语句体（SQL）';
+
+  @override
+  String get mysqlEventsDdlPreview => 'DDL 预览';
+
+  @override
+  String mysqlEventsDropConfirm(String name) {
+    return '删除事件 $name？';
+  }
+
+  @override
+  String get mysqlEventsSchedulerOff => '事件调度器未开启，事件不会执行';
+
+  @override
+  String get mysqlEventsColName => '名称';
+
+  @override
+  String get mysqlEventsColStatus => '状态';
+
+  @override
+  String get mysqlEventsColType => '类型';
+
+  @override
+  String get mysqlEventsColSchedule => '调度';
+
+  @override
+  String get mysqlEventsColLastExecuted => '上次执行';
+
+  @override
+  String get mysqlEventsColDefiner => '定义者';
+
+  @override
+  String get pgCapForeignTable => '外部表';
+
+  @override
+  String get pgPartitionSectionTitle => '分区';
+
+  @override
+  String get pgPartitionStrategy => '分区策略';
+
+  @override
+  String get pgPartitionColumn => '分区键列';
+
+  @override
+  String pgPartitionNeedsPk(String column) {
+    return '主键必须包含分区键列「$column」';
+  }
+
+  @override
+  String get pgForeignTableTitle => '外部表';
+
+  @override
+  String get pgForeignTableServer => '外部服务器';
+
+  @override
+  String get pgForeignTableNoServers => '未找到外部服务器，请先创建（CREATE SERVER）。';
+
+  @override
+  String get pgForeignTableOptions => 'OPTIONS';
+
+  @override
+  String get pgForeignTableDdlPreview => 'DDL 预览';
+
+  @override
+  String get redisCapBackup => '备份';
+
+  @override
+  String get redisBackupTitle => '备份与持久化';
+
+  @override
+  String redisBackupLastSave(String time) {
+    return '上次保存：$time';
+  }
+
+  @override
+  String redisBackupBgsaveStatus(String status) {
+    return '上次 BGSAVE：$status';
+  }
+
+  @override
+  String redisBackupChangesSince(String count) {
+    return '上次保存以来变更数：$count';
+  }
+
+  @override
+  String get redisBackupInProgress => 'BGSAVE 进行中';
+
+  @override
+  String get redisBackupRefresh => '刷新';
+
+  @override
+  String get redisBackupTrigger => '触发 BGSAVE';
+
+  @override
+  String get redisBackupConfirmImpact =>
+      'BGSAVE 会 fork 服务器进程，可能短暂使内存占用翻倍。生产实例建议在低峰期执行。是否继续？';
+
+  @override
+  String get redisBackupSuccess => 'BGSAVE 已触发';
+
+  @override
+  String get redisBackupFailed => '触发 BGSAVE 失败';
+
+  @override
+  String get redisBackupConfigSection => '保存策略（CONFIG）';
+
+  @override
+  String get mongoGridfsUpload => '上传';
+
+  @override
+  String get mongoGridfsUploadPreviewTitle => '上传到 GridFS';
+
+  @override
+  String mongoGridfsUploadChunkCount(String count) {
+    return '$count 个分片';
+  }
+
+  @override
+  String get mongoGridfsUploadNewVersionNote => '同名文件已存在，上传将新增一个版本。';
+
+  @override
+  String mongoGridfsUploadSuccess(String filename) {
+    return '已上传 $filename';
+  }
+
+  @override
+  String mongoGridfsUploadFailed(String filename) {
+    return '上传 $filename 失败';
+  }
+
+  @override
+  String mongoGridfsUploadTooLarge(String size) {
+    return '文件超过 $size 的上传上限';
+  }
+
+  @override
+  String get mongoGridfsUploadRollbackPartial => '上传失败，已写入的分片已回滚';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -19377,4 +19699,326 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String redisTtlMoreInSample(String count) {
     return '...另有 $count 個（取樣內）';
   }
+
+  @override
+  String get rowEditMenuLabel => '編輯此行…';
+
+  @override
+  String rowEditTitle(String table) {
+    return '編輯行 — $table';
+  }
+
+  @override
+  String get rowEditNoPrimaryKey => '沒有可用主鍵，目前結果不支援行編輯';
+
+  @override
+  String get rowEditReadonlyDisabled => '唯讀連線上行編輯不可用';
+
+  @override
+  String get rowEditZeroChanges => '沒有需要儲存的變更';
+
+  @override
+  String get rowEditPreviewTitle => 'UPDATE 預覽';
+
+  @override
+  String rowEditConfirmImpact(String table) {
+    return '將更新 $table 中的一行，是否繼續？';
+  }
+
+  @override
+  String get rowEditSuccess => '行已更新';
+
+  @override
+  String get rowEditFailed => '更新失敗';
+
+  @override
+  String get rowEditRowMissing => '該行已不存在';
+
+  @override
+  String get rowEditBinaryColumnSkipped => '二進位或未知類型欄以唯讀顯示，不參與更新';
+
+  @override
+  String get commandRefreshObjects => '刷新物件清單';
+
+  @override
+  String get commandOpenTableProperties => '資料表屬性';
+
+  @override
+  String get commandQuickSearch => '快速搜尋';
+
+  @override
+  String get commandDescEditConnection => '編輯目前連線的設定';
+
+  @override
+  String get commandDescDisconnectConnection => '中斷目前連線';
+
+  @override
+  String get commandDescSwitchConnection => '切換到其它連線';
+
+  @override
+  String get commandDescOpenConnectionManager => '開啟連線管理';
+
+  @override
+  String get commandDescCreateTable => '在目前資料庫中新建資料表';
+
+  @override
+  String get commandDescRefreshObjects => '重新載入資料庫物件樹';
+
+  @override
+  String get commandDescViewTableDdl => '檢視目前資料表的 DDL';
+
+  @override
+  String get commandDescOpenTableProperties => '開啟資料表屬性檢視';
+
+  @override
+  String get commandDescSchemaDiff => '在資料庫之間比對結構';
+
+  @override
+  String get commandDescDataSync => '啟動資料同步任務';
+
+  @override
+  String get commandDescImportWizard => '開啟資料匯入精靈';
+
+  @override
+  String get commandDescExportData => '匯出查詢結果或資料表資料';
+
+  @override
+  String get commandDescQuickSearch => '搜尋資料庫物件';
+
+  @override
+  String get objectTabBadge => '物件';
+
+  @override
+  String get objectTabUnavailable => '物件不可用';
+
+  @override
+  String objectTabErDiagramTitle(String db) {
+    return 'ER 圖 — $db';
+  }
+
+  @override
+  String objectTabTablePropertiesTitle(String table) {
+    return '資料表屬性 — $table';
+  }
+
+  @override
+  String get objectTabRefresh => '刷新';
+
+  @override
+  String get mongoCapSchemaAnalysis => 'Schema 分析';
+
+  @override
+  String get mongoSchemaDistTitle => 'Schema 類型分佈';
+
+  @override
+  String get mongoSchemaDistEmpty => '無欄位';
+
+  @override
+  String mongoSchemaDistFieldType(String type) {
+    return '類型：$type';
+  }
+
+  @override
+  String mongoSchemaDistFieldCount(String count) {
+    return '$count 個欄位';
+  }
+
+  @override
+  String mongoSchemaDistPresence(String ratio) {
+    return '出現率：$ratio';
+  }
+
+  @override
+  String get mongoSchemaDistMixed => '混合';
+
+  @override
+  String mongoSchemaDistSampled(String count) {
+    return '已取樣 $count 個文件';
+  }
+
+  @override
+  String get mongoSchemaDistNested => '巢狀';
+
+  @override
+  String get mysqlCapEvents => '事件';
+
+  @override
+  String get mysqlEventsTitle => '事件';
+
+  @override
+  String get mysqlEventsEmpty => '無事件';
+
+  @override
+  String get mysqlEventsNew => '新建事件';
+
+  @override
+  String mysqlEventsEdit(String name) {
+    return '編輯事件 $name';
+  }
+
+  @override
+  String get mysqlEventsDrop => '刪除事件';
+
+  @override
+  String get mysqlEventsStatus => '狀態';
+
+  @override
+  String get mysqlEventsSchedule => '排程';
+
+  @override
+  String get mysqlEventsEvery => '間隔';
+
+  @override
+  String get mysqlEventsStarts => '開始時間';
+
+  @override
+  String get mysqlEventsEnds => '結束時間';
+
+  @override
+  String get mysqlEventsAt => '執行時間';
+
+  @override
+  String get mysqlEventsOnCompletion => '完成後';
+
+  @override
+  String get mysqlEventsComment => '註解';
+
+  @override
+  String get mysqlEventsDoBody => 'DO 敘述主體（SQL）';
+
+  @override
+  String get mysqlEventsDdlPreview => 'DDL 預覽';
+
+  @override
+  String mysqlEventsDropConfirm(String name) {
+    return '刪除事件 $name？';
+  }
+
+  @override
+  String get mysqlEventsSchedulerOff => '事件排程器未開啟，事件不會執行';
+
+  @override
+  String get mysqlEventsColName => '名稱';
+
+  @override
+  String get mysqlEventsColStatus => '狀態';
+
+  @override
+  String get mysqlEventsColType => '類型';
+
+  @override
+  String get mysqlEventsColSchedule => '排程';
+
+  @override
+  String get mysqlEventsColLastExecuted => '上次執行';
+
+  @override
+  String get mysqlEventsColDefiner => '定義者';
+
+  @override
+  String get pgCapForeignTable => '外部資料表';
+
+  @override
+  String get pgPartitionSectionTitle => '分割';
+
+  @override
+  String get pgPartitionStrategy => '分割策略';
+
+  @override
+  String get pgPartitionColumn => '分割鍵欄';
+
+  @override
+  String pgPartitionNeedsPk(String column) {
+    return '主鍵必須包含分割鍵欄「$column」';
+  }
+
+  @override
+  String get pgForeignTableTitle => '外部資料表';
+
+  @override
+  String get pgForeignTableServer => '外部伺服器';
+
+  @override
+  String get pgForeignTableNoServers => '未找到外部伺服器，請先建立（CREATE SERVER）。';
+
+  @override
+  String get pgForeignTableOptions => 'OPTIONS';
+
+  @override
+  String get pgForeignTableDdlPreview => 'DDL 預覽';
+
+  @override
+  String get redisCapBackup => '備份';
+
+  @override
+  String get redisBackupTitle => '備份與持久化';
+
+  @override
+  String redisBackupLastSave(String time) {
+    return '上次保存：$time';
+  }
+
+  @override
+  String redisBackupBgsaveStatus(String status) {
+    return '上次 BGSAVE：$status';
+  }
+
+  @override
+  String redisBackupChangesSince(String count) {
+    return '上次保存以來變更數：$count';
+  }
+
+  @override
+  String get redisBackupInProgress => 'BGSAVE 進行中';
+
+  @override
+  String get redisBackupRefresh => '刷新';
+
+  @override
+  String get redisBackupTrigger => '觸發 BGSAVE';
+
+  @override
+  String get redisBackupConfirmImpact =>
+      'BGSAVE 會 fork 伺服器處理程序，可能短暫使記憶體占用翻倍。正式環境建議於離峰時段執行。是否繼續？';
+
+  @override
+  String get redisBackupSuccess => 'BGSAVE 已觸發';
+
+  @override
+  String get redisBackupFailed => '觸發 BGSAVE 失敗';
+
+  @override
+  String get redisBackupConfigSection => '保存策略（CONFIG）';
+
+  @override
+  String get mongoGridfsUpload => '上傳';
+
+  @override
+  String get mongoGridfsUploadPreviewTitle => '上傳到 GridFS';
+
+  @override
+  String mongoGridfsUploadChunkCount(String count) {
+    return '$count 個分片';
+  }
+
+  @override
+  String get mongoGridfsUploadNewVersionNote => '同名檔案已存在，上傳將新增一個版本。';
+
+  @override
+  String mongoGridfsUploadSuccess(String filename) {
+    return '已上傳 $filename';
+  }
+
+  @override
+  String mongoGridfsUploadFailed(String filename) {
+    return '上傳 $filename 失敗';
+  }
+
+  @override
+  String mongoGridfsUploadTooLarge(String size) {
+    return '檔案超過 $size 的上傳上限';
+  }
+
+  @override
+  String get mongoGridfsUploadRollbackPartial => '上傳失敗，已寫入的分片已回滾';
 }

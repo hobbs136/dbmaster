@@ -41,6 +41,45 @@ class DuplicateSavedQueryNameException implements Exception {
 /// 结果子标签类型
 enum ResultSubTabType { result, error, history }
 
+/// T16 J4 第一步：只读对象标签类别（ER 图 + 表属性进主标签栏；
+/// 建表/改表等写路径 dialog 不动）。
+enum ObjectTabKind { erDiagram, tableProperties }
+
+/// 只读对象标签引用（T16 J4）。
+///
+/// 会话级状态：存于 `TabProvider._tabObjectTabs` 平行 map（沿
+/// `_tabBrowseTarget` 先例），**不进 `QueryTab.toJson`、不持久化**。
+/// `QueryTab` 模型零改。
+class ObjectTabRef {
+  const ObjectTabRef({
+    required this.kind,
+    this.connectionId,
+    this.databaseName,
+    this.objectName = '',
+    this.initialTabIndex = 0,
+  });
+
+  final ObjectTabKind kind;
+
+  /// 锚定连接。null = ER 图无上下文入口打开（tab 内容件的连接选择器兜底，
+  /// 与原 dialog `initialConnectionId` 可空语义同源）。
+  final String? connectionId;
+
+  /// 初始库名。
+  final String? databaseName;
+
+  /// 表名（仅 tableProperties）。
+  final String objectName;
+
+  /// 初始 tab 索引（仅 tableProperties；「查看 DDL」直达先例）。
+  final int initialTabIndex;
+
+  /// 去重键：kind + connectionId + objectName（任务书裁定——同库同名
+  /// 不同连接靠 connectionId 入键区分；databaseName/initialTabIndex
+  /// 复用时整体覆写，不入键）。
+  String get dedupKey => '${kind.name}|${connectionId ?? ''}|$objectName';
+}
+
 /// 查询结果子标签
 ///
 /// 每次执行查询生成一个 Result N 子标签。
@@ -158,6 +197,10 @@ class TabProvider extends ChangeNotifier {
   final Map<String, List<FilterCondition>> _tabFilterConditions = {};
   final Map<String, FilterCombinator> _tabFilterCombinator = {};
 
+  // T16 J4：只读对象 tab 引用（ER 图/表属性），key = tabId。会话级、
+  // 不进 QueryTab.toJson（沿 _tabBrowseTarget 先例）。
+  final Map<String, ObjectTabRef> _tabObjectTabs = {};
+
   /// 某 tab 的面板可见性（默认 query 预设）。纯读，无 putIfAbsent（规避 build 期写状态）。
   PanelLayout panelLayoutFor(String tabId) =>
       _tabPanelLayout[tabId] ?? PanelLayout.query;
@@ -210,6 +253,65 @@ class TabProvider extends ChangeNotifier {
       _tabBrowseTarget[tabId] = qualifiedTableName;
     }
     notifyListeners();
+  }
+
+  /// T16 J4：某 tab 的只读对象引用；普通 query/browse tab 返回 null。
+  ObjectTabRef? objectTabFor(String tabId) => _tabObjectTabs[tabId];
+
+  /// T16 J4：打开只读对象 tab（ER 图/表属性）。
+  ///
+  /// 去重：同 `ObjectTabRef.dedupKey` 的既有对象 tab 复用（聚焦 + ref
+  /// 整体覆写，含 initialTabIndex），不无限开新；否则新建一个
+  /// 「editor/FilterBar/results 全隐」的 tab（沿 data 模式先例，内容占满
+  /// 由 EditorResultsSplit 分流）。返回 tabId。
+  ///
+  /// 对象 tab 只读无未保存内容（sql 恒空 → `isTabUnsaved` 恒 false，
+  /// 关闭天然无确认）；`isContextBound: true` 保持对象 tab 不跟随侧栏
+  /// 连接切换（per-tab connectionId 隔离，任务书边界）。
+  String openObjectTab(ObjectTabRef ref) {
+    for (final entry in _tabObjectTabs.entries) {
+      if (entry.value.dedupKey == ref.dedupKey) {
+        final index = _tabs.indexWhere((t) => t.id == entry.key);
+        if (index >= 0) {
+          _activeTabIndex = index;
+          _tabObjectTabs[entry.key] = ref;
+          notifyListeners();
+          return entry.key;
+        }
+      }
+    }
+    // id 唯一性防御：连续 openObjectTab 可在同一毫秒内发生（时间戳碰撞
+    // 会导致两个 tab 同 id、对象引用被后者覆盖）。沿 ResultSubTab
+    // `'${batchTime}_$i'` 后缀先例，冲突时加序号。
+    final now = DateTime.now().millisecondsSinceEpoch;
+    var tabId = '$now';
+    int seq = 0;
+    while (_tabs.any((t) => t.id == tabId)) {
+      seq++;
+      tabId = '${now}_$seq';
+    }
+    _tabs.add(
+      QueryTab(
+        id: tabId,
+        // 标题为兜底锚定文本；tabs_bar 渲染时按 ref 经 l10n 覆写显示。
+        title: ref.kind == ObjectTabKind.erDiagram ? 'ER Diagram' : ref.objectName,
+        connectionId: ref.connectionId,
+        databaseName: ref.databaseName,
+        databaseType: ref.connectionId != null
+            ? _dbService.getDatabaseType(ref.connectionId)
+            : null,
+        isContextBound: true,
+      ),
+    );
+    _activeTabIndex = _tabs.length - 1;
+    _tabObjectTabs[tabId] = ref;
+    _tabPanelLayout[tabId] = const PanelLayout(
+      editorVisible: false,
+      filterBarVisible: false,
+      resultsVisible: false,
+    );
+    notifyListeners();
+    return tabId;
   }
 
   void setFilterConditions(String tabId, List<FilterCondition> conditions) {
@@ -469,6 +571,7 @@ class TabProvider extends ChangeNotifier {
     _tabBrowseTarget.remove(tab.id);
     _tabFilterConditions.remove(tab.id);
     _tabFilterCombinator.remove(tab.id);
+    _tabObjectTabs.remove(tab.id);
 
     _tabs.removeAt(index);
     if (_activeTabIndex >= _tabs.length) {
@@ -553,6 +656,7 @@ class TabProvider extends ChangeNotifier {
     _tabBrowseTarget.clear();
     _tabFilterConditions.clear();
     _tabFilterCombinator.clear();
+    _tabObjectTabs.clear();
     _tabs.clear();
     _activeTabIndex = 0;
     notifyListeners();

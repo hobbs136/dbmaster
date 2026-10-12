@@ -4441,6 +4441,53 @@ class DatabaseService {
     }
   }
 
+  // W-17 — RDB 持久化状态(INFO persistence + LASTSAVE 解析合并，扁平 Map)。
+  /// 连接缺失/非 Redis/取数失败 → 锚定空 Map 返回（状态区空态，不抛）。
+  /// INFO/LASTSAVE 均为 safe 级（不在 validateCommand forbidden 表），
+  /// readonly 连接可用。`lastsave` 键 = LASTSAVE 原始 unix 秒。
+  Future<Map<String, String>> getRedisPersistenceInfo({
+    required String connectionId,
+  }) async {
+    final adapter = _getRedisAdapter(connectionId);
+    if (adapter == null) return {};
+    try {
+      final result = <String, String>{};
+      final info =
+          (await adapter.runCommand([
+            'INFO',
+            'persistence',
+          ]))?.toString() ??
+          '';
+      for (final line in info.split('\n')) {
+        if (line.contains(':') && !line.startsWith('#')) {
+          final parts = line.split(':');
+          if (parts.length >= 2) {
+            result[parts[0]] = parts.sublist(1).join(':').trim();
+          }
+        }
+      }
+      final lastSave = await adapter.runCommand(['LASTSAVE']);
+      result['lastsave'] = lastSave?.toString() ?? '';
+      return result;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  // W-17 — BGSAVE 触发(服务器写操作)。readonly 连接由 adapter runCommand
+  /// 首行 guardReadOnlyQuery fail-closed 拦截（BGSAVE 在 validateCommand
+  /// forbidden 表 → dangerous ≠ safe），ReadOnlyBlockedException 原样上抛
+  /// 不吞；连接缺失/非 Redis → fail-loud 抛（触发路径不静默）。
+  /// 返回网关重建后的原始回复（如 "Background saving started"）。
+  Future<String> triggerRedisBgsave({required String connectionId}) async {
+    final adapter = _getRedisAdapter(connectionId);
+    if (adapter == null) {
+      throw StateError('Redis adapter not connected: $connectionId');
+    }
+    final result = await adapter.runCommand(['BGSAVE']);
+    return result?.toString() ?? '';
+  }
+
   // D1 — 复制信息(INFO replication)
   Future<Map<String, String>> getRedisReplicationInfo({
     required String connectionId,

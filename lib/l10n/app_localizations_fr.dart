@@ -11318,4 +11318,344 @@ class AppLocalizationsFr extends AppLocalizations {
   String redisTtlMoreInSample(String count) {
     return '... et $count de plus (dans l\'échantillon)';
   }
+
+  @override
+  String get rowEditMenuLabel => 'Modifier la ligne…';
+
+  @override
+  String rowEditTitle(String table) {
+    return 'Modifier la ligne — $table';
+  }
+
+  @override
+  String get rowEditNoPrimaryKey =>
+      'Aucune clé primaire utilisable : l\'édition de ligne n\'est pas disponible pour ce résultat';
+
+  @override
+  String get rowEditReadonlyDisabled =>
+      'L\'édition de ligne est désactivée sur les connexions en lecture seule';
+
+  @override
+  String get rowEditZeroChanges => 'Aucune modification à enregistrer';
+
+  @override
+  String get rowEditPreviewTitle => 'Aperçu du UPDATE';
+
+  @override
+  String rowEditConfirmImpact(String table) {
+    return 'Une ligne de $table va être mise à jour. Continuer ?';
+  }
+
+  @override
+  String get rowEditSuccess => 'Ligne mise à jour';
+
+  @override
+  String get rowEditFailed => 'Échec de la mise à jour';
+
+  @override
+  String get rowEditRowMissing => 'La ligne n\'existe plus';
+
+  @override
+  String get rowEditBinaryColumnSkipped =>
+      'Les colonnes binaires ou de type inconnu sont en lecture seule et exclues de la mise à jour';
+
+  @override
+  String get commandRefreshObjects => 'Actualiser les objets';
+
+  @override
+  String get commandOpenTableProperties => 'Propriétés de la table';
+
+  @override
+  String get commandQuickSearch => 'Recherche rapide';
+
+  @override
+  String get commandDescEditConnection =>
+      'Modifier les paramètres de la connexion actuelle';
+
+  @override
+  String get commandDescDisconnectConnection =>
+      'Déconnecter la connexion actuelle';
+
+  @override
+  String get commandDescSwitchConnection => 'Passer à une autre connexion';
+
+  @override
+  String get commandDescOpenConnectionManager =>
+      'Ouvrir le gestionnaire de connexions';
+
+  @override
+  String get commandDescCreateTable =>
+      'Créer une nouvelle table dans la base de données actuelle';
+
+  @override
+  String get commandDescRefreshObjects =>
+      'Recharger l\'arborescence des objets de la base de données';
+
+  @override
+  String get commandDescViewTableDdl => 'Afficher le DDL de la table actuelle';
+
+  @override
+  String get commandDescOpenTableProperties =>
+      'Ouvrir la vue des propriétés de la table';
+
+  @override
+  String get commandDescSchemaDiff =>
+      'Comparer les schémas entre bases de données';
+
+  @override
+  String get commandDescDataSync =>
+      'Lancer une tâche de synchronisation des données';
+
+  @override
+  String get commandDescImportWizard =>
+      'Ouvrir l\'assistant d\'import de données';
+
+  @override
+  String get commandDescExportData =>
+      'Exporter les résultats de requête ou les données de table';
+
+  @override
+  String get commandDescQuickSearch =>
+      'Rechercher des objets de base de données';
+
+  @override
+  String get objectTabBadge => 'Objet';
+
+  @override
+  String get objectTabUnavailable => 'Objet indisponible';
+
+  @override
+  String objectTabErDiagramTitle(String db) {
+    return 'Diagramme ER — $db';
+  }
+
+  @override
+  String objectTabTablePropertiesTitle(String table) {
+    return 'Propriétés de la table — $table';
+  }
+
+  @override
+  String get objectTabRefresh => 'Actualiser';
+
+  @override
+  String get mongoCapSchemaAnalysis => 'Analyse de schéma';
+
+  @override
+  String get mongoSchemaDistTitle => 'Distribution des types de schéma';
+
+  @override
+  String get mongoSchemaDistEmpty => 'Aucun champ';
+
+  @override
+  String mongoSchemaDistFieldType(String type) {
+    return 'Type : $type';
+  }
+
+  @override
+  String mongoSchemaDistFieldCount(String count) {
+    return '$count champs';
+  }
+
+  @override
+  String mongoSchemaDistPresence(String ratio) {
+    return 'Présence : $ratio';
+  }
+
+  @override
+  String get mongoSchemaDistMixed => 'Mixte';
+
+  @override
+  String mongoSchemaDistSampled(String count) {
+    return '$count documents échantillonnés';
+  }
+
+  @override
+  String get mongoSchemaDistNested => 'Imbriqué';
+
+  @override
+  String get mysqlCapEvents => 'Événements';
+
+  @override
+  String get mysqlEventsTitle => 'Événements';
+
+  @override
+  String get mysqlEventsEmpty => 'Aucun événement';
+
+  @override
+  String get mysqlEventsNew => 'Nouvel événement';
+
+  @override
+  String mysqlEventsEdit(String name) {
+    return 'Modifier l\'événement $name';
+  }
+
+  @override
+  String get mysqlEventsDrop => 'Supprimer l\'événement';
+
+  @override
+  String get mysqlEventsStatus => 'Statut';
+
+  @override
+  String get mysqlEventsSchedule => 'Planification';
+
+  @override
+  String get mysqlEventsEvery => 'Intervalle';
+
+  @override
+  String get mysqlEventsStarts => 'Début';
+
+  @override
+  String get mysqlEventsEnds => 'Fin';
+
+  @override
+  String get mysqlEventsAt => 'À';
+
+  @override
+  String get mysqlEventsOnCompletion => 'Après exécution';
+
+  @override
+  String get mysqlEventsComment => 'Commentaire';
+
+  @override
+  String get mysqlEventsDoBody => 'Corps DO (SQL)';
+
+  @override
+  String get mysqlEventsDdlPreview => 'Aperçu du DDL';
+
+  @override
+  String mysqlEventsDropConfirm(String name) {
+    return 'Supprimer l\'événement $name ?';
+  }
+
+  @override
+  String get mysqlEventsSchedulerOff =>
+      'Le planificateur d\'événements est désactivé ; les événements ne s\'exécuteront pas';
+
+  @override
+  String get mysqlEventsColName => 'Nom';
+
+  @override
+  String get mysqlEventsColStatus => 'Statut';
+
+  @override
+  String get mysqlEventsColType => 'Type';
+
+  @override
+  String get mysqlEventsColSchedule => 'Planification';
+
+  @override
+  String get mysqlEventsColLastExecuted => 'Dernière exécution';
+
+  @override
+  String get mysqlEventsColDefiner => 'Définisseur';
+
+  @override
+  String get pgCapForeignTable => 'Table étrangère';
+
+  @override
+  String get pgPartitionSectionTitle => 'Partitionnement';
+
+  @override
+  String get pgPartitionStrategy => 'Stratégie';
+
+  @override
+  String get pgPartitionColumn => 'Colonne clé de partition';
+
+  @override
+  String pgPartitionNeedsPk(String column) {
+    return 'La clé primaire doit inclure la colonne clé de partition $column';
+  }
+
+  @override
+  String get pgForeignTableTitle => 'Table étrangère';
+
+  @override
+  String get pgForeignTableServer => 'Serveur étranger';
+
+  @override
+  String get pgForeignTableNoServers =>
+      'Aucun serveur étranger trouvé. Créez-en un d\'abord (CREATE SERVER).';
+
+  @override
+  String get pgForeignTableOptions => 'OPTIONS';
+
+  @override
+  String get pgForeignTableDdlPreview => 'Aperçu du DDL';
+
+  @override
+  String get redisCapBackup => 'Sauvegarde';
+
+  @override
+  String get redisBackupTitle => 'Sauvegarde & persistance';
+
+  @override
+  String redisBackupLastSave(String time) {
+    return 'Dernière sauvegarde : $time';
+  }
+
+  @override
+  String redisBackupBgsaveStatus(String status) {
+    return 'Dernier BGSAVE : $status';
+  }
+
+  @override
+  String redisBackupChangesSince(String count) {
+    return 'Modifications depuis la dernière sauvegarde : $count';
+  }
+
+  @override
+  String get redisBackupInProgress => 'BGSAVE en cours';
+
+  @override
+  String get redisBackupRefresh => 'Actualiser';
+
+  @override
+  String get redisBackupTrigger => 'Déclencher BGSAVE';
+
+  @override
+  String get redisBackupConfirmImpact =>
+      'BGSAVE crée un fork du processus serveur et peut temporairement doubler l\'utilisation de la mémoire. Sur les instances de production, exécutez-la hors des heures de pointe. Continuer ?';
+
+  @override
+  String get redisBackupSuccess => 'BGSAVE déclenché';
+
+  @override
+  String get redisBackupFailed => 'Échec du déclenchement de BGSAVE';
+
+  @override
+  String get redisBackupConfigSection => 'Politique de sauvegarde (CONFIG)';
+
+  @override
+  String get mongoGridfsUpload => 'Téléverser';
+
+  @override
+  String get mongoGridfsUploadPreviewTitle => 'Téléverser vers GridFS';
+
+  @override
+  String mongoGridfsUploadChunkCount(String count) {
+    return '$count chunks';
+  }
+
+  @override
+  String get mongoGridfsUploadNewVersionNote =>
+      'Un fichier portant ce nom existe déjà ; le téléversement ajoutera une nouvelle version.';
+
+  @override
+  String mongoGridfsUploadSuccess(String filename) {
+    return 'Téléversement de $filename terminé';
+  }
+
+  @override
+  String mongoGridfsUploadFailed(String filename) {
+    return 'Échec du téléversement de $filename';
+  }
+
+  @override
+  String mongoGridfsUploadTooLarge(String size) {
+    return 'Le fichier dépasse la limite de téléversement de $size';
+  }
+
+  @override
+  String get mongoGridfsUploadRollbackPartial =>
+      'Échec du téléversement ; les chunks déjà écrits ont été annulés';
 }

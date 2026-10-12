@@ -8,6 +8,8 @@ import '../../atoms/app_widgets.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/server_connection_provider.dart';
+import '../../providers/tab_provider.dart'
+    show ObjectTabKind, ObjectTabRef;
 import '../../models/database_models.dart' hide QueryTab;
 import '../../models/connection_failure.dart';
 import '../../models/ai_tree_node_context.dart';
@@ -21,7 +23,7 @@ import '../connection/password_prompt_dialog.dart';
 import '../connection/table_dialog/create_table_dialog.dart';
 import '../connection/table_dialog/create_super_table_dialog.dart';
 import '../connection/table_dialog/edit_table_dialog.dart';
-import '../connection/table_dialog/table_properties_dialog.dart';
+// T16 J4：TablePropertiesDialog 入口已迁主标签栏对象 tab（import 随迁移除）
 import '../connection/table_dialog/rename_table_dialog.dart';
 import '../connection/table_dialog/truncate_table_confirm_dialog.dart';
 import '../connection/table_dialog/edit_index_dialog.dart';
@@ -1887,12 +1889,14 @@ class SidebarTree extends StatelessWidget {
     String table, {
     int initialTabIndex = 0,
   }) {
-    showDialog(
-      context: context,
-      builder: (_) => TablePropertiesDialog(
-        tableName: table,
-        dbName: db,
+    // T16 J4：表属性模态 dialog → 主标签栏只读对象 tab（列/索引/DDL
+    // 内容同源；「查看 DDL」经 initialTabIndex 直达，U17 语义保留）。
+    context.read<AppProvider>().openObjectTab(
+      ObjectTabRef(
+        kind: ObjectTabKind.tableProperties,
         connectionId: cid,
+        databaseName: db,
+        objectName: table,
         initialTabIndex: initialTabIndex,
       ),
     );

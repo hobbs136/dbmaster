@@ -154,11 +154,16 @@ void main() {
         expect(CapabilityTable.bits['sqlite.pragma'], {DatabaseType.sqlite});
         expect(CapabilityTable.bits['sqlite.attach'], {DatabaseType.sqlite});
         expect(CapabilityTable.bits['pg.extension'], {DatabaseType.postgresql});
-        // DBT 批预登记位（T5 维护三件 / T8 VACUUM·REINDEX·锁分析）。
+        // DBT 批预登记位（T5 维护三件 / T8 VACUUM·REINDEX·锁分析 /
+        // 第二程序 T22 预登记 T19 外部表）。
         expect(CapabilityTable.bits['sqlite.maintain'], {DatabaseType.sqlite});
         expect(CapabilityTable.bits['pg.vacuum'], {DatabaseType.postgresql});
         expect(CapabilityTable.bits['pg.reindex'], {DatabaseType.postgresql});
         expect(CapabilityTable.bits['pg.locks'], {DatabaseType.postgresql});
+        expect(
+          CapabilityTable.bits['pg.foreignTable'],
+          {DatabaseType.postgresql},
+        );
       },
     );
   });
@@ -290,10 +295,12 @@ void main() {
       final redisBits = CapabilityTable.knownCapabilityIds
           .where((id) => id.startsWith('redis.'))
           .toList();
-      expect(redisBits.length, greaterThanOrEqualTo(15));
+      // 15 既有 + 第二程序 T22 预登记 redis.backup（T20 消费）。
+      expect(redisBits.length, greaterThanOrEqualTo(16));
       for (final bit in redisBits) {
         expect(CapabilityTable.bits[bit], {DatabaseType.redis}, reason: bit);
       }
+      expect(CapabilityTable.bits['redis.backup'], {DatabaseType.redis});
     });
 
     test('mongo.* / td.* 位', () {
@@ -303,11 +310,13 @@ void main() {
         'mongo.gridfs',
         'mongo.insertDocument',
         // DBT 批预登记位（T7 副本集/索引建议、T10 currentOp、T12 explain——
-        // explain 为条件任务预登记，未接线不删）。
+        // explain 为条件任务预登记，未接线不删；第二程序 T22 预登记
+        // schemaAnalysis，T17 消费）。
         'mongo.currentOp',
         'mongo.replication',
         'mongo.indexAdvice',
         'mongo.explain',
+        'mongo.schemaAnalysis',
       ]) {
         expect(CapabilityTable.bits[bit], {DatabaseType.mongodb}, reason: bit);
       }

@@ -26,6 +26,8 @@ import '../theme/app_theme.dart';
 import '../atoms/app_transitions.dart';
 import '../providers/app_provider.dart';
 import '../providers/server_connection_provider.dart';
+import '../providers/tab_provider.dart'
+    show ObjectTabKind, ObjectTabRef;
 import '../services/server_connection.dart';
 import '../organisms/server/server_connect_dialog.dart';
 import '../providers/connection_provider.dart';
@@ -38,7 +40,7 @@ import '../organisms/connection/connect_failure_dialog.dart';
 import '../organisms/connection/error_boundary.dart';
 import '../organisms/connection/status_bar_widget.dart';
 import '../organisms/pro/pro_purchase_ui.dart';
-import '../organisms/connection/er_diagram_dialog.dart';
+// T16 J4：ER 图入口已迁主标签栏对象 tab（er_diagram_dialog import 随迁移除）
 import '../organisms/dialogs/performance_analyzer_dialog.dart';
 import '../organisms/connection/command_palette.dart';
 import '../organisms/dialogs/shortcuts_dialog.dart';
@@ -620,14 +622,17 @@ class _HomeScreenState extends State<HomeScreen> {
     CommandPaletteDialog.show(context, commands: _buildCommands());
   }
 
+  // T16 J4：ER 图从模态 dialog 迁主标签栏只读对象 tab（命令面板
+  // er_diagram 命令回调 onERDiagram 同源路由，上下文取值与原 dialog 一致）。
   void _showERDiagramDialog() {
     final provider = context.read<AppProvider>();
     final currentTab = provider.activeTab;
-    context.showAnimatedDialog(
-      builder: (ctx) => ERDiagramDialog(
-        initialConnectionId:
+    provider.openObjectTab(
+      ObjectTabRef(
+        kind: ObjectTabKind.erDiagram,
+        connectionId:
             currentTab?.connectionId ?? provider.sidebar.selectedConnectionId,
-        initialDatabase:
+        databaseName:
             currentTab?.databaseName ?? provider.sidebar.selectedDatabaseName,
       ),
     );

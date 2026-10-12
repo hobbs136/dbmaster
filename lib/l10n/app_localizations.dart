@@ -19768,6 +19768,576 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'... and {count} more (in sample)'**
   String redisTtlMoreInSample(String count);
+
+  /// DBT row edit: context menu entry on a result grid row
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Row…'**
+  String get rowEditMenuLabel;
+
+  /// DBT row edit dialog title with table name
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Row — {table}'**
+  String rowEditTitle(String table);
+
+  /// DBT row edit: availability note when the table has no usable primary key
+  ///
+  /// In en, this message translates to:
+  /// **'No usable primary key: row editing is unavailable for this result'**
+  String get rowEditNoPrimaryKey;
+
+  /// DBT row edit: tooltip when the connection is read-only
+  ///
+  /// In en, this message translates to:
+  /// **'Row editing is disabled on read-only connections'**
+  String get rowEditReadonlyDisabled;
+
+  /// DBT row edit: state when no column changed
+  ///
+  /// In en, this message translates to:
+  /// **'No changes to save'**
+  String get rowEditZeroChanges;
+
+  /// DBT row edit: generated UPDATE statement preview section
+  ///
+  /// In en, this message translates to:
+  /// **'UPDATE Preview'**
+  String get rowEditPreviewTitle;
+
+  /// DBT row edit: per-row confirmation text
+  ///
+  /// In en, this message translates to:
+  /// **'This will update one row in {table}. Continue?'**
+  String rowEditConfirmImpact(String table);
+
+  /// DBT row edit: success feedback
+  ///
+  /// In en, this message translates to:
+  /// **'Row updated'**
+  String get rowEditSuccess;
+
+  /// DBT row edit: failure feedback
+  ///
+  /// In en, this message translates to:
+  /// **'Update failed'**
+  String get rowEditFailed;
+
+  /// DBT row edit: UPDATE affected 0 rows (row changed concurrently)
+  ///
+  /// In en, this message translates to:
+  /// **'The row no longer exists'**
+  String get rowEditRowMissing;
+
+  /// DBT row edit: note about binary/unknown columns not entering SET
+  ///
+  /// In en, this message translates to:
+  /// **'Binary or unknown-type columns are read-only and excluded from the update'**
+  String get rowEditBinaryColumnSkipped;
+
+  /// DBT command palette: refresh database object tree entry
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh Objects'**
+  String get commandRefreshObjects;
+
+  /// DBT command palette: open table properties entry
+  ///
+  /// In en, this message translates to:
+  /// **'Table Properties'**
+  String get commandOpenTableProperties;
+
+  /// DBT command palette: quick search entry
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Search'**
+  String get commandQuickSearch;
+
+  /// DBT command palette: edit connection description
+  ///
+  /// In en, this message translates to:
+  /// **'Edit the current connection settings'**
+  String get commandDescEditConnection;
+
+  /// DBT command palette: disconnect description
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect the current connection'**
+  String get commandDescDisconnectConnection;
+
+  /// DBT command palette: switch connection description
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to another connection'**
+  String get commandDescSwitchConnection;
+
+  /// DBT command palette: connection manager description
+  ///
+  /// In en, this message translates to:
+  /// **'Open the connection manager'**
+  String get commandDescOpenConnectionManager;
+
+  /// DBT command palette: create table description
+  ///
+  /// In en, this message translates to:
+  /// **'Create a new table in the current database'**
+  String get commandDescCreateTable;
+
+  /// DBT command palette: refresh objects description
+  ///
+  /// In en, this message translates to:
+  /// **'Reload the database object tree'**
+  String get commandDescRefreshObjects;
+
+  /// DBT command palette: view DDL description
+  ///
+  /// In en, this message translates to:
+  /// **'View the DDL of the current table'**
+  String get commandDescViewTableDdl;
+
+  /// DBT command palette: table properties description
+  ///
+  /// In en, this message translates to:
+  /// **'Open the table properties view'**
+  String get commandDescOpenTableProperties;
+
+  /// DBT command palette: schema diff description
+  ///
+  /// In en, this message translates to:
+  /// **'Compare schemas between databases'**
+  String get commandDescSchemaDiff;
+
+  /// DBT command palette: data sync description
+  ///
+  /// In en, this message translates to:
+  /// **'Start a data sync task'**
+  String get commandDescDataSync;
+
+  /// DBT command palette: import wizard description
+  ///
+  /// In en, this message translates to:
+  /// **'Open the data import wizard'**
+  String get commandDescImportWizard;
+
+  /// DBT command palette: export data description
+  ///
+  /// In en, this message translates to:
+  /// **'Export query results or table data'**
+  String get commandDescExportData;
+
+  /// DBT command palette: quick search description
+  ///
+  /// In en, this message translates to:
+  /// **'Search database objects'**
+  String get commandDescQuickSearch;
+
+  /// DBT object tab: badge on read-only object tabs
+  ///
+  /// In en, this message translates to:
+  /// **'Object'**
+  String get objectTabBadge;
+
+  /// DBT object tab: stale/invalid object tab state
+  ///
+  /// In en, this message translates to:
+  /// **'Object unavailable'**
+  String get objectTabUnavailable;
+
+  /// DBT object tab: ER diagram tab title
+  ///
+  /// In en, this message translates to:
+  /// **'ER Diagram — {db}'**
+  String objectTabErDiagramTitle(String db);
+
+  /// DBT object tab: table properties tab title
+  ///
+  /// In en, this message translates to:
+  /// **'Table Properties — {table}'**
+  String objectTabTablePropertiesTitle(String table);
+
+  /// DBT object tab: refresh action
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get objectTabRefresh;
+
+  /// DBT mongo capability item: schema type distribution
+  ///
+  /// In en, this message translates to:
+  /// **'Schema Analysis'**
+  String get mongoCapSchemaAnalysis;
+
+  /// DBT mongo schema distribution dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Schema Type Distribution'**
+  String get mongoSchemaDistTitle;
+
+  /// DBT mongo schema distribution empty state
+  ///
+  /// In en, this message translates to:
+  /// **'No fields'**
+  String get mongoSchemaDistEmpty;
+
+  /// DBT mongo schema distribution: dominant type chip
+  ///
+  /// In en, this message translates to:
+  /// **'Type: {type}'**
+  String mongoSchemaDistFieldType(String type);
+
+  /// DBT mongo schema distribution: field count per type group
+  ///
+  /// In en, this message translates to:
+  /// **'{count} fields'**
+  String mongoSchemaDistFieldCount(String count);
+
+  /// DBT mongo schema distribution: field presence ratio
+  ///
+  /// In en, this message translates to:
+  /// **'Presence: {ratio}'**
+  String mongoSchemaDistPresence(String ratio);
+
+  /// DBT mongo schema distribution: mixed-type marker
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed'**
+  String get mongoSchemaDistMixed;
+
+  /// DBT mongo schema distribution: sampling size note
+  ///
+  /// In en, this message translates to:
+  /// **'Sampled {count} documents'**
+  String mongoSchemaDistSampled(String count);
+
+  /// DBT mongo schema distribution: nested field marker
+  ///
+  /// In en, this message translates to:
+  /// **'Nested'**
+  String get mongoSchemaDistNested;
+
+  /// DBT MySQL capability item: event designer
+  ///
+  /// In en, this message translates to:
+  /// **'Events'**
+  String get mysqlCapEvents;
+
+  /// DBT MySQL events dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Events'**
+  String get mysqlEventsTitle;
+
+  /// DBT MySQL events dialog empty state
+  ///
+  /// In en, this message translates to:
+  /// **'No events'**
+  String get mysqlEventsEmpty;
+
+  /// DBT MySQL events: create action
+  ///
+  /// In en, this message translates to:
+  /// **'New Event'**
+  String get mysqlEventsNew;
+
+  /// DBT MySQL events: edit action with event name
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Event {name}'**
+  String mysqlEventsEdit(String name);
+
+  /// DBT MySQL events: drop action
+  ///
+  /// In en, this message translates to:
+  /// **'Drop Event'**
+  String get mysqlEventsDrop;
+
+  /// DBT MySQL events: event status field (form)
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get mysqlEventsStatus;
+
+  /// DBT MySQL events: schedule section (form)
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule'**
+  String get mysqlEventsSchedule;
+
+  /// DBT MySQL events: EVERY recurring schedule field
+  ///
+  /// In en, this message translates to:
+  /// **'Every'**
+  String get mysqlEventsEvery;
+
+  /// DBT MySQL events: STARTS timestamp field
+  ///
+  /// In en, this message translates to:
+  /// **'Starts'**
+  String get mysqlEventsStarts;
+
+  /// DBT MySQL events: ENDS timestamp field
+  ///
+  /// In en, this message translates to:
+  /// **'Ends'**
+  String get mysqlEventsEnds;
+
+  /// DBT MySQL events: AT one-time schedule field
+  ///
+  /// In en, this message translates to:
+  /// **'At'**
+  String get mysqlEventsAt;
+
+  /// DBT MySQL events: ON COMPLETION field
+  ///
+  /// In en, this message translates to:
+  /// **'On Completion'**
+  String get mysqlEventsOnCompletion;
+
+  /// DBT MySQL events: comment field
+  ///
+  /// In en, this message translates to:
+  /// **'Comment'**
+  String get mysqlEventsComment;
+
+  /// DBT MySQL events: DO statement body field
+  ///
+  /// In en, this message translates to:
+  /// **'DO Body (SQL)'**
+  String get mysqlEventsDoBody;
+
+  /// DBT MySQL events: generated DDL preview section
+  ///
+  /// In en, this message translates to:
+  /// **'DDL Preview'**
+  String get mysqlEventsDdlPreview;
+
+  /// DBT MySQL events: drop confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Drop event {name}?'**
+  String mysqlEventsDropConfirm(String name);
+
+  /// DBT MySQL events: @@event_scheduler OFF notice
+  ///
+  /// In en, this message translates to:
+  /// **'The event scheduler is OFF; events will not run'**
+  String get mysqlEventsSchedulerOff;
+
+  /// DBT MySQL events column: event name
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get mysqlEventsColName;
+
+  /// DBT MySQL events column: status
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get mysqlEventsColStatus;
+
+  /// DBT MySQL events column: event type
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get mysqlEventsColType;
+
+  /// DBT MySQL events column: schedule definition
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule'**
+  String get mysqlEventsColSchedule;
+
+  /// DBT MySQL events column: last executed time
+  ///
+  /// In en, this message translates to:
+  /// **'Last Executed'**
+  String get mysqlEventsColLastExecuted;
+
+  /// DBT MySQL events column: definer
+  ///
+  /// In en, this message translates to:
+  /// **'Definer'**
+  String get mysqlEventsColDefiner;
+
+  /// DBT pg capability item: foreign table designer entry
+  ///
+  /// In en, this message translates to:
+  /// **'Foreign Table'**
+  String get pgCapForeignTable;
+
+  /// DBT pg create table: partitioning section title
+  ///
+  /// In en, this message translates to:
+  /// **'Partitioning'**
+  String get pgPartitionSectionTitle;
+
+  /// DBT pg create table: partition strategy (RANGE/LIST)
+  ///
+  /// In en, this message translates to:
+  /// **'Strategy'**
+  String get pgPartitionStrategy;
+
+  /// DBT pg create table: partition key column
+  ///
+  /// In en, this message translates to:
+  /// **'Partition Key Column'**
+  String get pgPartitionColumn;
+
+  /// DBT pg create table: PK-must-contain-partition-key validation error
+  ///
+  /// In en, this message translates to:
+  /// **'The primary key must include the partition key column \"{column}\"'**
+  String pgPartitionNeedsPk(String column);
+
+  /// DBT pg foreign table dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Foreign Table'**
+  String get pgForeignTableTitle;
+
+  /// DBT pg foreign table: foreign server selector
+  ///
+  /// In en, this message translates to:
+  /// **'Foreign Server'**
+  String get pgForeignTableServer;
+
+  /// DBT pg foreign table: empty pg_foreign_server notice
+  ///
+  /// In en, this message translates to:
+  /// **'No foreign servers found. Create one first (CREATE SERVER).'**
+  String get pgForeignTableNoServers;
+
+  /// DBT pg foreign table: OPTIONS key-value section
+  ///
+  /// In en, this message translates to:
+  /// **'OPTIONS'**
+  String get pgForeignTableOptions;
+
+  /// DBT pg foreign table: generated DDL preview section
+  ///
+  /// In en, this message translates to:
+  /// **'DDL Preview'**
+  String get pgForeignTableDdlPreview;
+
+  /// DBT redis capability item: backup trigger
+  ///
+  /// In en, this message translates to:
+  /// **'Backup'**
+  String get redisCapBackup;
+
+  /// DBT redis backup dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Backup & Persistence'**
+  String get redisBackupTitle;
+
+  /// DBT redis backup: LASTSAVE line
+  ///
+  /// In en, this message translates to:
+  /// **'Last save: {time}'**
+  String redisBackupLastSave(String time);
+
+  /// DBT redis backup: rdb_last_bgsave_status line
+  ///
+  /// In en, this message translates to:
+  /// **'Last BGSAVE: {status}'**
+  String redisBackupBgsaveStatus(String status);
+
+  /// DBT redis backup: rdb_changes_since_last_save line
+  ///
+  /// In en, this message translates to:
+  /// **'Changes since last save: {count}'**
+  String redisBackupChangesSince(String count);
+
+  /// DBT redis backup: rdb_bgsave_in_progress state
+  ///
+  /// In en, this message translates to:
+  /// **'BGSAVE in progress'**
+  String get redisBackupInProgress;
+
+  /// DBT redis backup: manual refresh action
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get redisBackupRefresh;
+
+  /// DBT redis backup: BGSAVE trigger action
+  ///
+  /// In en, this message translates to:
+  /// **'Trigger BGSAVE'**
+  String get redisBackupTrigger;
+
+  /// DBT redis backup: BGSAVE confirmation impact text
+  ///
+  /// In en, this message translates to:
+  /// **'BGSAVE forks the server process and may temporarily double memory usage. On production instances, run during off-peak hours. Continue?'**
+  String get redisBackupConfirmImpact;
+
+  /// DBT redis backup: BGSAVE success feedback
+  ///
+  /// In en, this message translates to:
+  /// **'BGSAVE triggered'**
+  String get redisBackupSuccess;
+
+  /// DBT redis backup: BGSAVE failure feedback
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to trigger BGSAVE'**
+  String get redisBackupFailed;
+
+  /// DBT redis backup: CONFIG GET save/dir/dbfilename optional section
+  ///
+  /// In en, this message translates to:
+  /// **'Save Policy (CONFIG)'**
+  String get redisBackupConfigSection;
+
+  /// DBT GridFS: upload action
+  ///
+  /// In en, this message translates to:
+  /// **'Upload'**
+  String get mongoGridfsUpload;
+
+  /// DBT GridFS: upload confirmation dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Upload to GridFS'**
+  String get mongoGridfsUploadPreviewTitle;
+
+  /// DBT GridFS: chunk count preview line
+  ///
+  /// In en, this message translates to:
+  /// **'{count} chunks'**
+  String mongoGridfsUploadChunkCount(String count);
+
+  /// DBT GridFS: same-name new-version note
+  ///
+  /// In en, this message translates to:
+  /// **'A file with this name already exists; uploading adds a new version.'**
+  String get mongoGridfsUploadNewVersionNote;
+
+  /// DBT GridFS: upload success feedback
+  ///
+  /// In en, this message translates to:
+  /// **'Uploaded {filename}'**
+  String mongoGridfsUploadSuccess(String filename);
+
+  /// DBT GridFS: upload failure feedback
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to upload {filename}'**
+  String mongoGridfsUploadFailed(String filename);
+
+  /// DBT GridFS: size guardrail rejection
+  ///
+  /// In en, this message translates to:
+  /// **'File exceeds the {size} upload limit'**
+  String mongoGridfsUploadTooLarge(String size);
+
+  /// DBT GridFS: partial-failure rollback note
+  ///
+  /// In en, this message translates to:
+  /// **'Upload failed; the chunks already written were rolled back'**
+  String get mongoGridfsUploadRollbackPartial;
 }
 
 class _AppLocalizationsDelegate

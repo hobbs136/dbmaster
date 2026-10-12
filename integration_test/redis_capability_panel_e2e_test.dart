@@ -5,8 +5,8 @@
 // requirepass），连接信息唯一来源 test_db_local_wsl.txt，凭据经
 // DBMASTER_REDIS_* dart-define 注入，**只读断言口径**——不制造慢命令、
 // 不 CONFIG SET）：
-//   ① 装配清单：14 项可见（既有 12 + 新 2）；「更多」组含且仅含 4 项；
-//      组重排后次要项不再挂 advanced；
+//   ① 装配清单：15 项可见（既有 12 + T6 新 2 + T20 新 1）；「更多」组
+//      含且仅含 4 项；组重排后次要项不再挂 advanced；
 //   ② redis.slowlog：树节点同源路由（一次性展开信号命中树内节点 key +
 //      loadRedisSlowLog 既有取数路径）+ 树展开态列表结构渲染
 //      （无记录空态 / 有记录 μs 行，二者皆合法）；
@@ -224,11 +224,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
   }
 
-  testWidgets('DBT-T6-ITEMS：装配清单 14 项 + 「更多」组含且仅含 4 项',
+  testWidgets('DBT-T6-ITEMS：装配清单 15 项 + 「更多」组含且仅含 4 项',
       (tester) async {
     await pumpHarness(tester);
 
-    // 可见项数 = 既有 12（core schema.diff/ai.assistant + 插件 10）+ 新 2。
+    // 可见项数 = 既有 12（core schema.diff/ai.assistant + 插件 10）+ T6 新 2
+    // + T20 新 1（redis.backup，advanced 组 expiring 之后）= 15。
     const expectedKeys = [
       'keyspace/redis.key.new',
       'advanced/schema.diff',
@@ -240,6 +241,7 @@ void main() {
       'advanced/redis.config',
       'advanced/redis.slowlog',
       'advanced/redis.expiring',
+      'advanced/redis.backup',
       'more/redis.lua',
       'more/redis.pipeline',
       'more/redis.transaction',
@@ -248,7 +250,7 @@ void main() {
     for (final key in expectedKeys) {
       expect(find.byKey(Key(key)), findsOneWidget, reason: '缺面板项 $key');
     }
-    expect(find.byType(ListTile), findsNWidgets(14));
+    expect(find.byType(ListTile), findsNWidgets(15));
 
     // 组重排：次要 4 项不再挂 advanced（仅组归属调整，项 id 不变）。
     expect(find.byKey(Key('advanced/redis.lua')), findsNothing);
