@@ -28,6 +28,9 @@ import '../../providers/tab_provider.dart'
     show DuplicateSavedQueryNameException, QueryTab;
 import '../../theme/app_theme.dart';
 import '../../theme/app_colors.dart';
+// Q1 能力面板 Alt+Q 信号通道（面板折叠切换 + 聚焦；面板未挂载时信号自然丢弃）
+import '../../organisms/sidebar/capability/sidebar_capability_menu.dart'
+    show capabilityPanelToggleSignal;
 
 /// 全局快捷键包装器
 /// 使用 HardwareKeyboard 添加全局监听器，不依赖 Flutter 焦点树
@@ -117,6 +120,9 @@ class _GlobalShortcutsWrapperState extends State<GlobalShortcutsWrapper> {
     final isMetaPressed =
         keys.contains(LogicalKeyboardKey.metaLeft) ||
         keys.contains(LogicalKeyboardKey.metaRight);
+    final isAltPressed =
+        keys.contains(LogicalKeyboardKey.altLeft) ||
+        keys.contains(LogicalKeyboardKey.altRight);
 
     // 使用 Control (Windows/Linux) 或 Meta (macOS)
     final isModifierPressed = isControlPressed || isMetaPressed;
@@ -257,6 +263,18 @@ class _GlobalShortcutsWrapperState extends State<GlobalShortcutsWrapper> {
     // Ctrl+,: 打开设置
     if (isModifierPressed && event.logicalKey == LogicalKeyboardKey.comma) {
       _safeExecute(_handleOpenSettings);
+      return true;
+    }
+
+    // Alt+Q: 折叠/展开切换 + 聚焦能力面板（Q1 快捷面板；键位裁定 plan §6-4，
+    // Alt+1~9 全局保留给 S1——任何面板不得绑定 Alt+数字）。带 !isControlPressed
+    // 守卫排除 AltGr（部分布局下 AltGr = Ctrl+Alt）。面板未挂载（无连接/
+    // 装配空）时信号无人消费，自然丢弃。
+    if (isAltPressed &&
+        !isControlPressed &&
+        !isShiftPressed &&
+        event.logicalKey == LogicalKeyboardKey.keyQ) {
+      _safeExecute(_handleToggleCapabilityPanel);
       return true;
     }
 
@@ -643,6 +661,12 @@ class _GlobalShortcutsWrapperState extends State<GlobalShortcutsWrapper> {
   // 接线 Ctrl+, 打开设置（原为空 TODO）。复用 home_screen._showSettingsDialog 同一入口。
   void _handleOpenSettings() {
     context.showAnimatedDialog(builder: (ctx) => const SettingsDialog());
+  }
+
+  // Alt+Q（Q1）：经一次性信号通知 SidebarCapabilityMenu 做折叠切换 + 聚焦。
+  // 面板未挂载时增量无人消费，等价 no-op（与 requestSidebarExpand 同精神）。
+  void _handleToggleCapabilityPanel() {
+    capabilityPanelToggleSignal.value++;
   }
 
   // 委托 QueryExecutionHelper（spec 040 Phase 2.1）——DML/DDL/只读编排单一真相源。

@@ -1,16 +1,41 @@
 // C15 · PostgreSQL 侧边栏插件单测：库级 schema 树经 SidebarDatabaseTreeContext
 // 装配（迁移前直测 PostgresqlTreeBuilder.buildDatabaseNode 的用例改写，
 // 断言保持）；另覆盖全局树节点与能力分组。
+// DBT-T4 增补：新增 3 项位映射锁定 + 装配可见项数（core 5 + 插件 4）
+// + 表维护聚合入口 dialog（确认门取消 = 零执行 / 确认执行一次）。
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dbmaster/l10n/app_localizations.dart';
 import 'package:dbmaster/models/database_models.dart';
+import 'package:dbmaster/models/table_maintenance_command.dart';
+import 'package:dbmaster/molecules/destructive_confirm_dialog.dart';
+import 'package:dbmaster/organisms/dialogs/confirm_maintenance_dialog.dart';
+import 'package:dbmaster/organisms/dialogs/postgresql_table_maintenance_entry_dialog.dart';
+import 'package:dbmaster/organisms/dialogs/table_maintenance_result_dialog.dart';
 import 'package:dbmaster/organisms/sidebar/builders/tree_utils.dart';
+import 'package:dbmaster/organisms/sidebar/capability/capability_menu_assembly.dart';
+import 'package:dbmaster/organisms/sidebar/capability/core_sidebar_plugin.dart';
 import 'package:dbmaster/organisms/sidebar/plugins/postgresql_sidebar_plugin.dart';
 import 'package:dbmaster/plugins/sidebar_plugin.dart';
 import 'package:dbmaster/providers/app_provider.dart';
+import 'package:dbmaster/services/ports/capability_table.dart';
+import 'package:dbmaster/services/ports/db_capability_port.dart';
+
+/// 真值表 fake：委托 CapabilityTable（装配计数 × 真值表面）。
+class _TablePort implements DbCapabilityPort {
+  @override
+  bool hasCapability(DatabaseType type, String capabilityId) =>
+      CapabilityTable.has(type, capabilityId);
+
+  @override
+  Set<String> capabilitiesOf(DatabaseType type) => CapabilityTable.of(type);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('测试 fake 仅实现能力位查询');
+}
 
 DbServer _server() => DbServer(
       id: 'pg_conn',
@@ -308,6 +333,222 @@ void main() {
             },
           ),
         ),
+      );
+    });
+
+    testWidgets('DBT-T4 新增项位映射锁定（id 与 T2 徽标集口径一致）', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: Builder(
+            builder: (context) {
+              final groups = const PostgresqlSidebarPlugin()
+                  .capabilityGroups(context);
+              // DBT-T4：新增项 capabilityId 映射逐项锁定（pg.vector 复用
+              // pg.extension 位 = 扩展管理能力面；pg.queryPlan 主代理裁定
+              // 暂缓，本批无该项）。
+              const expected = <String, String>{
+                'process.kill': 'process.kill',
+                'pg.extension': 'pg.extension',
+                'pg.vector': 'pg.extension',
+                'pg.maintenance': 'table.analyze',
+              };
+              final items = groups.first.items;
+              expect(items.map((i) => i.id).toList(), expected.keys.toList());
+              for (final item in items) {
+                expect(item.capabilityId, expected[item.id], reason: item.id);
+              }
+              // 全部项有激活动作（纯展示项 = 装配缺口）。
+              expect(items.every((i) => i.onActivate != null), isTrue);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+    });
+
+    test('DBT-T4 项位全在 CapabilityTable 对 postgresql 取真（T0 预登记）', () {
+      const caps = [
+        'process.kill',
+        'pg.extension',
+        'table.analyze',
+      ];
+      for (final cap in caps) {
+        expect(CapabilityTable.has(DatabaseType.postgresql, cap), isTrue,
+            reason: cap);
+      }
+    });
+
+    testWidgets('PostgreSQL 装配可见项数 = core 5 + 插件 4 = 9（CapabilityTable 门控后）',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: Builder(
+            builder: (context) {
+              final groups = assembleCapabilityMenu(
+                context: context,
+                type: DatabaseType.postgresql,
+                port: _TablePort(),
+                plugins: const [CoreSidebarPlugin(), PostgresqlSidebarPlugin()],
+                l10n: AppLocalizations.of(context)!,
+              );
+              final ids = [
+                for (final g in groups)
+                  ...g.items.map((i) => i.item.id),
+              ];
+              expect(ids, hasLength(9));
+              expect(
+                ids,
+                containsAll(const [
+                  // core 5
+                  'proc.list',
+                  'func.list',
+                  'trigger.list',
+                  'schema.diff',
+                  'ai.assistant',
+                  // 插件 4
+                  'process.kill',
+                  'pg.extension',
+                  'pg.vector',
+                  'pg.maintenance',
+                ]),
+              );
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+    });
+  });
+
+  group('PostgresqlTableMaintenanceEntryDialog（DBT-T4 聚合入口）', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    Widget _wrap(PostgresqlTableMaintenanceEntryDialog dialog) => MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: Scaffold(body: dialog),
+        );
+
+    Future<PostgresqlTableMaintenanceEntryDialog> _pumpEntry(
+      WidgetTester tester, {
+      required void Function(String table, TableMaintenanceCommand cmd) onRun,
+    }) async {
+      final dialog = PostgresqlTableMaintenanceEntryDialog(
+        connectionId: 'c1',
+        loadDatabases: (_) async => ['chinook', 'dbmaster_test'],
+        loadTables: (_, __) async => ['artist', 'album', 'track'],
+        runMaintenance: (_, __, table, cmd) async {
+          onRun(table, cmd);
+          return const <Map<String, dynamic>>[];
+        },
+      );
+      await tester.pumpWidget(_wrap(dialog));
+      await tester.pumpAndSettle();
+      return dialog;
+    }
+
+    testWidgets('渲染库下拉 / ANALYZE 动作 chip（T4 单动作，T8 预留位）/ 表清单', (
+      tester,
+    ) async {
+      await _pumpEntry(tester, onRun: (_, _) {});
+
+      expect(find.text('chinook'), findsOneWidget); // 默认选首库
+      expect(find.text('Maintenance'), findsOneWidget); // 标题
+      expect(find.text('Analyze Table'), findsOneWidget); // 唯一动作 chip
+      expect(find.text('artist'), findsOneWidget);
+      expect(find.text('Select Tables (leave empty for all)'), findsOneWidget);
+      // 未选表 → 执行（Confirm）禁用
+      final confirmBtn = tester.widget<TextButton>(
+        find.widgetWithText(TextButton, 'Confirm'),
+      );
+      expect(confirmBtn.onPressed, isNull);
+    });
+
+    testWidgets('确认门取消 = 零执行（runMaintenance 不被调用）', (tester) async {
+      var runCount = 0;
+      await _pumpEntry(tester, onRun: (_, _) => runCount++);
+
+      await tester.tap(find.text('artist'));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(TextButton, 'Confirm'));
+      // 执行中入口按钮是旋转指示器（永不收敛），此处只定长推进帧，
+      // 待确认门路由动画完成后断言。
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // 逐表确认门出现（sidebar_tree 同一 ConfirmMaintenanceDialog）
+      expect(find.byType(ConfirmMaintenanceDialog), findsOneWidget);
+
+      // 取消
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DestructiveConfirmDialog),
+          matching: find.widgetWithText(TextButton, 'Cancel'),
+        ),
+      );
+      // 取消 = 跳过该表，循环走完 → _running 复位 → 旋转指示器消失后可 settle
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      expect(runCount, 0);
+      expect(find.byType(PostgresqlTableMaintenanceEntryDialog), findsOneWidget);
+    });
+
+    testWidgets('确认后执行一次（ANALYZE 命令）并出现既有结果 dialog', (tester) async {
+      final executed = <String>[];
+      TableMaintenanceCommand? executedCmd;
+      await _pumpEntry(
+        tester,
+        onRun: (table, cmd) {
+          executed.add(table);
+          executedCmd = cmd;
+        },
+      );
+
+      await tester.tap(find.text('artist'));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(TextButton, 'Confirm'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // 门内确认（scope 到 DestructiveConfirmDialog，避开底层入口的 Confirm）
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DestructiveConfirmDialog),
+          matching: find.text('Confirm'),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // 与 sidebar_tree PG 右键同命令（analyze，经 runTableMaintenance 的
+      // PG 分支产出 `ANALYZE "table"`）
+      expect(executed, ['artist']);
+      expect(executedCmd, TableMaintenanceCommand.analyze);
+      expect(find.byType(TableMaintenanceResultDialog), findsOneWidget);
+
+      // 关结果 dialog → 循环走完 → 指示器复位
+      await tester.tap(find.widgetWithText(TextButton, 'Close'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      expect(find.byType(TableMaintenanceResultDialog), findsNothing);
+      expect(
+        find.byType(PostgresqlTableMaintenanceEntryDialog),
+        findsOneWidget,
       );
     });
   });

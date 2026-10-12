@@ -236,6 +236,7 @@ const Map<String, int> kLucideSubsetCodepoints = <String, int>{
   'users': 57764,
   'wandSparkles': 58199,
   'waves': 57987,
+  'waypoints': 58690,
   'webhook': 58228,
   'wifi': 57774,
   'wifiOff': 57775,

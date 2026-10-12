@@ -1,0 +1,398 @@
+// Q1 快捷面板装配框架 widget 测试（2026-10 工具面板补齐批 T2）。
+// 覆盖（任务书验收标准 ①~④、⑥）：
+// ① 五库型标题带库型名 + 装配内容切换；
+// ② 折叠记忆（toggle → 重建 widget 态保持，mock prefs）；
+// ③ 「新建」徽标只命中 _releaseNewItemIds（构造命中/不命中 id）；
+// ④ Alt+Q 触发折叠切换 + 展开后聚焦面板根；聚焦后数字直达 / ↑↓ 移动 /
+//    Enter 激活（Focus 测试；数字直达边界 = 序号超可见项数忽略）。
+// ⑤ 无连接自隐藏由既有 sidebar_capability_menu_test.dart 锚定，不重复。
+// 用例登记建议编号：DBT-CAPMENU-101~108（回报 T13 汇总）。
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:dbmaster/core/shortcuts/global_shortcuts_wrapper.dart';
+import 'package:dbmaster/l10n/app_localizations.dart';
+import 'package:dbmaster/models/database_models.dart';
+import 'package:dbmaster/organisms/sidebar/capability/capability_menu_assembly.dart';
+import 'package:dbmaster/organisms/sidebar/capability/sidebar_capability_menu.dart';
+import 'package:dbmaster/plugins/bootstrap.dart';
+import 'package:dbmaster/plugins/plugin_descriptor.dart';
+import 'package:dbmaster/plugins/sidebar_plugin.dart';
+import 'package:dbmaster/providers/app_provider.dart';
+import 'package:dbmaster/providers/server_connection_provider.dart';
+import 'package:dbmaster/providers/theme_provider.dart';
+import 'package:dbmaster/theme/app_theme.dart';
+
+/// 测试注入插件（仅 sqlite 命中，注册于 [defaultPluginRegistry]，本文件
+/// 进程内全局生效——各用例已计入其后置两行）。两项 capabilityId 均为 null
+///（纯导航项，不依赖能力位）；前者 id 取自 `_releaseNewItemIds` 锁定值
+///（验徽标命中面，真实消费件归 T3 任务），后者不在集内（作键盘 roving 的
+/// 末项边界锚定；徽标不命中面用视口内可见的真实集外行验证，见徽标用例注）。
+class _Q1TestSidebarPlugin implements SidebarPlugin {
+  @override
+  PluginDescriptor get descriptor => const PluginDescriptor(
+        id: 'q1-test-sidebar',
+        supportedTypes: {DatabaseType.sqlite},
+        source: PluginSource.databaseType,
+        icon: LucideIcons.wrench,
+      );
+
+  @override
+  List<SidebarCapabilityGroup> capabilityGroups(BuildContext context) => [
+        SidebarCapabilityGroup(
+          id: 'q1-test',
+          label: (l10n) => 'Q1 Test Group',
+          icon: LucideIcons.wrench,
+          items: [
+            SidebarCapabilityItem(
+              id: 'mysql.variables',
+              label: (l10n) => 'Q1 Test Variables',
+              icon: LucideIcons.database,
+              onActivate: () => variablesActivated = true,
+            ),
+            SidebarCapabilityItem(
+              id: 'q1.test.nobadge',
+              label: (l10n) => 'Q1 Test NoBadge',
+              icon: LucideIcons.bot,
+              onActivate: () => noBadgeActivated = true,
+            ),
+          ],
+        ),
+      ];
+
+  @override
+  List<Widget> buildGlobalTree(BuildContext context, SidebarTreeContext tree) =>
+      const [];
+
+  @override
+  List<Widget> buildDatabaseTree(
+    BuildContext context,
+    SidebarDatabaseTreeContext db,
+  ) =>
+      const [];
+}
+
+bool variablesActivated = false;
+bool noBadgeActivated = false;
+
+DbServer _server(DatabaseType type) => DbServer(
+      id: 'conn-${type.name}',
+      type: type,
+      name: 'Test ${type.name}',
+      host: 'localhost',
+      port: 5432,
+      username: 'u',
+      password: 'p',
+    );
+
+Widget _providers(AppProvider provider, Widget child) => MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AppProvider>.value(value: provider),
+        ChangeNotifierProvider<ThemeProvider>(
+          create: (_) => ThemeProvider()..load(),
+        ),
+        ChangeNotifierProvider<ServerConnectionProvider>(
+          create: (_) => ServerConnectionProvider(),
+        ),
+      ],
+      child: child,
+    );
+
+Widget _host(AppProvider provider, {Key? menuKey, bool withWrapper = false}) =>
+    MaterialApp(
+      theme: AppTheme.darkTheme,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('en'), Locale('zh')],
+      locale: const Locale('en'),
+      home: _providers(
+        provider,
+        Scaffold(
+          body: GlobalShortcutsWrapper(
+            child: SizedBox(
+              width: 260,
+              height: 800,
+              child: SidebarCapabilityMenu(key: menuKey),
+            ),
+          ),
+        ),
+      ),
+    );
+
+/// 当前装配的可见项扁平序（与菜单 build 同参同源，跨组连续序号事实源）。
+List<AssembledCapabilityItem> _flatItems(
+  WidgetTester tester,
+  AppProvider provider,
+) {
+  final server = provider.connection.currentServer;
+  if (server == null) fail('测试前置失败：无活动连接');
+  final context = tester.element(find.byType(SidebarCapabilityMenu));
+  return [
+    for (final group in assembleCapabilityMenu(
+      context: context,
+      type: server.type,
+      port: provider.connection.ports.resolveFor(server.type),
+      plugins: defaultPluginRegistry.sidebarPluginsFor(server.type),
+      l10n: AppLocalizations.of(context)!,
+    ))
+      ...group.items,
+  ];
+}
+
+/// Alt+Q 全局键（经 GlobalShortcutsWrapper 的 HardwareKeyboard 管线）。
+/// _safeExecute 延迟一帧执行，故补 pump。
+Future<void> _sendAltQ(WidgetTester tester) async {
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.keyQ);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.keyQ);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 100));
+}
+
+void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    variablesActivated = false;
+    noBadgeActivated = false;
+  });
+
+  setUpAll(() {
+    // widget 经全局默认注册表取插件——追加测试注入件（本文件进程内生效）。
+    defaultPluginRegistry.registerSidebar(_Q1TestSidebarPlugin());
+  });
+
+  group('Q1 标题带库型名 + 装配内容切换', () {
+    testWidgets('mysql：标题 + DATABASE OBJECTS 组在', (tester) async {
+      final provider = AppProvider();
+      provider.connection.setCurrentServer(_server(DatabaseType.mysql));
+      await tester.pumpWidget(_host(provider));
+      await tester.pump();
+
+      expect(find.text('Capabilities: MySQL'), findsOneWidget);
+      expect(find.text('Stored Procedures'), findsOneWidget);
+    });
+
+    testWidgets('postgresql：标题 + DATABASE OBJECTS 组在', (tester) async {
+      final provider = AppProvider();
+      provider.connection.setCurrentServer(_server(DatabaseType.postgresql));
+      await tester.pumpWidget(_host(provider));
+      await tester.pump();
+
+      expect(find.text('Capabilities: PostgreSQL'), findsOneWidget);
+      expect(find.text('Stored Procedures'), findsOneWidget);
+    });
+
+    testWidgets('sqlite：标题 + 无 proc/func/trigger（内容随型切换）',
+        (tester) async {
+      final provider = AppProvider();
+      provider.connection.setCurrentServer(_server(DatabaseType.sqlite));
+      await tester.pumpWidget(_host(provider));
+      await tester.pump();
+
+      expect(find.text('Capabilities: SQLite'), findsOneWidget);
+      expect(find.text('Stored Procedures'), findsNothing);
+      expect(find.text('Schema Diff & Sync'), findsOneWidget);
+      // 测试注入件（capabilityId null 纯导航）随装配渲染
+      expect(find.text('Q1 Test Variables'), findsOneWidget);
+    });
+
+    testWidgets('redis：标题 + 无 proc/func/trigger', (tester) async {
+      final provider = AppProvider();
+      provider.connection.setCurrentServer(_server(DatabaseType.redis));
+      await tester.pumpWidget(_host(provider));
+      await tester.pump();
+
+      expect(find.text('Capabilities: Redis'), findsOneWidget);
+      expect(find.text('Stored Procedures'), findsNothing);
+    });
+
+    testWidgets('mongodb：标题 + core 两件（插件当前无能力项）', (tester) async {
+      final provider = AppProvider();
+      provider.connection.setCurrentServer(_server(DatabaseType.mongodb));
+      await tester.pumpWidget(_host(provider));
+      await tester.pump();
+
+      expect(find.text('Capabilities: MongoDB'), findsOneWidget);
+      expect(find.text('Schema Diff & Sync'), findsOneWidget);
+      expect(find.text('AI Assistant'), findsOneWidget);
+      expect(find.text('Stored Procedures'), findsNothing);
+    });
+  });
+
+  group('Q1 折叠记忆', () {
+    testWidgets('toggle 折叠 → 重建 widget 态保持（mock prefs）', (tester) async {
+      final provider = AppProvider();
+      provider.connection.setCurrentServer(_server(DatabaseType.mysql));
+      await tester.pumpWidget(_host(provider, menuKey: const ValueKey('a')));
+      await tester.pump();
+
+      await tester.tap(find.text('Capabilities: MySQL'));
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(find.text('AI Assistant'), findsNothing);
+
+      // 重建 widget（新 key = 新 State）→ post-frame 读持久化值校正后仍折叠
+      await tester.pumpWidget(
+        _host(provider, menuKey: const ValueKey('b')),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('AI Assistant'), findsNothing);
+      expect(find.text('Capabilities: MySQL'), findsOneWidget);
+    });
+  });
+
+  group('Q1 新建徽标', () {
+    testWidgets('徽标只命中 _releaseNewItemIds（命中/不命中各一）',
+        (tester) async {
+      final provider = AppProvider();
+      provider.connection.setCurrentServer(_server(DatabaseType.sqlite));
+      await tester.pumpWidget(_host(provider));
+      await tester.pump();
+
+      expect(find.text('Q1 Test Variables'), findsOneWidget);
+      // 按行断言（行 = Tooltip，message 含项标签）：集内 id 行渲染「New」
+      // 徽标、集外行无。不做全局计数——路由任务（T5 等）并入的集内真实项
+      // 各自带合法徽标，计数随波次变化。
+      // 行选取限定在视口内可见行（ListView 有 264px 上限的惰性构建，装配
+      // 9 项时末行不入树——探针核实）：合成命中件（mysql.variables）+ 真实
+      // T5 命中件（sqlite.maintain）+ 真实不命中件（sqlite.pragma）。
+      // 键盘用例不受视口裁剪影响（导航走 _visibleItems，不做命中测试）。
+      final hitRow = find.byWidgetPredicate(
+        (w) => w is Tooltip && (w.message ?? '').contains('Q1 Test Variables'),
+      );
+      final realHitRow = find.byWidgetPredicate(
+        (w) => w is Tooltip && (w.message ?? '').contains('Maintenance'),
+      );
+      final missRow = find.byWidgetPredicate(
+        (w) => w is Tooltip && (w.message ?? '').contains('PRAGMA Explorer'),
+      );
+      expect(hitRow, findsOneWidget);
+      expect(realHitRow, findsOneWidget);
+      expect(missRow, findsOneWidget);
+      expect(
+        find.descendant(of: hitRow, matching: find.text('New')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: realHitRow, matching: find.text('New')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: missRow, matching: find.text('New')),
+        findsNothing,
+      );
+    });
+  });
+
+  group('Q1 Alt+Q 全局键 + 面板局部键盘', () {
+    testWidgets('Alt+Q 折叠 → 再按展开并聚焦面板根', (tester) async {
+      final provider = AppProvider();
+      provider.connection.setCurrentServer(_server(DatabaseType.sqlite));
+      await tester.pumpWidget(_host(provider));
+      await tester.pump();
+
+      expect(find.text('Q1 Test Variables'), findsOneWidget);
+      await _sendAltQ(tester);
+      expect(find.text('Q1 Test Variables'), findsNothing);
+
+      await _sendAltQ(tester);
+      expect(find.text('Q1 Test Variables'), findsOneWidget);
+      // 聚焦断言：primary focus 落在菜单 State 子树（面板根 Focus）
+      final primary = FocusManager.instance.primaryFocus;
+      expect(primary, isNotNull);
+      final inMenu = primary!.context?.findAncestorStateOfType<
+          State<SidebarCapabilityMenu>>();
+      expect(inMenu, isNotNull);
+    });
+
+    testWidgets('面板聚焦后数字直达（跨组连续序号）', (tester) async {
+      final provider = AppProvider();
+      provider.connection.setCurrentServer(_server(DatabaseType.sqlite));
+      await tester.pumpWidget(_host(provider));
+      await tester.pump();
+      await _sendAltQ(tester);
+      await _sendAltQ(tester);
+
+      final items = _flatItems(tester, provider);
+      final target = items.indexWhere((e) => e.item.id == 'mysql.variables');
+      expect(target, greaterThanOrEqualTo(0));
+      // 数字直达仅覆盖前 9 项（测试注入件在末尾，前置件数变化需保持此前提）
+      expect(target, lessThan(9), reason: '数字直达仅覆盖前 9 项');
+
+      // target < 9 已断言 → _digitKey 非空（前证非空，豁免裸 ! 禁令）
+      await tester.sendKeyEvent(_digitKey(target + 1)!);
+      await tester.pump();
+      expect(variablesActivated, isTrue);
+      expect(noBadgeActivated, isFalse);
+    });
+
+    testWidgets('↑/↓ 项间移动 + Enter 激活当前项（roving）', (tester) async {
+      final provider = AppProvider();
+      provider.connection.setCurrentServer(_server(DatabaseType.sqlite));
+      await tester.pumpWidget(_host(provider));
+      await tester.pump();
+      await _sendAltQ(tester);
+      await _sendAltQ(tester);
+
+      final items = _flatItems(tester, provider);
+      // ↓ 压满到末项（clamp），↑ 回退一项 → 命中测试注入件（无对话框副作用）
+      for (var i = 0; i < items.length; i++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      }
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+
+      expect(variablesActivated, isTrue);
+      expect(noBadgeActivated, isFalse);
+    });
+
+    testWidgets('数字直达边界：序号超可见项数 = 忽略', (tester) async {
+      // 用 mongo（当前仅 core 2 项，批内各路由任务并入后仍 <9）：压到
+      // items.length+1 序号必超界，且可达项不含可观察激活面以外的副作用。
+      // （sqlite + 测试注入件已满 9 项，超界序号不存在，不适用本用例。）
+      final provider = AppProvider();
+      provider.connection.setCurrentServer(_server(DatabaseType.mongodb));
+      await tester.pumpWidget(_host(provider));
+      await tester.pump();
+      await _sendAltQ(tester);
+      await _sendAltQ(tester);
+
+      final items = _flatItems(tester, provider);
+      expect(items.length, lessThan(9), reason: '前置：须存在超界数字序号');
+      final outOfRange = _digitKey(items.length + 1);
+      expect(outOfRange, isNotNull);
+      await tester.sendKeyEvent(outOfRange!);
+      await tester.pump();
+
+      // 无激活、无崩溃、面板仍在（可达项 ai.assistant 处于 digit2，未被触发）
+      expect(provider.aiPanel.aiPanelOpen, isFalse);
+      expect(find.text('Capabilities: MongoDB'), findsOneWidget);
+    });
+  });
+}
+
+/// 数字序 → 主键盘 LogicalKeyboardKey（测试辅助）。
+LogicalKeyboardKey? _digitKey(int digit) => switch (digit) {
+      1 => LogicalKeyboardKey.digit1,
+      2 => LogicalKeyboardKey.digit2,
+      3 => LogicalKeyboardKey.digit3,
+      4 => LogicalKeyboardKey.digit4,
+      5 => LogicalKeyboardKey.digit5,
+      6 => LogicalKeyboardKey.digit6,
+      7 => LogicalKeyboardKey.digit7,
+      8 => LogicalKeyboardKey.digit8,
+      9 => LogicalKeyboardKey.digit9,
+      _ => null,
+    };

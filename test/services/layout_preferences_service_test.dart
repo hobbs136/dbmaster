@@ -52,6 +52,19 @@ void main() {
       });
     });
 
+    group('能力菜单折叠（Q1）', () {
+      test('getCapabilityMenuCollapsed 默认值应为 false（展开）', () async {
+        final collapsed = await service.getCapabilityMenuCollapsed();
+        expect(collapsed, isFalse);
+      });
+
+      test('setCapabilityMenuCollapsed(true) 后应返回 true', () async {
+        await service.setCapabilityMenuCollapsed(true);
+        final collapsed = await service.getCapabilityMenuCollapsed();
+        expect(collapsed, isTrue);
+      });
+    });
+
     group('AI 面板宽度', () {
       test('getAiPanelWidth 默认值应为 400', () async {
         final width = await service.getAiPanelWidth();

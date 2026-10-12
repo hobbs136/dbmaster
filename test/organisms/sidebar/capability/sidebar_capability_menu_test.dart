@@ -72,7 +72,7 @@ void main() {
     await tester.pumpWidget(_host(provider));
     await tester.pump();
 
-    expect(find.text('Capabilities'), findsNothing);
+    expect(find.text('Capabilities: MySQL'), findsNothing);
   });
 
   testWidgets('回退锚定：选中节点未连接 → 仍隐藏（动作假定活连接）', (tester) async {
@@ -84,7 +84,7 @@ void main() {
     await tester.pumpWidget(_host(provider));
     await tester.pump();
 
-    expect(find.text('Capabilities'), findsNothing);
+    expect(find.text('Capabilities: MySQL'), findsNothing);
   });
 
   testWidgets('mysql：分组 + 项 + core 徽章 + AI 高亮渲染', (tester) async {
@@ -93,7 +93,7 @@ void main() {
     await tester.pumpWidget(_host(provider));
     await tester.pump();
 
-    expect(find.text('Capabilities'), findsOneWidget);
+    expect(find.text('Capabilities: MySQL'), findsOneWidget);
     expect(find.text('DATABASE OBJECTS'), findsOneWidget);
     expect(find.text('ADVANCED'), findsOneWidget);
     expect(find.text('Stored Procedures'), findsOneWidget);
@@ -111,7 +111,7 @@ void main() {
     await tester.pumpWidget(_host(provider));
     await tester.pump();
 
-    expect(find.text('Capabilities'), findsOneWidget);
+    expect(find.text('Capabilities: Redis'), findsOneWidget);
     expect(find.text('DATABASE OBJECTS'), findsNothing);
     expect(find.text('Stored Procedures'), findsNothing);
     expect(find.text('Schema Diff & Sync'), findsOneWidget);
@@ -136,10 +136,10 @@ void main() {
     await tester.pumpWidget(_host(provider));
     await tester.pump();
 
-    await tester.tap(find.text('Capabilities'));
+    await tester.tap(find.text('Capabilities: MySQL'));
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.text('Capabilities'), findsOneWidget);
+    expect(find.text('Capabilities: MySQL'), findsOneWidget);
     expect(find.text('Stored Procedures'), findsNothing);
     expect(find.text('AI Assistant'), findsNothing);
   });

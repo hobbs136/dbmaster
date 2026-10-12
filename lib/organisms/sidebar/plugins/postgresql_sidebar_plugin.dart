@@ -9,6 +9,9 @@
 // 能力菜单（capabilityGroups）：与 core 同组 id 合并（'advanced'），补 PG
 // 专有入口 Terminate（进程管理对话框，pg_stat_activity loader +
 // pg_terminate_backend）。能力位经 port 门控（process.kill 含 pg）。
+// DBT-T4（2026-10 工具面板补齐批，feat/db-tooling-completion）增补：
+// Extensions / pgvector / Table Maintenance 三项（全部路由既有目标，
+// 零新执行通道；pg.queryPlan 无面板级既有可路由目标，主代理裁定暂缓）。
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -26,6 +29,7 @@ import '../../../theme/app_colors.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/app_logger.dart';
 import '../../connection/pg_extension_panel.dart';
+import '../../dialogs/postgresql_table_maintenance_entry_dialog.dart';
 import '../builders/tree_utils.dart';
 import '../capability/capability_menu_assembly.dart';
 import '../capability/process_manager_dialog.dart';
@@ -56,6 +60,36 @@ class PostgresqlSidebarPlugin implements SidebarPlugin {
             label: (l10n) => l10n.processListKillQuery,
             icon: LucideIcons.circleStop,
             onActivate: () => _showProcessManager(context),
+          ),
+          // ── DBT-T4 新增（2026-10 工具面板补齐批，feat/db-tooling-completion）──
+          // 全部路由既有目标，零新执行通道。注：任务书原列 pg.queryPlan
+          // （query.explain）与 T3 mysql.queryPlan 同因——EXPLAIN 入口深
+          // 耦合编辑器 SQL 文本，无面板级既有可路由目标，主代理裁定暂缓，
+          // 本批未加该项（后续批处理）。
+          SidebarCapabilityItem(
+            id: 'pg.extension',
+            capabilityId: 'pg.extension',
+            // pgCapExtensions 按任务书「复用优先」复用树内既有 key。
+            label: (l10n) => l10n.sidebarExtensions,
+            icon: LucideIcons.puzzle,
+            onActivate: () => _showExtensions(context),
+          ),
+          SidebarCapabilityItem(
+            id: 'pg.vector',
+            // pgvector 无独立位：属扩展管理能力面（与任务书 cap 同 pg.extension）。
+            capabilityId: 'pg.extension',
+            label: (l10n) => l10n.pgCapVector,
+            icon: LucideIcons.waypoints,
+            onActivate: () => _showVectorView(context),
+          ),
+          SidebarCapabilityItem(
+            id: 'pg.maintenance',
+            // id 与 T2 `_releaseNewItemIds` 锁定值一致（命中「新建」徽标，
+            // 徽标渲染归框架）。
+            capabilityId: 'table.analyze',
+            label: (l10n) => l10n.pgCapMaintenance,
+            icon: LucideIcons.wrench,
+            onActivate: () => _showMaintenanceEntry(context),
           ),
         ],
       ),
@@ -99,6 +133,88 @@ class PostgresqlSidebarPlugin implements SidebarPlugin {
         connectionId: server.id,
         loader: (cid) => _loadProcesses(provider, cid),
         onKill: (cid, pid) => provider.killProcess(cid, pid),
+      ),
+    );
+  }
+
+  // ── DBT-T4 能力项动作（全部路由既有目标，零新执行通道）──────────
+
+  /// 扩展管理：路由到树内 Extensions 节点（2b.1 R3 一次性展开信号同款，
+  /// workbench observe → '$id:performance' 先例；树节点同源打开，零新 UI）。
+  /// 连接断开时点面板项 → 锚定 null 直接返回（既有模式）。
+  void _showExtensions(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    context.read<AppProvider>().sidebar
+        .requestSidebarExpand('${server.id}:extensions');
+  }
+
+  /// pgvector 向量视图：路由到 T025 既有落点——vector 扩展详情对话框内嵌
+  /// 的 PgVectorPanel（pg_extension_panel.dart 按 ext.name == 'vector' 注入，
+  /// 即任务书「扩展管理的向量化视图」形态；零新 UI、零新执行通道，取数走
+  /// 树内 Extensions 节点同一 ExtensionAdapter.getExtensions 只读路径）。
+  /// vector 未安装 = 无既有落点 → AppLogger 记录后静默返回（无语义匹配的
+  /// 既有 l10n key；ARB 由 T0 冻结，缺 key 已登记回报，不自行加）。
+  Future<void> _showVectorView(BuildContext context) async {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    final provider = context.read<AppProvider>();
+    try {
+      final adapter = provider.dbService.getAdapter(server.id);
+      if (adapter == null || adapter is! ExtensionAdapter) return;
+      final extensions = await adapter.getExtensions();
+      PgExtension? vector;
+      for (final ext in extensions) {
+        if (ext.name == 'vector') {
+          vector = ext;
+          break;
+        }
+      }
+      if (vector == null) {
+        AppLogger.w(
+          'PgSidebarPlugin',
+          'pg.vector: vector extension not installed; no routable target',
+        );
+        return;
+      }
+      if (!context.mounted) return;
+      await showExtensionDetailDialog(context, provider, server.id, vector);
+    } catch (e) {
+      AppLogger.e('PgSidebarPlugin', 'pg.vector lookup failed', e);
+    }
+  }
+
+  /// 表维护聚合入口：逐表确认走 sidebar_tree 既有维护链路同一门控
+  /// （ConfirmMaintenanceDialog → runTableMaintenance → 结果 dialog）。
+  /// 表清单按所选库路由查询——dbService.getTables 对 PG（MultiSchema
+  /// 适配器）落当前库语义，聚合入口下拉切库后清单须跟随所选库，故用
+  /// gateway getTables 同款 information_schema 查询经 dbService 既有
+  /// 只读执行路径 database 路由（与 runTableMaintenance 的库路由同源，
+  /// 零新执行通道；覆盖 public schema = gateway getTables 默认口径）。
+  void _showMaintenanceEntry(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    final provider = context.read<AppProvider>();
+    showDialog(
+      context: context,
+      builder: (_) => PostgresqlTableMaintenanceEntryDialog(
+        connectionId: server.id,
+        loadDatabases: (cid) =>
+            provider.dbService.getDatabases(connectionId: cid),
+        loadTables: (cid, db) async {
+          final rows = await provider.dbService.executeQuery(
+            "SELECT table_name FROM information_schema.tables "
+            "WHERE table_schema = 'public' AND table_type = 'BASE TABLE' "
+            "ORDER BY table_name",
+            connectionId: cid,
+            database: db,
+          );
+          return [
+            for (final row in rows) row['table_name']?.toString() ?? '',
+          ].where((t) => t.isNotEmpty).toList();
+        },
+        runMaintenance: (cid, db, table, command) =>
+            provider.runTableMaintenance(db, table, command, connectionId: cid),
       ),
     );
   }

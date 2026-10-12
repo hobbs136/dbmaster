@@ -5,6 +5,8 @@ class LayoutPreferencesService {
   static const String _sidebarWidthKey = 'sidebar_width';
   static const String _editorResultsRatioKey = 'editor_results_ratio';
   static const String _sidebarCollapsedKey = 'sidebar_collapsed';
+  static const String _capabilityMenuCollapsedKey =
+      'capability_menu_collapsed';
   static const String _columnWidthsPrefixKey = 'column_widths_';
   static const String _aiPanelWidthKey = 'ai_panel_width';
   static const String _aiPanelFullscreenKey = 'ai_panel_fullscreen';
@@ -79,6 +81,18 @@ class LayoutPreferencesService {
   Future<void> setSidebarCollapsed(bool collapsed) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_sidebarCollapsedKey, collapsed);
+  }
+
+  /// 能力菜单（Q1 快捷面板）折叠态。默认 false = 展开（首帧默认展开，
+  /// 调用方 post-frame 读值后校正）。
+  Future<bool> getCapabilityMenuCollapsed() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_capabilityMenuCollapsedKey) ?? false;
+  }
+
+  Future<void> setCapabilityMenuCollapsed(bool collapsed) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_capabilityMenuCollapsedKey, collapsed);
   }
 
   Future<double> getAiPanelWidth() async {

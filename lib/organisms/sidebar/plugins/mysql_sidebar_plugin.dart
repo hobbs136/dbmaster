@@ -16,12 +16,18 @@ import 'package:provider/provider.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../molecules/context_menu.dart';
+import '../../../models/ai_tree_node_context.dart';
 import '../../../models/database_models.dart';
 import '../../../plugins/plugin_descriptor.dart';
 import '../../../plugins/sidebar_plugin.dart';
 import '../../../providers/app_provider.dart';
+import '../../../providers/locale_provider.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_theme.dart';
+import '../../connection/connection_export_import_dialog.dart';
+import '../../connection/error_boundary.dart';
+import '../../connection/mysql_variables_browser_dialog.dart';
+import '../../dialogs/mysql_table_maintenance_entry_dialog.dart';
 import '../builders/tree_utils.dart';
 import '../capability/capability_menu_assembly.dart';
 import '../capability/process_manager_dialog.dart';
@@ -60,6 +66,41 @@ class MysqlSidebarPlugin implements SidebarPlugin {
             label: (l10n) => l10n.engineStatusTitle,
             icon: LucideIcons.database,
             onActivate: () => _showEngineStatus(context),
+          ),
+          // ── DBT-T3 新增（2026-10 工具面板补齐批，feat/db-tooling-completion）──
+          // id 与 T2 `_releaseNewItemIds` 锁定值一致（mysql.variables /
+          // mysql.maintenance 命中「新建」徽标，徽标渲染归框架）。
+          // 注：任务书原列第 5 项 mysql.queryPlan（query.explain）经核实
+          // 无面板级既有可路由目标——执行计划入口深耦合编辑器 SQL 文本
+          // （query_editor_widget._showQueryPlan），无独立 EXPLAIN 对话框，
+          // 按任务书「仍无既有目标 → 停下回报，不新建」处理，未加该项。
+          SidebarCapabilityItem(
+            id: 'mysql.variables',
+            capabilityId: 'server.variables',
+            label: (l10n) => l10n.mysqlVariablesTitle,
+            icon: LucideIcons.slidersHorizontal,
+            onActivate: () => _showVariablesBrowser(context),
+          ),
+          SidebarCapabilityItem(
+            id: 'mysql.maintenance',
+            capabilityId: 'table.analyze',
+            label: (l10n) => l10n.mysqlCapMaintenance,
+            icon: LucideIcons.wrench,
+            onActivate: () => _showMaintenanceEntry(context),
+          ),
+          SidebarCapabilityItem(
+            id: 'mysql.performance',
+            capabilityId: 'ai.analyze',
+            label: (l10n) => l10n.aiAnalyzeServer,
+            icon: LucideIcons.wandSparkles,
+            onActivate: () => _analyzeServerWithAi(context),
+          ),
+          SidebarCapabilityItem(
+            id: 'mysql.backup',
+            capabilityId: 'io.export',
+            label: (l10n) => l10n.exportThisConnection,
+            icon: LucideIcons.fileUp,
+            onActivate: () => _showExport(context),
           ),
         ],
       ),
@@ -131,6 +172,75 @@ class MysqlSidebarPlugin implements SidebarPlugin {
     final server = resolveSidebarActionServer(context);
     if (server == null) return;
     MysqlEngineStatusDialog.show(context, server.id);
+  }
+
+  // ── DBT-T3 能力项动作（全部路由既有目标，零新执行通道）──────────
+
+  /// 变量浏览器（W-03，只读）：取数经 dbService 既有只读执行路径
+  /// （dialog 默认 loader），连接断开时点面板项 → 锚定 null 直接返回。
+  void _showVariablesBrowser(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    showDialog(
+      context: context,
+      builder: (_) =>
+          MysqlVariablesBrowserDialog(connectionId: server.id),
+    );
+  }
+
+  /// 表维护聚合入口：逐表确认走 sidebar_tree 既有维护链路同一门控
+  /// （ConfirmMaintenanceDialog → runTableMaintenance → 结果 dialog）。
+  void _showMaintenanceEntry(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    final provider = context.read<AppProvider>();
+    showDialog(
+      context: context,
+      builder: (_) => MysqlTableMaintenanceEntryDialog(
+        connectionId: server.id,
+        loadDatabases: (cid) =>
+            provider.dbService.getDatabases(connectionId: cid),
+        loadTables: (cid, db) => provider.dbService.getTables(
+          connectionId: cid,
+          databaseName: db,
+        ),
+        runMaintenance: (cid, db, table, command) =>
+            provider.runTableMaintenance(db, table, command, connectionId: cid),
+      ),
+    );
+  }
+
+  /// AI 性能分析（连接级）：与 sidebar_tree 连接右键 ai_analyze_server
+  /// 同一 provider 入口（analyzeTreeNodeInWorkbench，2b.4 R7 引流钩子；
+  /// 只开工作台 + 锁定上下文 + 预填，零自动发送）。
+  Future<void> _analyzeServerWithAi(BuildContext context) async {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    final provider = context.read<AppProvider>();
+    try {
+      await provider.analyzeTreeNodeInWorkbench(
+        AiTreeNodeContext(
+          type: AiTreeNodeType.connection,
+          connectionId: server.id,
+          nodeName: server.name,
+        ),
+        locale: LocaleProvider.codeOf(Localizations.localeOf(context)),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        AppErrorHandler.showErrorSnackBar(
+          context,
+          AppLocalizations.of(context)!.aiAnalyzeNodeFailed(e.toString()),
+        );
+      }
+    }
+  }
+
+  /// 连接导出（备份）：与 sidebar_tree 连接右键 export 同一调用形态。
+  void _showExport(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    ConnectionExportImportDialog.showExport(context, connections: [server]);
   }
 }
 

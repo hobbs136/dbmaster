@@ -29,7 +29,9 @@ import '../../../utils/open_directory.dart';
 import '../../../services/ai_service.dart';
 import '../../connection/error_boundary.dart';
 import '../../connection/attach_database_dialog.dart';
+import '../../connection/connection_export_import_dialog.dart';
 import '../../connection/pragma_panel.dart';
+import '../../dialogs/sqlite_maintenance_dialog.dart';
 import '../../pro/pro_import_ui.dart';
 import '../../connection/table_dialog/rename_table_dialog.dart';
 import '../../connection/table_dialog/drop_table_confirm_dialog.dart';
@@ -73,6 +75,29 @@ class SqliteSidebarPlugin implements SidebarPlugin {
             label: (l10n) => l10n.pragmaExplorerTitle,
             icon: LucideIcons.slidersHorizontal,
             onActivate: () => _activatePragmaExplorer(context),
+          ),
+          // T5（W-05/W-08）面板补缺：导出 / Smart Import / 维护三件路由。
+          // id 命名与 T2 `_releaseNewItemIds` 锁定值一致（sqlite.maintain）。
+          SidebarCapabilityItem(
+            id: 'sqlite.export',
+            capabilityId: 'io.export',
+            label: (l10n) => l10n.exportThisConnection,
+            icon: LucideIcons.fileUp,
+            onActivate: () => _activateExport(context),
+          ),
+          SidebarCapabilityItem(
+            id: 'sqlite.smartImport',
+            capabilityId: 'io.import',
+            label: (l10n) => l10n.smartImportTitle,
+            icon: LucideIcons.sparkles,
+            onActivate: () => _activateSmartImport(context),
+          ),
+          SidebarCapabilityItem(
+            id: 'sqlite.maintain',
+            capabilityId: 'sqlite.maintain',
+            label: (l10n) => l10n.sqliteMaintainTitle,
+            icon: LucideIcons.wrench,
+            onActivate: () => _activateMaintenance(context),
           ),
         ],
       ),
@@ -121,6 +146,79 @@ class SqliteSidebarPlugin implements SidebarPlugin {
       connectionId: server.id,
     );
   }
+
+  // ── T5 面板补缺路由（零新执行通道，全部路由既有目标）──
+
+  /// 导出连接：`ConnectionExportImportDialog.showExport`（树内连接右键
+  /// 「export」同一调用形态，`sidebar_tree.dart` 先例）。
+  void _activateExport(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    ConnectionExportImportDialog.showExport(context, connections: [server]);
+  }
+
+  /// AI Smart Import：与树内 Tables 分类右键同一流程
+  /// （[showSqliteSmartImportFlow]，Pro SPI 既有链路）。
+  void _activateSmartImport(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    showSqliteSmartImportFlow(context, context.read<AppProvider>(), server.id);
+  }
+
+  /// 维护三件（VACUUM/ANALYZE/REINDEX）：打开 [SqliteMaintenanceDialog]
+  /// （确认门 + 审计 + 结果行归 dialog 内聚）。
+  void _activateMaintenance(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    unawaited(
+      SqliteMaintenanceDialog.show(
+        context,
+        connectionId: server.id,
+        databaseName: server.host, // SQLite 连接 host = 库文件路径（展示用）
+      ),
+    );
+  }
+}
+
+/// AI Smart Import 入口（能力菜单与树内 Tables 右键共用同一流程）：
+/// `tryDataImport` 门（门控当前整体禁用语义保持）→ ProImportUi SPI 打开
+/// 向导（OSS = NoOp 兜底）。
+void showSqliteSmartImportFlow(
+  BuildContext context,
+  AppProvider provider,
+  String connectionId,
+) {
+  AppLogger.i('SQLiteNodes', 'AI Smart Import triggered');
+
+  if (!provider.tryDataImport(
+    'data_import_${DateTime.now().millisecondsSinceEpoch}',
+  )) {
+    return;
+  }
+
+  final adapter = provider.connection.dbService.currentAdapter;
+
+  if (adapter == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.pleaseConnectDatabase),
+        backgroundColor: context.themeColors.warning,
+      ),
+    );
+    return;
+  }
+
+  // open-core Phase B.2：Smart Import 向导经 ProImportUi SPI 注入
+  // （OSS=NoOp，门禁已拦截，此处兜底 no-op）。
+  unawaited(
+    context.read<ProImportUi>().openImportWizard(
+      context,
+      connectionId: connectionId,
+      initialDatabase: 'main',
+      adapter: adapter,
+      aiClient: AiService().client,
+    ),
+  );
 }
 
 /// Attach Database 对话框 + ATTACH 执行 + SnackBar 反馈（能力菜单与
@@ -1781,37 +1879,8 @@ class _SqliteConnectionTree {
   }
 
   void _showSmartImportDialog() {
-    AppLogger.i('SQLiteNodes', 'AI Smart Import triggered');
-
-    if (!provider.tryDataImport(
-      'data_import_${DateTime.now().millisecondsSinceEpoch}',
-    )) {
-      return;
-    }
-
-    final adapter = provider.connection.dbService.currentAdapter;
-
-    if (adapter == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.pleaseConnectDatabase),
-          backgroundColor: context.themeColors.warning,
-        ),
-      );
-      return;
-    }
-
-    // open-core Phase B.2：Smart Import 向导经 ProImportUi SPI 注入
-    // （OSS=NoOp，门禁已拦截，此处兜底 no-op）。
-    unawaited(
-      context.read<ProImportUi>().openImportWizard(
-        context,
-        connectionId: connectionId,
-        initialDatabase: 'main',
-        adapter: adapter,
-        aiClient: AiService().client,
-      ),
-    );
+    // T5：能力菜单与树内右键共用同一流程（showSqliteSmartImportFlow）。
+    showSqliteSmartImportFlow(context, provider, connectionId);
   }
 
   void _showColumnContextMenu(
