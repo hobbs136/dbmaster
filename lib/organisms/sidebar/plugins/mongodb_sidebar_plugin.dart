@@ -26,8 +26,8 @@
 // 审计，C03/T10 backlog 销项）；经 adapter 薄包装 + dbService.getAdapter
 // 检索（T4 PG 插件同模式——铁律 3「不直接实例化」语义保持，本文件为此
 // 引入 adapters import，树装配仍零 adapter 触达）。DBT-T11（W4 串行链尾）
-// 追加第 7 项 mongo.gridfs——GridFS 只读查看器（列表/元数据/下载；上传/
-// 删除后置呈报），取数同走 adapter 只读薄包装（fs.files/fs.chunks 集合
+// 追加第 7 项 mongo.gridfs——GridFS 查看（列表/元数据/下载/上传；无删除/
+// 重命名入口），取数同走 adapter 只读薄包装（fs.files/fs.chunks 集合
 // 查询，零 server 改动）。DBT-T12（W5 串行链尾，T9 结论 = 可行·方案 A）
 // 追加第 8 项 mongo.explain——Explain 计划面板（选库/集合 + shell 查询
 // 输入 + 摘要两列表 + 可折叠完整 JSON）；数据经 dbService.getExplainPlan
@@ -135,8 +135,8 @@ class MongodbSidebarPlugin implements SidebarPlugin {
           ),
           // ── DBT-T11 新增（2026-10 工具面板补齐批，串行链 T7→T10→T11）──
           // id 与 T2 `_releaseNewItemIds` 预登记锁定值一致（命中「新建」
-          // 徽标，徽标渲染归框架）。GridFS 只读查看器：列表/元数据/下载
-          // （上传/删除后置呈报，tasks §5 #8）；取数经 adapter 只读薄包装
+          // 徽标，徽标渲染归框架）。GridFS 查看：列表/元数据/下载/上传
+          // （T21 落地；无删除/重命名入口）；取数经 adapter 只读薄包装
           // + dbService.getAdapter 检索（T10 同模式）。
           SidebarCapabilityItem(
             id: 'mongo.gridfs',
@@ -368,7 +368,7 @@ class MongodbSidebarPlugin implements SidebarPlugin {
   }
 
   /// GridFS 只读查看器（DBT-T11，W-12）：bucket 文件列表 + 元数据详情 +
-  /// 下载（写本地文件），**UI 无上传/删除入口**（后置呈报项）。取数经
+  /// 下载（写本地文件）+ 上传（第二程序 T21 补齐），**无删除/重命名入口**。取数经
   /// adapter 只读薄包装（listGridFsFiles/getGridFsFileMetadata/
   /// readGridFsFileBytes——fs.files/fs.chunks 集合查询，零 server 改动）；
   /// 经 `dbService.getAdapter` 消费端检索（T10 同模式，铁律 3 语义保持）。
