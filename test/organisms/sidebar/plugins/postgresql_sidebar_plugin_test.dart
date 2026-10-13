@@ -356,13 +356,15 @@ void main() {
                   .capabilityGroups(context);
               // DBT-T4：新增项 capabilityId 映射逐项锁定（pg.vector 复用
               // pg.extension 位 = 扩展管理能力面；pg.queryPlan 已销项——
-              // R2 裁定，呈报包 #11 备查，本批无该项；DBT-T8 增 pg.locks）。
+              // R2 裁定，呈报包 #11 备查，本批无该项；DBT-T8 增 pg.locks；
+              // DBT-T19 增 pg.foreignTable——id/cap 均为 T22 预登记值）。
               const expected = <String, String>{
                 'process.kill': 'process.kill',
                 'pg.extension': 'pg.extension',
                 'pg.vector': 'pg.extension',
                 'pg.maintenance': 'table.analyze',
                 'pg.locks': 'pg.locks',
+                'pg.foreignTable': 'pg.foreignTable',
               };
               final items = groups.first.items;
               expect(items.map((i) => i.id).toList(), expected.keys.toList());
@@ -385,6 +387,8 @@ void main() {
         'table.analyze',
         // DBT-T8：锁分析位（T0 预登记，本批接线消费）。
         'pg.locks',
+        // DBT-T19：外部表位（T22 预登记，本批接线消费）。
+        'pg.foreignTable',
       ];
       for (final cap in caps) {
         expect(CapabilityTable.has(DatabaseType.postgresql, cap), isTrue,
@@ -392,7 +396,7 @@ void main() {
       }
     });
 
-    testWidgets('PostgreSQL 装配可见项数 = core 5 + 插件 5 = 10（CapabilityTable 门控后）',
+    testWidgets('PostgreSQL 装配可见项数 = core 5 + 插件 6 = 11（CapabilityTable 门控后）',
         (tester) async {
       SharedPreferences.setMockInitialValues({});
       await tester.pumpWidget(
@@ -413,7 +417,7 @@ void main() {
                 for (final g in groups)
                   ...g.items.map((i) => i.item.id),
               ];
-              expect(ids, hasLength(10));
+              expect(ids, hasLength(11));
               expect(
                 ids,
                 containsAll(const [
@@ -423,12 +427,13 @@ void main() {
                   'trigger.list',
                   'schema.diff',
                   'ai.assistant',
-                  // 插件 5（DBT-T8 增 pg.locks）
+                  // 插件 6（DBT-T8 增 pg.locks；DBT-T19 增 pg.foreignTable）
                   'process.kill',
                   'pg.extension',
                   'pg.vector',
                   'pg.maintenance',
                   'pg.locks',
+                  'pg.foreignTable',
                 ]),
               );
               return const SizedBox.shrink();

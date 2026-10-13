@@ -20,6 +20,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -74,14 +75,18 @@ Map<String, dynamic> _sentBody(http.Request req) =>
 List<String> _cursorEvents(List<Map<String, dynamic>> docs) => [
   'event: meta\ndata: {"kind":"mongo","type":"meta","columns":["doc"]}',
   if (docs.isNotEmpty)
-    'event: rows\ndata: {"kind":"mongo","type":"rows","rows":${jsonEncode([for (final d in docs) [d]])}}',
+    'event: rows\ndata: {"kind":"mongo","type":"rows","rows":${jsonEncode([
+      for (final d in docs) [d],
+    ])}}',
   'event: complete\ndata: {"kind":"mongo","type":"complete","rowCount":${docs.length},"truncated":false,"elapsedMs":5}',
 ];
 
 /// 非游标命令的 SSE 三事件（单列 result）。
 List<String> _resultEvents(Map<String, dynamic> doc) => [
   'event: meta\ndata: {"kind":"mongo","type":"meta","columns":["result"]}',
-  'event: rows\ndata: {"kind":"mongo","type":"rows","rows":${jsonEncode([[doc]])}}',
+  'event: rows\ndata: {"kind":"mongo","type":"rows","rows":${jsonEncode([
+    [doc],
+  ])}}',
   'event: complete\ndata: {"kind":"mongo","type":"complete","rowCount":1,"truncated":false,"elapsedMs":4}',
 ];
 
@@ -93,26 +98,26 @@ DatabaseConnection _conn({
   bool readOnly = false,
   int? timeoutSecs,
   Map<String, dynamic>? extra,
-}) =>
-    DatabaseConnection(
-      id: 'local_mongo_1',
-      name: 'Mongo Live',
-      type: DatabaseType.mongodb,
-      host: '192.0.2.128',
-      port: 27017,
-      username: 'admin',
-      password: 'pw',
-      database: 'admin',
-      readOnly: readOnly,
-      extra: {
-        'mongoConnectionMode': 'direct',
-        if (timeoutSecs != null) 'timeout': timeoutSecs,
-        ...?extra,
-      },
-    );
+}) => DatabaseConnection(
+  id: 'local_mongo_1',
+  name: 'Mongo Live',
+  type: DatabaseType.mongodb,
+  host: '192.0.2.128',
+  port: 27017,
+  username: 'admin',
+  password: 'pw',
+  database: 'admin',
+  readOnly: readOnly,
+  extra: {
+    'mongoConnectionMode': 'direct',
+    if (timeoutSecs != null) 'timeout': timeoutSecs,
+    ...?extra,
+  },
+);
 
-http.StreamedResponse _listResponse(Set<String> ids) =>
-    _jsonResp([for (final id in ids) {'id': id, 'dbType': 'mongodb'}], 200);
+http.StreamedResponse _listResponse(Set<String> ids) => _jsonResp([
+  for (final id in ids) {'id': id, 'dbType': 'mongodb'},
+], 200);
 
 /// connect 走通（无映射 → test → 注册）的公共回放。
 _RecordingClient _freshConnectClient() => _RecordingClient((req) {
@@ -125,7 +130,9 @@ _RecordingClient _freshConnectClient() => _RecordingClient((req) {
   if (req.url.path == '/api/gw/connections' && req.method == 'GET') {
     return _listResponse({});
   }
-  return _jsonResp({'error': {'code': 'X', 'message': 'unmapped'}}, 500);
+  return _jsonResp({
+    'error': {'code': 'X', 'message': 'unmapped'},
+  }, 500);
 });
 
 void main() {
@@ -154,8 +161,9 @@ void main() {
       expect(adapter.isConnected, isTrue);
 
       // 草稿体形状：mongodb 凭据族 + defaultDatabase=认证库 + extra 四键。
-      final draft = client.requests
-          .firstWhere((r) => r.url.path == '/api/gw/connections/test');
+      final draft = client.requests.firstWhere(
+        (r) => r.url.path == '/api/gw/connections/test',
+      );
       final draftBody = _sentBody(draft);
       expect(draftBody['dbType'], 'mongodb');
       expect(draftBody['host'], '192.0.2.128');
@@ -187,7 +195,9 @@ void main() {
         if (req.url.path == '/api/gw/connections' && req.method == 'GET') {
           return _listResponse({'srv-9'});
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'unmapped'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'unmapped'},
+        }, 500);
       });
       final adapter = MongoDBAdapter()..httpClient = client;
       final ok = await adapter.connect(_conn());
@@ -218,7 +228,9 @@ void main() {
         if (req.url.path == '/api/gw/connections' && req.method == 'POST') {
           return _jsonResp({'serverConnId': 'srv-2'}, 200);
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = MongoDBAdapter()..httpClient = client;
       final ok = await adapter.connect(_conn());
@@ -236,7 +248,9 @@ void main() {
         if (req.url.path == '/api/gw/connections/test') {
           return _jsonResp({'ok': false, 'error': 'auth failed'}, 200);
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = MongoDBAdapter()..httpClient = client;
       // 连接失败 UX 重构 T9b：失败不再吞掉（原 return false）。error 为
@@ -267,88 +281,98 @@ void main() {
       );
     });
 
-    test('凭据 test 失败（envelope ok:false code/message）→ AdapterConnectException 且不注册', () async {
-      final client = _RecordingClient((req) {
-        if (req.url.path == '/api/gw/connections/test') {
+    test(
+      '凭据 test 失败（envelope ok:false code/message）→ AdapterConnectException 且不注册',
+      () async {
+        final client = _RecordingClient((req) {
+          if (req.url.path == '/api/gw/connections/test') {
+            return _jsonResp({
+              'ok': false,
+              'error': {
+                'code': 'DB_ERROR',
+                'message': 'Authentication failed (engine code: Unauthorized)',
+              },
+            }, 200);
+          }
           return _jsonResp({
-            'ok': false,
-            'error': {
-              'code': 'DB_ERROR',
-              'message': 'Authentication failed (engine code: Unauthorized)',
-            },
-          }, 200);
-        }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
-      });
-      final adapter = MongoDBAdapter()..httpClient = client;
-      await expectLater(
-        adapter.connect(_conn()),
-        throwsA(
-          isA<AdapterConnectException>()
-              .having(
-                (e) => e.failure.kind,
-                'kind',
-                ConnectionFailureKind.unknown,
-              )
-              .having((e) => e.failure.errorCode, 'errorCode', 'DB_ERROR')
-              .having(
-                (e) => e.failure.rawMessage,
-                'rawMessage',
-                contains('Authentication failed'),
-              )
-              .having((e) => e.failure.target, 'target', '192.0.2.128:27017'),
-        ),
-      );
-      expect(
-        client.requests.any(
-          (r) => r.method == 'POST' && r.url.path == '/api/gw/connections',
-        ),
-        isFalse,
-      );
-      expect(adapter.isConnected, isFalse);
-    });
+            'error': {'code': 'X', 'message': 'x'},
+          }, 500);
+        });
+        final adapter = MongoDBAdapter()..httpClient = client;
+        await expectLater(
+          adapter.connect(_conn()),
+          throwsA(
+            isA<AdapterConnectException>()
+                .having(
+                  (e) => e.failure.kind,
+                  'kind',
+                  ConnectionFailureKind.unknown,
+                )
+                .having((e) => e.failure.errorCode, 'errorCode', 'DB_ERROR')
+                .having(
+                  (e) => e.failure.rawMessage,
+                  'rawMessage',
+                  contains('Authentication failed'),
+                )
+                .having((e) => e.failure.target, 'target', '192.0.2.128:27017'),
+          ),
+        );
+        expect(
+          client.requests.any(
+            (r) => r.method == 'POST' && r.url.path == '/api/gw/connections',
+          ),
+          isFalse,
+        );
+        expect(adapter.isConnected, isFalse);
+      },
+    );
 
-    test('T12s wire：error_code=AUTH_DENIED → AdapterConnectException kind=authFailed', () async {
-      // T12c：server 草稿 test 失败响应加性新增顶层 `error_code`（snake_case），
-      // error 字符串字段原样保留 → kind 分型 authFailed、errorCode 非空。
-      final client = _RecordingClient((req) {
-        if (req.url.path == '/api/gw/connections/test') {
+    test(
+      'T12s wire：error_code=AUTH_DENIED → AdapterConnectException kind=authFailed',
+      () async {
+        // T12c：server 草稿 test 失败响应加性新增顶层 `error_code`（snake_case），
+        // error 字符串字段原样保留 → kind 分型 authFailed、errorCode 非空。
+        final client = _RecordingClient((req) {
+          if (req.url.path == '/api/gw/connections/test') {
+            return _jsonResp({
+              'ok': false,
+              'error': 'Authentication failed',
+              'error_code': 'AUTH_DENIED',
+              'elapsedMs': 12,
+            }, 200);
+          }
           return _jsonResp({
-            'ok': false,
-            'error': 'Authentication failed',
-            'error_code': 'AUTH_DENIED',
-            'elapsedMs': 12,
-          }, 200);
-        }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
-      });
-      final adapter = MongoDBAdapter()..httpClient = client;
-      await expectLater(
-        adapter.connect(_conn()),
-        throwsA(
-          isA<AdapterConnectException>()
-              .having(
-                (e) => e.failure.kind,
-                'kind',
-                ConnectionFailureKind.authFailed,
-              )
-              .having((e) => e.failure.errorCode, 'errorCode', 'AUTH_DENIED')
-              .having(
-                (e) => e.failure.rawMessage,
-                'rawMessage',
-                contains('Authentication failed'),
-              )
-              .having((e) => e.failure.target, 'target', '192.0.2.128:27017'),
-        ),
-      );
-      expect(
-        client.requests.any(
-          (r) => r.method == 'POST' && r.url.path == '/api/gw/connections',
-        ),
-        isFalse,
-      );
-      expect(adapter.isConnected, isFalse);
-    });
+            'error': {'code': 'X', 'message': 'x'},
+          }, 500);
+        });
+        final adapter = MongoDBAdapter()..httpClient = client;
+        await expectLater(
+          adapter.connect(_conn()),
+          throwsA(
+            isA<AdapterConnectException>()
+                .having(
+                  (e) => e.failure.kind,
+                  'kind',
+                  ConnectionFailureKind.authFailed,
+                )
+                .having((e) => e.failure.errorCode, 'errorCode', 'AUTH_DENIED')
+                .having(
+                  (e) => e.failure.rawMessage,
+                  'rawMessage',
+                  contains('Authentication failed'),
+                )
+                .having((e) => e.failure.target, 'target', '192.0.2.128:27017'),
+          ),
+        );
+        expect(
+          client.requests.any(
+            (r) => r.method == 'POST' && r.url.path == '/api/gw/connections',
+          ),
+          isFalse,
+        );
+        expect(adapter.isConnected, isFalse);
+      },
+    );
 
     test('集群 extra 四键透传 + 空凭据省略', () async {
       final client = _RecordingClient((req) {
@@ -383,8 +407,9 @@ void main() {
       );
       await adapter.connect(credsFree);
 
-      final draft = client.requests
-          .firstWhere((r) => r.url.path == '/api/gw/connections/test');
+      final draft = client.requests.firstWhere(
+        (r) => r.url.path == '/api/gw/connections/test',
+      );
       final draftBody = _sentBody(draft);
       expect(draftBody['extra'], {
         'mongoConnectionMode': 'replicaSet',
@@ -404,19 +429,23 @@ void main() {
           return _listResponse({'srv-1'});
         }
         if (req.url.path.endsWith('/query')) {
-          return _sse(_cursorEvents([
-            {
-              '_id': {'\$oid': '010101010101010101010101'},
-              'name': 'alice',
-              'when': {'\$date': '2026-01-01T00:00:00.000Z'},
-            },
-            {
-              '_id': {'\$oid': '020202020202020202020202'},
-              'name': 'bob',
-            },
-          ]));
+          return _sse(
+            _cursorEvents([
+              {
+                '_id': {'\$oid': '010101010101010101010101'},
+                'name': 'alice',
+                'when': {'\$date': '2026-01-01T00:00:00.000Z'},
+              },
+              {
+                '_id': {'\$oid': '020202020202020202020202'},
+                'name': 'bob',
+              },
+            ]),
+          );
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = await _connectedAdapter(client);
 
@@ -433,11 +462,7 @@ void main() {
         client.requests.firstWhere((r) => r.url.path.endsWith('/query')),
       );
       expect(cmd['kind'], 'mongo');
-      expect(cmd['command'], {
-        'find': 'users',
-        'filter': {},
-        'limit': 100,
-      });
+      expect(cmd['command'], {'find': 'users', 'filter': {}, 'limit': 100});
       expect(cmd['database'], 'admin');
     });
 
@@ -460,7 +485,9 @@ void main() {
             'event: complete\ndata: {"kind":"mongo","type":"complete","rowCount":2,"truncated":false,"elapsedMs":6}',
           ]);
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = await _connectedAdapter(client);
 
@@ -472,9 +499,9 @@ void main() {
       final many = await adapter.executeQuery('db.users.find({}).sort({n: 1})');
       expect(many.rows.length, 2);
       // sort 下传命令。
-      final cmd = _sentBody(client.requests.lastWhere(
-        (r) => r.url.path.endsWith('/query'),
-      ));
+      final cmd = _sentBody(
+        client.requests.lastWhere((r) => r.url.path.endsWith('/query')),
+      );
       expect((cmd['command'] as Map)['sort'], {'n': 1});
     });
 
@@ -484,26 +511,33 @@ void main() {
           return _listResponse({'srv-1'});
         }
         if (req.url.path.endsWith('/query')) {
-          final cmd = (_sentBody(req)['command'] as Map).cast<String, dynamic>();
+          final cmd = (_sentBody(req)['command'] as Map)
+              .cast<String, dynamic>();
           if (cmd.containsKey('count')) {
             return _sse(_resultEvents({'n': 7, 'ok': 1}));
           }
-          return _sse(_resultEvents({
-            'values': ['a', 'b'],
-            'ok': 1,
-          }));
+          return _sse(
+            _resultEvents({
+              'values': ['a', 'b'],
+              'ok': 1,
+            }),
+          );
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = await _connectedAdapter(client);
 
-      final count = await adapter.executeQuery('db.users.countDocuments({x: 1})');
+      final count = await adapter.executeQuery(
+        'db.users.countDocuments({x: 1})',
+      );
       expect(count.rows, [
         {'count': 7},
       ]);
-      final countCmd = _sentBody(client.requests
-          .where((r) => r.url.path.endsWith('/query'))
-          .first);
+      final countCmd = _sentBody(
+        client.requests.where((r) => r.url.path.endsWith('/query')).first,
+      );
       expect(countCmd['command'], {
         'count': 'users',
         'query': {'x': 1},
@@ -514,9 +548,9 @@ void main() {
         {'city': 'a'},
         {'city': 'b'},
       ]);
-      final distinctCmd = _sentBody(client.requests.lastWhere(
-        (r) => r.url.path.endsWith('/query'),
-      ));
+      final distinctCmd = _sentBody(
+        client.requests.lastWhere((r) => r.url.path.endsWith('/query')),
+      );
       expect(distinctCmd['command'], {'distinct': 'users', 'key': 'city'});
     });
 
@@ -526,9 +560,15 @@ void main() {
           return _listResponse({'srv-1'});
         }
         if (req.url.path.endsWith('/query')) {
-          return _sse(_cursorEvents([{'_id': 'a', 'total': 3}]));
+          return _sse(
+            _cursorEvents([
+              {'_id': 'a', 'total': 3},
+            ]),
+          );
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = await _connectedAdapter(client);
 
@@ -538,9 +578,9 @@ void main() {
       expect(result.rows, [
         {'_id': 'a', 'total': 3},
       ]);
-      final cmd = _sentBody(client.requests.firstWhere(
-        (r) => r.url.path.endsWith('/query'),
-      ));
+      final cmd = _sentBody(
+        client.requests.firstWhere((r) => r.url.path.endsWith('/query')),
+      );
       expect(cmd['command']['aggregate'], 'orders');
       expect(cmd['command']['cursor'], {});
       expect(cmd['command']['pipeline'], isA<List<dynamic>>());
@@ -554,15 +594,17 @@ void main() {
         if (req.url.path.endsWith('/query')) {
           return _sse(_resultEvents({'ok': 1}));
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = await _connectedAdapter(client);
 
       final result = await adapter.executeQuery('SELECT 1');
       expect(result.rows[0]['result'], {'ok': 1});
-      final cmd = _sentBody(client.requests.firstWhere(
-        (r) => r.url.path.endsWith('/query'),
-      ));
+      final cmd = _sentBody(
+        client.requests.firstWhere((r) => r.url.path.endsWith('/query')),
+      );
       expect(cmd['command'], {'ping': 1});
       expect(cmd['database'], 'admin');
     });
@@ -584,7 +626,9 @@ void main() {
         if (req.url.path.endsWith('/query')) {
           return _sse(_cursorEvents([]));
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = MongoDBAdapter()..httpClient = client;
       await adapter.connect(_conn(timeoutSecs: 45));
@@ -615,7 +659,9 @@ void main() {
             'event: error\ndata: {"kind":"mongo","type":"error","code":"DB_ERROR","message":"ns not found","engineCode":"NamespaceNotFound"}',
           ]);
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = await _connectedAdapter(client);
       await expectLater(
@@ -643,7 +689,9 @@ void main() {
             'event: error\ndata: {"kind":"mongo","type":"error","code":"$failWith","message":"x"}',
           ]);
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = await _connectedAdapter(client);
       var disconnected = 0;
@@ -664,10 +712,7 @@ void main() {
     test('无 server 会话 → 引导性 StateError', () async {
       ServerConnection.resetForTesting();
       final adapter = MongoDBAdapter();
-      await expectLater(
-        adapter.connect(_conn()),
-        throwsA(isA<StateError>()),
-      );
+      await expectLater(adapter.connect(_conn()), throwsA(isA<StateError>()));
     });
 
     test('disconnect → 清空连接态 + best-effort 取消在途', () async {
@@ -682,7 +727,9 @@ void main() {
         if (req.method == 'DELETE' && req.url.path.contains('/executions/')) {
           return _jsonResp({}, 204);
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = await _connectedAdapter(client);
       expect(adapter.isConnected, isTrue);
@@ -698,19 +745,23 @@ void main() {
           return _listResponse({'srv-1'});
         }
         if (req.url.path.endsWith('/query')) {
-          return _sse(_cursorEvents([
-            {'name': 'users'},
-            {'name': 'system.views'},
-            {'name': 'audit'},
-          ]));
+          return _sse(
+            _cursorEvents([
+              {'name': 'users'},
+              {'name': 'system.views'},
+              {'name': 'audit'},
+            ]),
+          );
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = await _connectedAdapter(client);
       expect(await adapter.getTables(), ['audit', 'users']);
-      final cmd = _sentBody(client.requests.firstWhere(
-        (r) => r.url.path.endsWith('/query'),
-      ));
+      final cmd = _sentBody(
+        client.requests.firstWhere((r) => r.url.path.endsWith('/query')),
+      );
       expect(cmd['command'], {'listCollections': 1});
     });
 
@@ -720,17 +771,21 @@ void main() {
           return _listResponse({'srv-1'});
         }
         if (req.url.path.endsWith('/query')) {
-          return _sse(_cursorEvents([
-            {
-              '_id': {'\$oid': 'aaaa'},
-              'name': 'x',
-              'age': 3,
-              'when': {'\$date': '2026-01-01T00:00:00.000Z'},
-              'tags': [1],
-            },
-          ]));
+          return _sse(
+            _cursorEvents([
+              {
+                '_id': {'\$oid': 'aaaa'},
+                'name': 'x',
+                'age': 3,
+                'when': {'\$date': '2026-01-01T00:00:00.000Z'},
+                'tags': [1],
+              },
+            ]),
+          );
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = await _connectedAdapter(client);
       final cols = await adapter.getTableColumns('users');
@@ -749,19 +804,23 @@ void main() {
           return _listResponse({'srv-1'});
         }
         if (req.url.path.endsWith('/query')) {
-          return _sse(_cursorEvents([
-            {
-              'name': '_id_',
-              'key': {'_id': 1},
-            },
-            {
-              'name': 'uq_name',
-              'key': {'name': 1},
-              'unique': true,
-            },
-          ]));
+          return _sse(
+            _cursorEvents([
+              {
+                'name': '_id_',
+                'key': {'_id': 1},
+              },
+              {
+                'name': 'uq_name',
+                'key': {'name': 1},
+                'unique': true,
+              },
+            ]),
+          );
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = await _connectedAdapter(client);
       final indexes = await adapter.getTableIndexes('users');
@@ -779,14 +838,16 @@ void main() {
         if (req.url.path.endsWith('/query')) {
           return _sse(_cursorEvents([]));
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = await _connectedAdapter(client);
       await adapter.useDatabase('sales');
       await adapter.getTables();
-      final cmd = _sentBody(client.requests.firstWhere(
-        (r) => r.url.path.endsWith('/query'),
-      ));
+      final cmd = _sentBody(
+        client.requests.firstWhere((r) => r.url.path.endsWith('/query')),
+      );
       expect(cmd['database'], 'sales');
     });
 
@@ -798,21 +859,23 @@ void main() {
         if (req.url.path.endsWith('/query')) {
           return _sse([_completeEvent(1)]);
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = await _connectedAdapter(client);
       await adapter.useDatabase('sales');
       expect(await adapter.dropDatabase('sales'), isTrue);
-      final cmd = _sentBody(client.requests.firstWhere(
-        (r) => r.url.path.endsWith('/query'),
-      ));
+      final cmd = _sentBody(
+        client.requests.firstWhere((r) => r.url.path.endsWith('/query')),
+      );
       expect(cmd['command'], {'dropDatabase': 1});
       expect(cmd['database'], 'sales');
       // 后续命令回落认证库（admin）。
       await adapter.getTables();
-      final next = _sentBody(client.requests.lastWhere(
-        (r) => r.url.path.endsWith('/query'),
-      ));
+      final next = _sentBody(
+        client.requests.lastWhere((r) => r.url.path.endsWith('/query')),
+      );
       expect(next['database'], 'admin');
     });
 
@@ -824,13 +887,15 @@ void main() {
         if (req.url.path.endsWith('/query')) {
           return _sse([_completeEvent(1)]);
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = await _connectedAdapter(client);
       expect(await adapter.renameTable('a', 'b'), isTrue);
-      final cmd = _sentBody(client.requests.firstWhere(
-        (r) => r.url.path.endsWith('/query'),
-      ));
+      final cmd = _sentBody(
+        client.requests.firstWhere((r) => r.url.path.endsWith('/query')),
+      );
       expect(cmd['command']['renameCollection'], 'admin.a');
       expect(cmd['command']['to'], 'admin.b');
       expect(cmd['database'], 'admin');
@@ -854,14 +919,18 @@ void main() {
           }
           return _sse([_completeEvent(3)]);
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = await _connectedAdapter(client);
 
       expect(await adapter.insertOne('users', {'name': 'x'}), isTrue);
-      var cmd = _sentBody(client.requests
-          .where((r) => r.url.path.endsWith('/query'))
-          .elementAt(0));
+      var cmd = _sentBody(
+        client.requests
+            .where((r) => r.url.path.endsWith('/query'))
+            .elementAt(0),
+      );
       expect(cmd['command']['insert'], 'users');
       expect(cmd['command']['documents'], [
         {'name': 'x'},
@@ -870,14 +939,20 @@ void main() {
       // update 命令：affectedRows 是响应 n（含未修改匹配）；updateOne 返回
       // nModified。
       expect(
-        await adapter.updateOne('users', {'a': 1}, {
-          r'$set': {'b': 2},
-        }),
+        await adapter.updateOne(
+          'users',
+          {'a': 1},
+          {
+            r'$set': {'b': 2},
+          },
+        ),
         0,
       );
-      cmd = _sentBody(client.requests
-          .where((r) => r.url.path.endsWith('/query'))
-          .elementAt(1));
+      cmd = _sentBody(
+        client.requests
+            .where((r) => r.url.path.endsWith('/query'))
+            .elementAt(1),
+      );
       expect(cmd['command']['update'], 'users');
       expect(cmd['command']['updates'], [
         {
@@ -890,9 +965,11 @@ void main() {
       ]);
 
       expect(await adapter.deleteMany('users', {}), 3);
-      cmd = _sentBody(client.requests
-          .where((r) => r.url.path.endsWith('/query'))
-          .elementAt(2));
+      cmd = _sentBody(
+        client.requests
+            .where((r) => r.url.path.endsWith('/query'))
+            .elementAt(2),
+      );
       expect(cmd['command']['delete'], 'users');
       expect(cmd['command']['deletes'], [
         {'q': {}, 'limit': 0},
@@ -911,16 +988,26 @@ void main() {
               'event: error\ndata: {"kind":"mongo","type":"error","code":"DB_ERROR","message":"not replset"}',
             ]);
           }
-          return _sse(_resultEvents({
-            'ok': 1.0,
-            'set': 'rs0',
-            'myState': 1,
-            'members': [
-              {'name': 'h1:27017', 'stateStr': 'PRIMARY', 'state': 1, 'health': 1, 'uptime': 99},
-            ],
-          }));
+          return _sse(
+            _resultEvents({
+              'ok': 1.0,
+              'set': 'rs0',
+              'myState': 1,
+              'members': [
+                {
+                  'name': 'h1:27017',
+                  'stateStr': 'PRIMARY',
+                  'state': 1,
+                  'health': 1,
+                  'uptime': 99,
+                },
+              ],
+            }),
+          );
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = await _connectedAdapter(client);
 
@@ -928,9 +1015,9 @@ void main() {
       expect(status!['setName'], 'rs0');
       expect(status['members'].length, 1);
       expect((status['members'] as List).first['state'], 'PRIMARY');
-      final cmd = _sentBody(client.requests.firstWhere(
-        (r) => r.url.path.endsWith('/query'),
-      ));
+      final cmd = _sentBody(
+        client.requests.firstWhere((r) => r.url.path.endsWith('/query')),
+      );
       expect(cmd['command'], {'replSetGetStatus': 1});
       expect(cmd['database'], 'admin');
 
@@ -944,25 +1031,29 @@ void main() {
           return _listResponse({'srv-1'});
         }
         if (req.url.path.endsWith('/query')) {
-          return _sse(_cursorEvents([
-            {
-              '_id': {'\$oid': 'x'},
-              'name': 'a',
-              'score': 1,
-            },
-            {
-              '_id': {'\$oid': 'y'},
-              'name': 'b',
-              'score': 2,
-            },
-            {
-              '_id': {'\$oid': 'z'},
-              'name': 'c',
-              'score': 'oops',
-            },
-          ]));
+          return _sse(
+            _cursorEvents([
+              {
+                '_id': {'\$oid': 'x'},
+                'name': 'a',
+                'score': 1,
+              },
+              {
+                '_id': {'\$oid': 'y'},
+                'name': 'b',
+                'score': 2,
+              },
+              {
+                '_id': {'\$oid': 'z'},
+                'name': 'c',
+                'score': 'oops',
+              },
+            ]),
+          );
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = await _connectedAdapter(client);
       final schema = await adapter.inferDocumentSchema('users', sampleSize: 3);
@@ -974,9 +1065,9 @@ void main() {
       expect((fields['score'] as Map)['type'], 'Mixed');
       expect((fields['_id'] as Map)['type'], 'ObjectId');
       // find limit = sampleSize。
-      final cmd = _sentBody(client.requests.firstWhere(
-        (r) => r.url.path.endsWith('/query'),
-      ));
+      final cmd = _sentBody(
+        client.requests.firstWhere((r) => r.url.path.endsWith('/query')),
+      );
       expect(cmd['command']['limit'], 3);
     });
 
@@ -986,27 +1077,31 @@ void main() {
           return _listResponse({'srv-1'});
         }
         if (req.url.path.endsWith('/query')) {
-          return _sse(_resultEvents({
-            'ns': 'test.users',
-            'count': 42,
-            'storageSize': 4096,
-            'size': 2048,
-            'nindexes': 2,
-            'totalIndexSize': 8192,
-            'capped': false,
-            'ok': 1.0,
-          }));
+          return _sse(
+            _resultEvents({
+              'ns': 'test.users',
+              'count': 42,
+              'storageSize': 4096,
+              'size': 2048,
+              'nindexes': 2,
+              'totalIndexSize': 8192,
+              'capped': false,
+              'ok': 1.0,
+            }),
+          );
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = await _connectedAdapter(client);
       final stats = await adapter.getCollectionStats('users');
       expect(stats['documentCount'], 42);
       expect(stats['indexCount'], 2);
       expect(stats['isCapped'], isFalse);
-      final cmd = _sentBody(client.requests.firstWhere(
-        (r) => r.url.path.endsWith('/query'),
-      ));
+      final cmd = _sentBody(
+        client.requests.firstWhere((r) => r.url.path.endsWith('/query')),
+      );
       expect(cmd['command'], {'collStats': 'users'});
     });
   });
@@ -1020,13 +1115,334 @@ void main() {
         if (req.url.path == '/api/gw/connections' && req.method == 'GET') {
           return _listResponse({'srv-1'});
         }
-        return _jsonResp({'error': {'code': 'X', 'message': 'x'}}, 500);
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
       });
       final adapter = MongoDBAdapter()..httpClient = client;
       await adapter.connect(_conn(readOnly: true));
       await expectLater(
         adapter.executeQuery('{"insert": "users", "documents": [{"a": 1}]}'),
         throwsA(isA<ReadOnlyBlockedException>()),
+      );
+    });
+  });
+
+  group('DBT-T21 · GridFS 上传写面', () {
+    const fixedOid = '65f1a2b3c4d5e6f7081921aa';
+    const chunkSize = MongoDBAdapter.kGridFsUploadChunkSize;
+
+    /// 按 insert 目标集合回放（affectedRows = n；可指定失败集合与错误）。
+    _RecordingClient _uploadClient({
+      Set<String> failInserts = const {},
+      bool failDelete = false,
+      bool failFilesInsert = false,
+    }) => _RecordingClient((req) {
+      if (req.url.path == '/api/gw/connections' && req.method == 'GET') {
+        return _listResponse({'srv-1'});
+      }
+      if (req.url.path.endsWith('/query')) {
+        final cmd = (_sentBody(req)['command'] as Map);
+        final target =
+            cmd['insert']?.toString() ??
+            (cmd.containsKey('delete') ? 'delete:${cmd['delete']}' : '?');
+        if (cmd.containsKey('delete')) {
+          return failDelete
+              ? _sse([
+                  'event: error\ndata: {"kind":"mongo","type":"error","code":"DB_ERROR","message":"delete denied"}',
+                ])
+              : _sse([_completeEvent(0)]);
+        }
+        if (failInserts.contains(target) ||
+            (failFilesInsert && target.endsWith('.files'))) {
+          return _sse([
+            'event: error\ndata: {"kind":"mongo","type":"error","code":"DB_ERROR","message":"E11000 duplicate key"}',
+          ]);
+        }
+        final docs = (cmd['documents'] as List).length;
+        return _sse([_completeEvent(docs)]);
+      }
+      return _jsonResp({
+        'error': {'code': 'X', 'message': 'x'},
+      }, 500);
+    });
+
+    List<Map<String, dynamic>> _queryBodies(_RecordingClient client) => [
+      for (final r in client.requests.where(
+        (r) => r.url.path.endsWith('/query'),
+      ))
+        _sentBody(r)['command'] as Map<String, dynamic>,
+    ];
+
+    test(
+      'chunk 组装：\$binary base64/n 序/files_id 一致 + files 收尾 + 返回 hex',
+      () async {
+        final client = _uploadClient();
+        final adapter = await _connectedAdapter(client)
+          ..gridFsFilesIdFactory = () => fixedOid;
+        final bytes = [1, 2, 3, 4, 5];
+
+        final hex = await adapter.uploadGridFsFile(
+          'media',
+          database: 'db1',
+          filename: 'hello.bin',
+          bytes: bytes,
+          contentType: 'application/octet-stream',
+        );
+
+        expect(hex, fixedOid);
+        final cmds = _queryBodies(client);
+        expect(cmds.length, 2, reason: '一批 chunks + files 收尾');
+
+        // chunk 文档：files_id $oid 一致 + n=0 + $binary base64 逐字节。
+        expect(cmds[0]['insert'], 'media.chunks');
+        final chunk = (cmds[0]['documents'] as List).single as Map;
+        expect(chunk['files_id'], {r'$oid': fixedOid});
+        expect(chunk['n'], 0);
+        expect(chunk['data'][r'$binary']['base64'], base64Encode(bytes));
+        expect(chunk['data'][r'$binary']['subType'], '00');
+
+        // files 文档：_id/length/chunkSize/uploadDate($date)/filename/contentType。
+        expect(cmds[1]['insert'], 'media.files');
+        final files = (cmds[1]['documents'] as List).single as Map;
+        expect(files['_id'], {r'$oid': fixedOid});
+        expect(files['length'], 5);
+        expect(files['chunkSize'], chunkSize);
+        expect(
+          (files['uploadDate'] as Map).containsKey(r'$date'),
+          isTrue,
+          reason: 'DateTime 经 _prepareForWire 预编码为 \$date',
+        );
+        expect(files['filename'], 'hello.bin');
+        expect(files['contentType'], 'application/octet-stream');
+
+        // database 路由。
+        final bodies = [
+          for (final r in client.requests.where(
+            (r) => r.url.path.endsWith('/query'),
+          ))
+            _sentBody(r),
+        ];
+        expect(bodies.every((b) => b['database'] == 'db1'), isTrue);
+      },
+    );
+
+    test('分批边界（字节预算）：6 chunks → 两批 [5,1]，n 跨批连续', () async {
+      final client = _uploadClient();
+      final adapter = await _connectedAdapter(client)
+        ..gridFsFilesIdFactory = () => fixedOid;
+      // 6×chunkSize 字节 → 6 个满片；5 个满片 JSON ≈ 1.74MB < 1.9MB 预算，
+      // 第 6 个满片（累计 ≈ 2.09MB）触发分批 → [5,1]。
+      final bytes = Uint8List(6 * chunkSize);
+      for (var i = 0; i < bytes.length; i++) {
+        bytes[i] = i & 0xFF;
+      }
+
+      final hex = await adapter.uploadGridFsFile(
+        'media',
+        filename: 'big.bin',
+        bytes: bytes,
+      );
+      expect(hex, fixedOid);
+
+      final cmds = _queryBodies(client);
+      final chunkCmds = cmds
+          .where((c) => c['insert'] == 'media.chunks')
+          .toList();
+      expect(chunkCmds.length, 2, reason: '字节预算分批：[5,1]');
+      expect((chunkCmds[0]['documents'] as List).length, 5);
+      expect((chunkCmds[1]['documents'] as List).length, 1);
+      // n 序跨批连续且 base64 与源切片一致（抽验首片与末片）。
+      final firstBatch = (chunkCmds[0]['documents'] as List).cast<Map>();
+      final lastBatch = (chunkCmds[1]['documents'] as List).cast<Map>();
+      expect([for (final d in firstBatch) d['n']], [0, 1, 2, 3, 4]);
+      expect(lastBatch.single['n'], 5);
+      expect(
+        firstBatch.first['data'][r'$binary']['base64'],
+        base64Encode(bytes.sublist(0, chunkSize)),
+      );
+      expect(
+        lastBatch.single['data'][r'$binary']['base64'],
+        base64Encode(bytes.sublist(5 * chunkSize)),
+      );
+      // files 收尾在最后。
+      expect(cmds.last['insert'], 'media.files');
+    });
+
+    test('groupGridFsChunkDocsIntoBatches：docs 数上限 100（字节预算恒先绑定的保险位）', () {
+      // 微型 docs（jsonEncode ~110B）→ 101 docs 仍 < 1.9MB 预算 → 数量上限
+      // 绑定：[100, 1]。
+      Map<String, dynamic> tiny(int n) => {
+        'files_id': {r'$oid': fixedOid},
+        'n': n,
+        'data': {
+          r'$binary': {
+            'base64': base64Encode([n & 0xFF]),
+            'subType': '00',
+          },
+        },
+      };
+      final batches = MongoDBAdapter.groupGridFsChunkDocsIntoBatches([
+        for (var i = 0; i < 101; i++) tiny(i),
+      ]);
+      expect(batches.length, 2);
+      expect(batches[0].length, 100);
+      expect(batches[1].length, 1);
+      expect(MongoDBAdapter.groupGridFsChunkDocsIntoBatches(const []), isEmpty);
+    });
+
+    test('失败回滚：批 2 失败 → delete 本 files_id 全部 chunks；files 恒不写', () async {
+      // 时序回放：批 1 chunks 成功 → 批 2 chunks E11000 → delete 回滚。
+      var chunksInsertCount = 0;
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections' && req.method == 'GET') {
+          return _listResponse({'srv-1'});
+        }
+        if (req.url.path.endsWith('/query')) {
+          final cmd = (_sentBody(req)['command'] as Map);
+          if (cmd.containsKey('delete')) return _sse([_completeEvent(0)]);
+          final target = cmd['insert'].toString();
+          final docs = (cmd['documents'] as List).length;
+          if (target == 'media.chunks') {
+            chunksInsertCount++;
+            if (chunksInsertCount == 2) {
+              return _sse([
+                'event: error\ndata: {"kind":"mongo","type":"error","code":"DB_ERROR","message":"E11000 duplicate key"}',
+              ]);
+            }
+          }
+          return _sse([_completeEvent(docs)]);
+        }
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
+      });
+      final adapter = await _connectedAdapter(client)
+        ..gridFsFilesIdFactory = () => fixedOid;
+      final bytes = Uint8List(6 * chunkSize);
+
+      await expectLater(
+        adapter.uploadGridFsFile('media', filename: 'boom.bin', bytes: bytes),
+        throwsA(
+          isA<MongoGridFsUploadException>().having(
+            (e) => e.rollbackComplete,
+            'rollbackComplete',
+            isTrue,
+          ),
+        ),
+      );
+
+      final cmds = _queryBodies(client);
+      // 序列：批 1 insert（成功）→ 批 2 insert（E11000）→ delete 回滚；无 files insert。
+      expect(cmds[0]['insert'], 'media.chunks');
+      expect(cmds[1]['insert'], 'media.chunks');
+      expect(cmds[2].containsKey('delete'), isTrue);
+      expect(cmds[2]['delete'], 'media.chunks');
+      expect(cmds[2]['deletes'], [
+        {
+          'q': {
+            'files_id': {r'$oid': fixedOid},
+          },
+          'limit': 0,
+        },
+      ]);
+      expect(
+        cmds.any((c) => c['insert'] == 'media.files'),
+        isFalse,
+        reason: 'files 恒不写（零孤儿 files）',
+      );
+      expect(cmds.length, 3);
+    });
+
+    test('回滚失败 → rollbackComplete=false（孤儿 chunks 风险标记）', () async {
+      final client = _uploadClient(
+        failInserts: {'media.chunks'},
+        failDelete: true,
+      );
+      final adapter = await _connectedAdapter(client)
+        ..gridFsFilesIdFactory = () => fixedOid;
+
+      await expectLater(
+        adapter.uploadGridFsFile('media', filename: 'boom.bin', bytes: [1, 2]),
+        throwsA(
+          isA<MongoGridFsUploadException>().having(
+            (e) => e.rollbackComplete,
+            'rollbackComplete',
+            isFalse,
+          ),
+        ),
+      );
+    });
+
+    test('files 收尾失败 → 回滚 chunks + 上抛', () async {
+      final client = _uploadClient(failFilesInsert: true);
+      final adapter = await _connectedAdapter(client)
+        ..gridFsFilesIdFactory = () => fixedOid;
+
+      await expectLater(
+        adapter.uploadGridFsFile('media', filename: 'no-files.bin', bytes: [9]),
+        throwsA(isA<MongoGridFsUploadException>()),
+      );
+      final cmds = _queryBodies(client);
+      expect(cmds[0]['insert'], 'media.chunks');
+      expect(cmds[1]['insert'], 'media.files', reason: 'files 尝试过但失败');
+      expect(cmds[2]['delete'], 'media.chunks', reason: '回滚已插 chunks');
+    });
+
+    test('空文件（0 字节）：0 chunks + files 行直插（GridFS 规范兼容）', () async {
+      final client = _uploadClient();
+      final adapter = await _connectedAdapter(client)
+        ..gridFsFilesIdFactory = () => fixedOid;
+
+      final hex = await adapter.uploadGridFsFile(
+        'media',
+        filename: 'empty.bin',
+        bytes: const [],
+      );
+      expect(hex, fixedOid);
+      final cmds = _queryBodies(client);
+      expect(cmds.length, 1, reason: '仅 files 一条（无 chunks）');
+      final files = (cmds[0]['documents'] as List).single as Map;
+      expect(files['length'], 0);
+    });
+
+    test('超 50 MB 上限 → ArgumentError，零 /query 请求', () async {
+      final client = _uploadClient();
+      final adapter = await _connectedAdapter(client);
+      final huge = Uint8List(MongoDBAdapter.kGridFsUploadMaxBytes + 1);
+
+      await expectLater(
+        adapter.uploadGridFsFile('media', filename: 'huge.bin', bytes: huge),
+        throwsArgumentError,
+      );
+      expect(
+        client.requests.where((r) => r.url.path.endsWith('/query')),
+        isEmpty,
+      );
+    });
+
+    test('guardReadOnly：readOnly 连接 → ReadOnlyBlockedException（零请求）', () async {
+      SharedPreferences.setMockInitialValues({
+        'connection_server_id_map': jsonEncode({'local_mongo_1': 'srv-1'}),
+      });
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections' && req.method == 'GET') {
+          return _listResponse({'srv-1'});
+        }
+        return _jsonResp({
+          'error': {'code': 'X', 'message': 'x'},
+        }, 500);
+      });
+      final adapter = MongoDBAdapter()..httpClient = client;
+      await adapter.connect(_conn(readOnly: true));
+
+      await expectLater(
+        adapter.uploadGridFsFile('media', filename: 'x.bin', bytes: [1]),
+        throwsA(isA<ReadOnlyBlockedException>()),
+      );
+      expect(
+        client.requests.where((r) => r.url.path.endsWith('/query')),
+        isEmpty,
       );
     });
   });
@@ -1051,7 +1467,9 @@ _RecordingClient _noQueryClient() => _RecordingClient((req) {
   if (req.url.path == '/api/gw/connections' && req.method == 'GET') {
     return _listResponse({'srv-1'});
   }
-  return _jsonResp({'error': {'code': 'X', 'message': 'unreachable'}}, 500);
+  return _jsonResp({
+    'error': {'code': 'X', 'message': 'unreachable'},
+  }, 500);
   // 网关 TLS 透传 + server 侧 SSH 隧道：draft/test body 形状（TLS 两键
   // 与集群四模式键合并同一段 extra）。
   group('draft body：TLS 透传 + server 侧 SSH 隧道', () {
@@ -1066,25 +1484,30 @@ _RecordingClient _noQueryClient() => _RecordingClient((req) {
     test('useTls 开启 → extra 含 TLS 两键（与集群键合并）；ssh 透传', () async {
       final client = _freshConnectClient();
       final adapter = MongoDBAdapter()..httpClient = client;
-      await adapter.testConnection(DatabaseConnection(
-        id: 'local_mongo_1',
-        name: 'Mongo Live',
-        type: DatabaseType.mongodb,
-        host: '192.0.2.128',
-        port: 27017,
-        username: 'admin',
-        password: 'pw',
-        database: 'admin',
-        extra: {
-          'mongoConnectionMode': 'replicaSet',
-          'useTls': true,
-          'tlsInsecure': true,
-          'ssh': sshWire,
-        },
-      ));
+      await adapter.testConnection(
+        DatabaseConnection(
+          id: 'local_mongo_1',
+          name: 'Mongo Live',
+          type: DatabaseType.mongodb,
+          host: '192.0.2.128',
+          port: 27017,
+          username: 'admin',
+          password: 'pw',
+          database: 'admin',
+          extra: {
+            'mongoConnectionMode': 'replicaSet',
+            'useTls': true,
+            'tlsInsecure': true,
+            'ssh': sshWire,
+          },
+        ),
+      );
 
-      final body = _sentBody(client.requests
-          .firstWhere((r) => r.url.path == '/api/gw/connections/test'));
+      final body = _sentBody(
+        client.requests.firstWhere(
+          (r) => r.url.path == '/api/gw/connections/test',
+        ),
+      );
       expect(body['extra'], {
         'mongoConnectionMode': 'replicaSet',
         'useTls': true,
@@ -1096,27 +1519,31 @@ _RecordingClient _noQueryClient() => _RecordingClient((req) {
     test('useTls 关闭 / 无 ssh → 不带 TLS 键与 ssh 键', () async {
       final client = _freshConnectClient();
       final adapter = MongoDBAdapter()..httpClient = client;
-      await adapter.testConnection(DatabaseConnection(
-        id: 'local_mongo_1',
-        name: 'Mongo Live',
-        type: DatabaseType.mongodb,
-        host: '192.0.2.128',
-        port: 27017,
-        username: 'admin',
-        password: 'pw',
-        database: 'admin',
-        extra: {
-          'mongoConnectionMode': 'direct',
-          'useTls': false,
-          'tlsInsecure': true,
-        },
-      ));
+      await adapter.testConnection(
+        DatabaseConnection(
+          id: 'local_mongo_1',
+          name: 'Mongo Live',
+          type: DatabaseType.mongodb,
+          host: '192.0.2.128',
+          port: 27017,
+          username: 'admin',
+          password: 'pw',
+          database: 'admin',
+          extra: {
+            'mongoConnectionMode': 'direct',
+            'useTls': false,
+            'tlsInsecure': true,
+          },
+        ),
+      );
 
-      final body = _sentBody(client.requests
-          .firstWhere((r) => r.url.path == '/api/gw/connections/test'));
+      final body = _sentBody(
+        client.requests.firstWhere(
+          (r) => r.url.path == '/api/gw/connections/test',
+        ),
+      );
       expect(body['extra'], {'mongoConnectionMode': 'direct'});
       expect(body.containsKey('ssh'), isFalse);
     });
   });
-
 });

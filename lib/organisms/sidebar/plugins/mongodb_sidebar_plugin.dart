@@ -32,7 +32,11 @@
 // 追加第 8 项 mongo.explain——Explain 计划面板（选库/集合 + shell 查询
 // 输入 + 摘要两列表 + 可折叠完整 JSON）；数据经 dbService.getExplainPlan
 // 服务层既有面（零 adapter 直连；MongoVisualizationService/ExplainPlanTree
-// 孤挂断链，R2/核实结论双裁定禁止旁路消费）。
+// 孤挂断链，R2/核实结论双裁定禁止旁路消费）。DBT-T17（第二程序 R2）追加
+// 第 9 项 mongo.schemaAnalysis——Schema 类型分布面板（选库/集合 → 集合级
+// 类型分布条 + 字段级 presence/嵌套列表，只读）；数据经 AppProvider
+// loadMongoDBSchema 既有 facade（INFERENCE 默认抽样 100；缓存 key 不含
+// 库名的既有边界由 dialog 侧每次选库显式 load 再读兜住，零 facade 改）。
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -53,6 +57,7 @@ import '../../../utils/app_logger.dart';
 import '../../ai_workbench/workbench_mongo_schema_view.dart';
 import '../../dialogs/mongo_gridfs_dialog.dart';
 import '../../dialogs/mongo_process_dialog.dart';
+import '../../dialogs/mongo_schema_distribution_dialog.dart';
 import '../builders/tree_utils.dart';
 import '../capability/capability_menu_assembly.dart';
 import '../tree_item.dart';
@@ -150,6 +155,16 @@ class MongodbSidebarPlugin implements SidebarPlugin {
             label: (l10n) => l10n.mongoExplainTitle,
             icon: LucideIcons.network,
             onActivate: () => _showExplainPanel(context),
+          ),
+          // ── DBT-T17 新增（第二程序 R2，W-14 分布图）──id 与 T22 徽标
+          // 预登记锁定值一致（命中「新建」徽标，徽标渲染归框架）。Schema
+          // 类型分布只读面板：图标沿本文件统计入口 chartColumn 同语汇。
+          SidebarCapabilityItem(
+            id: 'mongo.schemaAnalysis',
+            capabilityId: 'mongo.schemaAnalysis',
+            label: (l10n) => l10n.mongoCapSchemaAnalysis,
+            icon: LucideIcons.chartColumn,
+            onActivate: () => _showSchemaDistributionPanel(context),
           ),
         ],
       ),
@@ -429,6 +444,42 @@ class MongodbSidebarPlugin implements SidebarPlugin {
           connectionId: cid,
         ),
       ),
+    );
+  }
+
+  /// Schema 类型分布面板（DBT-T17，W-14）：选库/集合 → 集合级类型分布条 +
+  /// 字段级 presence/嵌套列表，只读。数据经 AppProvider.loadMongoDBSchema
+  /// 既有 facade（INFERENCE 默认抽样 100，不放大；facade 缓存 key =
+  /// connectionId:collection 不含库名——跨库同名集合会串缓存的既有边界，
+  /// 由 dialog 侧每次选库显式 load 再读兜住，见 dialog 文件头注，零 facade
+  /// 改）。facade 静默失败（连接缺失/非 Mongo adapter）→ 闭包显式抛错误态
+  /// （facade 无错误字段，workbench_mongo_schema_view 本地推导同因）。
+  void _showSchemaDistributionPanel(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    final provider = context.read<AppProvider>();
+    MongoSchemaDistributionDialog.show(
+      context,
+      connectionId: server.id,
+      loadDatabases: (cid) =>
+          provider.dbService.getDatabases(connectionId: cid),
+      // 集合清单与树同源：loadDatabaseInfo（内部 useDatabase + getTables；
+      // mongo 网关壳 getTables 只看当前库上下文，databaseName 直参对其
+      // 不生效——须先切库，面板选库与树内 changeDatabase 同语义；该切库
+      // 同时确立 inferDocumentSchema 抽样的库上下文——与树内集合展开同源）。
+      loadCollections: (cid, db) async {
+        final info = await provider.loadDatabaseInfo(cid, db);
+        return info?.tables.map((t) => t.name).toList() ??
+            const <String>[];
+      },
+      loadSchema: (db, collection) async {
+        await provider.loadMongoDBSchema(server.id, db, collection);
+        final raw = provider.getMongoDBSchema(server.id, collection);
+        if (raw == null) {
+          throw StateError('MongoDB 连接不可用（Schema 分析需要 MongoDB 连接）');
+        }
+        return raw;
+      },
     );
   }
 }

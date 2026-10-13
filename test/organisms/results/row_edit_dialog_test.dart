@@ -241,6 +241,30 @@ void main() {
       }
     });
 
+    test('串字面量反斜杠方言扩组（L-1）：clickhouse/tdengine 同 mysql 双写', () {
+      // clickhouse：CH 串字面量支持反斜杠转义（`\\` = 字面反斜杠），执行通道
+      // 走 CH MySQL 兼容口 9004（sqlx MySQL 驱动）；tdengine：官方转义字符表
+      // 含 `\'`/`\\`，adapter 取数路径同口径（SqlSanitizer.value 反斜杠感知）。
+      // 两方言标识符均落 escapeQualifiedIdentifier default 反引号分支。
+      for (final type in {DatabaseType.clickhouse, DatabaseType.tdengine}) {
+        final sql = buildRowUpdateSql(
+          qualifiedTableName: 't',
+          databaseType: type,
+          tableColumns: [
+            DbColumn(name: 'id', type: 'int', isPrimaryKey: true),
+            DbColumn(name: 'memo', type: 'varchar(100)'),
+          ],
+          rowValues: {'id': 1, 'memo': 'x'},
+          changedValues: {'memo': const RowEditCellValue(r"a\b'c")},
+        );
+        expect(
+          sql,
+          r"UPDATE `t` SET `memo` = 'a\\b''c' WHERE `id` = 1",
+          reason: '$type',
+        );
+      }
+    });
+
     test('PG/SQLite 方言：反斜杠保持原样（仅引号双写，不回归）', () {
       // 字符串字面量口径两方言一致：反斜杠非串转义字符，只双写引号。
       // （表名标识符引号沿 canonical escapeQualifiedIdentifier：PG 双引号、

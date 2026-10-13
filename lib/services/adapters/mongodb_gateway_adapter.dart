@@ -85,6 +85,29 @@ class MongoGatewayException implements Exception {
   }
 }
 
+/// GridFS 上传失败异常（DBT-T21；回滚事实随异常上抛）。
+///
+/// `rollbackComplete` = false 时可能残留孤儿 chunks（回滚 delete 自身
+/// 失败）——UI 据此呈现回滚提示（任务书「孤儿 chunks 风险登记边界」的
+/// 载体；fs.files 恒不写，零孤儿 files）。
+class MongoGridFsUploadException implements Exception {
+  MongoGridFsUploadException({
+    required this.cause,
+    required this.rollbackComplete,
+  });
+
+  /// 原始失败原因（chunks 批插入失败 / files 插入失败）。
+  final Object cause;
+
+  /// 回滚（delete 本 files_id 全部 chunks）是否干净完成。
+  final bool rollbackComplete;
+
+  @override
+  String toString() =>
+      'GridFS upload failed (rollback '
+      '${rollbackComplete ? 'complete' : 'INCOMPLETE'}): $cause';
+}
+
 /// MongoDB 适配器（网关壳实现：执行走 kind:"mongo" runCommand 通道）。
 class MongoDBAdapter extends DatabaseAdapter
     with AiAdapterMixin, DisconnectAware {
@@ -97,6 +120,12 @@ class MongoDBAdapter extends DatabaseAdapter
   /// 测试注入的 HTTP 客户端（null = 每请求新建）。
   @visibleForTesting
   http.Client? httpClient;
+
+  /// GridFS 上传 files_id 生成器接缝（DBT-T21；null = 默认随机 ObjectId hex，
+  /// 见 [_generateGridFsFilesIdHex]）。e2e 失败路径（造冲突 files_id）与单测
+  /// 确定性断言用它固定 24-hex。
+  @visibleForTesting
+  String Function()? gridFsFilesIdFactory;
 
   String? _serverConnId;
   DatabaseConnection? _currentConnection;
@@ -119,7 +148,7 @@ class MongoDBAdapter extends DatabaseAdapter
   final MongoClusterStrategy? _clusterStrategy;
 
   MongoDBAdapter({MongoClusterStrategy? clusterStrategy})
-      : _clusterStrategy = clusterStrategy;
+    : _clusterStrategy = clusterStrategy;
 
   @override
   bool get isConnected => _serverConnId != null;
@@ -234,9 +263,10 @@ class MongoDBAdapter extends DatabaseAdapter
     if (executionId != null) {
       _inFlightExecutionId = null;
       unawaited(
-        _sendNoBody('DELETE', '/api/gw/executions/$executionId').catchError(
-          (_) => http.Response('', 500),
-        ),
+        _sendNoBody(
+          'DELETE',
+          '/api/gw/executions/$executionId',
+        ).catchError((_) => http.Response('', 500)),
       );
     }
     _serverConnId = null;
@@ -324,11 +354,10 @@ class MongoDBAdapter extends DatabaseAdapter
         final text = await response.stream.bytesToString();
         throw _decodeErrResponse(response.statusCode, text);
       }
-      final lines =
-          await response.stream
-              .transform(utf8.decoder)
-              .transform(const LineSplitter())
-              .toList();
+      final lines = await response.stream
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .toList();
       return _parseSse(lines, startTime: startTime);
     } on MongoGatewayException catch (e) {
       // 传输/连接级失败 → 触发 onDisconnect（对齐旧版死 socket 语义；
@@ -439,7 +468,11 @@ class MongoDBAdapter extends DatabaseAdapter
     String? database,
     int? timeoutMs,
   }) async {
-    final result = await _runCommand(command, database: database, timeoutMs: timeoutMs);
+    final result = await _runCommand(
+      command,
+      database: database,
+      timeoutMs: timeoutMs,
+    );
     if (result.rows.isEmpty) return <String, dynamic>{};
     final doc = result.rows.first['result'];
     return doc is Map<String, dynamic>
@@ -525,7 +558,8 @@ class MongoDBAdapter extends DatabaseAdapter
     }
     if (value is Map) {
       return {
-        for (final e in value.entries) e.key.toString(): _prepareForWire(e.value),
+        for (final e in value.entries)
+          e.key.toString(): _prepareForWire(e.value),
       };
     }
     if (value is List) return [for (final item in value) _prepareForWire(item)];
@@ -616,7 +650,10 @@ class MongoDBAdapter extends DatabaseAdapter
 
         if (isDistinct) {
           final field = parsed['field'] as String? ?? '';
-          final cmd = <String, dynamic>{'distinct': collectionName, 'key': field};
+          final cmd = <String, dynamic>{
+            'distinct': collectionName,
+            'key': field,
+          };
           if (filter.isNotEmpty) cmd['query'] = filter;
           final doc = await _commandDoc(cmd, timeoutMs: _timeoutMs);
           final values = (doc['values'] as List<dynamic>?) ?? [];
@@ -652,9 +689,7 @@ class MongoDBAdapter extends DatabaseAdapter
 
         // 行限超 server 上限时壳侧 skip 分页（见 _findDocsPaged）。
         final docs = await _findDocsPaged(cmd, timeoutMs: _timeoutMs);
-        final rows = [
-          for (final doc in docs) _documentToMap(doc),
-        ];
+        final rows = [for (final doc in docs) _documentToMap(doc)];
         final columns = rows.isNotEmpty ? _extractColumns(rows) : ['result'];
 
         return QueryResult(
@@ -756,7 +791,10 @@ class MongoDBAdapter extends DatabaseAdapter
       return QueryResult(
         columns: ['info'],
         rows: [
-          {'info': '无法解析该 Mongo shell 语句，请使用 db.collection.find(...) 或 aggregate([...]) 语法后查看执行计划'},
+          {
+            'info':
+                '无法解析该 Mongo shell 语句，请使用 db.collection.find(...) 或 aggregate([...]) 语法后查看执行计划',
+          },
         ],
       );
     }
@@ -796,7 +834,9 @@ class MongoDBAdapter extends DatabaseAdapter
           'filter': filter,
         };
         final sortRaw = parsed['sort'];
-        if (sortRaw is Map) findCmd['sort'] = Map<String, dynamic>.from(sortRaw);
+        if (sortRaw is Map) {
+          findCmd['sort'] = Map<String, dynamic>.from(sortRaw);
+        }
         final skip = parsed['skip'];
         if (skip is int) findCmd['skip'] = skip;
         final limit = parsed['limit'];
@@ -819,14 +859,12 @@ class MongoDBAdapter extends DatabaseAdapter
 
   /// explain 结果格式化（高亮摘要 + 原始 JSON，与旧版同形）。
   QueryResult _formatExplainResult(Map<String, dynamic> result) {
-    final queryPlanner =
-        result['queryPlanner'] is Map
-            ? Map<String, dynamic>.from(result['queryPlanner'] as Map)
-            : <String, dynamic>{};
-    final executionStats =
-        result['executionStats'] is Map
-            ? Map<String, dynamic>.from(result['executionStats'] as Map)
-            : <String, dynamic>{};
+    final queryPlanner = result['queryPlanner'] is Map
+        ? Map<String, dynamic>.from(result['queryPlanner'] as Map)
+        : <String, dynamic>{};
+    final executionStats = result['executionStats'] is Map
+        ? Map<String, dynamic>.from(result['executionStats'] as Map)
+        : <String, dynamic>{};
 
     final winningPlan = queryPlanner['winningPlan'] is Map
         ? Map<String, dynamic>.from(queryPlanner['winningPlan'] as Map)
@@ -930,10 +968,9 @@ class MongoDBAdapter extends DatabaseAdapter
     if (!isConnected) throw Exception('未连接到 MongoDB');
 
     try {
-      final docs = await _cursorDocs(
-        {'listCollections': 1},
-        timeoutMs: _timeoutMs,
-      );
+      final docs = await _cursorDocs({
+        'listCollections': 1,
+      }, timeoutMs: _timeoutMs);
       return docs
           .map((c) => c['name']?.toString() ?? '')
           .where((name) => name.isNotEmpty && !name.startsWith('system.'))
@@ -962,10 +999,10 @@ class MongoDBAdapter extends DatabaseAdapter
     if (!isConnected) throw Exception('未连接到 MongoDB');
 
     try {
-      final docs = await _cursorDocs(
-        {'listCollections': 1, 'filter': {'type': 'view'}},
-        timeoutMs: _timeoutMs,
-      );
+      final docs = await _cursorDocs({
+        'listCollections': 1,
+        'filter': {'type': 'view'},
+      }, timeoutMs: _timeoutMs);
       final views = <String>[];
       for (final doc in docs) {
         final name = doc['name'];
@@ -985,10 +1022,10 @@ class MongoDBAdapter extends DatabaseAdapter
 
     try {
       // 采样一条文档推断字段（旧版 findOne；类型识别在原始 JSON 形态上）。
-      final docs = await _cursorDocs(
-        {'find': tableName, 'limit': 1},
-        timeoutMs: _timeoutMs,
-      );
+      final docs = await _cursorDocs({
+        'find': tableName,
+        'limit': 1,
+      }, timeoutMs: _timeoutMs);
       final sample = docs.isNotEmpty ? docs.first : null;
       if (sample == null || sample.isEmpty) {
         return [
@@ -1039,10 +1076,9 @@ class MongoDBAdapter extends DatabaseAdapter
     if (!isConnected) throw Exception('未连接到 MongoDB');
 
     try {
-      final docs = await _cursorDocs(
-        {'listIndexes': tableName},
-        timeoutMs: _timeoutMs,
-      );
+      final docs = await _cursorDocs({
+        'listIndexes': tableName,
+      }, timeoutMs: _timeoutMs);
       return docs.map((idx) {
         final key = idx['key'];
         final columns = key is Map
@@ -1209,15 +1245,12 @@ class MongoDBAdapter extends DatabaseAdapter
     if (!isConnected) throw Exception('未连接到 MongoDB');
 
     try {
-      await _runCommand(
-        {
-          'delete': tableName,
-          'deletes': [
-            {'q': {}, 'limit': 0},
-          ],
-        },
-        timeoutMs: _timeoutMs,
-      );
+      await _runCommand({
+        'delete': tableName,
+        'deletes': [
+          {'q': {}, 'limit': 0},
+        ],
+      }, timeoutMs: _timeoutMs);
       return true;
     } catch (e) {
       AppLogger.d(_tag, '清空集合失败: $e');
@@ -1273,7 +1306,9 @@ class MongoDBAdapter extends DatabaseAdapter
     if (!isConnected) throw Exception('未连接到 MongoDB');
 
     try {
-      final doc = await _commandDoc({'count': tableName}, timeoutMs: _timeoutMs);
+      final doc = await _commandDoc({
+        'count': tableName,
+      }, timeoutMs: _timeoutMs);
       return (doc['n'] as num?)?.toInt() ?? 0;
     } catch (e) {
       return 0;
@@ -1307,20 +1342,17 @@ class MongoDBAdapter extends DatabaseAdapter
         defaultValue = null;
       }
 
-      await _runCommand(
-        {
-          'update': tableName,
-          'updates': [
-            {
-              'q': {},
-              'u': {
-                r'$set': {column.name: defaultValue},
-              },
+      await _runCommand({
+        'update': tableName,
+        'updates': [
+          {
+            'q': {},
+            'u': {
+              r'$set': {column.name: defaultValue},
             },
-          ],
-        },
-        timeoutMs: _timeoutMs,
-      );
+          },
+        ],
+      }, timeoutMs: _timeoutMs);
       return true;
     } catch (e) {
       AppLogger.d(_tag, '添加字段失败: $e');
@@ -1334,20 +1366,17 @@ class MongoDBAdapter extends DatabaseAdapter
     if (!isConnected) throw Exception('未连接到 MongoDB');
 
     try {
-      await _runCommand(
-        {
-          'update': tableName,
-          'updates': [
-            {
-              'q': {},
-              'u': {
-                r'$unset': {columnName: ''},
-              },
+      await _runCommand({
+        'update': tableName,
+        'updates': [
+          {
+            'q': {},
+            'u': {
+              r'$unset': {columnName: ''},
             },
-          ],
-        },
-        timeoutMs: _timeoutMs,
-      );
+          },
+        ],
+      }, timeoutMs: _timeoutMs);
       return true;
     } catch (e) {
       AppLogger.d(_tag, '删除字段失败: $e');
@@ -1370,20 +1399,17 @@ class MongoDBAdapter extends DatabaseAdapter
 
       // 1) 重命名（如果名称变了）。
       if (oldColumnName != newColumn.name) {
-        await _runCommand(
-          {
-            'update': tableName,
-            'updates': [
-              {
-                'q': {},
-                'u': {
-                  r'$rename': {oldColumnName: newColumn.name},
-                },
+        await _runCommand({
+          'update': tableName,
+          'updates': [
+            {
+              'q': {},
+              'u': {
+                r'$rename': {oldColumnName: newColumn.name},
               },
-            ],
-          },
-          timeoutMs: _timeoutMs,
-        );
+            },
+          ],
+        }, timeoutMs: _timeoutMs);
       }
 
       // 2) 管道类型转换（$toString/$toInt/…，与旧版同形）。
@@ -1399,26 +1425,23 @@ class MongoDBAdapter extends DatabaseAdapter
       };
       for (final key in conversion.keys) {
         if (typeLower.contains(key)) {
-          await _runCommand(
-            {
-              'update': tableName,
-              'updates': [
-                {
-                  'q': {
-                    targetField: {r'$exists': true},
-                  },
-                  'u': [
-                    {
-                      r'$set': {
-                        targetField: {conversion[key]: r'$' + targetField},
-                      },
-                    },
-                  ],
+          await _runCommand({
+            'update': tableName,
+            'updates': [
+              {
+                'q': {
+                  targetField: {r'$exists': true},
                 },
-              ],
-            },
-            timeoutMs: _timeoutMs,
-          );
+                'u': [
+                  {
+                    r'$set': {
+                      targetField: {conversion[key]: r'$' + targetField},
+                    },
+                  },
+                ],
+              },
+            ],
+          }, timeoutMs: _timeoutMs);
           break;
         }
       }
@@ -1439,20 +1462,17 @@ class MongoDBAdapter extends DatabaseAdapter
     if (!isConnected) throw Exception('未连接到 MongoDB');
 
     try {
-      await _runCommand(
-        {
-          'update': tableName,
-          'updates': [
-            {
-              'q': {},
-              'u': {
-                r'$rename': {oldColumnName: newColumnName},
-              },
+      await _runCommand({
+        'update': tableName,
+        'updates': [
+          {
+            'q': {},
+            'u': {
+              r'$rename': {oldColumnName: newColumnName},
             },
-          ],
-        },
-        timeoutMs: _timeoutMs,
-      );
+          },
+        ],
+      }, timeoutMs: _timeoutMs);
       return true;
     } catch (e) {
       AppLogger.d(_tag, '重命名字段失败: $e');
@@ -1475,19 +1495,12 @@ class MongoDBAdapter extends DatabaseAdapter
       for (final col in columns) {
         keys[col] = 1;
       }
-      await _runCommand(
-        {
-          'createIndexes': tableName,
-          'indexes': [
-            {
-              'key': keys,
-              'name': indexName,
-              if (unique) 'unique': true,
-            },
-          ],
-        },
-        timeoutMs: _timeoutMs,
-      );
+      await _runCommand({
+        'createIndexes': tableName,
+        'indexes': [
+          {'key': keys, 'name': indexName, if (unique) 'unique': true},
+        ],
+      }, timeoutMs: _timeoutMs);
       return true;
     } catch (e) {
       AppLogger.d(_tag, '创建索引失败: $e');
@@ -1501,10 +1514,10 @@ class MongoDBAdapter extends DatabaseAdapter
     if (!isConnected) throw Exception('未连接到 MongoDB');
 
     try {
-      await _runCommand(
-        {'dropIndexes': tableName, 'index': indexName},
-        timeoutMs: _timeoutMs,
-      );
+      await _runCommand({
+        'dropIndexes': tableName,
+        'index': indexName,
+      }, timeoutMs: _timeoutMs);
       return true;
     } catch (e) {
       AppLogger.d(_tag, '删除索引失败: $e');
@@ -1591,13 +1604,10 @@ class MongoDBAdapter extends DatabaseAdapter
     if (!isConnected) throw Exception('未连接到 MongoDB');
 
     try {
-      final result = await _runCommand(
-        {
-          'insert': collectionName,
-          'documents': [document],
-        },
-        timeoutMs: _timeoutMs,
-      );
+      final result = await _runCommand({
+        'insert': collectionName,
+        'documents': [document],
+      }, timeoutMs: _timeoutMs);
       return (result.affectedRows ?? 0) >= 1;
     } catch (e) {
       AppLogger.d(_tag, '插入文档失败: $e');
@@ -1614,10 +1624,10 @@ class MongoDBAdapter extends DatabaseAdapter
     if (!isConnected) throw Exception('未连接到 MongoDB');
 
     try {
-      final result = await _runCommand(
-        {'insert': collectionName, 'documents': documents},
-        timeoutMs: _timeoutMs,
-      );
+      final result = await _runCommand({
+        'insert': collectionName,
+        'documents': documents,
+      }, timeoutMs: _timeoutMs);
       return (result.affectedRows ?? 0) >= 1;
     } catch (e) {
       AppLogger.d(_tag, '批量插入失败: $e');
@@ -1666,8 +1676,8 @@ class MongoDBAdapter extends DatabaseAdapter
     for (final entry in fields.entries) {
       if (entry.key == '_id') continue;
       final fieldSpec = entry.value;
-      final type = (fieldSpec is Map ? fieldSpec['type'] : null)?.toString() ??
-          'string';
+      final type =
+          (fieldSpec is Map ? fieldSpec['type'] : null)?.toString() ?? 'string';
       doc[entry.key] = _sampleValueForType(type, entry.key, index);
     }
     return doc;
@@ -1687,7 +1697,9 @@ class MongoDBAdapter extends DatabaseAdapter
       case 'date':
       case 'datetime':
       case 'Date':
-        return DateTime.now().subtract(Duration(seconds: index)).toIso8601String();
+        return DateTime.now()
+            .subtract(Duration(seconds: index))
+            .toIso8601String();
       case 'array':
       case 'Array':
         return <dynamic>[];
@@ -1734,9 +1746,9 @@ class MongoDBAdapter extends DatabaseAdapter
       if (fmt == 'csv') {
         return _docsToCsv([for (final doc in docs) _documentToMap(doc)]);
       }
-      return const JsonEncoder.withIndent('  ').convert(
-        _makeJsonSafe([for (final doc in docs) _documentToMap(doc)]),
-      );
+      return const JsonEncoder.withIndent(
+        '  ',
+      ).convert(_makeJsonSafe([for (final doc in docs) _documentToMap(doc)]));
     } catch (e) {
       AppLogger.d(_tag, '导出集合失败: $e');
       return '[]';
@@ -1755,9 +1767,7 @@ class MongoDBAdapter extends DatabaseAdapter
     final buffer = StringBuffer();
     buffer.writeln(header.map(_csvEscape).join(','));
     for (final doc in docs) {
-      final row = header
-          .map((k) => _csvEscape(_csvValue(doc[k])))
-          .join(',');
+      final row = header.map((k) => _csvEscape(_csvValue(doc[k]))).join(',');
       buffer.writeln(row);
     }
     return buffer.toString();
@@ -1772,9 +1782,7 @@ class MongoDBAdapter extends DatabaseAdapter
   }
 
   String _csvEscape(String field) {
-    if (field.contains(',') ||
-        field.contains('"') ||
-        field.contains('\n')) {
+    if (field.contains(',') || field.contains('"') || field.contains('\n')) {
       return '"${field.replaceAll('"', '""')}"';
     }
     return field;
@@ -1789,10 +1797,10 @@ class MongoDBAdapter extends DatabaseAdapter
 
     try {
       final stats = await getCollectionStats(collectionName);
-      final sample = await _cursorDocs(
-        {'find': collectionName, 'limit': sampleLimit},
-        timeoutMs: _timeoutMs,
-      );
+      final sample = await _cursorDocs({
+        'find': collectionName,
+        'limit': sampleLimit,
+      }, timeoutMs: _timeoutMs);
       return {
         'stats': stats,
         'sample': [for (final doc in sample) _documentToMap(doc)],
@@ -1816,18 +1824,17 @@ class MongoDBAdapter extends DatabaseAdapter
 
       if (totalSampled == 0 || fields.isEmpty) {
         return [
-          {
-            'collection': collectionName,
-            'note': '集合为空或无样本文档，无法分析数据质量',
-          },
+          {'collection': collectionName, 'note': '集合为空或无样本文档，无法分析数据质量'},
         ];
       }
 
       final reports = <Map<String, dynamic>>[];
       for (final entry in fields.entries) {
         final spec = entry.value;
-        final occurrence = (spec is Map ? spec['occurrence'] : null) as int? ?? 0;
-        final type = (spec is Map ? spec['type'] : null)?.toString() ?? 'unknown';
+        final occurrence =
+            (spec is Map ? spec['occurrence'] : null) as int? ?? 0;
+        final type =
+            (spec is Map ? spec['type'] : null)?.toString() ?? 'unknown';
         final completeness = occurrence / totalSampled;
         reports.add({
           'field': entry.key,
@@ -1887,15 +1894,12 @@ class MongoDBAdapter extends DatabaseAdapter
     Map<String, dynamic> update, {
     required bool multi,
   }) async {
-    final result = await _runCommand(
-      {
-        'update': collectionName,
-        'updates': [
-          {'q': filter, 'u': update, 'multi': multi},
-        ],
-      },
-      timeoutMs: _timeoutMs,
-    );
+    final result = await _runCommand({
+      'update': collectionName,
+      'updates': [
+        {'q': filter, 'u': update, 'multi': multi},
+      ],
+    }, timeoutMs: _timeoutMs);
     return result.affectedRows ?? 0;
   }
 
@@ -1935,6 +1939,7 @@ class MongoDBAdapter extends DatabaseAdapter
     String collectionName,
     Map<String, dynamic> filter, {
     required int limit,
+    String? database,
   }) async {
     // delete 是写命令：n 经 affectedRows 通道（无 result 行）。
     final result = await _runCommand(
@@ -1944,6 +1949,7 @@ class MongoDBAdapter extends DatabaseAdapter
           {'q': filter, 'limit': limit},
         ],
       },
+      database: database,
       timeoutMs: _timeoutMs,
     );
     return result.affectedRows ?? 0;
@@ -1976,10 +1982,11 @@ class MongoDBAdapter extends DatabaseAdapter
     final startTime = DateTime.now();
 
     try {
-      final docs = await _cursorDocs(
-        {'aggregate': collectionName, 'pipeline': pipeline, 'cursor': {}},
-        timeoutMs: _timeoutMs,
-      );
+      final docs = await _cursorDocs({
+        'aggregate': collectionName,
+        'pipeline': pipeline,
+        'cursor': {},
+      }, timeoutMs: _timeoutMs);
       final rows = [for (final doc in docs) _documentToMap(doc)];
       final columns = rows.isNotEmpty ? _extractColumns(rows) : ['result'];
 
@@ -2090,10 +2097,9 @@ class MongoDBAdapter extends DatabaseAdapter
     }
 
     try {
-      final result = await _commandDoc(
-        {'collStats': collectionName},
-        timeoutMs: _timeoutMs,
-      );
+      final result = await _commandDoc({
+        'collStats': collectionName,
+      }, timeoutMs: _timeoutMs);
       return {
         'ns': result['ns']?.toString() ?? '',
         'documentCount': result['count'] ?? 0,
@@ -2506,7 +2512,8 @@ class MongoDBAdapter extends DatabaseAdapter
 
   /// ObjectId hex 校验（24 位 hex；不合法即抛——防坏参空跑网关）。
   static void _assertObjectIdHex(String objectIdHex) {
-    final valid = objectIdHex.length == 24 &&
+    final valid =
+        objectIdHex.length == 24 &&
         RegExp(r'^[0-9a-fA-F]{24}$').hasMatch(objectIdHex);
     if (!valid) {
       throw ArgumentError('非法 GridFS ObjectId（期望 24 位 hex）');
@@ -2606,6 +2613,222 @@ class MongoDBAdapter extends DatabaseAdapter
       builder.add(base64Decode(base64));
     }
     return builder.toBytes();
+  }
+
+  // ── DBT-T21 · GridFS 写面（上传；chunks 分批 insert + files 收尾）──────
+  //
+  // 路线裁定（任务书 T21）：GridFS 驱动 API 不可达（无 mongo_dart 连接，
+  // 同只读面）——上传 = `<bucket>.chunks` 分批 insertMany + `<bucket>.files`
+  // insertOne 收尾，全部经既有 runCommand insert 通道（零 server 改动）。
+  //
+  // ⚠ 两个已核实的 wire 边界（2026-10-13 亲核，登记）：
+  // ① **分批按字节不按行数**：网关 `/api/gw/connections/:id/query` 的 HTTP
+  //    body 受 axum 0.7 默认 2MB 上限约束（gateway 全仓无 DefaultBodyLimit
+  //    覆写）——任务书「每批 ≤100 docs」的 100×255KiB ≈ 34MB 单请求必被
+  //    413 拒。实现取双上限：批 JSON ≤ [_kGridFsBatchWireBudget]（约 5 个
+  //    满 chunk/批）且 ≤ [_kGridFsBatchMaxDocs] docs（字节预算恒先绑定，
+  //    docs 上限为任务书口径的保险位）。
+  // ② **`$binary` 入向不反解**（server `extended_json_to_bson` 仅 $oid/
+  //    $date/$numberDecimal，mongo.rs:276）：`data: {$binary:{base64,
+  //    subType}}` 落库为**普通子文档**（字符串值），非真 BSON Binary。后果：
+  //    本客户端读回逐字节一致（[readGridFsFileBytes] 恰按该形态解码——
+  //    出向 `bson_to_json` 对普通子文档原样回放），但 mongofiles/其它驱动
+  //    的 GridFS 消费方读这些 chunk 会失败（data 非 BinData，不合 GridFS
+  //    规范）。真二进制需 server 补 $binary 入向反解分支（违「零 server
+  //    改动」约束，已上报架构师裁决）；裁决落地前本写面按上述边界交付。
+
+  /// GridFS 上传分片粒度（255 KiB，GridFS 规范推荐值；fs.files.chunkSize
+  /// 记录位与实际切分同源）。
+  static const int kGridFsUploadChunkSize = 261120;
+
+  /// 单文件上传上限（50 MB；护栏位在 dialog（提示走 mongorestore/驱动
+  /// 工具），adapter 侧兜底同值——写路径纵深防御）。
+  static const int kGridFsUploadMaxBytes = 50 * 1024 * 1024;
+
+  /// 单批 insert 的 JSON 字节预算（axum 默认 body 上限 2,097,152 的 ~90%，
+  /// 余量覆盖命令外壳/键名/转义；见上注 ①）。
+  static const int _kGridFsBatchWireBudget = 1900000;
+
+  /// 单批 insert 的 docs 数上限（任务书「每批 ≤100 docs」口径；见上注 ①）。
+  static const int _kGridFsBatchMaxDocs = 100;
+
+  /// GridFS 上传（DBT-T21）：[bytes] 按 [kGridFsUploadChunkSize] 分片 →
+  /// `<bucket>.chunks` 分批 insertMany → 全部成功后 `<bucket>.files`
+  /// insertOne（`_id`=files_id、length、chunkSize、uploadDate、filename、
+  /// 可选 contentType/metadata）→ 返回 files_id 的 24-hex。
+  ///
+  /// - files_id = 客户端生成 ObjectId hex（[gridFsFilesIdFactory] 接缝，
+  ///   默认 [_generateGridFsFilesIdHex]：时间戳 4B + 随机 5B + 自增计数 3B，
+  ///   与 server 生成形态同构——仅求唯一性，Mongo 不校验内部结构）；
+  /// - **files 恒不写**（部分失败零孤儿 files）：任一批 chunks 或 files
+  ///   insert 失败 → 尽力回滚（delete 本 files_id 全部 chunks）→ 抛
+  ///   [MongoGridFsUploadException]（rollbackComplete 标记回滚是否干净；
+  ///   回滚失败时孤儿 chunks 风险经异常标记由 UI 提示登记）；
+  /// - 空文件（0 字节）= 允许（GridFS 规范兼容：0 chunks + files 行，
+  ///   mongofiles/驱动同语义）；超 [kGridFsUploadMaxBytes] 抛 ArgumentError；
+  /// - guardReadOnly 首行（insertOne :1590 先例）。
+  Future<String> uploadGridFsFile(
+    String bucket, {
+    String? database,
+    required String filename,
+    required List<int> bytes,
+    String? contentType,
+    Map<String, dynamic>? metadata,
+  }) async {
+    guardReadOnly(operation: 'uploadGridFsFile');
+    _assertConnected();
+    if (bytes.length > kGridFsUploadMaxBytes) {
+      throw ArgumentError(
+        'GridFS 上传超出单文件上限（${bytes.length} > $kGridFsUploadMaxBytes 字节）',
+      );
+    }
+    final filesIdHex = (gridFsFilesIdFactory ?? _generateGridFsFilesIdHex)();
+    final chunkCount =
+        (bytes.length + kGridFsUploadChunkSize - 1) ~/ kGridFsUploadChunkSize;
+
+    final chunkDocs = <Map<String, dynamic>>[
+      for (var n = 0; n < chunkCount; n++)
+        _gridFsChunkDoc(filesIdHex, n, bytes),
+    ];
+    final filesDoc = <String, dynamic>{
+      '_id': {'\$oid': filesIdHex},
+      'length': bytes.length,
+      'chunkSize': kGridFsUploadChunkSize,
+      'uploadDate': DateTime.now().toUtc(),
+      'filename': filename,
+      if (contentType != null && contentType.isNotEmpty)
+        'contentType': contentType,
+      if (metadata != null && metadata.isNotEmpty) 'metadata': metadata,
+    };
+
+    try {
+      for (final batch in groupGridFsChunkDocsIntoBatches(chunkDocs)) {
+        final ok = await _insertDocs('$bucket.chunks', batch, database);
+        if (!ok) {
+          throw StateError(
+            'chunks 批插入失败（n=${batch.first['n']} 起，${batch.length} docs）',
+          );
+        }
+      }
+      final filesOk = await _insertDocs('$bucket.files', [filesDoc], database);
+      if (!filesOk) {
+        throw StateError('fs.files 元数据插入失败');
+      }
+    } on MongoGridFsUploadException {
+      rethrow;
+    } catch (e) {
+      // 回滚：尽力删除本 files_id 的全部 chunks（files 恒未写）；回滚自身
+      // 失败不吞原错误——以 rollbackComplete=false 上抛，由 UI 提示孤儿
+      // chunks 风险（任务书「尽力删除」口径）。
+      var rollbackComplete = false;
+      try {
+        await _runDelete(
+          '$bucket.chunks',
+          {
+            'files_id': {'\$oid': filesIdHex},
+          },
+          limit: 0,
+          database: database,
+        );
+        rollbackComplete = true;
+      } catch (rollbackError) {
+        AppLogger.w(
+          _tag,
+          'GridFS upload rollback failed (files_id=$filesIdHex): $rollbackError',
+        );
+      }
+      throw MongoGridFsUploadException(
+        cause: e,
+        rollbackComplete: rollbackComplete,
+      );
+    }
+    return filesIdHex;
+  }
+
+  /// 单个 chunk 文档组装（n 序切片 + base64 扩展 JSON 形态；见节注 ②）。
+  Map<String, dynamic> _gridFsChunkDoc(
+    String filesIdHex,
+    int n,
+    List<int> bytes,
+  ) {
+    final start = n * kGridFsUploadChunkSize;
+    final end = min(start + kGridFsUploadChunkSize, bytes.length);
+    return {
+      'files_id': {'\$oid': filesIdHex},
+      'n': n,
+      'data': {
+        r'$binary': {
+          'base64': base64Encode(bytes.sublist(start, end)),
+          'subType': '00',
+        },
+      },
+    };
+  }
+
+  /// insert 通道薄包装（与 [insertMany] 同形，但携带 [database] 路由——
+  /// insertOne/insertMany 无 database 参，会落到 `_currentDatabase`（认证库/
+  /// useDatabase 记录位）而非用户在 GridFS 面板选中的库；写面必须与只读面
+  /// 同库路由。guardReadOnly 已在 [uploadGridFsFile] 首行统一守卫）。
+  Future<bool> _insertDocs(
+    String collection,
+    List<Map<String, dynamic>> documents,
+    String? database,
+  ) async {
+    final result = await _runCommand(
+      {'insert': collection, 'documents': documents},
+      database: database,
+      timeoutMs: _timeoutMs,
+    );
+    return (result.affectedRows ?? 0) >= 1;
+  }
+
+  /// chunk 文档分批（双上限：批 JSON ≤ [_kGridFsBatchWireBudget] 且 ≤
+  /// [_kGridFsBatchMaxDocs] docs；批 JSON 长度按精确 jsonEncode 计——
+  /// 纯 ASCII 内容长度即字节数）。独立静态纯函数供单测直测分批边界。
+  @visibleForTesting
+  static List<List<Map<String, dynamic>>> groupGridFsChunkDocsIntoBatches(
+    List<Map<String, dynamic>> docs,
+  ) {
+    final batches = <List<Map<String, dynamic>>>[];
+    var current = <Map<String, dynamic>>[];
+    var currentBytes = 0;
+    for (final doc in docs) {
+      final docBytes = jsonEncode(doc).length;
+      final wouldExceedBytes =
+          currentBytes + docBytes > _kGridFsBatchWireBudget;
+      final wouldExceedDocs = current.length >= _kGridFsBatchMaxDocs;
+      if (current.isNotEmpty && (wouldExceedBytes || wouldExceedDocs)) {
+        batches.add(current);
+        current = <Map<String, dynamic>>[];
+        currentBytes = 0;
+      }
+      current.add(doc);
+      currentBytes += docBytes;
+    }
+    if (current.isNotEmpty) batches.add(current);
+    return batches;
+  }
+
+  /// 随机 24-hex ObjectId（时间戳 4B + Random.secure 5B + 静态计数 3B；
+  /// 单调计数补偿同毫秒随机碰撞面——仅求唯一性，非规范语义）。
+  static int _gridFsOidCounter = 0;
+  static String _generateGridFsFilesIdHex() {
+    final rng = Random.secure();
+    final ts = DateTime.now().millisecondsSinceEpoch & 0xFFFFFFFF;
+    final rand5 = List<int>.generate(5, (_) => rng.nextInt(256));
+    // 溢出回绕无害（取 3B 截断，仅要求进程内不重复）。
+    _gridFsOidCounter = (_gridFsOidCounter + 1) & 0xFFFFFF;
+    final all = <int>[
+      (ts >> 24) & 0xFF,
+      (ts >> 16) & 0xFF,
+      (ts >> 8) & 0xFF,
+      ts & 0xFF,
+      ...rand5,
+      (_gridFsOidCounter >> 16) & 0xFF,
+      (_gridFsOidCounter >> 8) & 0xFF,
+      _gridFsOidCounter & 0xFF,
+    ];
+    return all.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 
   // ==========================================================================
@@ -2769,8 +2992,9 @@ class MongoDBAdapter extends DatabaseAdapter
     String target,
   ) {
     final err = body['error'];
-    final errMap =
-        err is Map<String, dynamic> ? err : const <String, dynamic>{};
+    final errMap = err is Map<String, dynamic>
+        ? err
+        : const <String, dynamic>{};
     return gatewayEnvelopeFailure(
       code: body['error_code']?.toString() ?? errMap['code']?.toString(),
       engineCode: errMap['engineCode']?.toString(),

@@ -31,6 +31,7 @@ import '../../../theme/app_colors.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/app_logger.dart';
 import '../../connection/pg_extension_panel.dart';
+import '../../connection/table_dialog/pg_foreign_table_dialog.dart';
 import '../../dialogs/pg_locks_dialog.dart';
 import '../../dialogs/postgresql_table_maintenance_entry_dialog.dart';
 import '../builders/tree_utils.dart';
@@ -103,6 +104,16 @@ class PostgresqlSidebarPlugin implements SidebarPlugin {
             label: (l10n) => l10n.pgLocksTitle,
             icon: LucideIcons.lock,
             onActivate: () => _showLocks(context),
+          ),
+          // ── DBT-T19 新增（W-16）──
+          SidebarCapabilityItem(
+            id: 'pg.foreignTable',
+            // id/cap 均为 T22 预登记值（徽标 id 命中「新建」徽标，徽标
+            // 渲染归框架，徽标集零改）。
+            capabilityId: 'pg.foreignTable',
+            label: (l10n) => l10n.pgCapForeignTable,
+            icon: LucideIcons.cloudCog,
+            onActivate: () => _showForeignTableDesigner(context),
           ),
         ],
       ),
@@ -243,6 +254,25 @@ class PostgresqlSidebarPlugin implements SidebarPlugin {
   }
 
   // ── DBT-T8 能力项动作（W-10 锁分析：只读）────────────────────────────
+
+  /// 外部表设计器（DBT-T19 W-16）：CREATE FOREIGN TABLE 建表入口（DDL
+  /// 预览门 + 审计 + readonly fail-closed 见 dialog 头注）。目标库 =
+  /// 当前连接当前所选库；无库上下文 → 锚定 null 返回（既有模式）。
+  void _showForeignTableDesigner(BuildContext context) {
+    final server = resolveSidebarActionServer(context);
+    if (server == null) return;
+    final database = context
+        .read<AppProvider>()
+        .connection
+        .currentDatabase
+        ?.name;
+    if (database == null || database.isEmpty) return;
+    PgForeignTableDialog.show(
+      context,
+      connectionId: server.id,
+      databaseName: database,
+    );
+  }
 
   /// 锁/等待分析面板（W-10）：只读 dialog——pg_locks × pg_stat_activity
   /// 聚合（查询与 PgLocksDialog 同源常量），手动刷新；**无 terminate**

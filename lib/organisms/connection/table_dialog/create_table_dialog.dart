@@ -7,8 +7,49 @@ import '../../../atoms/app_loading.dart';
 import '../../../models/database_models.dart';
 import '../../../utils/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../molecules/destructive_confirm_dialog.dart'
+    show DestructiveConfirmDialog, DestructiveTone;
+import '../../../services/audit_log_service.dart';
+import '../../../services/adapters/postgresql_gateway_adapter.dart';
 import '../error_boundary.dart';
 import '../../../theme/app_colors.dart';
+
+/// DBT-T19（W-16）：分区建表 DDL 审计载荷（recordQuery 口径子集；测试断言面）。
+typedef PgPartitionAuditRecord = ({
+  String connectionId,
+  String databaseName,
+  String sql,
+  Duration executionTime,
+  bool success,
+  String? errorMessage,
+});
+
+/// 分区 DDL 默认审计器：先 initialize；SQL 脱敏与截断由 recordQuery 内部处理。
+Future<void> auditPgPartitionDdl(PgPartitionAuditRecord record) async {
+  final audit = AuditLogService();
+  await audit.initialize();
+  audit.recordQuery(
+    connectionId: record.connectionId,
+    databaseName: record.databaseName,
+    sql: record.sql,
+    executionTime: record.executionTime,
+    success: record.success,
+    errorMessage: record.errorMessage,
+    isWriteQuery: true,
+  );
+}
+
+/// DBT-T19：建表执行注入缝（默认 = provider.createTable；widget 测试计数与
+/// options 逐字断言面，沿 T18 executor 注入先例）。
+typedef PgTableCreator =
+    Future<bool> Function(
+      String dbName,
+      String tableName,
+      List<DbColumn> columns, {
+      String? comment,
+      String? engine,
+      Map<String, dynamic>? options,
+    });
 
 class CreateTableDialog extends StatefulWidget {
   final String dbName;
@@ -1211,7 +1252,44 @@ class _IndexDefinition {
 class CreatePostgresTableDialog extends StatefulWidget {
   final String dbName;
 
-  const CreatePostgresTableDialog({super.key, required this.dbName});
+  /// DBT-T19：建表执行注入缝（默认 = provider.createTable；widget 测试断言面）。
+  @visibleForTesting
+  final PgTableCreator? tableCreator;
+
+  /// DBT-T19：分区 DDL 审计注入缝（默认 = [auditPgPartitionDdl]；测试断言面）。
+  @visibleForTesting
+  final Future<void> Function(PgPartitionAuditRecord record)? partitionAuditor;
+
+  const CreatePostgresTableDialog({
+    super.key,
+    required this.dbName,
+    this.tableCreator,
+    this.partitionAuditor,
+  });
+
+  /// DBT-T19（W-16）：分区表单值 → options['pgPartition'] 序列化（纯函数，
+  /// widget 测试逐字断言面；与 adapter `pgPartition` 协议一致）。
+  ///
+  /// [column] 为空或无有效分区行 → null（不分区，走既有裸建表路径零变化）。
+  static Map<String, dynamic>? pgPartitionOptions(
+    String strategy,
+    String? column,
+    List<(String, String)> partitions,
+  ) {
+    if (column == null || column.isEmpty) return null;
+    final valid = <Map<String, dynamic>>[
+      for (final p in partitions)
+        if (p.$1.isNotEmpty && p.$2.isNotEmpty)
+          {'name': p.$1, 'values': p.$2},
+    ];
+    return {
+      'pgPartition': {
+        'strategy': strategy,
+        'column': column,
+        if (valid.isNotEmpty) 'partitions': valid,
+      },
+    };
+  }
 
   @override
   State<CreatePostgresTableDialog> createState() =>
@@ -1223,12 +1301,11 @@ class _CreatePostgresTableDialogState extends State<CreatePostgresTableDialog>
   final _formKey = GlobalKey<FormState>();
   final _tableNameController = TextEditingController();
   final _commentController = TextEditingController();
-  // Doris 表模型 + 分桶（仅 Doris 连接渲染；非 Doris 连接不显示）
-  String _dorisModel = 'DUPLICATE';
-  String? _dorisHashColumn;
-  int _dorisBuckets = 1;
-  // RANGE 分区
-  String? _dorisPartitionColumn;
+  // DBT-T19（W-16）：PG 声明式分区——死线三断点接线（此前分区 UI 是 Doris
+  // 死代码副本：渲染被 type==doris 门死、提交从不读 _partitions、adapter
+  // 忽略 options）。分区键列 null = 不分区（缺省，走既有裸建表路径）。
+  String _pgPartitionStrategy = 'RANGE';
+  String? _pgPartitionColumn;
   final List<_PartitionDefinition> _partitions = [];
   String _schema = 'public';
   String _tablespace = 'pg_default';
@@ -1236,6 +1313,11 @@ class _CreatePostgresTableDialogState extends State<CreatePostgresTableDialog>
   final List<_PgIndexDefinition> _indexes = [];
   bool _isLoading = false;
   late TabController _tabController;
+
+  // 技术字符串（SQL 字面量示例，非文案——同本文件 'BTREE'/'GIN' 下拉项先例）：
+  // RANGE 边界 = 上界表达式（10 / '2026-11-01' / MAXVALUE，链式下界自动推导）；
+  // LIST 边界 = 值列表内容。
+  static const String _pgListBoundHint = "e.g. 'a', 'b'";
 
   final List<String> _schemas = ['public', 'information_schema'];
   final List<String> _tablespaces = ['pg_default', 'pg_global', 'pg_local'];
@@ -1286,6 +1368,10 @@ class _CreatePostgresTableDialogState extends State<CreatePostgresTableDialog>
     for (final idx in _indexes) {
       idx.dispose();
     }
+    // DBT-T19：分区行控制器释放（此前分区 UI 为死代码、从不 dispose）。
+    for (final part in _partitions) {
+      part.dispose();
+    }
     super.dispose();
   }
 
@@ -1312,6 +1398,7 @@ class _CreatePostgresTableDialogState extends State<CreatePostgresTableDialog>
                     flex: 2,
                     child: DropdownButtonFormField<String>(
                       initialValue: _schema,
+                      isExpanded: true,
                       style: TextStyle(
                         color: context.themeColors.textPrimary,
                         fontSize: 13,
@@ -1376,6 +1463,7 @@ class _CreatePostgresTableDialogState extends State<CreatePostgresTableDialog>
                     flex: 2,
                     child: DropdownButtonFormField<String>(
                       initialValue: _tablespace,
+                      isExpanded: true,
                       style: TextStyle(
                         color: context.themeColors.textPrimary,
                         fontSize: 13,
@@ -1431,14 +1519,10 @@ class _CreatePostgresTableDialogState extends State<CreatePostgresTableDialog>
                   isDense: true,
                 ),
               ),
-              // Doris 表模型 + 分桶（仅 Doris 连接渲染）
-              if (context.read<AppProvider>().connection.currentServer?.type ==
-                  DatabaseType.doris) ...[
-                const SizedBox(height: AppDesignSystem.space2),
-                _buildDorisOptionsRow(l10n),
-                const SizedBox(height: AppDesignSystem.space2),
-                _buildDorisPartitionSection(l10n),
-              ],
+              // DBT-T19（W-16）：PG 分区节——此前为 Doris 死代码副本（type==doris
+              // 条件对 PG 连接永不真），接线为 PG 声明式分区配置（始终渲染）。
+              const SizedBox(height: AppDesignSystem.space2),
+              _buildPgPartitionSection(l10n),
               const SizedBox(height: AppDesignSystem.space3),
               TabBar(
                 controller: _tabController,
@@ -1605,6 +1689,9 @@ class _CreatePostgresTableDialogState extends State<CreatePostgresTableDialog>
             width: 100,
             child: TextFormField(
               controller: col.nameController,
+              // DBT-T19：列名变更即时刷新分区键下拉的候选列（分区节读取
+              // 已定义列；此前无 onChanged，下拉候选为陈旧快照）。
+              onChanged: (_) => setState(() {}),
               style: TextStyle(
                 color: context.themeColors.textPrimary,
                 fontSize: 11,
@@ -1959,96 +2046,18 @@ class _CreatePostgresTableDialogState extends State<CreatePostgresTableDialog>
     setState(() => _indexes.removeAt(index));
   }
 
-  // Doris 表模型 + 分桶配置行（仅 Doris 连接渲染）
-  Widget _buildDorisOptionsRow(AppLocalizations l10n) {
+  // ── DBT-T19（W-16）：PG 分区配置区（替换自 Doris 死代码副本）──────────
+  // 策略 RANGE/LIST（PG 声明式分区关键字，技术字符串）；分区键列下拉 =
+  // 已定义列；未选分区键 = 不分区。分区行复用 _PartitionDefinition
+  //（name + 边界），RANGE 边界 = 上界表达式、LIST 边界 = 值列表内容。
+  Widget _buildPgPartitionSection(AppLocalizations l10n) {
     final colNames = _columns
         .map((c) => c.nameController.text)
         .where((n) => n.isNotEmpty)
         .toSet()
         .toList();
-    final effectiveHash = colNames.contains(_dorisHashColumn)
-        ? _dorisHashColumn
-        : null;
-    final tMuted = context.themeColors.textMuted;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 2,
-          child: DropdownButtonFormField<String>(
-            initialValue: _dorisModel,
-            decoration: InputDecoration(
-              labelText: l10n.dorisTableModelLabel,
-              labelStyle: TextStyle(color: tMuted, fontSize: 12),
-              isDense: true,
-            ),
-            items: [
-              DropdownMenuItem(
-                value: 'DUPLICATE',
-                child: Text(l10n.dorisModelDuplicate),
-              ),
-              DropdownMenuItem(
-                value: 'UNIQUE',
-                child: Text(l10n.dorisModelUnique),
-              ),
-              DropdownMenuItem(
-                value: 'PRIMARY KEY',
-                child: Text(l10n.dorisModelPrimaryKey),
-              ),
-              // AGGREGATE 模型
-              DropdownMenuItem(
-                value: 'AGGREGATE',
-                child: Text(l10n.dorisModelAggregate),
-              ),
-            ],
-            onChanged: (v) => setState(() => _dorisModel = v ?? 'DUPLICATE'),
-          ),
-        ),
-        const SizedBox(width: AppDesignSystem.space2),
-        Expanded(
-          flex: 2,
-          child: DropdownButtonFormField<String?>(
-            initialValue: effectiveHash,
-            decoration: InputDecoration(
-              labelText: l10n.dorisHashColumnLabel,
-              labelStyle: TextStyle(color: tMuted, fontSize: 12),
-              isDense: true,
-            ),
-            items: colNames
-                .map((n) => DropdownMenuItem<String?>(value: n, child: Text(n)))
-                .toList(),
-            onChanged: (v) => setState(() => _dorisHashColumn = v),
-          ),
-        ),
-        const SizedBox(width: AppDesignSystem.space2),
-        Expanded(
-          flex: 1,
-          child: DropdownButtonFormField<int>(
-            initialValue: _dorisBuckets,
-            decoration: InputDecoration(
-              labelText: l10n.dorisBucketsLabel,
-              labelStyle: TextStyle(color: tMuted, fontSize: 12),
-              isDense: true,
-            ),
-            items: [1, 3, 5, 8, 10, 16]
-                .map((b) => DropdownMenuItem<int>(value: b, child: Text('$b')))
-                .toList(),
-            onChanged: (v) => setState(() => _dorisBuckets = v ?? 1),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // RANGE 分区配置区（仅 Doris 连接渲染）
-  Widget _buildDorisPartitionSection(AppLocalizations l10n) {
-    final colNames = _columns
-        .map((c) => c.nameController.text)
-        .where((n) => n.isNotEmpty)
-        .toSet()
-        .toList();
-    final effectivePartCol = colNames.contains(_dorisPartitionColumn)
-        ? _dorisPartitionColumn
+    final effectivePartCol = colNames.contains(_pgPartitionColumn)
+        ? _pgPartitionColumn
         : null;
     final tMuted = context.themeColors.textMuted;
     return Column(
@@ -2056,16 +2065,56 @@ class _CreatePostgresTableDialogState extends State<CreatePostgresTableDialog>
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          l10n.dorisPartitionColumn,
-          style: TextStyle(fontSize: 11, color: tMuted),
+          l10n.pgPartitionSectionTitle,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: tMuted,
+          ),
         ),
-        DropdownButtonFormField<String?>(
-          initialValue: effectivePartCol,
-          decoration: const InputDecoration(isDense: true),
-          items: colNames
-              .map((n) => DropdownMenuItem<String?>(value: n, child: Text(n)))
-              .toList(),
-          onChanged: (v) => setState(() => _dorisPartitionColumn = v),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                initialValue: _pgPartitionStrategy,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  labelText: l10n.pgPartitionStrategy,
+                  labelStyle: TextStyle(color: tMuted, fontSize: 12),
+                  isDense: true,
+                ),
+                items: ['RANGE', 'LIST']
+                    .map(
+                      (s) => DropdownMenuItem(
+                        value: s,
+                        child: Text(s, style: const TextStyle(fontSize: 12)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) =>
+                    setState(() => _pgPartitionStrategy = v ?? 'RANGE'),
+              ),
+            ),
+            const SizedBox(width: AppDesignSystem.space2),
+            Expanded(
+              child: DropdownButtonFormField<String?>(
+                initialValue: effectivePartCol,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  labelText: l10n.pgPartitionColumn,
+                  labelStyle: TextStyle(color: tMuted, fontSize: 12),
+                  isDense: true,
+                ),
+                items: colNames
+                    .map(
+                      (n) => DropdownMenuItem<String?>(value: n, child: Text(n)),
+                    )
+                    .toList(),
+                onChanged: (v) => setState(() => _pgPartitionColumn = v),
+              ),
+            ),
+          ],
         ),
         for (final entry in _partitions.asMap().entries)
           Padding(
@@ -2075,6 +2124,7 @@ class _CreatePostgresTableDialogState extends State<CreatePostgresTableDialog>
                 Expanded(
                   child: TextFormField(
                     controller: entry.value.nameController,
+                    key: Key('pg_partition_name_${entry.key}'),
                     decoration: InputDecoration(
                       hintText: l10n.dorisPartitionName,
                       isDense: true,
@@ -2086,8 +2136,13 @@ class _CreatePostgresTableDialogState extends State<CreatePostgresTableDialog>
                 Expanded(
                   child: TextFormField(
                     controller: entry.value.lessThanController,
+                    key: Key('pg_partition_bound_${entry.key}'),
                     decoration: InputDecoration(
-                      hintText: l10n.dorisPartitionLessThan,
+                      // RANGE 边界语义 = 上界（与 Doris lessThan 同语义复用）；
+                      // LIST 为值列表（SQL 字面量示例，技术字符串）。
+                      hintText: _pgPartitionStrategy == 'RANGE'
+                          ? l10n.dorisPartitionLessThan
+                          : _pgListBoundHint,
                       isDense: true,
                     ),
                     style: const TextStyle(fontSize: 11),
@@ -2104,6 +2159,7 @@ class _CreatePostgresTableDialogState extends State<CreatePostgresTableDialog>
             ),
           ),
         TextButton.icon(
+          key: const Key('pg_partition_add'),
           icon: const Icon(LucideIcons.plus, size: 16),
           label: Text(l10n.dorisAddPartition),
           onPressed: () =>
@@ -2111,6 +2167,64 @@ class _CreatePostgresTableDialogState extends State<CreatePostgresTableDialog>
         ),
       ],
     );
+  }
+
+  /// 分区 DDL mono 预览（预览 = 执行同一构造函数：SQL 与 adapter 执行
+  /// 同源 PostgreSQLAdapter.buildPgPartitionDdl，「无假保存」铁律①）。
+  Widget _pgDdlPreview(BuildContext context, String sql) {
+    final colors = context.themeColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(maxHeight: 220),
+          padding: const EdgeInsets.all(AppDesignSystem.space3),
+          decoration: BoxDecoration(
+            color: colors.bgTertiary,
+            borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
+          ),
+          child: SingleChildScrollView(
+            child: SelectableText(
+              sql,
+              key: const Key('pg_partition_ddl_preview'),
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.5,
+                fontFamily: AppDesignSystem.monoFontFamily,
+                fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
+                color: colors.textPrimary,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// DBT-T19：分区 DDL 审计（成功/失败均落；写失败不阻塞 UI，AppLogger 记录）。
+  Future<void> _auditPartition(
+    AppProvider provider,
+    String? sql,
+    Duration elapsed, {
+    required bool success,
+    String? errorMessage,
+  }) async {
+    if (sql == null) return;
+    final audit = widget.partitionAuditor ?? auditPgPartitionDdl;
+    try {
+      await audit((
+        connectionId: provider.connection.currentServer?.id ?? '',
+        databaseName: widget.dbName,
+        sql: sql,
+        executionTime: elapsed,
+        success: success,
+        errorMessage: errorMessage,
+      ));
+    } catch (e) {
+      AppLogger.e('PgTableDialog', 'audit write failed', e);
+    }
   }
 
   Future<void> _createTable() async {
@@ -2129,6 +2243,9 @@ class _CreatePostgresTableDialogState extends State<CreatePostgresTableDialog>
 
     setState(() => _isLoading = true);
 
+    // DBT-T19：分区 DDL（预览 = 执行同一 SQL；非分区路径恒 null）。
+    String? partitionDdl;
+    final stopwatch = Stopwatch()..start();
     try {
       final provider = context.read<AppProvider>();
       if (!mounted) return;
@@ -2148,13 +2265,134 @@ class _CreatePostgresTableDialogState extends State<CreatePostgresTableDialog>
           .toList();
 
       final fullTableName = '$_schema.${_tableNameController.text}';
-      await provider.createTable(
+
+      // ── DBT-T19 分区分支（死线断点②：提交此前从不读 _partitions）─────
+      final colNames = columns.map((c) => c.name).toSet();
+      final partColumn =
+          colNames.contains(_pgPartitionColumn) ? _pgPartitionColumn : null;
+      Map<String, dynamic>? pgOptions;
+      if (partColumn != null) {
+        final l10n = AppLocalizations.of(context)!;
+        // readonly 入口前置拦截（UX 收口）；服务层 _isWriteQuery CREATE
+        // 关键字 + adapter guardReadOnly 为硬保证（fail-closed 既有）。
+        if (provider.connection.currentServer?.readOnly == true) {
+          setState(() => _isLoading = false);
+          AppErrorHandler.showErrorSnackBar(context, l10n.readOnlyModeBlocked);
+          return;
+        }
+        // 硬校验：有 PK 列时必须包含分区键（引擎会拒绝——前置拦截不出
+        // 半成品 SQL；无 PK 的分区表合法，不强制）。
+        final pkNames = columns
+            .where((c) => c.isPrimaryKey)
+            .map((c) => c.name)
+            .toSet();
+        if (pkNames.isNotEmpty && !pkNames.contains(partColumn)) {
+          setState(() => _isLoading = false);
+          AppErrorHandler.showErrorSnackBar(
+            context,
+            l10n.pgPartitionNeedsPk(partColumn),
+          );
+          return;
+        }
+        // 分区行收集 + 边界轻校验（空名/空界拒绝；语句分隔符与注释串 =
+        // 注入面防御——边界本为 DDL 字面量片段，引擎错误原文兜底）。
+        for (final p in _partitions) {
+          final name = p.nameController.text.trim();
+          final values = p.lessThanController.text.trim();
+          if (name.isEmpty && values.isEmpty) continue;
+          if (name.isEmpty || values.isEmpty) {
+            setState(() => _isLoading = false);
+            AppErrorHandler.showErrorSnackBar(context, l10n.commonRequired);
+            return;
+          }
+          if (values.contains(';') ||
+              values.contains('--') ||
+              values.contains('/*')) {
+            setState(() => _isLoading = false);
+            AppErrorHandler.showErrorSnackBar(context, l10n.commonFailed);
+            return;
+          }
+        }
+        final partitionRows = [
+          for (final p in _partitions)
+            (p.nameController.text.trim(), p.lessThanController.text.trim()),
+        ];
+        pgOptions = CreatePostgresTableDialog.pgPartitionOptions(
+          _pgPartitionStrategy,
+          partColumn,
+          partitionRows,
+        );
+        if (pgOptions != null) {
+          // DDL 预览门（R4-d 先例：barrierDismissible:false；SQL 与 adapter
+          // 执行同源 buildPgPartitionDdl）。
+          final ddlSql = PostgreSQLAdapter.buildPgPartitionDdl(
+            fullTableName,
+            columns,
+            strategy: _pgPartitionStrategy,
+            column: partColumn,
+            partitions: [
+              for (final r in partitionRows) (name: r.$1, values: r.$2),
+            ],
+          ).join(';\n');
+          partitionDdl = ddlSql;
+          final confirmed = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => DestructiveConfirmDialog(
+              icon: LucideIcons.table2,
+              title: l10n.tableCreateNewTable,
+              impactDescription:
+                  '${l10n.pgPartitionSectionTitle} · $_pgPartitionStrategy'
+                  '($partColumn)',
+              impactTone: DestructiveTone.warning,
+              confirmLabel: l10n.commonConfirm,
+              contentWidth: 620,
+              extraContent: _pgDdlPreview(context, ddlSql),
+              onConfirm: () => Navigator.of(context).pop(true),
+            ),
+          );
+          if (confirmed != true) {
+            setState(() => _isLoading = false);
+            return;
+          }
+        }
+      }
+
+      final create = widget.tableCreator ?? provider.createTable;
+      final ok = await create(
         widget.dbName,
         fullTableName,
         columns,
         comment: _commentController.text.isEmpty
             ? null
             : _commentController.text,
+        options: pgOptions,
+      );
+      stopwatch.stop();
+      // 引擎失败不再假成功：分区路径失败经 adapter 重抛走 catch（引擎错误
+      // 原文）；普通路径 false 亦不再弹「成功」+关窗（此前 false 仍报成功
+      // 为既有缺陷，DBT-T19 接线时修复——详见任务回报）。
+      if (!ok) {
+        await _auditPartition(
+          provider,
+          partitionDdl,
+          stopwatch.elapsed,
+          success: false,
+          errorMessage: 'createTable returned false',
+        );
+        if (mounted) {
+          AppErrorHandler.showErrorSnackBar(
+            context,
+            AppLocalizations.of(context)!.commonFailed,
+          );
+        }
+        return;
+      }
+      await _auditPartition(
+        provider,
+        partitionDdl,
+        stopwatch.elapsed,
+        success: true,
       );
 
       for (final idx in _indexes) {
@@ -2191,6 +2429,16 @@ class _CreatePostgresTableDialogState extends State<CreatePostgresTableDialog>
         );
       }
     } catch (e) {
+      stopwatch.stop();
+      if (partitionDdl != null && mounted) {
+        await _auditPartition(
+          context.read<AppProvider>(),
+          partitionDdl,
+          stopwatch.elapsed,
+          success: false,
+          errorMessage: e.toString(),
+        );
+      }
       if (mounted) {
         AppErrorHandler.showErrorSnackBar(
           context,

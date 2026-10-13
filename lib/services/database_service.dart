@@ -2519,6 +2519,12 @@ class _SchemaManager {
       if (options != null) opts.addAll(options);
       return await adapter.createTable(tableName, columns, options: opts);
     }
+    // DBT-T19（W-16）：PG options 透传（pgPartition 协议——此前 PG 分支把
+    // options 整体丢弃，分区建表断点③在服务层即断）；其余库型维持裸建表
+    // 调用形态零变化（adapter 侧忽略未知 options）。
+    if (server.type == DatabaseType.postgresql && options != null) {
+      return await adapter.createTable(tableName, columns, options: options);
+    }
     return await adapter.createTable(tableName, columns);
   }
 

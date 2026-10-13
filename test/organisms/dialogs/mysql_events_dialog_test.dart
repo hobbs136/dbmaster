@@ -16,6 +16,8 @@ import 'package:dbmaster/models/database_models.dart';
 import 'package:dbmaster/molecules/destructive_confirm_dialog.dart';
 import 'package:dbmaster/organisms/dialogs/mysql_events_dialog.dart';
 import 'package:dbmaster/providers/app_provider.dart';
+import 'package:dbmaster/providers/connection_provider.dart';
+import 'package:dbmaster/services/database_service.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 const _sampleShowCreate =
@@ -23,6 +25,25 @@ const _sampleShowCreate =
     "EVERY 15 MINUTE STARTS '2026-10-12 10:00:00' ENDS '2026-12-31 23:59:59' "
     "ON COMPLETION NOT PRESERVE DISABLE COMMENT 'purge logs' "
     "DO DELETE FROM `logs` WHERE `created_at` < NOW() - INTERVAL 7 DAY";
+
+/// 捕获 SQL 的 DatabaseService 替身（app_provider_dml_warning_test 先例：
+/// 继承真实类保持 events/transactionEvents 流真实，仅覆写 executeQuery）。
+/// 用于驱动默认取数路径（loader 不注入）并断言生成的 WHERE 串。
+class _CapturingDatabaseService extends DatabaseService {
+  final queries = <String>[];
+
+  @override
+  Future<List<Map<String, dynamic>>> executeQuery(
+    String sql, {
+    String? connectionId,
+    String? database,
+    String? sessionId,
+    bool skipDdlAnalysis = false,
+  }) async {
+    queries.add(sql);
+    return const [];
+  }
+}
 
 void main() {
   setUp(() {
@@ -283,10 +304,11 @@ void main() {
       MysqlEventDdlExecutor? executor,
       MysqlEventAuditor? auditor,
       AppProvider? provider,
+      String databaseName = 'mydb',
     }) async {
       final dialog = MysqlEventsDialog(
         connectionId: 'ev_conn',
-        databaseName: 'mydb',
+        databaseName: databaseName,
         loader: loader,
         ddlFetcher: ddlFetcher,
         executor: executor,
@@ -390,6 +412,24 @@ void main() {
       await tester.tap(find.text('Retry'));
       await tester.pumpAndSettle();
       expect(find.text('ev_cleanup'), findsOneWidget);
+    });
+
+    // R1F-1（注入面修复收尾）：默认取数（loader 不注入）WHERE 库名串字面量
+    // 与 DDL 写路径同口径——escapeMySqlString（反斜杠感知转义）。
+    testWidgets('默认取数 SQL：库名含反斜杠/引号 → escapeMySqlString 口径', (
+      tester,
+    ) async {
+      final service = _CapturingDatabaseService();
+      final provider = AppProvider(
+        connectionProvider: ConnectionProvider(dbService: service),
+      );
+      await pumpDialog(tester, provider: provider, databaseName: r"my\db'x");
+
+      final listQuery = service.queries
+          .singleWhere((q) => q.contains('EVENT_SCHEMA'));
+      // `\` → `\\`、`'` → `''`（R1-P1：MySQL 串内反斜杠是转义字符，
+      // naive 单引号双写下尾随 `\` 会吞收尾引号）。
+      expect(listQuery, contains(r"WHERE EVENT_SCHEMA = 'my\\db''x' "));
     });
 
     testWidgets('新建：必填校验拦截空表单（零执行零审计）', (tester) async {

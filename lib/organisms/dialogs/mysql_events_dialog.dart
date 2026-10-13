@@ -571,7 +571,7 @@ class _MysqlEventsDialogState extends State<MysqlEventsDialog> {
       'SELECT EVENT_NAME, STATUS, EVENT_TYPE, INTERVAL_VALUE, INTERVAL_FIELD, '
       'EXECUTE_AT, LAST_EXECUTED, DEFINER '
       'FROM information_schema.EVENTS '
-      "WHERE EVENT_SCHEMA = ${SqlEscapeUtils.escapeString(databaseName)} "
+      "WHERE EVENT_SCHEMA = ${SqlEscapeUtils.escapeMySqlString(databaseName)} "
       'ORDER BY EVENT_NAME',
       connectionId: connectionId,
     );

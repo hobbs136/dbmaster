@@ -65,6 +65,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../audit_log_service.dart';
 import '../database_abstract.dart';
 import '../server_connection.dart';
 import '../schema_diff/table_dependency_sorter.dart';
@@ -1267,6 +1268,164 @@ class PostgreSQLAdapter extends DatabaseAdapter
     }
   }
 
+  // ── DBT-T19（W-16）：PG 声明式分区建表 ──────────────────────────────
+  //
+  // options['pgPartition'] 增量协议（只加不删；无该键走下方既有裸建表路径，
+  // 行为零变化）：
+  //   {'pgPartition': {
+  //      'strategy': 'RANGE'|'LIST',
+  //      'column': '<分区键列>',
+  //      'partitions': [{'name': 'p0', 'values': '<边界表达式>'}],
+  //   }}
+  // values 语义：RANGE = 上界表达式（如 10 / '2026-11-01' / MAXVALUE），
+  // LIST = 值列表内容（如 'a', 'b'）。
+  //
+  // ⚠️ 方言说明：任务书草案的 adapter 生成模板
+  // `PARTITION BY RANGE (col) (PARTITION p0 VALUES LESS THAN (…))` 是
+  // MySQL/Doris 的内联分区语法，PostgreSQL 不接受（语法错误）。PG 声明式
+  // 分区 = 父表 `PARTITION BY` 子句 + 每个分区一条独立
+  // `CREATE TABLE … PARTITION OF … FOR VALUES …` 语句，故本实现按 PG
+  // 方言生成多语句序列；RANGE 的单边（上界）语义与 Doris lessThan 对齐，
+  // 分区按声明顺序链式推导下界（首分区 MINVALUE，后续 = 前一分区上界）。
+  // options 协议形状与任务书逐字一致。
+
+  /// 生成 PG 分区建表 DDL 语句序列（父表 + 各分区子表）。
+  ///
+  /// 预览与执行同源（「无假保存」铁律①）：dialog 的 DDL 预览门与本类
+  /// [_createPartitionedTable] 的执行均经本函数，逐字一致。
+  ///
+  /// PK 列提升为表级约束：分区键进 PK 时必为复合 PK，逐列内联
+  /// `PRIMARY KEY` 会形成多个主键约束（引擎报错）。
+  static List<String> buildPgPartitionDdl(
+    String tableName,
+    List<DbColumn> columns, {
+    required String strategy,
+    required String column,
+    List<({String name, String values})> partitions = const [],
+  }) {
+    final pkNames = columns.where((c) => c.isPrimaryKey).map((c) => c.name);
+    final columnDefs = <String>[
+      for (final col in columns)
+        '${SqlEscapeUtils.escapePgIdentifier(col.name)} ${col.type}'
+            '${!col.isNullable ? ' NOT NULL' : ''}'
+            '${col.defaultValue != null ? ' DEFAULT ${col.defaultValue}' : ''}',
+      if (pkNames.isNotEmpty)
+        'PRIMARY KEY (${pkNames.map(SqlEscapeUtils.escapePgIdentifier).join(', ')})',
+    ];
+    final parentSql =
+        'CREATE TABLE ${SqlEscapeUtils.escapePgQualifiedIdentifier(tableName)} '
+        '(${columnDefs.join(', ')}) '
+        'PARTITION BY $strategy (${SqlEscapeUtils.escapePgIdentifier(column)})';
+
+    final dot = tableName.indexOf('.');
+    final schemaPrefix = dot > 0 && dot < tableName.length - 1
+        ? tableName.substring(0, dot)
+        : null;
+    final parentEscaped = SqlEscapeUtils.escapePgQualifiedIdentifier(tableName);
+    String childName(String partitionName) => schemaPrefix == null
+        ? SqlEscapeUtils.escapePgIdentifier(partitionName)
+        : '${SqlEscapeUtils.escapePgIdentifier(schemaPrefix)}.'
+            '${SqlEscapeUtils.escapePgIdentifier(partitionName)}';
+
+    final stmts = <String>[parentSql];
+    var previousBound = 'MINVALUE';
+    for (final p in partitions) {
+      // 与 Doris 先例一致：空名行跳过（不产生半成品分区语句）。
+      if (p.name.isEmpty || p.values.isEmpty) continue;
+      final boundClause = strategy == 'LIST'
+          ? 'FOR VALUES IN (${p.values})'
+          : 'FOR VALUES FROM ($previousBound) TO (${p.values})';
+      stmts.add(
+        'CREATE TABLE ${childName(p.name)} PARTITION OF $parentEscaped '
+        '$boundClause',
+      );
+      previousBound = p.values;
+    }
+    return stmts;
+  }
+
+  /// DBT-T19：消费 options['pgPartition']，逐语句执行分区建表序列。
+  ///
+  /// 失败语义（区别于既有裸建表路径的 catch→false）：分区路径**重抛**引擎
+  /// 错误原文（dialog 展示「引擎错误原文兜底」）。回收 DROP 仅限**本操作
+  /// 已建出的父表**：父表 CREATE（stmts[0]）失败（典型：与用户同名既有表
+  /// 冲突 42P07）直接重抛、绝不回收——否则回收 DROP 会误删用户同名既有
+  /// 业务表（且该 DROP 不在任何预览门内）。子语句失败（父表属本操作）才
+  /// best-effort 回收父表（分区子表随父表级联删除），不留半成品脏结构；
+  /// 回收 DROP 补审计留痕（审计失败不阻塞回收语义）。
+  Future<void> _createPartitionedTable(
+    String tableName,
+    List<DbColumn> columns,
+    Map<String, dynamic> pgPartition,
+  ) async {
+    final strategy =
+        (pgPartition['strategy']?.toString() ?? 'RANGE').toUpperCase();
+    final column = pgPartition['column']?.toString() ?? '';
+    if (column.isEmpty || (strategy != 'RANGE' && strategy != 'LIST')) {
+      throw Exception('无效分区配置: strategy=$strategy, column="$column"');
+    }
+    final parts = pgPartition['partitions'] as List<dynamic>? ?? const [];
+    final stmts = buildPgPartitionDdl(
+      tableName,
+      columns,
+      strategy: strategy,
+      column: column,
+      partitions: [
+        for (final p in parts)
+          if (p is Map)
+            (
+              name: p['name']?.toString() ?? '',
+              values: p['values']?.toString() ?? '',
+            ),
+      ],
+    );
+    // 父表 CREATE 单独执行：失败 = 目标表不是本操作创建的，直接重抛
+    // （零 DROP——buildPgPartitionDdl 保证 stmts 非空，first 恒为父表语句）。
+    try {
+      await executeQuery(stmts.first);
+    } catch (e) {
+      AppLogger.d(_tag, '分区父表创建失败（非本操作创建，不回收）: $e');
+      rethrow;
+    }
+    // 父表已建出（本操作拥有）→ 子语句失败才走回收 DROP。
+    try {
+      for (final sql in stmts.skip(1)) {
+        await executeQuery(sql);
+      }
+    } catch (e) {
+      AppLogger.d(_tag, '分区子语句创建失败: $e');
+      final dropSql =
+          'DROP TABLE IF EXISTS ${_escapeQualifiedIdentifier(tableName)}';
+      final sw = Stopwatch()..start();
+      Object? cleanupErr;
+      try {
+        await executeQuery(dropSql);
+      } catch (err) {
+        cleanupErr = err;
+        AppLogger.e(_tag, '分区建表失败后回收父表失败: $err');
+      }
+      sw.stop();
+      // 回收 DROP 审计留痕（recordQuery isWriteQuery:true，同
+      // auditPgPartitionDdl 先例；审计失败不阻塞）。
+      try {
+        final audit = AuditLogService();
+        await audit.initialize();
+        audit.recordQuery(
+          connectionId: currentConnection?.id ?? '',
+          databaseName: currentConnection?.database,
+          sql: dropSql,
+          executionTime: sw.elapsed,
+          success: cleanupErr == null,
+          errorMessage: cleanupErr?.toString(),
+          isWriteQuery: true,
+        );
+      } catch (auditErr) {
+        AppLogger.w(_tag, '分区建表回收 DROP 审计失败: $auditErr');
+      }
+      rethrow;
+    }
+  }
+
   @override
   Future<bool> createTable(
     String tableName,
@@ -1276,6 +1435,13 @@ class PostgreSQLAdapter extends DatabaseAdapter
     // feature 039 只读守卫（双保险；executeQuery 已兜住）。
     guardReadOnly(operation: 'createTable');
     if (!isConnected) throw Exception('未连接到数据库');
+
+    // DBT-T19（W-16）：分区表分支（options['pgPartition'] 增量协议）。
+    final pgPartition = options?['pgPartition'];
+    if (pgPartition is Map<String, dynamic>) {
+      await _createPartitionedTable(tableName, columns, pgPartition);
+      return true;
+    }
 
     try {
       final columnDefs = columns

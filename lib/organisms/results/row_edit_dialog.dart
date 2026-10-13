@@ -191,7 +191,14 @@ String? rowEditNormalizeBooleanLiteral(String text) {
 // UPDATE 生成（铁律①：预览与执行同源的唯一生成函数）
 // ============================================================================
 
-/// MySQL 协议族（字符串字面量中反斜杠是转义字符，R1-P1 注入面）。
+/// 字符串字面量中反斜杠是转义字符的方言（R1-P1 注入面）：
+/// - MySQL 协议族（mysql/mariadb/tidb/oceanbase/doris/starrocks）；
+/// - clickhouse：串字面量支持反斜杠转义（`\\` = 字面反斜杠），执行通道走
+///   CH MySQL 兼容口 9004（server 复用 sqlx MySQL 驱动）；
+/// - tdengine：官方转义字符表含 `\'`/`\\`（docs.taosdata.com taos-sql/
+///   escape），adapter 取数路径同口径（SqlSanitizer.value 反斜杠感知）。
+/// 行编辑入口无方言门（results_widget `_resolveRowEditMenuState` 仅
+/// PK/readonly 判定），以上成员均为活分支。
 /// 以 `DatabaseType` 实际枚举为准（models/database_models.dart）。
 const Set<DatabaseType> _kBackslashStringDialects = {
   DatabaseType.mysql,
@@ -200,11 +207,14 @@ const Set<DatabaseType> _kBackslashStringDialects = {
   DatabaseType.oceanbase,
   DatabaseType.doris,
   DatabaseType.starrocks,
+  DatabaseType.clickhouse,
+  DatabaseType.tdengine,
 };
 
-/// 字符串字面量按方言转义：MySQL 协议族先 `\`→`\\` 再 `'`→`''`
-/// （[SqlEscapeUtils.escapeMySqlString]）；其余方言（PG/SQLite/SQL Server
-/// 等）反斜杠非串转义字符，沿用 [SqlEscapeUtils.escapeString] 单引号双写。
+/// 字符串字面量按方言转义：反斜杠感知方言（[_kBackslashStringDialects]）
+/// 先 `\`→`\\` 再 `'`→`''`（[SqlEscapeUtils.escapeMySqlString]）；其余方言
+/// （PG/SQLite/SQL Server 等）反斜杠非串转义字符，沿用
+/// [SqlEscapeUtils.escapeString] 单引号双写。
 String _escapeStringLiteralFor(String value, DatabaseType type) =>
     _kBackslashStringDialects.contains(type)
         ? SqlEscapeUtils.escapeMySqlString(value)

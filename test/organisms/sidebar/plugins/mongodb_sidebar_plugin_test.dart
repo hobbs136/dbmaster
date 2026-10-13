@@ -16,6 +16,10 @@
 // 7 项顺序不变（explain 追加于尾部），真库两态（find→IXSCAN 摘要 /
 // aggregate→SBE unknown→JSON 默认展开）由 mongodb_explain_e2e_test.dart
 // 覆盖。
+// DBT-T17 增补（第二程序 R2，W-14 分布图）：+mongo.schemaAnalysis 项
+// （位映射/装配计数 10→11/激活打开断言）；T7/T10/T11/T12 锁定 8 项顺序
+// 不变（schemaAnalysis 追加于尾部），位为 T22 预登记的 mongo.schemaAnalysis，
+// 真库链路由 mongodb_schema_distribution_e2e_test.dart 覆盖。
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -174,7 +178,7 @@ void main() {
       expect(d.source, PluginSource.databaseType);
     });
 
-    testWidgets('capabilityGroups：advanced 组 8 项（T7 5 + T10/T11/T12 各追加 1），位映射逐项锁定', (
+    testWidgets('capabilityGroups：advanced 组 9 项（T7 5 + T10/T11/T12/T17 各追加 1），位映射逐项锁定', (
       tester,
     ) async {
       BuildContext? captured;
@@ -203,7 +207,8 @@ void main() {
       // mongo.gridfs 追加于尾部（T7/T10 锁定 6 项顺序不回归），位为既有
       // mongo.gridfs（capability_table.dart 在册）。DBT-T12：mongo.explain
       // 追加于尾部（T7/T10/T11 锁定 7 项顺序不回归），位为 T0 预登记的
-      // mongo.explain。
+      // mongo.explain。DBT-T17：mongo.schemaAnalysis 追加于尾部（T7/T10/
+      // T11/T12 锁定 8 项顺序不回归），位为 T22 预登记的 mongo.schemaAnalysis。
       const expected = <String, String?>{
         'mongo.validation': 'mongo.validation',
         'mongo.aggregate': 'mongo.aggregate',
@@ -213,6 +218,7 @@ void main() {
         'mongo.currentOp': 'mongo.currentOp',
         'mongo.gridfs': 'mongo.gridfs',
         'mongo.explain': 'mongo.explain',
+        'mongo.schemaAnalysis': 'mongo.schemaAnalysis',
       };
       final items = groups.first.items;
       expect(items.map((i) => i.id).toList(), expected.keys.toList());
@@ -223,7 +229,7 @@ void main() {
       expect(items.every((i) => i.onActivate != null), isTrue);
     });
 
-    test('DBT-T7/T10/T11/T12 项位全在 CapabilityTable 对 mongodb 取真（T0 预登记）', () {
+    test('DBT-T7/T10/T11/T12/T17 项位全在 CapabilityTable 对 mongodb 取真（T0/T22 预登记）', () {
       const caps = [
         'mongo.validation',
         'mongo.aggregate',
@@ -232,6 +238,7 @@ void main() {
         'mongo.currentOp',
         'mongo.gridfs',
         'mongo.explain',
+        'mongo.schemaAnalysis',
       ];
       for (final cap in caps) {
         expect(CapabilityTable.has(DatabaseType.mongodb, cap), isTrue,
@@ -239,7 +246,7 @@ void main() {
       }
     });
 
-    testWidgets('MongoDB 装配可见项数 = core 2 + 插件 8 = 10（CapabilityTable 门控后）',
+    testWidgets('MongoDB 装配可见项数 = core 2 + 插件 9 = 11（CapabilityTable 门控后）',
         (tester) async {
       SharedPreferences.setMockInitialValues({});
       await tester.pumpWidget(
@@ -260,7 +267,7 @@ void main() {
                 for (final g in groups)
                   ...g.items.map((i) => i.item.id),
               ];
-              expect(ids, hasLength(10));
+              expect(ids, hasLength(11));
               expect(
                 ids,
                 containsAll(const [
@@ -279,6 +286,8 @@ void main() {
                   'mongo.gridfs',
                   // 插件 1（DBT-T12）
                   'mongo.explain',
+                  // 插件 1（DBT-T17）
+                  'mongo.schemaAnalysis',
                 ]),
               );
               return const SizedBox.shrink();
@@ -526,6 +535,21 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('Please enter an SQL statement first'), findsOneWidget);
+    });
+
+    testWidgets('mongo.schemaAnalysis → 打开 Schema 类型分布面板（DBT-T17；未连接 = 空库下拉）', (
+      tester,
+    ) async {
+      await pumpHarness(tester);
+      await activateItem(tester, 'mongo.schemaAnalysis');
+
+      // 面板标题 + 库/集合下拉渲染（未连接 provider 下 loadDatabases 返回
+      // 空，无集合可选无结果区——打开不崩溃即可，真库链路由
+      // mongodb_schema_distribution_e2e_test.dart 覆盖）。
+      expect(find.text('Schema Type Distribution'), findsOneWidget);
+      expect(find.text('Database'), findsOneWidget);
+      expect(find.text('Collections'), findsOneWidget);
+      expect(find.text('Close'), findsOneWidget);
     });
   });
 }
