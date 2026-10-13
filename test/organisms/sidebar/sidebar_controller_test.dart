@@ -256,8 +256,8 @@ void main() {
   });
 
   group('SidebarController 键盘导航', () {
-    // C22-1：单实例树——beta 仍在 savedConnections 但非当前连接，
-    // key 集/导航只覆盖 alpha（跨连接切换走顶部选择器，非键盘）。
+    // J3 多连接长驻树：key 集覆盖全部已保存连接（beta 根常驻——断开也
+    // 在导航序内，子树不展开）；跨连接遍历靠 ↑↓ 穿越连接边界。
     AppProvider buildProvider() {
       final provider = AppProvider();
       final alpha = _testServer(id: 'alpha-conn');
@@ -278,18 +278,19 @@ void main() {
       return provider;
     }
 
-    testWidgets('↓ 从 null 选中首节点、连续前进、末尾 wrap 回首（单实例树）', (tester) async {
+    testWidgets('↓ 从 null 选中首节点、连续前进、跨连接边界、末尾 wrap 回首（多连接树）', (tester) async {
       final provider = buildProvider();
       final controller = SidebarController(appProvider: provider);
       addTearDown(controller.dispose);
       controller.toggleExpand('alpha-conn');
       controller.rebuildVisibleNodeKeys(provider);
 
-      // 展开后：连接根 → 保存查询分类 → 库节点（beta 非当前，不入 key 集）
+      // 展开后：alpha 连接根 → 保存查询分类 → 库节点 → beta 连接根
+      //（beta 已连接但未展开、无缓存库 → 仅根行入 key 集）
       final keys = controller.visibleNodeKeys;
       expect(
         keys,
-        ['conn:alpha-conn', 'cat:alpha-conn:saved_queries', 'db:alpha-conn:testdb'],
+        ['conn:alpha-conn', 'cat:alpha-conn:saved_queries', 'db:alpha-conn:testdb', 'conn:beta-conn'],
       );
 
       expect(
@@ -313,6 +314,13 @@ void main() {
       );
       expect(controller.selectedNodeKey, 'db:alpha-conn:testdb');
 
+      // ↓ 穿越连接边界 → beta 根
+      controller.handleTreeKeyEvent(
+        FocusNode(),
+        _key(LogicalKeyboardKey.arrowDown, PhysicalKeyboardKey.arrowDown),
+      );
+      expect(controller.selectedNodeKey, 'conn:beta-conn');
+
       // 末尾再 ↓ → wrap 回首节点
       controller.handleTreeKeyEvent(
         FocusNode(),
@@ -321,20 +329,20 @@ void main() {
       expect(controller.selectedNodeKey, 'conn:alpha-conn');
     });
 
-    testWidgets('↑ 从首节点 wrap 到末尾（单实例树）', (tester) async {
+    testWidgets('↑ 从首节点 wrap 到末尾（多连接树，末尾 = 另一连接根）', (tester) async {
       final provider = buildProvider();
       final controller = SidebarController(appProvider: provider);
       addTearDown(controller.dispose);
       controller.toggleExpand('alpha-conn');
       controller.rebuildVisibleNodeKeys(provider);
 
-      // 选中首节点 → ↑ wrap 到末尾（库节点）
+      // 选中首节点 → ↑ wrap 到末尾（beta 连接根——跨连接边界）
       controller.selectNode('conn:alpha-conn');
       controller.handleTreeKeyEvent(
         FocusNode(),
         _key(LogicalKeyboardKey.arrowUp, PhysicalKeyboardKey.arrowUp),
       );
-      expect(controller.selectedNodeKey, 'db:alpha-conn:testdb');
+      expect(controller.selectedNodeKey, 'conn:beta-conn');
     });
 
     testWidgets('→ 展开已缓存的 db: 节点；← 收起（C19 统一 key 格式契约）', (

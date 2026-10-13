@@ -1,7 +1,10 @@
 import 'dart:math';
+import 'dart:typed_data' show ByteData;
 
 import 'package:flutter/gestures.dart' show kSecondaryButton;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'
+    show JSONMethodCodec, StandardMethodCodec;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:dbmaster/molecules/compact_popup_menu_item.dart';
@@ -494,6 +497,220 @@ void main() {
         findsOneWidget,
       );
       expect(rowEditItem(), isNull);
+    });
+
+    // ------------------------------------------------------------------
+    // T25（J3 地基）· L-3 三处收口：结果网格上下文跟随所属 tab 连接
+    //（FU-DBT-4 销项）。双连接夹具：活动 tab 属连接 A（saved + connected），
+    // currentServer 置连接 B——三处消费面（_supportsSqlExport /
+    // _getDatabaseType / _getQuoteChar）均按 A 取值，不随全局 currentServer
+    // 串味（旧实现读 B；下列差分断言在旧代码上失败，锚定迁移）。
+    // ------------------------------------------------------------------
+    group('T25 L-3：结果网格上下文跟随所属 tab 连接', () {
+      /// 剪贴板捕获（flutter/platform 通道 mock；Export INSERT 路径用）。
+      String? lastClipboardText;
+
+      setUp(() {
+        lastClipboardText = null;
+        // 同通道（flutter/platform）多 codec 并存：SystemChannels.platform
+        //（含 Clipboard）用 JSONMethodCodec——先 JSON 后 Standard 容错解码；
+        // 解不开的消息（未知调用方）忽略，返回 null 与未 mock 时一致。
+        Future<ByteData?>? handler(ByteData? message) async {
+          for (final codec in const [
+            JSONMethodCodec(),
+            StandardMethodCodec(),
+          ]) {
+            try {
+              final call = codec.decodeMethodCall(message);
+              if (call.method == 'Clipboard.setData') {
+                lastClipboardText =
+                    (call.arguments as Map?)?['text'] as String?;
+              }
+              break;
+            } on FormatException {
+              // 尝试下一编码。
+            }
+          }
+          return null;
+        }
+
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMessageHandler('flutter/platform', handler);
+        addTearDown(() {
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+              .setMockMessageHandler('flutter/platform', null);
+        });
+      });
+
+      /// 双连接夹具：活动 tab 属 [tabType] 连接（saved+connected），全局
+      /// currentServer 置 [currentType] 连接（saved+connected）。
+      Future<void> pumpDualConnectionGrid(
+        WidgetTester tester, {
+        required DatabaseType tabType,
+        required DatabaseType currentType,
+        List<Map<String, dynamic>>? data,
+        Map<String, String>? columnTypes,
+      }) async {
+        final tabServer = DbServer(
+          id: 'tab-conn',
+          name: 'Tab Conn',
+          type: tabType,
+          host: '127.0.0.1',
+          port: 3306,
+        );
+        final globalServer = DbServer(
+          id: 'current-conn',
+          name: 'Current Conn',
+          type: currentType,
+          host: '127.0.0.1',
+          port: 5432,
+        );
+        appProvider.connection.addSavedServerForTest(tabServer);
+        appProvider.connection.addSavedServerForTest(globalServer);
+        appProvider.dbService.registerConnectedServerForTest(tabServer);
+        appProvider.dbService.registerConnectedServerForTest(globalServer);
+        appProvider.connection.setCurrentServer(globalServer);
+        appProvider.tab.addTab(
+          QueryTab(id: tabId, title: 'Tab 1', connectionId: 'tab-conn'),
+        );
+        appProvider.tab.ensureHistorySubTab(tabId);
+        appProvider.tab.addResultToTab(
+          tabId,
+          [
+            ExecutionResult(
+              statement: const SQLStatement(
+                index: 0,
+                sql: 'SELECT * FROM users',
+                type: SQLType.select,
+                lineStart: 1,
+                lineEnd: 1,
+              ),
+              success: true,
+              data:
+                  data ??
+                  <Map<String, dynamic>>[
+                    <String, dynamic>{'id': 1, 'name': 'Alice'},
+                  ],
+              executionTime: const Duration(milliseconds: 1),
+              columnTypes: columnTypes,
+            ),
+          ],
+          sql: 'SELECT * FROM users',
+          executionTime: const Duration(milliseconds: 1),
+        );
+
+        await tester.pumpWidget(buildResultsWidget());
+        await tester.pumpAndSettle();
+      }
+
+      Future<void> rightClickCell(WidgetTester tester) async {
+        await tester.tap(find.text('Alice'), buttons: kSecondaryButton);
+        await tester.pumpAndSettle();
+      }
+
+      testWidgets('L-3a 导出支持项按 tab 侧：tab=MySQL + currentServer=Redis → 导出项在', (
+        tester,
+      ) async {
+        // 旧实现读 currentServer=Redis → 隐藏（差分锚定）。
+        await pumpDualConnectionGrid(
+          tester,
+          tabType: DatabaseType.mysql,
+          currentType: DatabaseType.redis,
+        );
+
+        await rightClickCell(tester);
+        expect(find.text('Export Row as SQL INSERT'), findsOneWidget);
+        expect(find.text('Export All as SQL INSERT'), findsOneWidget);
+      });
+
+      testWidgets('L-3a 反向：tab=Redis + currentServer=MySQL → 导出项不出现', (
+        tester,
+      ) async {
+        // 旧实现读 currentServer=MySQL → 显示（差分锚定）。
+        await pumpDualConnectionGrid(
+          tester,
+          tabType: DatabaseType.redis,
+          currentType: DatabaseType.mysql,
+        );
+
+        await rightClickCell(tester);
+        expect(find.text('Export Row as SQL INSERT'), findsNothing);
+        expect(find.text('Export All as SQL INSERT'), findsNothing);
+      });
+
+      testWidgets('L-3b 引号按 tab 侧方言：tab=MySQL + currentServer=PG → 反引号', (
+        tester,
+      ) async {
+        await pumpDualConnectionGrid(
+          tester,
+          tabType: DatabaseType.mysql,
+          currentType: DatabaseType.postgresql,
+        );
+
+        await rightClickCell(tester);
+        await tester.tap(find.text('Export Row as SQL INSERT'));
+        await tester.pumpAndSettle();
+
+        expect(lastClipboardText, isNotNull);
+        expect(
+          lastClipboardText,
+          contains('`users`'),
+          reason: 'MySQL 方言反引号（旧实现按 currentServer=PG 会取双引号）',
+        );
+        expect(lastClipboardText, isNot(contains('"users"')));
+      });
+
+      testWidgets('L-3b 反向：tab=PG + currentServer=MySQL → 双引号', (tester) async {
+        await pumpDualConnectionGrid(
+          tester,
+          tabType: DatabaseType.postgresql,
+          currentType: DatabaseType.mysql,
+        );
+
+        await rightClickCell(tester);
+        await tester.tap(find.text('Export Row as SQL INSERT'));
+        await tester.pumpAndSettle();
+
+        expect(lastClipboardText, isNotNull);
+        expect(
+          lastClipboardText,
+          contains('"users"'),
+          reason: 'PG 方言双引号（旧实现按 currentServer=MySQL 会取反引号）',
+        );
+        expect(lastClipboardText, isNot(contains('`users`')));
+      });
+
+      testWidgets(
+        'L-3c 库型按 tab 侧：tab=MySQL + currentServer=PG → JSON 提取器按 MySQL',
+        (tester) async {
+          // Ahem 测试字体下弹层内 Row（Icon+Text）比真实字体宽——放大画布
+          // 给 header 弹出菜单留足宽度（默认 800x600 会 RenderFlex 溢出）。
+          tester.view.physicalSize = const Size(1600, 1000);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+
+          await pumpDualConnectionGrid(
+            tester,
+            tabType: DatabaseType.mysql,
+            currentType: DatabaseType.postgresql,
+            data: <Map<String, dynamic>>[
+              <String, dynamic>{'id': 1, 'meta': '{"a":1,"b":2}'},
+            ],
+            columnTypes: {'meta': 'json'},
+          );
+
+          // JSON 列头右键 → Extract field as column → JsonFieldPicker 标题
+          // 带库型名（_dbLabel）：按所属 tab 的 MySQL（旧实现显示 PostgreSQL）。
+          await tester.tap(find.text('meta'), buttons: kSecondaryButton);
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Extract field as column'));
+          await tester.pumpAndSettle();
+
+          expect(find.textContaining('meta · MySQL'), findsOneWidget);
+          expect(find.textContaining('meta · PostgreSQL'), findsNothing);
+        },
+      );
     });
   });
 }

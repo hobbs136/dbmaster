@@ -3945,5 +3945,11 @@
   "mongoGridfsUploadTooLarge": "Файл превышает лимит загрузки {size}",
   "@mongoGridfsUploadTooLarge": {"placeholders": {"size": {"type": "String"}}},
   "mongoGridfsUploadRollbackPartial": "Загрузка не удалась; записанные чанки были отменены",
-  "@mongoGridfsUploadRollbackPartial": {}
+  "@mongoGridfsUploadRollbackPartial": {},
+  "environmentProduction": "Производственная среда",
+  "@environmentProduction": {},
+  "environmentTesting": "Тестовая среда",
+  "@environmentTesting": {},
+  "environmentDevelopment": "Среда разработки",
+  "@environmentDevelopment": {}
 }

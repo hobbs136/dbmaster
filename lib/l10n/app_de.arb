@@ -3948,5 +3948,11 @@
   "mongoGridfsUploadTooLarge": "Datei überschreitet das {size}-Upload-Limit",
   "@mongoGridfsUploadTooLarge": {"placeholders": {"size": {"type": "String"}}},
   "mongoGridfsUploadRollbackPartial": "Hochladen fehlgeschlagen; die bereits geschriebenen Chunks wurden zurückgerollt",
-  "@mongoGridfsUploadRollbackPartial": {}
+  "@mongoGridfsUploadRollbackPartial": {},
+  "environmentProduction": "Produktionsumgebung",
+  "@environmentProduction": {},
+  "environmentTesting": "Testumgebung",
+  "@environmentTesting": {},
+  "environmentDevelopment": "Entwicklungsumgebung",
+  "@environmentDevelopment": {}
 }

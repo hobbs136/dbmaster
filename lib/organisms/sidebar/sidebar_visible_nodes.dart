@@ -11,7 +11,28 @@
 // 之外的第二份实现，需人工保持一致（拆分前即如此，行为不变）。
 import '../../models/database_models.dart';
 import '../../providers/app_provider.dart';
-import 'sidebar_current_connection.dart';
+
+/// J3 多连接长驻树装配序：未分组连接（含孤儿组员——groupId 指向已删组）
+/// 在前、各分组按 connectionGroups 序殿后（空组自然略过）。SidebarTree
+/// 渲染与键盘导航 key 集共用本序，保证「树视觉序 = ↑↓ 导航序」。
+List<DbServer> orderedSidebarConnections(AppProvider provider) {
+  final groups = provider.connectionGroups;
+  final grouped = <String, List<DbServer>>{};
+  final ungrouped = <DbServer>[];
+  for (final conn in provider.connection.savedConnections) {
+    final gid = conn.groupId;
+    if (gid != null && groups.any((g) => g.id == gid)) {
+      grouped.putIfAbsent(gid, () => []).add(conn);
+    } else {
+      ungrouped.add(conn);
+    }
+  }
+  return [
+    ...ungrouped,
+    for (final group in groups)
+      if ((grouped[group.id] ?? const []).isNotEmpty) ...grouped[group.id]!,
+  ];
+}
 
 /// 构建可见节点的有序 key 列表（用于 ↑↓ 导航）。
 ///
@@ -42,12 +63,10 @@ List<String> buildVisibleSidebarNodeKeys({
   final keys = <String>[];
   final sq = searchQuery.toLowerCase();
 
-  // C22-1 单实例树：key 集只含当前连接（与 SidebarTree 渲染同源锚定）；
-  // 无当前连接时返回空（键盘导航随之静默——树上没有可导航行）。
-  final current = resolveSidebarCurrentConnection(provider);
-  if (current == null) return keys;
-
-  for (final conn in [current]) {
+  // J3 多连接长驻树：key 集覆盖全部已保存连接（与 SidebarTree 渲染同序，
+  // 分组分节经 [orderedSidebarConnections] 共源）——↑↓ 与 type-to-select
+  // 跨连接遍历全树。
+  for (final conn in orderedSidebarConnections(provider)) {
     // 搜索过滤
     if (sq.isNotEmpty &&
         !conn.name.toLowerCase().contains(sq) &&

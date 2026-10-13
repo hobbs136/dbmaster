@@ -11287,6 +11287,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mongoGridfsUploadRollbackPartial => '上传失败，已写入的分片已回滚';
+
+  @override
+  String get environmentProduction => '生产环境';
+
+  @override
+  String get environmentTesting => '测试环境';
+
+  @override
+  String get environmentDevelopment => '开发环境';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -20021,4 +20030,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get mongoGridfsUploadRollbackPartial => '上傳失敗，已寫入的分片已回滾';
+
+  @override
+  String get environmentProduction => '生產環境';
+
+  @override
+  String get environmentTesting => '測試環境';
+
+  @override
+  String get environmentDevelopment => '開發環境';
 }

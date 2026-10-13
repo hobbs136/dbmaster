@@ -15,7 +15,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import 'package:dbmaster/l10n/app_localizations.dart';
@@ -25,7 +24,6 @@ import 'package:dbmaster/organisms/connection/connection_dialog.dart';
 import 'package:dbmaster/organisms/connection/connection_export_import_dialog.dart';
 import 'package:dbmaster/organisms/redis_key_editor/redis_key_editor_dialog.dart';
 import 'package:dbmaster/organisms/redis_pubsub/redis_pubsub_panel.dart';
-import 'package:dbmaster/organisms/sidebar/sidebar_connection_selector.dart';
 import 'package:dbmaster/organisms/sidebar/sidebar_tree.dart';
 import 'package:dbmaster/organisms/sidebar/tree_item.dart';
 import 'package:dbmaster/providers/app_provider.dart';
@@ -459,45 +457,9 @@ void main() {
       expect(appProvider.isConnectionConnected(server.id), isFalse);
     });
 
-    testWidgets(
-      'connection selector connects a saved disconnected server',
-      (tester) async {
-        if (!redisE2EGatewayReady) return;
-        await pumpHarness(tester);
-        await expandConnection(tester);
-
-        const disconnectedLabel = 'Redis Sidebar E2E Disconnected';
-        final disconnectedServer = DbServer(
-          id: '${server.id}_disconnected',
-          name: disconnectedLabel,
-          type: DatabaseType.redis,
-          host: server.host,
-          port: server.port,
-          password: server.password,
-          database: server.database,
-        );
-        await appProvider.connection.saveConnection(disconnectedServer);
-        await tester.pumpAndSettle(const Duration(seconds: 2));
-
-        expect(
-          appProvider.isConnectionConnected(disconnectedServer.id),
-          isFalse,
-        );
-
-        // C22-1 单实例树：未连接的已保存连接不在树里，入口是顶部选择器下拉
-        //（点下拉箭头打开；find.byType(PopupMenuItem) 精确匹配不到
-        // PopupMenuItem<String> 实例，点项用 find.text 的 overlay 命中）。
-        await tester.tap(find.byIcon(LucideIcons.chevronsUpDown));
-        await tester.pumpAndSettle(const Duration(seconds: 1));
-        await tester.tap(find.text(disconnectedLabel).last);
-        await tester.pumpAndSettle(const Duration(seconds: 4));
-
-        expect(
-          appProvider.isConnectionConnected(disconnectedServer.id),
-          isTrue,
-        );
-      },
-    );
+    // T27（J3 selector 退役）：原「connection selector connects a saved
+    // disconnected server」用例随顶部选择器退役删除——未连接重连入口 =
+    // 树根点击/双击（下方 double-click reconnect 用例在册覆盖）。
 
     testWidgets('connection node single-click switches active connection', (
       tester,
@@ -1231,12 +1193,8 @@ void main() {
         groupId,
       );
 
-      // 选择器下拉按组分区：组头 + 组内成员可见。
-      await tester.tap(find.byIcon(LucideIcons.chevronsUpDown));
-      await tester.pumpAndSettle(const Duration(seconds: 1));
-
-      expect(find.text(groupName), findsOneWidget);
-      expect(find.text('Redis Sidebar E2E In Group'), findsOneWidget);
+      // T27：原「选择器下拉按组分区」断言块随选择器退役删除——分组分节
+      // 展示由多连接树装配覆盖（multi_connection_tree_test）。
     });
   });
 }
@@ -1317,16 +1275,10 @@ class _SidebarTestHarnessState extends State<_SidebarTestHarness> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // C22-1：树只渲染当前连接——连接已保存服务器的入口是顶部选择器下拉。
+      // J3 多连接长驻树：全部连接根常驻同树，树本身即导航（T27 selector
+      // 退役）；测试连接走 connectToServer 程序化路径。
       body: Column(
         children: [
-          SidebarConnectionSelector(
-            onConnectionTap: (server) async {
-              final ok = await widget.provider.connectToServer(server);
-              if (ok) await widget.provider.refreshDatabases();
-            },
-            onManageConnections: () {},
-          ),
           Expanded(
             child: SidebarTree(
               expandedItems: _expandedItems,

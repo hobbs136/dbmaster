@@ -29,7 +29,6 @@ import 'dialogs/stored_procedures_dialog.dart';
 import 'dialogs/triggers_dialog.dart';
 import 'sidebar/capability/sidebar_capability_menu.dart';
 import 'sidebar/mysql_process_panel.dart';
-import 'sidebar/sidebar_connection_selector.dart';
 import 'sidebar/sidebar_controller.dart';
 import 'sidebar/sidebar_footer.dart';
 import 'sidebar/sidebar_header.dart';
@@ -248,8 +247,8 @@ class _SidebarWidgetState extends State<SidebarWidget> {
     // Use watch (not read) so async data loads trigger sidebar rebuild
     final provider = context.watch<AppProvider>();
     // 2b.1（R3）：observe escalation 一次性展开请求——post-frame 消费
-    //（构建期改动控制器状态会触发嵌套 notify；消费点不触碰 :328 进程面板
-    // 挂载段语义——挂载判据仍是 currentServer + expandedItems）。
+    //（构建期改动控制器状态会触发嵌套 notify；消费点不触碰进程面板
+    // 挂载段语义——挂载判据 = activeContextConnection + expandedItems）。
     if (provider.sidebar.sidebarExpandRequest != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _consumeSidebarExpandRequest();
@@ -271,11 +270,8 @@ class _SidebarWidgetState extends State<SidebarWidget> {
               onToggleCollapse: widget.onToggleCollapse ?? () {},
               isCollapsed: widget.isCollapsed,
             ),
-            // C22-0 — 顶部连接选择器（当前连接名 + 地址，快速切换/连接）
-            SidebarConnectionSelector(
-              onConnectionTap: _controller.handleConnectionTap,
-              onManageConnections: _showConnectionManager,
-            ),
+            // T27（J3 退役）：顶部连接选择器已删——多连接长驻树下树本身
+            // 即导航，顶部空间自然还给树区（Expanded 自动上扩）。
             // Search filter bar
             SidebarSearchField(
               controller: _controller.searchController,
@@ -327,9 +323,12 @@ class _SidebarWidgetState extends State<SidebarWidget> {
             // 连接时自隐藏，位于树与进程面板之间）
             const SidebarCapabilityMenu(),
             // T014 — MySQL process panel (between tree and footer)
+            // J3（T26）：挂载锚定改「活动上下文连接」（活动 tab →
+            // currentServer → 侧栏选中，T25 交付语义）——跟随用户所在
+            // tab 的连接，不再取全局执行默认连接。
             Consumer<AppProvider>(
               builder: (ctx, provider, _) {
-                final server = provider.connection.currentServer;
+                final server = provider.activeContextConnection;
                 if (server == null || server.type != DatabaseType.mysql) {
                   return const SizedBox.shrink();
                 }

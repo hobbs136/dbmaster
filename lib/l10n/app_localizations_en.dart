@@ -11563,4 +11563,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get mongoGridfsUploadRollbackPartial =>
       'Upload failed; the chunks already written were rolled back';
+
+  @override
+  String get environmentProduction => 'Production environment';
+
+  @override
+  String get environmentTesting => 'Testing environment';
+
+  @override
+  String get environmentDevelopment => 'Development environment';
 }

@@ -1,11 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/gestures.dart' show kSecondaryButton;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show MethodChannel;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dbmaster/l10n/app_localizations.dart';
 import 'package:dbmaster/l10n/app_localizations_en.dart';
 import 'package:dbmaster/models/ai_tree_node_context.dart';
+import 'package:dbmaster/models/connection_event.dart';
 import 'package:dbmaster/models/database_models.dart';
 import 'package:dbmaster/providers/app_provider.dart';
 import 'package:dbmaster/providers/server_connection_provider.dart';
@@ -590,6 +594,170 @@ void main() {
       expect(provider.withAiCalls, equals(0));
       expect(provider.lastContext!.type, equals(AiTreeNodeType.database));
       expect(provider.lastContext!.databaseName, equals('db_a'));
+    });
+  });
+
+  // ==================== T27 迁入：树根失败态 ====================
+  // 原 selector 失败态测试文件（T27 删）的树根组——selector 退役（T27）
+  // 后断言随 SidebarTree 失败态 tooltip 语义迁入本文件；选择器条目重试
+  // 交互（ConnectFailureDialog 面）在树根无对应面，按任务书边界删除并
+  // 登记（重试入口 = 树根点击既有 _connectToServer 覆盖）。
+  group('树根失败态 · T27 自 selector 退役迁移', () {
+    setUp(() {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      // 真实连接链路会经 SecureStorageService 读写凭据保险箱；flutter_tester
+      // 无插件实现会挂起，按项目测试约定 mock 为空。
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+            (call) async => null,
+          );
+    });
+
+    tearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+            null,
+          );
+    });
+
+    Future<void> pumpTree(WidgetTester tester, AppProvider app) async {
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<AppProvider>.value(value: app),
+            ChangeNotifierProvider<ServerConnectionProvider>.value(
+              value: ServerConnectionProvider(),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.darkTheme,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('en'),
+            home: Scaffold(
+              body: SidebarTree(
+                expandedItems: const {},
+                expandedDatabases: const {},
+                expandedTables: const {},
+                loadingDatabases: const {},
+                loadedTableSchemas: const {},
+                loadedTableForeignKeys: const {},
+                loadingTableSchemas: const {},
+                onToggleExpand: (_) {},
+                onToggleDatabase: (_) {},
+                onToggleTable: (_) {},
+                onLoadDatabaseInfo: (a, b) async {},
+                onShowConnectionManager: () {},
+                onShowSettings: () {},
+                onShowERDiagram: () {},
+                onShowStoredProcedures: () {},
+                onShowTriggers: () {},
+                tableRowCounts: const {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('树根：意外断连 → error 态 tooltip；处置/断开两态回归不变', (tester) async {
+      final app = AppProvider();
+      final dbFile = File(
+        '${Directory.systemTemp.absolute.path}'
+        '${Platform.pathSeparator}dbmaster_t10_tree_'
+        '${DateTime.now().millisecondsSinceEpoch}.db',
+      );
+      dbFile.writeAsStringSync(''); // 0 字节 = 合法空 SQLite 库
+      addTearDown(() {
+        try {
+          if (dbFile.existsSync()) dbFile.deleteSync();
+        } on FileSystemException {
+          // 连接句柄未释放时删除失败不影响测试结论
+        }
+      });
+      final server = DbServer(
+        id: 't10_tree_1',
+        name: 'TreeConn',
+        type: DatabaseType.sqlite,
+        host: dbFile.path,
+        port: 0,
+        username: null,
+        password: null,
+        database: null,
+        useSSL: false,
+        timeoutSeconds: 30,
+        autoReconnect: false,
+      );
+      app.connection.addSavedServerForTest(server);
+
+      // 真实连接（真实事件循环完成），再挂树。
+      await tester.runAsync(() async {
+        expect(await app.connection.connectToServer(server), isTrue);
+      });
+
+      await pumpTree(tester, app);
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(SidebarTree)),
+      )!;
+
+      // 正常连接态回归不变：树根连接行 tooltip = connectionCurrent。
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Tooltip && w.message == l10n.connectionCurrent,
+        ),
+        findsOneWidget,
+      );
+
+      // 注入意外断连事件（无主动断开标记）→ 失败条目 + error 态 tooltip。
+      // 无标记断连恒映射 ConnectionFailureKind.unknown（connection_provider
+      // 事件路由）→ 人话消息 = connectFailureUnknown（确定性断言）。
+      app.connection.dbService.addEventForTest(
+        ConnectionDisconnected(server.id, server),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(app.connection.lastFailureFor(server.id), isNotNull);
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Tooltip &&
+              w.message ==
+                  l10n.connectFailureLatestTooltip(l10n.connectFailureUnknown),
+        ),
+        findsOneWidget,
+      );
+
+      // 处置后回归既有连接态 tooltip（无失败 → 原 current/connected 逻辑）。
+      app.connection.acknowledgeFailure(server.id);
+      await tester.pump();
+      await tester.pump();
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Tooltip && w.message == l10n.connectionCurrent,
+        ),
+        findsOneWidget,
+      );
+
+      // 真实断开（用户主动）→ 断开态 tooltip 回归 + 不产生失败态。
+      await tester.runAsync(
+        () => app.connection.disconnectConnection(connectionId: server.id),
+      );
+      // 断开后侧栏选中锚点让树继续渲染该连接的断开态根行。
+      app.sidebar.selectConnection(server.id);
+      await tester.pump();
+      await tester.pump();
+      expect(app.connection.lastFailureFor(server.id), isNull);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Tooltip && w.message == l10n.connectionDisconnect,
+        ),
+        findsOneWidget,
+      );
     });
   });
 }

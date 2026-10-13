@@ -11628,4 +11628,13 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get mongoGridfsUploadRollbackPartial =>
       'Hochladen fehlgeschlagen; die bereits geschriebenen Chunks wurden zurückgerollt';
+
+  @override
+  String get environmentProduction => 'Produktionsumgebung';
+
+  @override
+  String get environmentTesting => 'Testumgebung';
+
+  @override
+  String get environmentDevelopment => 'Entwicklungsumgebung';
 }

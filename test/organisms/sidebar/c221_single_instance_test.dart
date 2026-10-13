@@ -1,11 +1,11 @@
-// C22-1 · 单实例专注树 + AppHeader 下掉迁置 专项测试。
+// C22-1 → J3 多连接长驻树 专项测试（T26 重写为多连接口径）。
 //
 // 覆盖面：
-// - SST-C22：单实例树（只渲染当前连接 / 切换选中即换树 / 无当前提示）；
-// - SEL-C22-G：选择器下拉按组分区（组头 + 成员 + 孤儿组回退）；
+// - MTREE-J3：多连接长驻树（全部连接根常驻同树、活动根高亮跟随活动
+//   上下文连接、无当前锚定不空态闪变）；
 // - FTR-C22：footer 全局动作行（AI/主题/设置，AppHeader 下掉后迁入）；
-// - BRC-C22：BreadcrumbBar 已于 C21 M3 退役（连接/库并入工具栏右端上下文
-//   芯片、命令面板入口随迁——覆盖见 query_editor_toolbar_test TRB-C21-005/006）。
+// - BRC-C22：BreadcrumbBar 已于 C21 M3 退役（覆盖见 query_editor_toolbar
+//   测试 TRB-C21-005/006）。
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,8 +16,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dbmaster/l10n/app_localizations.dart';
 import 'package:dbmaster/models/database_models.dart' hide QueryTab;
 import 'package:dbmaster/providers/tab_provider.dart' show QueryTab;
-import 'package:dbmaster/organisms/sidebar/sidebar_connection_selector.dart';
 import 'package:dbmaster/organisms/sidebar/sidebar_footer.dart';
+import 'package:dbmaster/organisms/sidebar/sidebar_tree.dart';
+import 'package:dbmaster/organisms/sidebar/tree_item.dart';
 import 'package:dbmaster/organisms/sidebar_widget.dart';
 import 'package:dbmaster/providers/app_provider.dart';
 import 'package:dbmaster/providers/server_connection_provider.dart';
@@ -91,8 +92,8 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  group('SST-C22 · 单实例专注树', () {
-    testWidgets('多连接并存：树只渲染当前连接，切换选中即换树', (tester) async {
+  group('MTREE-J3 · 多连接长驻树', () {
+    testWidgets('多连接并存：全部连接根节点同树常驻，侧栏选中不再换树', (tester) async {
       final provider = AppProvider();
       final a = _server('conn-a', 'Connection Alpha');
       final b = _server('conn-b', 'Connection Beta');
@@ -106,24 +107,24 @@ void main() {
       await tester.pump();
       await tester.pump();
 
+      // 两连接根同时可见（J3：无需切换，树本身即导航）
       expect(find.text('Connection Alpha'), findsOneWidget);
-      expect(find.text('Connection Beta'), findsNothing);
+      expect(find.text('Connection Beta'), findsOneWidget);
 
-      // 切选中 → 树换成 B
+      // 切侧栏选中 → 树仍双根常驻（不再「切换即换树」）
       provider.sidebar.selectConnection('conn-b');
       await tester.pump();
       await tester.pump();
+      expect(find.text('Connection Alpha'), findsOneWidget);
       expect(find.text('Connection Beta'), findsOneWidget);
-      expect(find.text('Connection Alpha'), findsNothing);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('回归：开着 A 连接的 tab 时切换 B，树跟 currentServer 走', (
-      tester,
-    ) async {
-      // 2026-08-20 走查反馈：切换 PG 浏览表数据（开 tab）后切 MySQL，
-      // 树不切换——根因 = resolver 曾把活动 tab 排在 currentServer 前，
-      // tab 恒属旧连接导致切换永远被抢回。守卫：currentServer 优先。
+    testWidgets('活动根高亮跟随活动上下文连接（活动 tab 优先于 currentServer）', (tester) async {
+      // J3 序位口径（plan §10.1①④）：SST-C22-003 守卫前提（「开着旧连接
+      // tab 时经选择器切换」）随切换入口删除而消亡——活动上下文 = 活动
+      // tab 的连接 → currentServer → 侧栏选中（T25 activeContextConnection）。
+      // 树根高亮跟随该锚点：开着 A 的 tab 时 currentServer=B，高亮在 A。
       final provider = AppProvider();
       final a = _server('conn-a', 'Connection Alpha');
       final b = _server('conn-b', 'Connection Beta');
@@ -132,10 +133,9 @@ void main() {
       _connectForTest(provider, a);
       _connectForTest(provider, b);
 
-      // 用户流程：连 A → 浏览表数据（开 A 的查询 tab）→ 选择器切 B。
-      // switchToConnection/openQueryTab 真链路含真库 IO（测试库不可达会
-      // hang），用 setCurrentServerForTest + 同步 TabProvider.addTab 模拟
-      // 「切换成功后 currentServer=B、活动 tab 属 A」的冲突状态。
+      // 用户流程：连 A → 浏览表数据（开 A 的查询 tab）→ 连 B（currentServer
+      // =B）。switchToConnection 真链路含真库 IO，用 setCurrentServerForTest
+      // + 同步 TabProvider.addTab 模拟「currentServer=B、活动 tab 属 A」。
       provider.connection.setCurrentServerForTest(a);
       provider.tab.addTab(
         QueryTab(
@@ -153,13 +153,25 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      // 树根必须显示 B（currentServer），而非 tab 所属的 A
+      // 双根常驻 + 活动根 = A（活动 tab 所属），非 currentServer 的 B
       expect(find.text('Connection Beta'), findsOneWidget);
-      expect(find.text('Connection Alpha'), findsNothing);
+      expect(find.text('Connection Alpha'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is TreeItem && w.isSelected && w.label == 'Connection Alpha',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is TreeItem && w.isSelected && w.label == 'Connection Beta',
+        ),
+        findsNothing,
+      );
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('有连接但无当前锚定：显示选择器引导提示', (tester) async {
+    testWidgets('有连接但无任何锚定：树仍全根节点，无空态闪变', (tester) async {
       final provider = AppProvider();
       provider.connection.addSavedServerForTest(
         _server('conn-a', 'Connection Alpha'),
@@ -169,45 +181,12 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Select a connection from the picker above to start'), findsOneWidget);
-      expect(find.text('Connection Alpha'), findsNothing);
-      expect(tester.takeException(), isNull);
-    });
-  });
-
-  group('SEL-C22-G · 选择器下拉按组分区', () {
-    testWidgets('未分组在前，分组以组头分区展示', (tester) async {
-      final provider = AppProvider();
-      await provider.addConnectionGroup(
-        ConnectionGroup(id: 'g1', name: 'Production'),
+      // 旧「选择器引导提示」态随多连接树消亡（_buildNoCurrentHint 移除）
+      expect(
+        find.text('Select a connection from the picker above to start'),
+        findsNothing,
       );
-      provider.connection.addSavedServerForTest(
-        _server('c1', 'Ungrouped One'),
-      );
-      provider.connection.addSavedServerForTest(
-        _server('c2', 'Grouped Two', groupId: 'g1'),
-      );
-      provider.connection.addSavedServerForTest(
-        _server('c3', 'Orphan Three', groupId: 'deleted-group'),
-      );
-      provider.sidebar.selectConnection('c1');
-
-      await tester.pumpWidget(
-        _buildTestApp(
-          provider,
-          child: SidebarConnectionSelector(
-            onManageConnections: () {},
-          ),
-        ),
-      );
-
-      await tester.tap(find.byIcon(LucideIcons.chevronsUpDown));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Production'), findsOneWidget); // 组头
-      expect(find.text('Ungrouped One'), findsOneWidget);
-      expect(find.text('Grouped Two'), findsOneWidget);
-      expect(find.text('Orphan Three'), findsOneWidget); // 孤儿回退未分组
+      expect(find.text('Connection Alpha'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });

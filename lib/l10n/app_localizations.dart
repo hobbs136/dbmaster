@@ -20338,6 +20338,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Upload failed; the chunks already written were rolled back'**
   String get mongoGridfsUploadRollbackPartial;
+
+  /// DBT J3 S9: connection environment name — tree root color bar / status bar badge / active tab tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Production environment'**
+  String get environmentProduction;
+
+  /// DBT J3 S9: connection environment name — tree root color bar / status bar badge / active tab tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Testing environment'**
+  String get environmentTesting;
+
+  /// DBT J3 S9: connection environment name — tree root color bar / status bar badge / active tab tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Development environment'**
+  String get environmentDevelopment;
 }
 
 class _AppLocalizationsDelegate

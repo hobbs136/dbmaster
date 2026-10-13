@@ -3945,5 +3945,11 @@
   "mongoGridfsUploadTooLarge": "Le fichier dépasse la limite de téléversement de {size}",
   "@mongoGridfsUploadTooLarge": {"placeholders": {"size": {"type": "String"}}},
   "mongoGridfsUploadRollbackPartial": "Échec du téléversement ; les chunks déjà écrits ont été annulés",
-  "@mongoGridfsUploadRollbackPartial": {}
+  "@mongoGridfsUploadRollbackPartial": {},
+  "environmentProduction": "Environnement de production",
+  "@environmentProduction": {},
+  "environmentTesting": "Environnement de test",
+  "@environmentTesting": {},
+  "environmentDevelopment": "Environnement de développement",
+  "@environmentDevelopment": {}
 }

@@ -98,11 +98,12 @@ class _WorkbenchContextPickerState extends State<WorkbenchContextPicker> {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // 数据（只读镜像 sidebar_connection_selector 的分区语义，不搬组件）
+  // 数据（连接分区装配与侧栏树多连接分节同语义——未分组在前、组头不可点；
+  // T27 selector 退役后语义锚 = 侧栏树，不搬组件）
   // ──────────────────────────────────────────────────────────────────────────
 
   /// 连接分区：未分组在前 → 各分组（组头不可点）；孤儿分组（groupId 指向
-  /// 已删组）按未分组处理，与侧栏选择器装配语义一致。
+  /// 已删组）按未分组处理，与侧栏树连接分节装配语义一致。
   List<_ConnEntry> _buildEntries(AppProvider provider) {
     final groups = provider.connectionGroups;
     final grouped = <String, List<DbServer>>{};

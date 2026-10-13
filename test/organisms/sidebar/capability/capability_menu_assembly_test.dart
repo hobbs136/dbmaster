@@ -302,7 +302,7 @@ void main() {
     );
   });
 
-  test('活动连接锚定：currentServer 优先 / 回退 tab→选中（须已连接）', () {
+  test('活动连接锚定（T25 序位反转）：tab（须已连接）→ currentServer → 选中', () {
     final a = DbServer(
       id: 'a',
       type: DatabaseType.mysql,
@@ -319,19 +319,44 @@ void main() {
     );
     final saved = [a, b];
 
-    // currentServer 非空时直接胜出（不看 tab/选中）
+    // 新序①：活动 tab 已连接 → tab 胜出（不看 currentServer——J3 删除
+    // 切换入口后 SST-C22-003 场景消亡，面板跟随活动 tab）。
     expect(
       resolveCapabilityMenuServer(
         currentServer: b,
         activeTabConnectionId: 'a',
-        selectedConnectionId: 'a',
+        selectedConnectionId: 'b',
+        isConnected: (_) => true,
+        savedConnections: saved,
+      ),
+      same(a),
+    );
+
+    // 新序②：tab 未连接 → 回退 currentServer（多连接下 tab 属未连接连接）
+    expect(
+      resolveCapabilityMenuServer(
+        currentServer: b,
+        activeTabConnectionId: 'a',
+        selectedConnectionId: null,
+        isConnected: (id) => id != 'a',
+        savedConnections: saved,
+      ),
+      same(b),
+    );
+
+    // 新序③：tab 连接已删除（isConnected 但不在 saved）→ 回退 currentServer
+    expect(
+      resolveCapabilityMenuServer(
+        currentServer: b,
+        activeTabConnectionId: 'gone',
+        selectedConnectionId: null,
         isConnected: (_) => true,
         savedConnections: saved,
       ),
       same(b),
     );
 
-    // 回退链：活动 tab 优先于侧栏选中
+    // currentServer 空 → 回退链保持：活动 tab 优先于侧栏选中
     expect(
       resolveCapabilityMenuServer(
         currentServer: null,

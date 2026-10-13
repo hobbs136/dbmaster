@@ -18,7 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:dbmaster/core/shortcuts/global_shortcuts_wrapper.dart';
 import 'package:dbmaster/l10n/app_localizations.dart';
-import 'package:dbmaster/models/database_models.dart';
+import 'package:dbmaster/models/database_models.dart' hide QueryTab;
 import 'package:dbmaster/organisms/sidebar/capability/capability_menu_assembly.dart';
 import 'package:dbmaster/organisms/sidebar/capability/sidebar_capability_menu.dart';
 import 'package:dbmaster/plugins/bootstrap.dart';
@@ -26,7 +26,9 @@ import 'package:dbmaster/plugins/plugin_descriptor.dart';
 import 'package:dbmaster/plugins/sidebar_plugin.dart';
 import 'package:dbmaster/providers/app_provider.dart';
 import 'package:dbmaster/providers/server_connection_provider.dart';
+import 'package:dbmaster/providers/tab_provider.dart' show QueryTab;
 import 'package:dbmaster/providers/theme_provider.dart';
+import 'package:dbmaster/services/database_abstract.dart' show DatabaseAdapter;
 import 'package:dbmaster/theme/app_theme.dart';
 
 /// 测试注入插件（仅 sqlite 命中，注册于 [defaultPluginRegistry]，本文件
@@ -151,6 +153,17 @@ DbServer _server(DatabaseType type) => DbServer(
       username: 'u',
       password: 'p',
     );
+
+/// T25 组用：仅 isConnected 取真——hasConnection 检查 adapters（非 servers
+/// 态），须注入连接态 adapter 使 isConnectionConnected 为真（沿
+/// app_provider_switch_tab_sync_test 同款接缝）。
+class _FakeConnectedAdapter implements DatabaseAdapter {
+  @override
+  bool get isConnected => true;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 Widget _providers(AppProvider provider, Widget child) => MultiProvider(
       providers: [
@@ -289,6 +302,99 @@ void main() {
       expect(find.text('Schema Diff & Sync'), findsOneWidget);
       expect(find.text('AI Assistant'), findsOneWidget);
       expect(find.text('Stored Procedures'), findsNothing);
+    });
+  });
+
+  group('T25 锚定序反转：面板跟随活动 tab（tab → currentServer → 选中）', () {
+    testWidgets('活动 tab（已连接）优先于 currentServer；切 tab 面板整体切换',
+        (tester) async {
+      final provider = AppProvider();
+      final mysql = _server(DatabaseType.mysql);
+      final pg = _server(DatabaseType.postgresql);
+      provider.connection.addSavedServerForTest(mysql);
+      provider.connection.addSavedServerForTest(pg);
+      provider.dbService.registerConnectedServerForTest(mysql);
+      provider.dbService.registerConnectedServerForTest(pg);
+      provider.dbService.registerConnectedAdapterForTest(
+        mysql.id,
+        _FakeConnectedAdapter(),
+      );
+      provider.dbService.registerConnectedAdapterForTest(
+        pg.id,
+        _FakeConnectedAdapter(),
+      );
+      // currentServer 停在 PG（模拟旧「全局切换」语义残留）；活动 tab 属
+      // MySQL（已连接）→ 新序按 MySQL 装配（旧序 currentServer 优先会
+      // 渲染 PG——本断言在旧代码上失败，锚定序位反转）。
+      provider.connection.setCurrentServer(pg);
+      provider.tab.addTab(
+        QueryTab(
+          id: 't-mysql',
+          title: 'query',
+          sql: 'SELECT 1',
+          connectionId: mysql.id,
+          databaseName: 'db',
+          databaseType: DatabaseType.mysql,
+        ),
+      );
+
+      await tester.pumpWidget(_host(provider));
+      await tester.pump();
+
+      expect(find.text('Capabilities: MySQL'), findsOneWidget);
+      expect(find.text('Variables'), findsOneWidget, reason: 'MySQL 专有项');
+      expect(find.text('Capabilities: PostgreSQL'), findsNothing);
+
+      // 切到 PG tab → 标题/内容整体随 tab 切换（验收标准 ④）。
+      provider.tab.addTab(
+        QueryTab(
+          id: 't-pg',
+          title: 'query2',
+          sql: 'SELECT 2',
+          connectionId: pg.id,
+          databaseName: 'db',
+          databaseType: DatabaseType.postgresql,
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Capabilities: PostgreSQL'), findsOneWidget);
+      expect(find.text('Extensions'), findsOneWidget, reason: 'PG 专有项');
+      expect(find.text('Capabilities: MySQL'), findsNothing);
+    });
+
+    testWidgets('活动 tab 未连接 → 回退 currentServer（动作护栏保持）',
+        (tester) async {
+      final provider = AppProvider();
+      final mysql = _server(DatabaseType.mysql);
+      final pg = _server(DatabaseType.postgresql);
+      provider.connection.addSavedServerForTest(mysql);
+      provider.connection.addSavedServerForTest(pg);
+      // 仅 PG 注册连接态（server + adapter）；tab 属未连接的 MySQL → 按
+      // currentServer=PG 装配。
+      provider.dbService.registerConnectedServerForTest(pg);
+      provider.dbService.registerConnectedAdapterForTest(
+        pg.id,
+        _FakeConnectedAdapter(),
+      );
+      provider.connection.setCurrentServer(pg);
+      provider.tab.addTab(
+        QueryTab(
+          id: 't-mysql',
+          title: 'query',
+          sql: 'SELECT 1',
+          connectionId: mysql.id,
+          databaseName: 'db',
+          databaseType: DatabaseType.mysql,
+        ),
+      );
+
+      await tester.pumpWidget(_host(provider));
+      await tester.pump();
+
+      expect(find.text('Capabilities: PostgreSQL'), findsOneWidget);
+      expect(find.text('Capabilities: MySQL'), findsNothing);
     });
   });
 

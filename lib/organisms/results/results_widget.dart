@@ -37,6 +37,24 @@ import '../../l10n/app_localizations.dart';
 import '../../molecules/compact_popup_menu_item.dart';
 import '../../theme/app_colors.dart';
 
+/// T25（L-3 三处收口，J3 地基）：结果网格的上下文连接解析——所属 tab
+/// （活动 tab）的 connectionId 从 savedConnections 查表（R1-P2 同模式：
+/// currentServer 在多连接场景可能指向另一连接）；tab 无 connectionId 或
+/// 指向已删除连接（查不到）→ 降级 [AppProvider.activeContextConnection]
+/// （tab → currentServer → 侧栏选中），最终 currentServer 直读兜底（与
+/// 旧实现同深度，防御性保持）。消费面：`_supportsSqlExport` /
+/// `_getDatabaseType` / `_getQuoteChar`（FU-DBT-4 销项）。
+DbServer? _resultsContextServer(AppProvider provider) {
+  final cid = provider.tab.activeTab?.connectionId;
+  if (cid != null) {
+    final server =
+        provider.savedConnections.where((s) => s.id == cid).firstOrNull;
+    if (server != null) return server;
+    // tab 指向已删除连接 → 降级兜底链（不崩不悬空，任务书边界条款）。
+  }
+  return provider.activeContextConnection ?? provider.connection.currentServer;
+}
+
 /// ResultsWidget - 查询结果展示
 ///
 /// 结构（自顶向下）：
@@ -1141,7 +1159,8 @@ class _ResultTabContentState extends State<ResultTabContent> {
   bool _supportsSqlExport() {
     try {
       final provider = Provider.of<AppProvider>(context, listen: false);
-      final server = provider.connection.currentServer;
+      // T25 L-3：按所属 tab 连接解析（多连接下不随 currentServer 串味）。
+      final server = _resultsContextServer(provider);
       if (server == null) return false;
       switch (server.type) {
         case DatabaseType.mysql:
@@ -1199,7 +1218,15 @@ class _ResultTabContentState extends State<ResultTabContent> {
                 color: context.themeColors.accentBlue,
               ),
               const SizedBox(width: 8),
-              Text(l10n?.extractFieldAsColumn ?? 'Extract field as column'),
+              // T25 测试加固：菜单锚点为零宽矩形（fromRect 0×0），窄可用宽
+              //（测试字体/极窄窗）下行内容须可收缩——Flexible + 省略号防
+              // RenderFlex 溢出（真字体常规宽度下视觉零变化）。
+              Flexible(
+                child: Text(
+                  l10n?.extractFieldAsColumn ?? 'Extract field as column',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
         ),
@@ -1232,10 +1259,13 @@ class _ResultTabContentState extends State<ResultTabContent> {
   }
 
   /// 获取当前连接的数据库类型（US4 SQL 生成需要）。
+  ///
+  /// T25 L-3：按所属 tab 连接解析（`_resultsContextServer`），多连接下
+  /// 不随 currentServer 串味。
   DatabaseType _getDatabaseType() {
     try {
       final provider = context.read<AppProvider>();
-      return provider.connection.currentServer?.type ?? DatabaseType.mysql;
+      return _resultsContextServer(provider)?.type ?? DatabaseType.mysql;
     } catch (_) {
       return DatabaseType.mysql;
     }
@@ -1630,7 +1660,8 @@ class _ResultTabContentState extends State<ResultTabContent> {
   String _getQuoteChar() {
     try {
       final provider = Provider.of<AppProvider>(context, listen: false);
-      final server = provider.connection.currentServer;
+      // T25 L-3：按所属 tab 连接解析（多连接下不随 currentServer 串味）。
+      final server = _resultsContextServer(provider);
       if (server == null) return '`';
       switch (server.type) {
         case DatabaseType.mysql:

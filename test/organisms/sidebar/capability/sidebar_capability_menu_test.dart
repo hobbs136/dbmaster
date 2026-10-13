@@ -1,5 +1,7 @@
 // C14 · 侧边栏能力菜单 widget 测试：渲染 / port 门控 / 徽章 / 折叠 /
-// 激活动作（AI 面板）/ 活动连接锚定（currentServer 优先 + 回退）。
+// 激活动作（AI 面板）/ 活动连接锚定（T25 序：tab 优先 → currentServer
+// → 侧栏选中回退；本文件各用例仅设 currentServer，序位差分见
+// capability_menu_assembly_test.dart 与 q1 测试的 T25 组）。
 //
 // 用例登记：「侧边栏能力菜单（CAP-MENU）」。
 import 'package:flutter/material.dart';

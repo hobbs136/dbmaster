@@ -3,6 +3,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:dbmaster/l10n/app_localizations.dart';
+import 'package:dbmaster/l10n/app_localizations_en.dart';
+import 'package:dbmaster/models/database_models.dart';
 import 'package:dbmaster/organisms/connection/tabs_bar_widget.dart';
 import 'package:dbmaster/providers/app_provider.dart';
 import 'package:dbmaster/providers/theme_provider.dart';
@@ -142,4 +144,73 @@ void main() {
       expect(deco?.color ?? container.color, isNotNull);
     });
   });
+
+  group('TabsBarWidget S9 · 环境色条（J3 多连接长驻树）', () {
+    testWidgets('活动 tab 左缘 3px 环境色条，非活动 tab 保留 8px 圆点；tooltip 走 l10n', (tester) async {
+      final provider = AppProvider();
+      // 带 environment 的已保存连接（tab → savedConnections 解析 env）。
+      provider.connection.addSavedServerForTest(
+        DbServer(
+          id: 'test-conn',
+          type: DatabaseType.mysql,
+          name: 'EnvConn',
+          host: '192.0.2.1',
+          port: 3306,
+          username: 'root',
+          password: 'x',
+          environment: ConnectionEnvironment.production,
+        ),
+      );
+      await provider.tab.openQueryTab(
+        connectionId: 'test-conn',
+        databaseName: 'test-db',
+      );
+      await provider.tab.openQueryTab(
+        connectionId: 'test-conn',
+        databaseName: 'test-db',
+      );
+      provider.setActiveTab(0); // tab0 活动
+
+      await tester.pumpWidget(_buildTabsBarTest(provider));
+      await tester.pumpAndSettle();
+
+      final envColor = ConnectionEnvironment.production.badgeColor;
+
+      // 活动 tab：左缘 3px 色条（Positioned width 3，色值 badgeColor 同源）。
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              w.constraints?.maxWidth == 3 &&
+              (w.color ?? (w.decoration as BoxDecoration?)?.color) == envColor,
+        ),
+        findsOneWidget,
+        reason: '活动 tab 环境圆点升级为左缘 3px 色条',
+      );
+
+      // 非活动 tab：8px 圆点保留（badgeColor 圆形，非 bar）。
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              w.constraints?.maxWidth == 8 &&
+              ((w.decoration as BoxDecoration?)?.shape == BoxShape.circle) &&
+              (w.decoration as BoxDecoration?)?.color == envColor,
+        ),
+        findsOneWidget,
+        reason: '非活动 tab 环境点保持 8px 圆点形态',
+      );
+
+      // tooltip 迁 l10n（修正原硬编码 displayName 违规存量，T24 三键）。
+      final l10n = AppLocalizationsEn();
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Tooltip && w.message == l10n.environmentProduction,
+        ),
+        findsNWidgets(2),
+        reason: '色条与圆点 tooltip 均为 l10n 环境名（两 tab 各一）',
+      );
+    });
+  });
 }
+

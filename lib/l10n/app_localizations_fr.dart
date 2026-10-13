@@ -11658,4 +11658,13 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get mongoGridfsUploadRollbackPartial =>
       'Échec du téléversement ; les chunks déjà écrits ont été annulés';
+
+  @override
+  String get environmentProduction => 'Environnement de production';
+
+  @override
+  String get environmentTesting => 'Environnement de test';
+
+  @override
+  String get environmentDevelopment => 'Environnement de développement';
 }

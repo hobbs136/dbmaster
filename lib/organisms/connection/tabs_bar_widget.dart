@@ -725,87 +725,112 @@ class _TabItem extends StatelessWidget {
                 right: BorderSide(color: colors.dividerColor),
               ),
             ),
-            child: Row(
+            child: Stack(
               children: [
-                // 类型点位：对象 tab = 「对象」角标（box 图标 + tooltip）；
-                // 普通 tab = 连接类型色圆点（8px，brandColor 暗色提亮变体自动分发）
-                if (isObjectTab)
-                  Tooltip(
-                    message: objectBadgeTooltip ?? '',
-                    child: Icon(
-                      LucideIcons.box,
-                      size: 12,
-                      color: colors.accentBlue,
+                Row(
+                  children: [
+                    // 类型点位：对象 tab = 「对象」角标（box 图标 + tooltip）；
+                    // 普通 tab = 连接类型色圆点（8px，brandColor 暗色提亮变体自动分发）
+                    if (isObjectTab)
+                      Tooltip(
+                        message: objectBadgeTooltip ?? '',
+                        child: Icon(
+                          LucideIcons.box,
+                          size: 12,
+                          color: colors.accentBlue,
+                        ),
+                      )
+                    else
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: dbType != null
+                              ? colors.brandColor(dbType!)
+                              : colors.textMuted,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    const SizedBox(width: AppDesignSystem.space2),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: AppDesignSystem.fontSizeMd,
+                          color: textColor,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  )
-                else
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: dbType != null
-                          ? colors.brandColor(dbType!)
-                          : colors.textMuted,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                const SizedBox(width: AppDesignSystem.space2),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: AppDesignSystem.fontSizeMd,
-                      color: textColor,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                // 已保存徽章（save 图标，成功色）
-                if (isSaved) ...[
-                  const SizedBox(width: AppDesignSystem.space1),
-                  Icon(
-                    LucideIcons.save,
-                    size: 12,
-                    color: colors.success,
-                  ),
-                ],
-                if (environment != null) ...[
-                  const SizedBox(width: AppDesignSystem.space1),
-                  Tooltip(
-                    message: environment!.displayName,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: environment!.badgeColor,
-                        shape: BoxShape.circle,
-                        border: Border.all(
+                    // 已保存徽章（save 图标，成功色）
+                    if (isSaved) ...[
+                      const SizedBox(width: AppDesignSystem.space1),
+                      Icon(
+                        LucideIcons.save,
+                        size: 12,
+                        color: colors.success,
+                      ),
+                    ],
+                    // S9（J3）：非活动 tab 保留 8px 环境圆点；活动 tab 的
+                    // 环境圆点升级为左缘 3px 色条（见下方 Positioned——与
+                    // 树根色条/状态栏徽章三处同源 environment.badgeColor）。
+                    if (!isActive && environment != null) ...[
+                      const SizedBox(width: AppDesignSystem.space1),
+                      Tooltip(
+                        message: _environmentLabel(
+                          AppLocalizations.of(context)!,
+                          environment!,
+                        ),
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: environment!.badgeColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: colors.bgSecondary,
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(width: AppDesignSystem.space1),
+                    InkWell(
+                      onTap: onClose,
+                      borderRadius: BorderRadius.circular(
+                        AppDesignSystem.radiusSm,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(2),
+                        child: Icon(
+                          LucideIcons.x,
+                          size: 14,
                           color: isActive
-                              ? colors.primaryContainer
-                              : colors.bgSecondary,
-                          width: 1,
+                              ? colors.textSecondary
+                              : colors.textMuted,
                         ),
                       ),
                     ),
-                  ),
-                ],
-                const SizedBox(width: AppDesignSystem.space1),
-                InkWell(
-                  onTap: onClose,
-                  borderRadius: BorderRadius.circular(
-                    AppDesignSystem.radiusSm,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(2),
-                    child: Icon(
-                      LucideIcons.x,
-                      size: 14,
-                      color: isActive
-                          ? colors.textSecondary
-                          : colors.textMuted,
+                  ],
+                ),
+                // S9：活动 tab 左缘 3px 环境色条（mockup .wtab .envbar 形态）。
+                if (isActive && environment != null)
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    child: Tooltip(
+                      message: _environmentLabel(
+                        AppLocalizations.of(context)!,
+                        environment!,
+                      ),
+                      child: Container(
+                        width: 3,
+                        color: environment!.badgeColor,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -937,5 +962,19 @@ class _NewTabButton extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// S9（J3）：环境三态的 UI 层显示名（模型层 displayName 禁 l10n 依赖——
+/// 分层原则；T24 登记 environment* 三键）。tabs_bar 与 status_bar 各自
+/// 持有同款映射（消费面仅两处，不建共享文件）。
+String _environmentLabel(AppLocalizations l10n, ConnectionEnvironment env) {
+  switch (env) {
+    case ConnectionEnvironment.production:
+      return l10n.environmentProduction;
+    case ConnectionEnvironment.testing:
+      return l10n.environmentTesting;
+    case ConnectionEnvironment.development:
+      return l10n.environmentDevelopment;
   }
 }

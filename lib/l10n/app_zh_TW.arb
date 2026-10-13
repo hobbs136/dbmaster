@@ -3956,5 +3956,11 @@
   "mongoGridfsUploadTooLarge": "檔案超過 {size} 的上傳上限",
   "@mongoGridfsUploadTooLarge": {"placeholders": {"size": {"type": "String"}}},
   "mongoGridfsUploadRollbackPartial": "上傳失敗，已寫入的分片已回滾",
-  "@mongoGridfsUploadRollbackPartial": {}
+  "@mongoGridfsUploadRollbackPartial": {},
+  "environmentProduction": "生產環境",
+  "@environmentProduction": {},
+  "environmentTesting": "測試環境",
+  "@environmentTesting": {},
+  "environmentDevelopment": "開發環境",
+  "@environmentDevelopment": {}
 }

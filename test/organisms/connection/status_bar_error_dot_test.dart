@@ -196,4 +196,52 @@ void main() {
     expect(find.byKey(_dotKey), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
   });
+
+  group('S9 环境徽章（J3 多连接长驻树，T26）', () {
+    testWidgets('当前上下文连接带 environment → 8px 徽章 + l10n tooltip；无 environment 不渲染', (tester) async {
+      final app = AppProvider();
+      final server = _sqliteServer('t26_sb_env', ':memory:').copyWith(
+        environment: ConnectionEnvironment.testing,
+      );
+      app.connection.addSavedServerForTest(server);
+      app.connection.setCurrentServerForTest(server);
+
+      await pumpStatusBar(tester, app);
+      final l10n = _l10nOf(tester);
+      final envColor = ConnectionEnvironment.testing.badgeColor;
+
+      // 8px 圆点（badgeColor 同源——与树根色条/活动标签色条三处同源）。
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              w.constraints?.maxWidth == 8 &&
+              ((w.decoration as BoxDecoration?)?.shape == BoxShape.circle) &&
+              (w.decoration as BoxDecoration?)?.color == envColor,
+        ),
+        findsOneWidget,
+        reason: '状态栏环境徽章 = 8px badgeColor 圆点',
+      );
+      // tooltip 走 l10n environment* 键（T24 三键）。
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Tooltip && w.message == l10n.environmentTesting,
+        ),
+        findsOneWidget,
+      );
+
+      // 无 environment → 零渲染。
+      final plain = AppProvider();
+      final plainServer = _sqliteServer('t26_sb_plain', ':memory:');
+      plain.connection.addSavedServerForTest(plainServer);
+      plain.connection.setCurrentServerForTest(plainServer);
+      await pumpStatusBar(tester, plain);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Tooltip && w.message == l10n.environmentTesting,
+        ),
+        findsNothing,
+      );
+    });
+  });
 }

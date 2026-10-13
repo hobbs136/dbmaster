@@ -21,6 +21,11 @@ class TreeItem extends StatefulWidget {
   final void Function(Offset position)? onContextMenu;
   final double? iconSize;
 
+  /// S9（J3 多连接长驻树）：连接根行左缘 3px 环境色竖条；null 不渲染。
+  /// 色值 = `ConnectionEnvironment.badgeColor`（与活动标签色条/状态栏
+  /// 徽章三处同源）；渲染在行卡片外侧 gutter，不与选中态左指示条叠压。
+  final Color? environmentBarColor;
+
   const TreeItem({
     super.key,
     required this.level,
@@ -39,6 +44,7 @@ class TreeItem extends StatefulWidget {
     this.onDoubleTap,
     this.onContextMenu,
     this.iconSize,
+    this.environmentBarColor,
   });
 
   @override
@@ -121,7 +127,7 @@ class _TreeItemState extends State<TreeItem> {
   Widget build(BuildContext context) {
     final colors = context.themeColors;
 
-    return MouseRegion(
+    Widget row = MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
@@ -228,6 +234,28 @@ class _TreeItemState extends State<TreeItem> {
           ),
         ),
       ),
+    );
+
+    // S9：环境色条挂在行卡片外侧左 gutter（mockup .tnode .env 形态：
+    // left:0 / top:3 / bottom:3 / 3px / radius 2）——不挤占内容、不与
+    // 选中态 3px 指示条（卡片内缘）叠压。
+    if (widget.environmentBarColor == null) return row;
+    return Stack(
+      children: [
+        row,
+        Positioned(
+          left: 0,
+          top: 3,
+          bottom: 3,
+          child: Container(
+            width: 3,
+            decoration: BoxDecoration(
+              color: widget.environmentBarColor,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

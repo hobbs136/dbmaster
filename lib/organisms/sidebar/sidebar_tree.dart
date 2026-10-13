@@ -40,14 +40,32 @@ import '../../utils/sql_escape_utils.dart';
 import '../../utils/index_dialect_names.dart';
 import 'tree_item.dart';
 import 'saved_queries/saved_queries_section.dart';
-import 'sidebar_current_connection.dart';
-import 'sidebar_connection_selector.dart';
 import 'sidebar_section.dart';
+import 'sidebar_visible_nodes.dart' show orderedSidebarConnections;
 import 'builders/tree_utils.dart';
 import '../../molecules/context_menu.dart';
 import '../../plugins/bootstrap.dart';
 import '../../plugins/plugin_descriptor.dart' show PluginSource;
 import '../../plugins/sidebar_plugin.dart';
+
+/// T10 · 失败分型 → 人话消息（T27 自已退役的顶部连接选择器迁入——
+/// selector 退役后树根状态点为本映射唯一消费点）。与 ConnectFailureDialog
+/// 同口径的展示边界映射；rawMessage 未脱敏不进 tooltip。
+/// 注：status_bar_widget.dart 另有同源私有副本 `_failurePlainMessage`
+/// （T27 交付口径 = 两副本并存，统一收编留待后续任务）。
+String _failurePlainMessage(
+  AppLocalizations l10n,
+  ConnectionFailureKind kind,
+) => switch (kind) {
+  ConnectionFailureKind.fileLocked => l10n.connectFailureFileLocked,
+  ConnectionFailureKind.fileNotFound => l10n.connectFailureFileNotFound,
+  ConnectionFailureKind.permissionDenied => l10n.connectFailurePermissionDenied,
+  ConnectionFailureKind.notADatabase => l10n.connectFailureNotADatabase,
+  ConnectionFailureKind.corrupt => l10n.connectFailureCorrupt,
+  ConnectionFailureKind.authFailed => l10n.connectFailureAuthFailed,
+  ConnectionFailureKind.unreachable => l10n.connectFailureUnreachable,
+  ConnectionFailureKind.unknown => l10n.connectFailureUnknown,
+};
 
 class SidebarTree extends StatelessWidget {
   final String searchQuery;
@@ -136,14 +154,11 @@ class SidebarTree extends StatelessWidget {
           );
         }
 
-        // C22-1 单实例专注树：树只渲染当前连接（活动 tab → currentServer
-        // → 侧栏选中，与顶部连接选择器同源）——多连接列表/分组装配删除，
-        // 全部连接的入口收敛到选择器下拉；切换连接即切换树。
-        final current = resolveSidebarCurrentConnection(provider);
-        if (current == null) {
-          return _buildNoCurrentHint(context);
-        }
-
+        // J3 多连接长驻树（2026-10-11 用户拍板，plan §10）：所有已保存连接
+        // 作为根节点常驻同一棵树，全部同时可见、随时展开——不再在连接间
+        // 「切换」（顶部选择器退役归 T27）；未分组连接（含孤儿组员）在前、
+        // 各分组以不可点组头分节（选择器下拉分区语义平移，plan §10.1②）。
+        // 收藏/最近表区保持树顶常驻（连接名前缀既有，多连接下价值更高）。
         final sq = searchQuery.toLowerCase();
         final recentSection = _buildRecentSection(context, provider);
         final favoriteEntries = provider.sidebar.favoriteTables.toList();
@@ -155,39 +170,116 @@ class SidebarTree extends StatelessWidget {
             if (favoriteEntries.isNotEmpty)
               _buildFavoritesSection(context, provider, favoriteEntries),
             ?recentSection,
-            _buildConnectionNode(context, provider, current, sq),
+            ..._buildGroupedConnectionRoots(
+              context,
+              provider,
+              orderedSidebarConnections(provider),
+              sq,
+            ),
+            _buildTreeFooter(context),
           ],
         );
       },
     );
   }
 
-  /// 有已保存连接但当前无锚定连接（全部未连接且未选中）：轻提示引导走
-  /// 顶部选择器（点击提示也可直接打开管理器）。
-  Widget _buildNoCurrentHint(BuildContext context) {
+  /// J3 多连接装配：连接级搜索过滤（名/主机/库/表命中才保留——与
+  /// sidebar_visible_nodes 的连接过滤同口径；无匹配连接整棵略过，空分组
+  /// 自然隐藏）+ 分组分节（未分组在前 + 组头不可点 + 空组隐藏）。
+  List<Widget> _buildGroupedConnectionRoots(
+    BuildContext context,
+    AppProvider provider,
+    List<DbServer> connections,
+    String sq,
+  ) {
+    final visible = sq.isEmpty
+        ? connections
+        : connections
+              .where((c) => _connectionMatchesSearch(provider, c, sq))
+              .toList();
+
+    final groups = provider.connectionGroups;
+    final grouped = <String, List<DbServer>>{};
+    final ungrouped = <DbServer>[];
+    for (final conn in visible) {
+      final gid = conn.groupId;
+      if (gid != null && groups.any((g) => g.id == gid)) {
+        grouped.putIfAbsent(gid, () => []).add(conn);
+      } else {
+        ungrouped.add(conn);
+      }
+    }
+
+    return [
+      for (final server in ungrouped)
+        _buildConnectionNode(context, provider, server, sq),
+      for (final group in groups)
+        if ((grouped[group.id] ?? const []).isNotEmpty) ...[
+          _ConnectionGroupHeader(group: group),
+          for (final server in grouped[group.id]!)
+            _buildConnectionNode(context, provider, server, sq),
+        ],
+    ];
+  }
+
+  /// 连接级搜索命中判定（与 sidebar_visible_nodes 的连接过滤同口径：
+  /// 连接名 / 主机 / 已缓存库表视图存储过程名）。
+  bool _connectionMatchesSearch(
+    AppProvider provider,
+    DbServer conn,
+    String sq,
+  ) {
+    if (conn.name.toLowerCase().contains(sq)) return true;
+    if (conn.host.toLowerCase().contains(sq)) return true;
+    final dbs = provider.getConnectionDatabases(conn.id);
+    if (dbs.any((d) => d.toLowerCase().contains(sq))) return true;
+    for (final d in dbs) {
+      final cached = provider.getCachedDatabase(conn.id, d);
+      if (cached != null &&
+          (cached.tables.any((t) => t.name.toLowerCase().contains(sq)) ||
+              cached.views.any((v) => v.toLowerCase().contains(sq)) ||
+              cached.procedures.any((p) => p.toLowerCase().contains(sq)))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// J3 树底轻入口：新建连接（ConnectionDialog 既有形态）+ 管理连接
+  /// （宿主 onShowConnectionManager 回调；命令面板两命令在册兜底）。
+  Widget _buildTreeFooter(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final colors = context.themeColors;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppDesignSystem.space4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              LucideIcons.mousePointerClick,
-              size: 32,
-              color: colors.textMuted,
-            ),
-            const SizedBox(height: AppDesignSystem.space2),
-            Text(
-              AppLocalizations.of(context)!.sidebarSelectConnectionHint,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: AppDesignSystem.fontSizeSm,
-                color: colors.textSecondary,
-              ),
-            ),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.only(top: AppDesignSystem.space2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          buildDivider(context),
+          TreeItem(
+            key: const ValueKey('tree_footer_new_connection'),
+            level: 2,
+            icon: LucideIcons.plus,
+            iconColor: colors.textSecondary,
+            label: l10n.connectionNewConnection,
+            showArrow: false,
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (_) => const ConnectionDialog(),
+              );
+            },
+          ),
+          TreeItem(
+            key: const ValueKey('tree_footer_manage_connections'),
+            level: 2,
+            icon: LucideIcons.folderOpen,
+            iconColor: colors.textSecondary,
+            label: l10n.sidebarManageConnections,
+            showArrow: false,
+            onTap: onShowConnectionManager,
+          ),
+        ],
       ),
     );
   }
@@ -434,9 +526,10 @@ class SidebarTree extends StatelessWidget {
     }).toList();
   }
 
-  /// C22-1 单实例树根：当前连接一行（类型图标 + 名称 + 状态点，右键 =
-  /// 完整连接管理菜单）+ 展开区（保存查询/库列表/插件全局节点）。
-  /// 原「连接卡片容器 + 品牌色左边条」随多连接列表一并移除（原型形态）。
+  /// J3 多连接树根：每连接一行（类型图标 + 名称 + 状态点，右键 = 完整
+  /// 连接管理菜单）+ 展开区（保存查询/库列表/插件全局节点）——三态（已
+  /// 连接/连接中/断开）、环境色条与活动根高亮（比对
+  /// [AppProvider.activeContextConnection]，T25 交付语义）逐连接复用。
   Widget _buildConnectionNode(
     BuildContext context,
     AppProvider provider,
@@ -444,6 +537,9 @@ class SidebarTree extends StatelessWidget {
     String searchQuery,
   ) {
     final isConnected = provider.isConnectionConnected(server.id);
+    // J3 活动根高亮：活动上下文连接（活动 tab → currentServer → 侧栏
+    // 选中）即树的活动根——高亮未连接连接亦成立（上下文锚定 ≠ 动作锚定）。
+    final isCurrentContext = provider.activeContextConnection?.id == server.id;
     final isActive =
         rightClickedNodeKey == 'conn:${server.id}' ||
         selectedNodeKey == 'conn:${server.id}';
@@ -486,14 +582,16 @@ class SidebarTree extends StatelessWidget {
           label: server.name,
           badge: server.type.displayName,
           isExpanded: isExpanded && isConnected,
-          isSelected: isActive,
+          // 活动根高亮（含右键/键盘选中）；S9 环境色条挂左缘 gutter。
+          isSelected: isActive || isCurrentContext,
+          environmentBarColor: server.environment?.badgeColor,
           isLoading: isConnecting,
           showArrow: isConnected,
           trailing: _buildConnectionStatusDots(
             context,
             server,
             isConnected,
-            isConnected,
+            isCurrentContext,
             unhandledFailure: unhandledFailure,
           ),
           onTap: () {
@@ -621,7 +719,7 @@ class SidebarTree extends StatelessWidget {
     BuildContext context,
     DbServer server,
     bool isConnected,
-    bool isActive, {
+    bool isCurrent, {
     ConnectionFailure? unhandledFailure,
   }) {
     // T051 — Server connection health indicator (T2.2).
@@ -631,32 +729,31 @@ class SidebarTree extends StatelessWidget {
         .isConnected;
     final colors = context.themeColors;
     final l10n = AppLocalizations.of(context)!;
-    // T10 · 未处置失败 → 状态点 error 态（tooltip 为最新失败人话原因；
-    // 无失败时保持既有 current/connected/disconnect 三态不变）。
+    // T10 · 未处置失败 → 状态点 error 态（tooltip 为最新失败人话原因）；
+    // 其余三态：断开（含仍为活动上下文的——高亮归 isSelected，状态语义
+    // 归本点）muted/disconnect、当前连接（J3 活动上下文）success/current、
+    // 其它已连接 accentBlue/connected。
     final String statusTooltip;
     if (unhandledFailure != null) {
       statusTooltip = l10n.connectFailureLatestTooltip(
-        SidebarConnectionSelector.failurePlainMessage(
-          l10n,
-          unhandledFailure.kind,
-        ),
+        _failurePlainMessage(l10n, unhandledFailure.kind),
       );
-    } else if (isActive) {
-      statusTooltip = l10n.connectionCurrent;
-    } else if (isConnected) {
-      statusTooltip = l10n.connectionConnected;
-    } else {
+    } else if (!isConnected) {
       statusTooltip = l10n.connectionDisconnect;
+    } else if (isCurrent) {
+      statusTooltip = l10n.connectionCurrent;
+    } else {
+      statusTooltip = l10n.connectionConnected;
     }
     final Color statusDotColor;
     if (unhandledFailure != null) {
       statusDotColor = colors.error;
-    } else if (isActive) {
-      statusDotColor = colors.success;
-    } else if (isConnected) {
-      statusDotColor = colors.accentBlue;
-    } else {
+    } else if (!isConnected) {
       statusDotColor = colors.textMuted.withValues(alpha: 0.5);
+    } else if (isCurrent) {
+      statusDotColor = colors.success;
+    } else {
+      statusDotColor = colors.accentBlue;
     }
 
     return Row(
@@ -1465,6 +1562,9 @@ class SidebarTree extends StatelessWidget {
     final type = server?.type;
     final names = IndexDialectNames.dropArgs(type, schema, table, indexName);
     try {
+      // J3 动作类先 switch 锚定（确认门后）：dropIndex 无参方法按
+      // currentServer 默认路由。
+      await _anchorActionsTo(provider, cid);
       final dropped = await provider.dropIndex(db, names.table, names.index);
       if (dropped && context.mounted) {
         ScaffoldMessenger.of(
@@ -1571,6 +1671,7 @@ class SidebarTree extends StatelessWidget {
           onTap: () => _confirmDropView(
             context,
             provider,
+            cid,
             type,
             viewName,
             isMaterializedView: isMaterializedView,
@@ -1583,6 +1684,7 @@ class SidebarTree extends StatelessWidget {
   Future<void> _confirmDropView(
     BuildContext context,
     AppProvider provider,
+    String cid,
     DatabaseType? type,
     String viewName, {
     bool isMaterializedView = false,
@@ -1613,6 +1715,8 @@ class SidebarTree extends StatelessWidget {
       // T039b — dialect-aware DROP VIEW (was MySQL-only backticks,
       // which broke on PostgreSQL/SQL Server). IF EXISTS is supported by all
       // three (SQL Server 2016+). Materialized views use DROP MATERIALIZED VIEW.
+      // J3 动作类先 switch 锚定（确认门后）：executeSqlScript 按当前连接路由。
+      await _anchorActionsTo(provider, cid);
       final dropKind = isMaterializedView ? 'MATERIALIZED VIEW' : 'VIEW';
       await provider.executeSqlScript(
         'DROP $dropKind IF EXISTS ${SqlEscapeUtils.escapeQualifiedIdentifier(viewName, type)}',
@@ -1678,7 +1782,8 @@ class SidebarTree extends StatelessWidget {
           isDestructive: true,
           enabled: !isReadOnly,
           disabledReason: isReadOnly ? l10n.sidebarReadOnlyConnection : null,
-          onTap: () => _confirmDropProcedure(context, provider, type, procName),
+          onTap: () =>
+              _confirmDropProcedure(context, provider, cid, type, procName),
         ),
       ],
     );
@@ -1687,6 +1792,7 @@ class SidebarTree extends StatelessWidget {
   Future<void> _confirmDropProcedure(
     BuildContext context,
     AppProvider provider,
+    String cid,
     DatabaseType? type,
     String procName,
   ) async {
@@ -1717,6 +1823,8 @@ class SidebarTree extends StatelessWidget {
       // Routines may be PROCEDURE or FUNCTION; DROP PROCEDURE covers the common
       // case (MySQL/Doris fold functions into db.procedures). IF EXISTS is
       // supported by MySQL/PG/SQL Server 2016+.
+      // J3 动作类先 switch 锚定（确认门后）：executeSqlScript 按当前连接路由。
+      await _anchorActionsTo(provider, cid);
       await provider.executeSqlScript(
         'DROP PROCEDURE IF EXISTS ${SqlEscapeUtils.escapeQualifiedIdentifier(procName, type)}',
       );
@@ -1809,12 +1917,15 @@ class SidebarTree extends StatelessWidget {
 
   // ========== Table Action Handlers ==========
 
-  void _doCreateTable(
+  Future<void> _doCreateTable(
     BuildContext context,
     AppProvider provider,
     String cid,
     String db,
-  ) {
+  ) async {
+    // J3 动作类先 switch 锚定：建表 dialog 经服务层无参方法执行。
+    await _anchorActionsTo(provider, cid);
+    if (!context.mounted) return;
     showDialog(
       context: context,
       builder: (_) => CreateTableDialog(dbName: db),
@@ -1828,6 +1939,10 @@ class SidebarTree extends StatelessWidget {
     String db,
     String table,
   ) async {
+    // J3 动作类先 switch 锚定：schema 装载与 EditTableDialog 执行均经
+    // currentServer 默认路由。
+    await _anchorActionsTo(provider, cid);
+    if (!context.mounted) return;
     // Load the latest schema before editing so the dialog shows real columns/indexes.
     showDialog(
       context: context,
@@ -2043,6 +2158,9 @@ class SidebarTree extends StatelessWidget {
     );
     if (newName != null && newName.isNotEmpty && newName != table) {
       try {
+        // J3 动作类先 switch 锚定（确认门后）：renameTable 无参方法按
+        // currentServer 默认路由。
+        await _anchorActionsTo(provider, cid);
         await provider.renameTable(db, table, newName);
       } catch (e) {
         if (context.mounted) {
@@ -2070,6 +2188,9 @@ class SidebarTree extends StatelessWidget {
     );
     if (result?.confirmed == true) {
       try {
+        // J3 动作类先 switch 锚定（确认门后）：truncateTable 无参方法按
+        // currentServer 默认路由。
+        await _anchorActionsTo(provider, cid);
         await provider.truncateTable(table, databaseName: db);
       } catch (e) {
         if (context.mounted) {
@@ -2097,6 +2218,9 @@ class SidebarTree extends StatelessWidget {
     );
     if (ok == true && context.mounted) {
       try {
+        // J3 动作类先 switch 锚定（确认门后）：dropTable 无参方法按
+        // currentServer 默认路由。
+        await _anchorActionsTo(provider, cid);
         await provider.dropTable(db, table);
       } catch (e) {
         if (context.mounted)
@@ -2151,17 +2275,33 @@ class SidebarTree extends StatelessWidget {
     }
   }
 
+  /// J3 导航与动作分离（plan §10.1⑤）：动作类右键链（新建库/建表/改表/
+  /// drop/导出等）依赖服务层无参方法（createDatabase/dropTable/
+  /// exportDatabaseStructure…）的 currentServer 默认路由——多连接树内右键
+  /// 的连接可能不是当前连接，执行前先 switch 锚定目标连接（树常驻多连接
+  /// 后 switch 无视觉扰动，用户无感知）。已锚定（目标即当前连接）时零动作。
+  Future<void> _anchorActionsTo(
+    AppProvider provider,
+    String connectionId,
+  ) async {
+    if (provider.connection.currentServer?.id != connectionId) {
+      await provider.switchToConnection(connectionId);
+    }
+  }
+
   Future<void> _selectDatabase(
     BuildContext context,
     AppProvider provider,
     String connectionId,
     String databaseName,
   ) async {
-    await provider.switchToConnection(connectionId);
+    // J3 导航与动作分离（plan §10.1⑤）：浏览导航类（点击库节点/右键
+    // Select Database）不再全局 switchToConnection——changeDatabase 带
+    // cid 显式路由目标连接（禁止静默回退全局 active），tab 上下文由
+    // followActiveTabDatabase（方向 A：仅未绑定 tab 跟随）与侧栏选中态
+    // 承接；去掉的只是全局切换副作用（浏览连接 B 的库不应劫持正在 A
+    // 上编辑的 tab 上下文）。
     await provider.changeDatabase(databaseName, connectionId: connectionId);
-    // 树节点显式选库覆写 switchToConnection 内置的「默认第一个库」
-    // tab 同步（工具栏库芯片与执行库跟随，2026-08-27 修复）；方向 A
-    // （2026-09-04）：跟随式覆写——已绑定上下文的活跃 tab 不动。
     provider.followActiveTabDatabase(databaseName);
     provider.sidebar.selectConnection(connectionId);
     provider.sidebar.selectDatabase(databaseName);
@@ -2176,7 +2316,7 @@ class SidebarTree extends StatelessWidget {
   ) async {
     final l10n = AppLocalizations.of(context)!;
     try {
-      // 如果连接已断开，先自动重连
+      // 如果连接已断开，先自动重连（J3 未连接重连护栏保留）
       if (!provider.isConnectionConnected(connectionId)) {
         final server = provider.connection.savedConnections.firstWhere(
           (s) => s.id == connectionId,
@@ -2204,7 +2344,9 @@ class SidebarTree extends StatelessWidget {
           return;
         }
       }
-      await provider.switchToConnection(connectionId);
+      // J3 导航与动作分离：收藏/最近表点击去全局 switchToConnection——
+      // tab 自带 connectionId 上下文（openTableQueryTab 显式传 cid），
+      // changeDatabase 带 cid 路由目标连接。
       await provider.changeDatabase(databaseName, connectionId: connectionId);
 
       // 最近/收藏行点击 = 打开表 → query 编辑器（预填默认浏览查询，不自动执行）；
@@ -2448,6 +2590,10 @@ class SidebarTree extends StatelessWidget {
         _deleteConnection(context, provider, server);
         break;
       case 'create_database':
+        // J3 动作类先 switch 锚定（服务层无参方法默认路由依赖，plan
+        // §10.1⑤）——对话框取 currentServer 的库型默认值 + 刷新走当前连接。
+        await _anchorActionsTo(provider, server.id);
+        if (!context.mounted) break;
         _showCreateDatabaseDialog(context, provider);
         break;
       case 'toggle_readonly':
@@ -2702,16 +2848,18 @@ class SidebarTree extends StatelessWidget {
   ) async {
     switch (action) {
       case 'select':
-        await provider.switchToConnection(connectionId);
-        provider.changeDatabase(dbName, connectionId: connectionId);
-        // 显式选库覆写内置「默认第一个库」tab 同步（同 _selectDatabase，
-        // 跟随式——已绑定 tab 不动，方向 A）。
-        provider.followActiveTabDatabase(dbName);
+        // J3 导航类：与点击库节点同一链路（_selectDatabase 去全局 switch
+        // 变体——changeDatabase 带 cid + followActiveTabDatabase 跟随式
+        // 覆写 + 侧栏选中态，方向 A：已绑定 tab 不动）。
+        await _selectDatabase(context, provider, connectionId, dbName);
         break;
       case 'refresh':
-        provider.refreshDatabases();
+        provider.refreshDatabases(connectionId: connectionId);
         break;
       case 'create_table':
+        // J3 动作类先 switch 锚定：建表 dialog 经服务层无参方法执行
+        //（plan §10.1⑤）。
+        await _anchorActionsTo(provider, connectionId);
         if (context.mounted) {
           showDialog(
             context: context,
@@ -2720,6 +2868,7 @@ class SidebarTree extends StatelessWidget {
         }
         break;
       case 'create_table_pg':
+        await _anchorActionsTo(provider, connectionId);
         if (context.mounted) {
           showDialog(
             context: context,
@@ -2728,6 +2877,7 @@ class SidebarTree extends StatelessWidget {
         }
         break;
       case 'create_supertable':
+        await _anchorActionsTo(provider, connectionId);
         if (context.mounted) {
           showDialog(
             context: context,
@@ -2736,6 +2886,8 @@ class SidebarTree extends StatelessWidget {
         }
         break;
       case 'properties':
+        // 属性 dialog 经 getDatabaseProperties 等无参方法读当前连接。
+        await _anchorActionsTo(provider, connectionId);
         if (context.mounted) {
           showDialog(
             context: context,
@@ -2744,7 +2896,7 @@ class SidebarTree extends StatelessWidget {
         }
         break;
       case 'export':
-        _exportDatabase(context, provider, dbName);
+        _exportDatabase(context, provider, connectionId, dbName);
         break;
       case 'schema_diff':
         if (context.mounted) {
@@ -2768,10 +2920,14 @@ class SidebarTree extends StatelessWidget {
   Future<void> _exportDatabase(
     BuildContext context,
     AppProvider provider,
+    String connectionId,
     String dbName,
   ) async {
     final l10n = AppLocalizations.of(context)!;
     try {
+      // J3 动作类先 switch 锚定：exportDatabaseStructure 无参方法按
+      // currentServer 默认路由（plan §10.1⑤）。
+      await _anchorActionsTo(provider, connectionId);
       final sql = await provider.exportDatabaseStructure(dbName);
       // Provider returns '' silently when the connection dropped or the
       // adapter doesn't implement structure export — don't claim success.
@@ -2882,6 +3038,9 @@ class SidebarTree extends StatelessWidget {
 
     if (confirm == true) {
       try {
+        // J3 动作类先 switch 锚定（确认门后、执行前）：dropDatabase 无参
+        // 方法按 currentServer 默认路由——取消路径零副作用（不锚定）。
+        await _anchorActionsTo(provider, connectionId);
         // Invalidate cache BEFORE drop to prevent stale schema on same-name recreate
         provider.invalidateDatabaseCache(connectionId, dbName);
         // 据 adapter 返回值区分成功/失败（原先无论结果都提示成功）
@@ -2907,6 +3066,58 @@ class SidebarTree extends StatelessWidget {
           );
         }
       }
+    }
+  }
+}
+
+/// J3 连接分组组头：不可点小节头（沿选择器下拉组头语汇——组色圆点 +
+/// 组名；SidebarSection 是可折叠容器，与「组头不可点」拍板口径不符，故
+/// 独立薄头）。空组由装配层直接略过（plan §10.1②）。
+class _ConnectionGroupHeader extends StatelessWidget {
+  const _ConnectionGroupHeader({required this.group});
+
+  final ConnectionGroup group;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDesignSystem.space2,
+        vertical: AppDesignSystem.space1,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _parseGroupColor(context, group.color),
+            ),
+          ),
+          const SizedBox(width: AppDesignSystem.space1_5),
+          Text(
+            group.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: AppDesignSystem.fontSizeXs,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+              color: context.themeColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _parseGroupColor(BuildContext context, String? colorStr) {
+    if (colorStr == null) return context.themeColors.accentBlue;
+    try {
+      return Color(int.parse(colorStr.replaceFirst('#', '0xFF')));
+    } catch (_) {
+      return context.themeColors.accentBlue;
     }
   }
 }

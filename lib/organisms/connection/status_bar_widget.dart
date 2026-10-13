@@ -94,6 +94,7 @@ class StatusBarWidget extends StatelessWidget {
                     isReadOnly: isReadOnly,
                     serverType: currentServer?.type,
                     connectionId: currentServer?.id,
+                    environment: currentServer?.environment,
                   );
                   if (tooltipParts.isEmpty) return statusWidget;
                   return Tooltip(
@@ -138,6 +139,7 @@ class StatusBarWidget extends StatelessWidget {
     required bool isReadOnly,
     DatabaseType? serverType,
     String? connectionId,
+    ConnectionEnvironment? environment,
   }) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -160,6 +162,32 @@ class StatusBarWidget extends StatelessWidget {
             fontWeight: AppDesignSystem.fontWeightMedium,
           ),
         ),
+
+        // S9（J3）：状态栏环境徽章（8px 点 + l10n tooltip）——与树根色条/
+        // 活动标签色条三处同源 environment.badgeColor。
+        if (environment != null) ...[
+          const SizedBox(width: AppDesignSystem.space3),
+          _buildDivider(),
+          const SizedBox(width: AppDesignSystem.space3),
+          Tooltip(
+            message: _environmentLabel(
+              AppLocalizations.of(context)!,
+              environment,
+            ),
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: environment.badgeColor,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: context.themeColors.bgTertiary,
+                  width: 1,
+                ),
+              ),
+            ),
+          ),
+        ],
 
         // 服务器和数据库信息
         if (isConnected && serverName != null) ...[
@@ -1049,5 +1077,19 @@ class _SearchPathIndicatorState extends State<_SearchPathIndicator> {
         ],
       ),
     );
+  }
+}
+
+/// S9（J3）：环境三态的 UI 层显示名（模型层 displayName 禁 l10n 依赖——
+/// 分层原则；T24 登记 environment* 三键）。与 tabs_bar_widget 各自持有
+/// 同款映射（消费面仅两处，不建共享文件）。
+String _environmentLabel(AppLocalizations l10n, ConnectionEnvironment env) {
+  switch (env) {
+    case ConnectionEnvironment.production:
+      return l10n.environmentProduction;
+    case ConnectionEnvironment.testing:
+      return l10n.environmentTesting;
+    case ConnectionEnvironment.development:
+      return l10n.environmentDevelopment;
   }
 }

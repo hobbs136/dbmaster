@@ -1,13 +1,14 @@
-// C22-1 · 当前活动连接解析 —— 单实例专注树的锚定源。
+// C22-1 → J3 · 侧栏「当前锚定」解析（执行默认优先序）。
 //
 // 解析序：currentServer → 活动 tab → 侧栏选中。
-// ⚠ currentServer 必须优先于活动 tab（2026-08-20 走查反馈修复）：用户开着
-// 连接 A 的查询 tab 时经选择器切换连接 B，switchToConnection 写入
-// currentServer=B 但 activeTab 仍属 A——若 tab 优先，树永远停留在 A，
-// 呈现「切换不成功」。显式切换动作的语义高于 tab 上下文；tab 优先仅在
-// 无显式当前连接时兜底（与 C14 resolveCapabilityMenuServer 同序）。
-// 选择器、SidebarTree、visible_nodes 三处共用，
-// 保证「选择器显示谁、树就渲染谁、键盘导航就覆盖谁」。
+// ⚠ currentServer 必须优先于活动 tab（2026-08-20 走查反馈修复，序位保留）：
+// 用户显式切换连接后 switchToConnection 写入 currentServer，显式切换动作
+// 的语义高于 tab 上下文；tab 优先仅在无显式当前连接时兜底。
+// ⚠ 与 C14 resolveCapabilityMenuServer **不再同序**（T25 序位反转：能力
+// 菜单锚定改「活动 tab 优先」——J3 多连接长驻树删除连接切换入口后
+// 「开着旧 tab 时切换被抢回」场景消亡）；本函数服务执行默认/命令动作/
+// 键盘导航锚定，两序并存为 T25 定案。
+// SidebarTree、控制器键盘导航、命令面板、workbench 上下文解析共用。
 import '../../models/database_models.dart' show DbServer;
 import '../../providers/app_provider.dart';
 

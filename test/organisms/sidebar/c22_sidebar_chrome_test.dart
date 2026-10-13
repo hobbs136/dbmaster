@@ -1,12 +1,14 @@
 // C22-0 · 侧边栏 chrome 换装专项测试。
 //
 // 覆盖面：
-// - SEL-C22：顶部连接选择器（当前连接名+地址显示 / 空态占位+管理入口 /
-//   菜单列出全部连接 / 未连接项走 onConnectionTap 注入流程）；
 // - SEC-C22：SidebarSection 统一 section 头（默认展开 / 点击折叠再展开 /
 //   计数徽章 / trailing 动作）；
-// - SBAR-C22：SidebarWidget 换装冒烟（品牌字标 + 选择器接线 + 折叠 rail
-//   展开/设置按钮图标存在）。
+// - SBAR-C22：SidebarWidget 换装冒烟（品牌字标 + 树根连接行渲染 + 折叠
+//   rail 展开/设置按钮图标存在）。
+//
+// T27（J3 selector 退役）：原 SEL-C22 选择器组随顶部连接选择器退役删除——
+// 连接呈现与入口归多连接长驻树本身（见 c221/multi_connection_tree
+// 测试），连接管理入口断言由树底入口行覆盖（multi_connection_tree_test）。
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,7 +18,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:dbmaster/l10n/app_localizations.dart';
 import 'package:dbmaster/models/database_models.dart';
-import 'package:dbmaster/organisms/sidebar/sidebar_connection_selector.dart';
 import 'package:dbmaster/organisms/sidebar/sidebar_footer.dart';
 import 'package:dbmaster/organisms/sidebar/sidebar_section.dart';
 import 'package:dbmaster/organisms/sidebar_widget.dart';
@@ -83,127 +84,6 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  group('SEL-C22 · SidebarConnectionSelector', () {
-    testWidgets('显示当前连接名 + 地址（选中态回退源）', (tester) async {
-      final provider = AppProvider();
-      final server = _server();
-      provider.connection.addSavedServerForTest(server);
-      provider.sidebar.selectConnection(server.id);
-
-      await tester.pumpWidget(
-        _buildTestApp(
-          provider,
-          child: SidebarConnectionSelector(
-            onManageConnections: () {},
-          ),
-        ),
-      );
-
-      expect(find.text('Prod MySQL - 192.0.2.128:3306'), findsOneWidget);
-      expect(find.byIcon(LucideIcons.chevronsUpDown), findsOneWidget);
-    });
-
-    testWidgets('SQLite 地址不拼端口（host 承载文件路径）', (tester) async {
-      final provider = AppProvider();
-      final server = _server(
-        name: 'Local DB',
-        type: DatabaseType.sqlite,
-        host: 'C:/data/chinook.sqlite',
-        port: 0,
-      );
-      provider.connection.addSavedServerForTest(server);
-      provider.sidebar.selectConnection(server.id);
-
-      await tester.pumpWidget(
-        _buildTestApp(
-          provider,
-          child: SidebarConnectionSelector(
-            onManageConnections: () {},
-          ),
-        ),
-      );
-
-      expect(
-        find.text('Local DB - C:/data/chinook.sqlite'),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('无已保存连接：占位按钮点击打开管理器', (tester) async {
-      final provider = AppProvider();
-      var manageCalled = false;
-
-      await tester.pumpWidget(
-        _buildTestApp(
-          provider,
-          child: SidebarConnectionSelector(
-            onManageConnections: () => manageCalled = true,
-          ),
-        ),
-      );
-
-      expect(find.text('No connection'), findsOneWidget);
-      await tester.tap(find.text('No connection'));
-      await tester.pump();
-      expect(manageCalled, isTrue);
-    });
-
-    testWidgets('菜单列出全部连接 + 管理入口；未连接项走注入流程', (tester) async {
-      final provider = AppProvider();
-      final connected = _server(id: 'c1', name: 'Connected One');
-      final offline = _server(id: 'c2', name: 'Offline Two');
-      provider.connection.addSavedServerForTest(connected);
-      provider.connection.addSavedServerForTest(offline);
-      provider.connection.dbService.registerConnectedServerForTest(connected);
-      provider.sidebar.selectConnection('c1');
-
-      DbServer? tapped;
-      await tester.pumpWidget(
-        _buildTestApp(
-          provider,
-          child: SidebarConnectionSelector(
-            onConnectionTap: (s) async => tapped = s,
-            onManageConnections: () {},
-          ),
-        ),
-      );
-
-      await tester.tap(find.byIcon(LucideIcons.chevronsUpDown));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Connected One'), findsOneWidget);
-      expect(find.text('Offline Two'), findsOneWidget);
-      expect(find.text('Manage Connections…'), findsOneWidget);
-
-      // 未连接项 → 注入的连接流程（密码弹窗等副作用留在宿主）
-      await tester.tap(find.text('Offline Two'));
-      await tester.pumpAndSettle();
-      expect(tapped?.id, 'c2');
-    });
-
-    testWidgets('空态菜单入口可打开管理器（列表非空路径）', (tester) async {
-      final provider = AppProvider();
-      final server = _server();
-      provider.connection.addSavedServerForTest(server);
-
-      var manageCalled = false;
-      await tester.pumpWidget(
-        _buildTestApp(
-          provider,
-          child: SidebarConnectionSelector(
-            onManageConnections: () => manageCalled = true,
-          ),
-        ),
-      );
-
-      await tester.tap(find.byIcon(LucideIcons.chevronsUpDown));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Manage Connections…'));
-      await tester.pumpAndSettle();
-      expect(manageCalled, isTrue);
-    });
-  });
-
   group('SEC-C22 · SidebarSection', () {
     testWidgets('默认展开；点击头折叠再展开；计数徽章与 trailing 动作', (
       tester,
@@ -253,9 +133,7 @@ void main() {
   });
 
   group('SBAR-C22 · SidebarWidget 换装冒烟', () {
-    testWidgets('展开态：品牌字标 + 连接选择器接线 + footer 状态行', (
-      tester,
-    ) async {
+    testWidgets('展开态：品牌字标 + 树根连接行渲染 + footer 状态行', (tester) async {
       final provider = AppProvider();
       final server = _server(name: 'Smoke MySQL');
       provider.connection.addSavedServerForTest(server);
@@ -269,10 +147,8 @@ void main() {
       await tester.pump();
 
       expect(find.text('DbMaster'), findsOneWidget);
-      expect(
-        find.text('Smoke MySQL - 192.0.2.128:3306'),
-        findsOneWidget,
-      );
+      // T27 selector 退役：顶部选择器断言随之退役——连接呈现归树根行。
+      expect(find.text('Smoke MySQL'), findsOneWidget);
       expect(find.byType(TextField), findsOneWidget);
       expect(find.byType(SidebarFooter), findsOneWidget);
       expect(tester.takeException(), isNull);

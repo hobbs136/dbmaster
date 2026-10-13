@@ -11612,4 +11612,13 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get mongoGridfsUploadRollbackPartial =>
       'Загрузка не удалась; записанные чанки были отменены';
+
+  @override
+  String get environmentProduction => 'Производственная среда';
+
+  @override
+  String get environmentTesting => 'Тестовая среда';
+
+  @override
+  String get environmentDevelopment => 'Среда разработки';
 }

@@ -63,10 +63,15 @@ String capabilityBadgeLabel(PluginDescriptor descriptor, DatabaseType type) {
   }
 }
 
-/// 能力菜单的活动连接锚定（C14）：currentServer 优先；为空时回退
-/// 「活动 tab 的连接 → 侧栏选中节点」（与折叠 rail 同源解析），且仅在该
-/// 连接**已连接**时提供——菜单动作（对话框/面板）假定活连接，选中但
-/// 未连接的节点不提供锚点（动作会打到错误连接上）。
+/// 能力菜单的活动连接锚定（C14 → T25 序位反转，2026-10）：活动 tab 的
+/// 连接（须已连接）优先 → currentServer → 侧栏选中（须已连接）→ 全空
+/// null。C14 原序为 currentServer 优先（SST-C22-003：显式切换语义 > tab
+/// 上下文，倒序会出现「开着旧连接 tab 时切换永远被抢回」）；J3 多连接
+/// 长驻树删除连接切换入口后该场景消亡，序位反转为「面板跟随活动 tab」
+///（T25 定案，留痕 SST-C22-003 随切换入口消亡）。id 级护栏保持：tab/
+/// 侧栏选中仅在该连接**已连接**时提供——菜单动作（对话框/面板）假定活
+/// 连接，选中但未连接的节点不提供锚点（动作会打到错误连接上）；
+/// currentServer 本身即为已连接的执行默认连接，直取不过滤。
 DbServer? resolveCapabilityMenuServer({
   required DbServer? currentServer,
   required String? activeTabConnectionId,
@@ -74,15 +79,18 @@ DbServer? resolveCapabilityMenuServer({
   required bool Function(String connectionId) isConnected,
   required Iterable<DbServer> savedConnections,
 }) {
-  if (currentServer != null) return currentServer;
-  final id =
-      activeTabConnectionId ?? selectedConnectionId;
-  if (id == null) return null;
-  if (!isConnected(id)) return null;
-  for (final server in savedConnections) {
-    if (server.id == id) return server;
+  DbServer? connectedById(String? id) {
+    if (id == null || !isConnected(id)) return null;
+    for (final server in savedConnections) {
+      if (server.id == id) return server;
+    }
+    return null;
   }
-  return null;
+
+  final tabServer = connectedById(activeTabConnectionId);
+  if (tabServer != null) return tabServer;
+  if (currentServer != null) return currentServer;
+  return connectedById(selectedConnectionId);
 }
 
 /// 插件侧便捷锚定（C15）：capabilityGroups/onActivate 闭包里解析活动连接。

@@ -728,6 +728,30 @@ class AppProvider extends ChangeNotifier {
     return connection.currentServer?.database;
   }
 
+  /// T25（J3 多连接长驻树地基，2026-10）：UI 层「活动上下文连接」——
+  /// 活动tab 的连接 → currentServer → 侧栏选中，逐级从 savedConnections
+  /// 解析对象；某级 id 非空但已不在 savedConnections（连接被删除）时降级
+  /// 下一级（不崩不悬空），三级全空 → null。
+  ///
+  /// 与执行默认语义分层（[activeConnectionId] = tab → currentServer 两级，
+  /// 本任务零改动）：本 getter 面向 UI 上下文锚定（Q1 面板、命令面板、
+  /// T26 树根活动高亮——跟随用户所在 tab），**不做已连接过滤**：上下文
+  /// 锚定 ≠ 动作锚定，动作侧（resolveCapabilityMenuServer 等）自带已连接
+  /// 护栏；未连接连接亦可作为上下文（树根可高亮未连接连接）。
+  DbServer? get activeContextConnection {
+    DbServer? resolve(String? id) {
+      if (id == null) return null;
+      for (final server in savedConnections) {
+        if (server.id == id) return server;
+      }
+      return null;
+    }
+
+    return resolve(tab.activeTab?.connectionId) ??
+        resolve(connection.currentServer?.id) ??
+        resolve(sidebar.selectedConnectionId);
+  }
+
   Future<void> openQueryTab(
     String connectionId,
     String databaseName, {

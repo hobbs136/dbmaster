@@ -23,7 +23,6 @@ import 'package:dbmaster/organisms/connection/connection_export_import_dialog.da
 import 'package:dbmaster/organisms/connection/schema_diff_dialog.dart';
 import 'package:dbmaster/organisms/connection/table_dialog/edit_table_dialog.dart';
 import 'package:dbmaster/organisms/connection/table_dialog/table_properties_dialog.dart';
-import 'package:dbmaster/organisms/sidebar/sidebar_connection_selector.dart';
 import 'package:dbmaster/organisms/sidebar/sidebar_tree.dart';
 import 'package:dbmaster/organisms/sidebar/tree_item.dart';
 import 'package:dbmaster/providers/app_provider.dart';
@@ -1125,82 +1124,10 @@ void main() {
       expect(appProvider.isConnectionConnected(server.id), isFalse);
     });
 
-    testWidgets(
-      'connection selector connects a saved disconnected server',
-      (tester) async {
-        if (!pgE2EGatewayReady) {
-          return;
-        }
-        await pumpHarness(tester);
-        await expandConnection(tester);
-
-        const disconnectedLabel = 'PostgreSQL Sidebar E2E Disconnected';
-        final disconnectedServer = DbServer(
-          id: '${server.id}_disconnected',
-          name: disconnectedLabel,
-          type: DatabaseType.postgresql,
-          host: server.host,
-          port: server.port,
-          username: server.username,
-          password: server.password,
-        );
-        await appProvider.connection.saveConnection(disconnectedServer);
-        await tester.pumpAndSettle(const Duration(seconds: 2));
-
-        expect(
-          appProvider.isConnectionConnected(disconnectedServer.id),
-          isFalse,
-        );
-
-        // C22-1 单实例树：未连接的已保存连接不在树里，入口是顶部选择器下拉
-        //（点下拉箭头打开；find.byType(PopupMenuItem) 精确匹配不到
-        // PopupMenuItem<String> 实例，点项用 find.text 的 overlay 命中）。
-        await tester.tap(find.byIcon(LucideIcons.chevronsUpDown));
-        await tester.pumpAndSettle(const Duration(seconds: 1));
-        await tester.tap(find.text(disconnectedLabel).last);
-        await tester.pumpAndSettle(const Duration(seconds: 4));
-
-        expect(
-          appProvider.isConnectionConnected(disconnectedServer.id),
-          isTrue,
-        );
-      },
-    );
-
-    testWidgets('connection selector switches active connection', (
-      tester,
-    ) async {
-      if (!pgE2EGatewayReady) {
-        return;
-      }
-      await pumpHarness(tester);
-      await expandConnection(tester);
-
-      const secondLabel = 'PostgreSQL Sidebar E2E Second';
-      final secondServer = DbServer(
-        id: '${server.id}_second',
-        name: secondLabel,
-        type: DatabaseType.postgresql,
-        host: server.host,
-        port: server.port,
-        username: server.username,
-        password: server.password,
-      );
-      await appProvider.connection.saveConnection(secondServer);
-      final connected = await appProvider.connectToServer(secondServer);
-      expect(connected, isTrue);
-      await tester.pumpAndSettle(const Duration(seconds: 4));
-
-      expect(appProvider.connection.currentServer?.id, secondServer.id);
-
-      // C22-1 单实例树：切换当前连接的 UI 入口 = 选择器下拉已连接项。
-      await tester.tap(find.byIcon(LucideIcons.chevronsUpDown));
-      await tester.pumpAndSettle(const Duration(seconds: 1));
-      await tester.tap(find.text(connectionLabel).last);
-      await tester.pumpAndSettle(const Duration(seconds: 3));
-
-      expect(appProvider.connection.currentServer?.id, server.id);
-    });
+    // T27（J3 selector 退役）：原「connection selector connects a saved
+    // disconnected server」/「connection selector switches active connection」
+    // 两用例随顶部选择器退役删除——未连接重连入口 = 树根点击/双击（下例
+    // 在册覆盖）；「切换连接」语义随多连接长驻树消亡（树本身即导航）。
 
     testWidgets(
       'connection root row double-click reconnects a disconnected connection',
@@ -2417,12 +2344,8 @@ void main() {
         groupId,
       );
 
-      // 选择器下拉按组分区：组头 + 组内成员可见。
-      await tester.tap(find.byIcon(LucideIcons.chevronsUpDown));
-      await tester.pumpAndSettle(const Duration(seconds: 1));
-
-      expect(find.text(groupName), findsOneWidget);
-      expect(find.text('PostgreSQL Sidebar E2E In Group'), findsOneWidget);
+      // T27：原「选择器下拉按组分区」断言块随选择器退役删除——分组分节
+      // 展示由多连接树装配覆盖（multi_connection_tree_test）。
     });
   });
 }
@@ -2556,17 +2479,10 @@ class _SidebarTestHarnessState extends State<_SidebarTestHarness> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // C22-1：树只渲染当前连接——连接/切换已保存服务器的入口是顶部
-      // 选择器下拉（镜像 sidebar_widget 的组合与 onConnectionTap 接线）。
+      // J3 多连接长驻树：全部连接根常驻同树，树本身即导航（T27 selector
+      // 退役）；测试连接走 connectToServer 程序化路径。
       body: Column(
         children: [
-          SidebarConnectionSelector(
-            onConnectionTap: (server) async {
-              final ok = await widget.provider.connectToServer(server);
-              if (ok) await widget.provider.refreshDatabases();
-            },
-            onManageConnections: () {},
-          ),
           Expanded(
             child: SidebarTree(
               expandedItems: _expandedItems,

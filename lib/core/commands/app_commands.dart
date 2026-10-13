@@ -196,10 +196,12 @@ List<Command> buildCommands(AppLocalizations l10n, CommandBuilders handlers) {
       category: l10n.commandCategoryTools,
       keywords: ['AI', 'memory', '记忆'],
       // 内联 execute（同 export/import_connections 先例，不扩 CommandBuilders）；
-      // 当前连接 id 由命令面板上下文解析（currentServer 优先语义同侧栏）。
+      // 当前连接 id 跟随活动上下文（T25：活动 tab → currentServer → 侧栏
+      // 选中；记忆作用域 ai_memory_conn_<id> 按连接存取，未连接连接的
+      // 记忆亦可管理，无需已连接护栏）。
       execute: (context) => showAiMemoryManagerDialog(
         context,
-        connectionId: context.read<AppProvider>().connection.currentServer?.id,
+        connectionId: context.read<AppProvider>().activeContextConnection?.id,
       ),
     ),
     Command(

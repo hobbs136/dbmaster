@@ -7740,5 +7740,11 @@
   "mongoGridfsUploadTooLarge": "File exceeds the {size} upload limit",
   "@mongoGridfsUploadTooLarge": {"description": "DBT GridFS: size guardrail rejection", "placeholders": {"size": {"type": "String"}}},
   "mongoGridfsUploadRollbackPartial": "Upload failed; the chunks already written were rolled back",
-  "@mongoGridfsUploadRollbackPartial": {"description": "DBT GridFS: partial-failure rollback note"}
+  "@mongoGridfsUploadRollbackPartial": {"description": "DBT GridFS: partial-failure rollback note"},
+  "environmentProduction": "Production environment",
+  "@environmentProduction": {"description": "DBT J3 S9: connection environment name — tree root color bar / status bar badge / active tab tooltip"},
+  "environmentTesting": "Testing environment",
+  "@environmentTesting": {"description": "DBT J3 S9: connection environment name — tree root color bar / status bar badge / active tab tooltip"},
+  "environmentDevelopment": "Development environment",
+  "@environmentDevelopment": {"description": "DBT J3 S9: connection environment name — tree root color bar / status bar badge / active tab tooltip"}
 }

@@ -800,15 +800,14 @@ class SidebarController extends ChangeNotifier {
 
   Future<void> handleConnectionTap(DbServer server) async {
     if (_appProvider.isConnectionConnected(server.id)) {
+      // J3 导航与动作分离（plan §10.1⑤）：树内点击已连接连接 = 纯展开
+      // （去全局 switchToConnection——多连接长驻树下不再「切换」，浏览
+      // 导航类不应劫持用户正在其它连接上编辑的 tab 上下文；动作类右键
+      // 链在 sidebar_tree._anchorActionsTo 自带先 switch 锚定）。
       final wasExpanded = _expandedItems.contains(server.id);
       toggleExpand(server.id);
       // 展开即刷新语义：折叠态 → 展开是一次显式的「看看现在有什么」。
       if (!wasExpanded) _onConnectionExpanded(server.id);
-      if (_appProvider.connection.currentServer?.id != server.id) {
-        // tab 上下文同步收在 switchToConnection 代理内（工具栏芯片与
-        // 执行同源，2026-08-27 修复）。
-        await _appProvider.switchToConnection(server.id);
-      }
     } else {
       // 重入守卫：在途连接不再弹密码框（同 sidebar_tree._connectToServer）。
       if (_appProvider.connection.isConnectionConnecting(server.id)) return;
