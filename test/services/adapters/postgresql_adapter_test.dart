@@ -9,7 +9,8 @@
 //   database 路由）；
 // - SSE error(TIMEOUT) 事件必须上抛（PostgreSqlGatewayException），不得静默
 //   成功；
-// - 只读守卫、断连回调（CONNECTION_FAILED/NOT_FOUND → onDisconnect）、
+// - 只读守卫、断连回调（仅 NOT_FOUND → onDisconnect；CONNECTION_FAILED 属
+//   查询级错误不再撕连接，DDF 批）、
 //   disconnect 的在途取消 best-effort（DELETE /api/gw/executions/{id}）、
 //   无 server 会话的引导性错误；
 // - 事务 T29 临时下线：beginTransaction/commit/rollback fail-loud 抛
@@ -448,7 +449,7 @@ void main() {
       );
     });
 
-    test('流无 complete → 断连语义（CONNECTION_FAILED）', () async {
+    test('流无 complete → 连接失败错误码语义（CONNECTION_FAILED）', () async {
       final adapter = await connectedAdapter(
         (req) => _sse([
           'event: meta\ndata: {"kind":"sql","type":"meta","columns":["x"]}',
@@ -479,7 +480,28 @@ void main() {
       );
     });
 
-    test('NOT_FOUND 错误触发 onDisconnect（断连回调语义）', () async {
+    test('AD-DDF-PG-001：SSE CONNECTION_FAILED 上抛且不触发 onDisconnect', () async {
+      // DDF：CONNECTION_FAILED 是查询级错误（每语句 DB open 失败），不撕
+      // 连接；连接带默认库时先走外层 stale 自愈重试一次，重试仍失败则原样
+      // 上抛，全程不触发断连回调。
+      final adapter = await connectedAdapter(
+        (req) => _sse([
+          'event: error\ndata: {"kind":"sql","type":"error","code":"CONNECTION_FAILED","message":"database connection failed"}',
+        ]),
+      );
+      var fired = false;
+      adapter.onDisconnect = () => fired = true;
+      await expectLater(
+        adapter.executeQuery('SELECT 1'),
+        throwsA(
+          isA<PostgreSqlGatewayException>()
+              .having((e) => e.code, 'code', 'CONNECTION_FAILED'),
+        ),
+      );
+      expect(fired, isFalse);
+    });
+
+    test('AD-DDF-PG-002：NOT_FOUND 仍触发 onDisconnect（会话级死亡）', () async {
       final adapter = await connectedAdapter(
         (req) => _sse([
           'event: error\ndata: {"kind":"sql","type":"error","code":"NOT_FOUND","message":"connection gone"}',
@@ -753,7 +775,7 @@ void main() {
       expect(queryReq!.body, contains('pg_terminate_backend(1234)'));
     });
 
-    test('stale 库自愈：CONNECTION_FAILED + 有 database 路由 → 清库无库重试一次', () async {
+    test('AD-DDF-PG-003：stale 库自愈（CONNECTION_FAILED + 有 database 路由）→ 清库无库重试一次，且不触发 onDisconnect', () async {
       final bodies = <Map<String, dynamic>>[];
       var first = true;
       final adapter = await connectedAdapter((req) {
@@ -770,6 +792,8 @@ void main() {
           'event: complete\ndata: {"kind":"sql","type":"complete","rowCount":1,"truncated":false,"elapsedMs":2}',
         ]);
       });
+      var fired = false;
+      adapter.onDisconnect = () => fired = true;
 
       final r = await adapter.executeQuery('SELECT 1'); // conn 默认 database=postgres
       expect(r.rows, [
@@ -778,6 +802,7 @@ void main() {
       expect(bodies[0]['database'], 'postgres'); // 首发带库
       expect(bodies[1].containsKey('database'), isFalse); // 重试无库
       expect(adapter.currentConnection?.database, isNull); // 记录已清
+      expect(fired, isFalse); // DDF：CONNECTION_FAILED 查询级错误不撕连接
     });
   });
 

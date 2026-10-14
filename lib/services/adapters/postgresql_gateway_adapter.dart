@@ -488,9 +488,10 @@ class PostgreSQLAdapter extends DatabaseAdapter
           .timeout(total, onTimeout: () => SseTimeouts.totalThrower(total));
       return _parseSse(lines, startTime: startTime);
     } on PostgreSqlGatewayException catch (e) {
-      // 传输/连接级失败 → 触发 onDisconnect（对齐裸连接版 onClose 语义；
-      // SQL 错误（DB_ERROR 等）不撕连接）。
-      if (e.code == 'CONNECTION_FAILED' || e.code == 'NOT_FOUND') {
+      // DDF：CONNECTION_FAILED 是每语句 DB open 失败（典型：默认/记录库已被
+      // drop），属查询级错误，交给外层 stale 库自愈与 keepalive 连续失败重连；
+      // NOT_FOUND（网关注册失效）与传输级异常仍是会话级死亡，立即撕。
+      if (e.code == 'NOT_FOUND') {
         onDisconnect?.call();
       }
       rethrow;

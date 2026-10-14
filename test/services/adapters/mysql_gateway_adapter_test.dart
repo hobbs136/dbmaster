@@ -10,7 +10,8 @@
 //   4xx 前置校验错误形状、请求形状（X-Execution-Id / timeoutMs / rowLimit /
 //   database 路由）；
 // - SSE error(TIMEOUT) 事件必须上抛（MySqlGatewayException），不得静默成功；
-// - 只读守卫、断连回调（CONNECTION_FAILED/NOT_FOUND → onDisconnect）、
+// - 只读守卫、断连回调（NOT_FOUND/传输级异常 → onDisconnect；
+//   CONNECTION_FAILED 查询级错误不再触发，DDF 修复批）、
 //   disconnect 的在途取消 best-effort（DELETE /api/gw/executions/{id}）、
 //   无 server 会话的引导性错误；
 // - 事务 T29 临时下线：beginTransaction/commit/rollback fail-loud 抛
@@ -487,7 +488,7 @@ void main() {
       );
     });
 
-    test('流无 complete → 断连语义（CONNECTION_FAILED）', () async {
+    test('流无 complete → 连接失败错误码语义（CONNECTION_FAILED）', () async {
       final adapter = await connectedAdapter(
         (req) => _sse([
           'event: meta\ndata: {"kind":"sql","type":"meta","columns":["x"]}',
@@ -500,6 +501,26 @@ void main() {
               .having((e) => e.code, 'code', 'CONNECTION_FAILED'),
         ),
       );
+    });
+
+    // DDF 修复批：CONNECTION_FAILED 是每语句 DB open 失败的查询级错误，
+    // 异常上抛但不再立即撕连接（外层自愈/keepalive 收口）。
+    test('AD-DDF-MY-001：SSE error(CONNECTION_FAILED) 上抛且不触发 onDisconnect', () async {
+      final adapter = await connectedAdapter(
+        (req) => _sse([
+          'event: error\ndata: {"kind":"sql","type":"error","code":"CONNECTION_FAILED","message":"database connection failed"}',
+        ]),
+      );
+      var fired = false;
+      adapter.onDisconnect = () => fired = true;
+      await expectLater(
+        adapter.executeQuery('SELECT 1'),
+        throwsA(
+          isA<MySqlGatewayException>()
+              .having((e) => e.code, 'code', 'CONNECTION_FAILED'),
+        ),
+      );
+      expect(fired, isFalse);
     });
 
     test('4xx 前置校验（MULTI_STATEMENT）→ 错误形状上抛', () async {
@@ -518,7 +539,7 @@ void main() {
       );
     });
 
-    test('NOT_FOUND 错误触发 onDisconnect（断连回调语义）', () async {
+    test('AD-DDF-MY-002：NOT_FOUND 错误触发 onDisconnect（断连回调语义）', () async {
       final adapter = await connectedAdapter(
         (req) => _sse([
           'event: error\ndata: {"kind":"sql","type":"error","code":"NOT_FOUND","message":"connection gone"}',
@@ -854,7 +875,33 @@ void main() {
       expect(bodies.last['database'], 'other_db');
     });
 
-    test('stale 库自愈：CONNECTION_FAILED + 有 database 路由 → 清库无库重试一次', () async {
+    // DDF 修复批：USE 不存在的库是查询级错误（USE 直连内层无外层自愈
+    // 包装）——异常上抛、不触发 onDisconnect、本地记录库不被改成坏库。
+    test('AD-DDF-MY-004：USE 不存在的库 → 异常上抛、不撕连接、记录库不被污染', () async {
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections') {
+          return _listResponse({'srv-1'});
+        }
+        return _sse([
+          'event: error\ndata: {"kind":"sql","type":"error","code":"CONNECTION_FAILED","message":"database connection failed"}',
+        ]);
+      });
+      final adapter = await connectedAdapter(client);
+
+      var fired = false;
+      adapter.onDisconnect = () => fired = true;
+      await expectLater(
+        adapter.executeQuery('USE `no_such_db`'),
+        throwsA(
+          isA<MySqlGatewayException>()
+              .having((e) => e.code, 'code', 'CONNECTION_FAILED'),
+        ),
+      );
+      expect(fired, isFalse);
+      expect(adapter.currentConnection?.database, 'test');
+    });
+
+    test('AD-DDF-MY-003：stale 库自愈——CONNECTION_FAILED + 有 database 路由 → 清库无库重试一次、不撕连接', () async {
       final bodies = <Map<String, dynamic>>[];
       var first = true;
       final client = _RecordingClient((req) {
@@ -875,6 +922,8 @@ void main() {
         ]);
       });
       final adapter = await connectedAdapter(client);
+      var fired = false;
+      adapter.onDisconnect = () => fired = true;
 
       final r = await adapter.executeQuery('SELECT 1'); // conn 默认 database=test
       expect(r.rows, [
@@ -883,6 +932,7 @@ void main() {
       expect(bodies[0]['database'], 'test'); // 首发带库
       expect(bodies[1].containsKey('database'), isFalse); // 重试无库
       expect(adapter.currentConnection?.database, isNull); // 记录已清
+      expect(fired, isFalse); // 自愈全程不触发断连（DDF：查询级错误交自愈）
     });
 
     test('meta columnTypes wire 扩展 → json 列识别（T031 数据源恢复）', () async {

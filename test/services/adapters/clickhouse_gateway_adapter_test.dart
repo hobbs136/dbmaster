@@ -10,7 +10,8 @@
 //   4xx 前置校验错误形状、请求形状（X-Execution-Id / timeoutMs / rowLimit /
 //   database 路由）；
 // - SSE error(TIMEOUT/DB_ERROR) 事件上抛（ClickhouseGatewayException），
-//   不静默成功；NOT_FOUND/CONNECTION_FAILED 触发 onDisconnect；
+//   不静默成功；仅 NOT_FOUND 触发 onDisconnect（SSE error CONNECTION_FAILED
+//   上抛但不撕连接——DDF 批收窄）；
 // - stale 库自愈（CONNECTION_FAILED + 有 database 路由 → 清库无库重试一次）；
 // - 浏览：getDatabases（SHOW DATABASES + information_schema/system_metadata
 //   滤噪）/ getTables（SHOW TABLES）/ useDatabase record-only；
@@ -466,7 +467,7 @@ void main() {
       );
     });
 
-    test('流无 complete → 断连语义（CONNECTION_FAILED）', () async {
+    test('流无 complete → 连接失败错误码语义（CONNECTION_FAILED）', () async {
       final adapter = await connectedAdapter(
         (req) => _sse([
           'event: meta\ndata: {"kind":"sql","type":"meta","columns":["x"]}',
@@ -497,7 +498,30 @@ void main() {
       );
     });
 
-    test('NOT_FOUND 错误触发 onDisconnect（断连回调语义）', () async {
+    test('AD-DDF-CH-001：SSE error(CONNECTION_FAILED) 上抛且不触发 onDisconnect',
+        () async {
+      final adapter = await connectedAdapter(
+        (req) => _sse([
+          'event: error\ndata: {"kind":"sql","type":"error","code":"CONNECTION_FAILED","message":"database connection failed"}',
+        ]),
+      );
+      var fired = false;
+      adapter.onDisconnect = () => fired = true;
+      // database: '' = 无库路由（wire 省略，等价 getDatabases catalog 查询
+      // 路径）：单次确定性请求，不触发外层 stale 库自愈（自愈重试成功由
+      // 既有用例覆盖）；断言收窄后 CONNECTION_FAILED 不再触发断连。
+      await expectLater(
+        adapter.executeQuery('SELECT 1', database: ''),
+        throwsA(
+          isA<ClickhouseGatewayException>()
+              .having((e) => e.code, 'code', 'CONNECTION_FAILED'),
+        ),
+      );
+      expect(fired, isFalse);
+    });
+
+    test('AD-DDF-CH-002：NOT_FOUND 错误触发 onDisconnect（断连回调语义）',
+        () async {
       final adapter = await connectedAdapter(
         (req) => _sse([
           'event: error\ndata: {"kind":"sql","type":"error","code":"NOT_FOUND","message":"connection gone"}',

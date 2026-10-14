@@ -9,7 +9,8 @@
 // - **#30 SS-TIMEOUT-301 结案守卫（单测层）**：SSE error(TIMEOUT) 事件必须
 //   上抛（SqlServerGatewayException），不得静默成功——FFI 层 dbsettime 的
 //   超时静默成功根因已随 FFI 删除，本守卫锁死网关语义不复发；
-// - 只读守卫、断连回调（CONNECTION_FAILED/NOT_FOUND → onDisconnect）、
+// - 只读守卫、断连回调（仅 NOT_FOUND → onDisconnect；SSE error
+//   CONNECTION_FAILED 上抛但不撕连接——DDF 批收窄）、
 //   disconnect 的在途取消 best-effort、无 server 会话的引导性错误。
 // =============================================================================
 
@@ -363,7 +364,7 @@ void main() {
       );
     });
 
-    test('流无 complete → 断连语义（CONNECTION_FAILED）', () async {
+    test('流无 complete → 连接失败错误码语义（CONNECTION_FAILED）', () async {
       final adapter = await connectedAdapter(
         (req) => _sse([
           'event: meta\ndata: {"kind":"sql","type":"meta","columns":["x"]}',
@@ -394,7 +395,27 @@ void main() {
       );
     });
 
-    test('NOT_FOUND 错误触发 onDisconnect（断连回调语义）', () async {
+    test('AD-DDF-SS-001：SSE error(CONNECTION_FAILED) 上抛且不触发 onDisconnect',
+        () async {
+      final adapter = await connectedAdapter(
+        (req) => _sse([
+          'event: error\ndata: {"kind":"sql","type":"error","code":"CONNECTION_FAILED","message":"database connection failed"}',
+        ]),
+      );
+      var fired = false;
+      adapter.onDisconnect = () => fired = true;
+      await expectLater(
+        adapter.executeQuery('SELECT 1'),
+        throwsA(
+          isA<SqlServerGatewayException>()
+              .having((e) => e.code, 'code', 'CONNECTION_FAILED'),
+        ),
+      );
+      expect(fired, isFalse);
+    });
+
+    test('AD-DDF-SS-002：NOT_FOUND 错误触发 onDisconnect（断连回调语义）',
+        () async {
       final adapter = await connectedAdapter(
         (req) => _sse([
           'event: error\ndata: {"kind":"sql","type":"error","code":"NOT_FOUND","message":"connection gone"}',

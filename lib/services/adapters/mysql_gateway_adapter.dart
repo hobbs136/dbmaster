@@ -51,6 +51,11 @@
 //!   惯例空格分隔字符串；TIMESTAMP 按注册 timezone 的 UTC 墙钟渲染，
 //!   2026-08-27 网关日期解码修复——此前族级落 null）；TIME 负值/跨日
 //!   （超出 00:00:00-23:59:59）仍落 null（chrono NaiveTime 表示域）。
+//! - 断连回调（DDF 修复批，2026-10-14）：SSE `CONNECTION_FAILED` 是每
+//!   语句 DB open 失败（典型：默认/记录库已被 drop），属查询级错误，
+//!   不再触发 `onDisconnect`——交给外层 stale 库自愈与 keepalive 连续
+//!   失败重连收口；`NOT_FOUND`（网关注册失效）与传输级异常
+//!   （http.ClientException / TimeoutException）仍是会话级死亡，立即撕。
 
 import 'dart:async';
 import 'dart:convert';
@@ -452,9 +457,10 @@ abstract class MySQLGatewayBaseAdapter extends DatabaseAdapter
           .timeout(total, onTimeout: () => SseTimeouts.totalThrower(total));
       return _parseSse(lines, startTime: startTime);
     } on MySqlGatewayException catch (e) {
-      // 传输/连接级失败 → 触发 onDisconnect（对齐裸连接版 onClose 语义；
-      // SQL 错误（DB_ERROR 等）不撕连接）。
-      if (e.code == 'CONNECTION_FAILED' || e.code == 'NOT_FOUND') {
+      // DDF：CONNECTION_FAILED 是每语句 DB open 失败（典型：默认/记录库已被
+      // drop），属查询级错误，交给外层 stale 库自愈与 keepalive 连续失败
+      // 重连；NOT_FOUND（网关注册失效）与传输级异常仍是会话级死亡，立即撕。
+      if (e.code == 'NOT_FOUND') {
         onDisconnect?.call();
       }
       rethrow;

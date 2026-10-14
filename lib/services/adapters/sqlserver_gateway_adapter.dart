@@ -379,9 +379,12 @@ class SqlServerAdapter extends DatabaseAdapter
               .timeout(total, onTimeout: () => SseTimeouts.totalThrower(total));
       return _parseSse(lines, startTime: startTime);
     } on SqlServerGatewayException catch (e) {
-      // 传输/连接级失败 → 触发 onDisconnect（对齐 FFI 版 dbdead 语义；
-      // SQL 错误（DB_ERROR 等）不撕连接）。
-      if (e.code == 'CONNECTION_FAILED' || e.code == 'NOT_FOUND') {
+      // DDF：CONNECTION_FAILED 是每语句 DB open 失败（典型：默认/记录库
+      // 已被 drop），属查询级错误而非会话死亡——本壳无外层 stale 库自愈，
+      // 不再立即撕，交由 keepalive 连续失败重连收口；NOT_FOUND（网关注册
+      // 失效）与传输级异常仍是会话级死亡，立即撕。SQL 错误（DB_ERROR 等）
+      // 不撕连接。
+      if (e.code == 'NOT_FOUND') {
         onDisconnect?.call();
       }
       rethrow;
