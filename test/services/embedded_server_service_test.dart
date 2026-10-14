@@ -16,6 +16,7 @@
 // covered end-to-end by the Rust crate's embedded_process_test.rs.
 // =============================================================================
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -269,4 +270,176 @@ void main() {
       expect(EmbeddedServerService.instance.isRunning, isFalse);
     });
   });
+
+  // T1（SVC-EMB，.specs/tasks-sleep-resume-fix.md D2）：stop() 分级超时。
+  // stdin.close 挂起（睡眠唤醒后管道异常态）与 SIGKILL 后 exitCode 永不
+  // 结算（Windows TerminateProcess 对陷入不可中断内核 I/O 的进程可挂起）
+  // 都不得让 stop() 永挂——窗口关闭链路的第一步必须有界返回；放弃等待的
+  // leaked-child 路径要可观察并照常收尾。注入缩短预算做计时断言。
+  group('EmbeddedServer.stop() graded timeouts (SVC-EMB)', () {
+    setUp(EmbeddedServerService.resetForTesting);
+    tearDown(EmbeddedServerService.resetForTesting);
+
+    late Duration savedStdin, savedGraceful, savedPostKill;
+    setUp(() {
+      savedStdin = EmbeddedServer.stopStdinCloseTimeout;
+      savedGraceful = EmbeddedServer.stopGracefulExitTimeout;
+      savedPostKill = EmbeddedServer.stopPostKillExitTimeout;
+      EmbeddedServer.stopStdinCloseTimeout = const Duration(milliseconds: 40);
+      EmbeddedServer.stopGracefulExitTimeout = const Duration(milliseconds: 40);
+      EmbeddedServer.stopPostKillExitTimeout = const Duration(milliseconds: 40);
+    });
+    tearDown(() {
+      EmbeddedServer.stopStdinCloseTimeout = savedStdin;
+      EmbeddedServer.stopGracefulExitTimeout = savedGraceful;
+      EmbeddedServer.stopPostKillExitTimeout = savedPostKill;
+    });
+
+    test('SVC-EMB-001: hung stdin.close() cannot hang stop() (2s layer)',
+        () async {
+      final server = EmbeddedServer();
+      final fake = _FakeProcess(
+        stdinCloseFuture: Completer<void>().future, // never settles
+        exitFuture: Future<int>.value(0), // graceful exit succeeds
+      );
+      server.debugProcess = fake;
+
+      final sw = Stopwatch()..start();
+      await server.stop().timeout(
+          const Duration(seconds: 5),
+          onTimeout: () =>
+              fail('stop() hung on stdin.close() past the injected budget'));
+      sw.stop();
+
+      expect(fake.killCalls, isEmpty,
+          reason: 'graceful exit succeeded — no kill expected');
+      expect(server.lastStopLeakedChild, isFalse);
+      // With the real 2s budget this path would take ≥2s even for a healthy
+      // child; the injected 40ms budget must bound it far below that.
+      expect(sw.elapsed, lessThan(const Duration(seconds: 1)));
+    });
+
+    test(
+        'SVC-EMB-002: unkillable child is abandoned after the post-kill '
+        'budget; teardown still completes', () async {
+      final server = EmbeddedServer();
+      await server.useIsolatedDataDir();
+      final dir = Directory(server.debugDataDir!);
+      final fake = _FakeProcess(
+        stdinCloseFuture: Completer<void>().future, // never settles
+        exitFuture: Completer<int>().future, // never settles — unkillable
+      );
+      server.debugProcess = fake;
+
+      final sw = Stopwatch()..start();
+      await server.stop().timeout(
+          const Duration(seconds: 5),
+          onTimeout: () =>
+              fail('stop() hung waiting on an unkillable child'));
+      sw.stop();
+
+      expect(fake.killCalls, [ProcessSignal.sigkill]);
+      expect(server.lastStopLeakedChild, isTrue,
+          reason: 'the leaked-child path must be observable');
+      expect(server.isRunning, isFalse);
+      // 放弃等待后照常收尾：隔离目录仍按整停口径清理。
+      expect(server.debugDataDir, isNull);
+      expect(await dir.exists(), isFalse,
+          reason: 'teardown continues after abandoning the leaked child');
+      // Real budgets would make this path take ≥8s (2+3+3); injected ones
+      // must bound it far below.
+      expect(sw.elapsed, lessThan(const Duration(seconds: 1)));
+    });
+
+    test(
+        'SVC-EMB-003: healthy child exits promptly — stop() stays on the '
+        'current fast path', () async {
+      final server = EmbeddedServer();
+      final fake = _FakeProcess(
+        stdinCloseFuture: Future<void>.value(),
+        exitFuture: Future<int>.value(0),
+      );
+      server.debugProcess = fake;
+
+      await server.stop().timeout(const Duration(seconds: 5));
+
+      expect(fake.killCalls, isEmpty);
+      expect(server.lastStopLeakedChild, isFalse);
+      expect(server.isRunning, isFalse);
+      expect(server.debugDataDir, isNull);
+    });
+
+    test(
+        'SVC-EMB-004: kill takes effect within the post-kill budget — '
+        'no leak marker', () async {
+      final server = EmbeddedServer();
+      final exitAfterKill = Completer<int>();
+      final fake = _FakeProcess(
+        stdinCloseFuture: Future<void>.value(),
+        exitFuture: exitAfterKill.future, // hangs until SIGKILL lands
+        onKill: () => exitAfterKill.complete(137),
+      );
+      server.debugProcess = fake;
+
+      await server.stop().timeout(const Duration(seconds: 5));
+
+      expect(fake.killCalls, [ProcessSignal.sigkill]);
+      expect(server.lastStopLeakedChild, isFalse);
+      expect(server.isRunning, isFalse);
+    });
+  });
+}
+
+/// A fake [IOSink] whose `close()` settles on the provided future (possibly
+/// never) — models a wedged stdin pipe after sleep/resume.
+class _FakeStdin implements IOSink {
+  _FakeStdin(this._closeFuture);
+
+  final Future<dynamic> _closeFuture;
+
+  @override
+  Future<dynamic> close() => _closeFuture;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnsupportedError('unexpected IOSink call: ${invocation.memberName}');
+}
+
+/// A fake [Process] for driving `EmbeddedServer.stop()`'s graded-timeout
+/// paths without spawning a real child (only the members stop() touches are
+/// implemented; everything else is rejected loudly).
+class _FakeProcess implements Process {
+  _FakeProcess({
+    this.pid = 424242,
+    required Future<dynamic> stdinCloseFuture,
+    required Future<int> exitFuture,
+    void Function()? onKill,
+  })  : _stdinCloseFuture = stdinCloseFuture,
+        _exitFuture = exitFuture,
+        _onKill = onKill;
+
+  final Future<dynamic> _stdinCloseFuture;
+  final Future<int> _exitFuture;
+  final void Function()? _onKill;
+  final List<ProcessSignal> killCalls = <ProcessSignal>[];
+
+  /// [Process.pid] stand-in (arbitrary value; only feeds the leak log line).
+  final int pid;
+
+  @override
+  IOSink get stdin => _FakeStdin(_stdinCloseFuture);
+
+  @override
+  Future<int> get exitCode => _exitFuture;
+
+  @override
+  bool kill([ProcessSignal signal = ProcessSignal.sigterm]) {
+    killCalls.add(signal);
+    _onKill?.call();
+    return true;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnsupportedError(
+      'unexpected Process call: ${invocation.memberName}');
 }

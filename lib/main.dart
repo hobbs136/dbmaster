@@ -18,6 +18,8 @@ import 'pro/pro_module_impl.dart';
 import 'pro/ui/pro_import_ui_real.dart';
 import 'pro/ui/pro_sync_ui_real.dart';
 import 'services/pro_module.dart';
+import 'services/app_lifecycle_observer.dart';
+import 'services/app_shutdown_coordinator.dart';
 import 'services/embedded_server_service.dart';
 import 'services/error_reporter.dart';
 import 'services/server_connection.dart';
@@ -198,8 +200,10 @@ class DbmasterApp extends StatelessWidget {
             },
           ),
         ],
-        child: const _WindowCloseGuard(
-          child: _DbmasterAppContent(),
+        child: const _AppLifecycleProbe(
+          child: _WindowCloseGuard(
+            child: _DbmasterAppContent(),
+          ),
         ),
       ),
     );
@@ -332,32 +336,68 @@ class _WindowCloseGuardState extends State<_WindowCloseGuard>
 
   Future<void> _doClose() async {
     _closing = true;
-    // 在首个 await 之前捕获——后面 prepareForCleanExit 要用（跨 await 的
-    // context 访问是 analyzer 违例）。
+    // 在首个 await 之前捕获——prepareForCleanExit 的闭包在下方组装（跨
+    // await 的 context 访问是 analyzer 违例）。
     final appProvider = context.read<AppProvider>();
-    // tear down the embedded server child process
-    // (closes its stdin → server's EOF shutdown path). Best-effort: never
-    // block window close on child teardown.
-    try {
-      await EmbeddedServerService.instance.stop();
-    } catch (e, stack) {
-      AppLogger.e('WindowCloseGuard', 'Embedded server stop failed', e, stack);
-    }
-    // U16：clean 退出标记 + 清空崩溃恢复会话文件（用户在批量关闭确认里
-    // 「丢弃」的决定必须被尊重——只有异常退出才恢复标签页）。
-    try {
-      await appProvider.prepareForCleanExit();
-    } catch (e, stack) {
-      AppLogger.e('WindowCloseGuard', 'Clean-exit mark failed', e, stack);
-    }
-    // 冲刷并关闭日志文件（含子进程退出前的 stderr 尾巴），尽力而为。
-    await AppLogger.dispose();
-    try {
-      await windowManager.setPreventClose(false);
-      await windowManager.close();
-    } catch (e, stack) {
-      AppLogger.e('WindowCloseGuard', '关闭窗口失败', e, stack);
-    }
+    // 关窗清理四步委托 AppShutdownCoordinator（sleep-resume 修复批 D1）：
+    // 前三步（embedded stop / clean-exit 标记 / logger dispose）整体套 12s
+    // 总 deadline，任何路径（步骤异常 / 永挂 / 超时）都保证放行闭包执行，
+    // 且 setPreventClose(false) 先于 close()——窗口永不再被门控锁死；
+    // 放行闭包自身不被 deadline 罩（D1 不变量④）。
+    await const AppShutdownCoordinator().run(
+      stopEmbeddedServer: () async {
+        await EmbeddedServerService.instance.stop();
+      },
+      prepareCleanExit: () async {
+        await appProvider.prepareForCleanExit();
+      },
+      disposeLogger: () async {
+        await AppLogger.dispose();
+      },
+      releaseWindowClose: () async {
+        await windowManager.setPreventClose(false);
+        await windowManager.close();
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
+  }
+}
+
+/// 唤醒生命周期探活挂载件(sleep-resume 修复批 D6/T8)。
+///
+/// 纯挂载壳:生命周期打点与探活逻辑全部在 [AppLifecycleObserver](独立
+/// 服务类,可单测——单测禁 import main.dart,§0 MUST NOT #7),本件只在
+/// 树中注册/注销观察者。挂在 [_WindowCloseGuard] 同层根级,应用存活期间
+/// 常驻;probe 回调接 `ServerConnection().probeNow`(唤醒瞬间判定 embedded
+/// 子进程死活,不等 30s 心跳 tick)。
+class _AppLifecycleProbe extends StatefulWidget {
+  const _AppLifecycleProbe({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_AppLifecycleProbe> createState() => _AppLifecycleProbeState();
+}
+
+class _AppLifecycleProbeState extends State<_AppLifecycleProbe> {
+  // initState 先于一切读取赋值、dispose 后不再读取——late final 安全。
+  late final AppLifecycleObserver _observer;
+
+  @override
+  void initState() {
+    super.initState();
+    _observer = AppLifecycleObserver(probe: ServerConnection().probeNow);
+    _observer.attach();
+  }
+
+  @override
+  void dispose() {
+    _observer.detach();
+    super.dispose();
   }
 
   @override

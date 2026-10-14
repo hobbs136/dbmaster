@@ -4,11 +4,14 @@
 // and exponential backoff using a custom mock HTTP client.
 // =============================================================================
 
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dbmaster/services/server_connection.dart';
+import 'package:dbmaster/utils/app_logger.dart';
 
 /// Custom test HTTP client that returns canned responses.
 ///
@@ -654,6 +657,164 @@ void main() {
       expect(service.serverVersionOutdated, isFalse);
     });
   });
+
+  // ── sleep-resume 修复批 T4:心跳超时 + 单飞守卫 + probeNow + 失败日志 ──
+  group('ServerConnection heartbeat (SVC-HB)', () {
+    late ServerConnection service;
+    late FakeSecureStorage storage;
+
+    setUp(() {
+      storage = FakeSecureStorage();
+      service = ServerConnection();
+      ServerConnection.resetForTesting();
+      // Set test dependencies AFTER reset (reset nulls them).
+      service.testSecureStorage = storage;
+    });
+
+    tearDown(() {
+      // 取消挂起的心跳/重连定时器,防止串扰后续用例。
+      ServerConnection.resetForTesting();
+    });
+
+    test('SVC-HB-001 单飞守卫:上一发未结算时再次触发直接跳过', () async {
+      final gate = _GateClient();
+      service.testHttpClient = gate;
+      service.connectEmbedded(
+        port: 1,
+        accessToken: 'a',
+        refreshToken: 'r',
+        installUuid: 'u',
+        version: '0.1.0',
+      );
+
+      final first = service.probeNow();
+      final second = service.probeNow();
+
+      expect(gate.requests, 1, reason: '第一发未结算,第二发必须被守卫跳过');
+      expect(await second, isFalse, reason: '守卫跳过 = 无法确认健康,返回 false');
+
+      gate.pending.removeAt(0).complete(_streamedOk());
+      expect(await first, isTrue);
+
+      // finally 释放守卫后,下一次探活正常发起新请求。
+      final third = service.probeNow();
+      expect(gate.requests, 2);
+      gate.pending.removeAt(0).complete(_streamedOk());
+      expect(await third, isTrue);
+    });
+
+    testWidgets('SVC-HB-002 GET 超时 → embedded 转 reconnecting 且重启被调度',
+        (tester) async {
+      var restarts = 0;
+      final hung = _HungClient();
+      service.testHttpClient = hung;
+      service.embeddedRestartHandler = () async {
+        restarts++;
+        return true;
+      };
+      service.connectEmbedded(
+        port: 1,
+        accessToken: 'a',
+        refreshToken: 'r',
+        installUuid: 'u',
+        version: '0.1.0',
+      );
+      expect(service.connectionState, ServerConnectionState.connected);
+
+      bool? probeResult;
+      service.probeNow().then((ok) => probeResult = ok);
+      expect(hung.requests, 1);
+
+      // 10s 心跳超时到点:TimeoutException → 既有失败处理链。
+      await tester.pump(const Duration(seconds: 10, milliseconds: 100));
+      expect(probeResult, isFalse, reason: '超时 → probeNow 返回 false');
+      expect(service.connectionState, ServerConnectionState.reconnecting);
+
+      // _scheduleEmbeddedRestart 先挂 1s timer 再调 handler。
+      await tester.pump(const Duration(milliseconds: 1200));
+      expect(restarts, 1, reason: '重启调度必须被触发');
+
+      // 复位释放定时器,避免 testWidgets 的 pending-timer 检查失败。
+      ServerConnection.resetForTesting();
+    });
+
+    test('SVC-HB-003 probeNow:/api/health 200 → true,非 200 → false', () async {
+      var healthy = true;
+      service.testHttpClient = _TestClient((req) async {
+        if (req.url.path.endsWith('/api/health')) {
+          return http.Response(healthy ? 'ok' : 'unhealthy', healthy ? 200 : 500);
+        }
+        return http.Response('NF', 404);
+      });
+      service.connectEmbedded(
+        port: 1,
+        accessToken: 'a',
+        refreshToken: 'r',
+        installUuid: 'u',
+        version: '0.1.0',
+      );
+
+      expect(await service.probeNow(), isTrue);
+
+      healthy = false;
+      expect(await service.probeNow(), isFalse);
+      expect(service.connectionState, ServerConnectionState.reconnecting);
+    });
+
+    test('SVC-HB-004 心跳失败日志落地(remote 与 embedded 两分支)', () async {
+      final logDir = await Directory.systemTemp.createTemp('svc_hb_004_logs');
+      await AppLogger.init(logDir);
+      try {
+        // ── remote 分支:health 500 → 失败日志 + reconnecting ──
+        service.testHttpClient = _TestClient((req) async {
+          if (req.url.path.endsWith('/api/health')) {
+            return http.Response('unhealthy', 500);
+          }
+          return _okResponse(_loginBody());
+        });
+        await service.connect('https://srv:3000', 'a@b.com', 'pw');
+
+        expect(await service.probeNow(), isFalse);
+        expect(service.connectionState, ServerConnectionState.reconnecting);
+
+        await AppLogger.flush();
+        final logFile = AppLogger.currentLogFile;
+        if (logFile == null) fail('日志文件通道应已初始化');
+        expect(await logFile.readAsString(),
+            contains('server heartbeat failed — reconnecting'));
+
+        // 复位清掉 remote 失败挂起的重连定时器,隔离 embedded 分支。
+        ServerConnection.resetForTesting();
+        service.testSecureStorage = storage;
+
+        // ── embedded 分支:health 500 → 失败日志 + 重启调度 ──
+        service.embeddedRestartHandler = () async => true;
+        service.testHttpClient = _TestClient((req) async {
+          if (req.url.path.endsWith('/api/health')) {
+            return http.Response('unhealthy', 500);
+          }
+          return http.Response('NF', 404);
+        });
+        service.connectEmbedded(
+          port: 1,
+          accessToken: 'a',
+          refreshToken: 'r',
+          installUuid: 'u',
+          version: '0.1.0',
+        );
+
+        expect(await service.probeNow(), isFalse);
+        expect(service.connectionState, ServerConnectionState.reconnecting);
+
+        await AppLogger.flush();
+        expect(await logFile.readAsString(),
+            contains('server heartbeat failed (embedded mode) — restarting child'));
+      } finally {
+        await AppLogger.resetForTesting();
+        await logDir.delete(recursive: true);
+      }
+    });
+  });
 }
 
 /// Storage fake whose read() always throws — exercises the failure-as-default
@@ -670,3 +831,36 @@ class _ThrowingReadStorage extends Fake implements FlutterSecureStorage {
     WebOptions? webOptions,
   }) async => throw Exception('storage unavailable');
 }
+
+/// HTTP client whose requests never settle — simulates a hung TCP connection
+/// (sleep/wake black hole). Used with fake time (tester.pump) to drive the
+/// heartbeat request timeout deterministically.
+class _HungClient extends http.BaseClient {
+  int requests = 0;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    requests++;
+    return Completer<http.StreamedResponse>().future;
+  }
+}
+
+/// HTTP client that counts send() calls and parks each request behind a
+/// completer the test releases manually — drives the single-flight guard.
+class _GateClient extends http.BaseClient {
+  final List<Completer<http.StreamedResponse>> pending = [];
+  int requests = 0;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    requests++;
+    final gate = Completer<http.StreamedResponse>();
+    pending.add(gate);
+    return gate.future;
+  }
+}
+
+/// A fresh 200 streamed response — each parked request needs its own body
+/// stream (single-subscription streams cannot be reused).
+http.StreamedResponse _streamedOk() =>
+    http.StreamedResponse(Stream.value(utf8.encode('ok')), 200);

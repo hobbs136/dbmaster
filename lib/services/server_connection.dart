@@ -137,6 +137,15 @@ class ServerConnection {
   static const Duration _heartbeatInterval = Duration(seconds: 30);
   static const Duration _initialReconnectDelay = Duration(seconds: 1);
 
+  // 心跳 GET 超时:对端 accept 后不响应(睡眠唤醒后高发)时,无超时的 GET
+  // 永不结算并卡住单飞守卫。10s 与 token refresh 同族(见
+  // _doRefreshAccessToken:「10s 覆盖本地 embedded 重启窗口」)。
+  static const Duration _heartbeatRequestTimeout = Duration(seconds: 10);
+
+  // 单飞守卫:上一发心跳未结算则本次 tick 直接跳过,防止挂死请求在
+  // Timer.periodic 下无限堆积(睡眠唤醒修复批 D4)。
+  bool _heartbeatInFlight = false;
+
   // ── Public API ──
 
   /// Connect to a DbMaster server.
@@ -159,11 +168,16 @@ class ServerConnection {
       _client = testHttpClient ?? http.Client();
       _ownsClient = testHttpClient == null;
 
-      final response = await _client!.post(
-        Uri.parse('$_baseUrl/api/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
-      );
+      final response = await _client!
+          .post(
+            Uri.parse('$_baseUrl/api/auth/login'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email, 'password': password}),
+          )
+          // 用户触发路径同样要有界:对端不响应时,无超时的登录 POST 会把
+          // 连接状态永远卡在 connecting。15s 量级对齐既有 /api/instance 5s
+          // 与 token refresh 10s。
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -412,11 +426,16 @@ class ServerConnection {
       _client = testHttpClient ?? http.Client();
       _ownsClient = testHttpClient == null;
 
-      final response = await _client!.post(
-        Uri.parse('$_baseUrl/api/auth/refresh'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refresh_token': token}),
-      );
+      final response = await _client!
+          .post(
+            Uri.parse('$_baseUrl/api/auth/refresh'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'refresh_token': token}),
+          )
+          // 同登录路径:会话恢复也必须有界(15s),否则启动时对端不响应会
+          // 把状态卡在 connecting。超时落进下方既有 catch → 降级
+          // disconnected 并保留凭据供下次重试。
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -430,10 +449,12 @@ class ServerConnection {
         await _storage.write(key: _preferredModeKey, value: _remoteModeValue);
 
         // Fetch user profile
-        final meResp = await _client!.get(
-          Uri.parse('$_baseUrl/api/me'),
-          headers: _authHeaders(),
-        );
+        final meResp = await _client!
+            .get(
+              Uri.parse('$_baseUrl/api/me'),
+              headers: _authHeaders(),
+            )
+            .timeout(const Duration(seconds: 15));
         if (meResp.statusCode == 200) {
           final meBody = jsonDecode(meResp.body) as Map<String, dynamic>;
           _userProfile = ServerUserProfile.fromJson(meBody);
@@ -591,22 +612,45 @@ class ServerConnection {
     _heartbeatTimer = Timer.periodic(_heartbeatInterval, (_) => _heartbeat());
   }
 
-  Future<void> _heartbeat() async {
+  /// One health ping. Returns `true` only when `GET /api/health` answered
+  /// 200; a skipped ping (single-flight guard), a disconnected client, or any
+  /// failure — including the [_heartbeatRequestTimeout] timeout — returns
+  /// `false`. The periodic timer callback ignores the return value.
+  Future<bool> _heartbeat() async {
+    // Single-flight guard: an unresolved ping (hung TCP after sleep/wake)
+    // must not pile up one dead request per tick.
+    if (_heartbeatInFlight) return false;
+    final client = _client;
+    final base = _baseUrl;
+    if (client == null || base == null) return false;
+    _heartbeatInFlight = true;
     try {
-      final resp = await _client!.get(Uri.parse('$_baseUrl/api/health'));
+      final resp = await client
+          .get(Uri.parse('$base/api/health'))
+          .timeout(_heartbeatRequestTimeout);
       if (resp.statusCode != 200) {
         _handleHeartbeatFailure();
-      } else {
+      } else if (_stateController.value == ServerConnectionState.reconnecting) {
         // Successful heartbeat — if we were reconnecting, transition back
-        if (_stateController.value == ServerConnectionState.reconnecting) {
-          _stateController.value = ServerConnectionState.connected;
-          _reconnectAttempt = 0;
-        }
+        _stateController.value = ServerConnectionState.connected;
+        _reconnectAttempt = 0;
       }
+      return resp.statusCode == 200;
+    } on TimeoutException {
+      _handleHeartbeatFailure();
+      return false;
     } catch (_) {
       _handleHeartbeatFailure();
+      return false;
+    } finally {
+      _heartbeatInFlight = false;
     }
   }
+
+  /// 主动探活入口(生命周期探活用,如唤醒时 probe):直接调用 [_heartbeat],
+  /// 复用其单飞守卫与全部失败处理链(超时 → 转重连/重启)。返回 `true` 仅当
+  /// `/api/health` 得到 200;守卫跳过、未连接或任何失败都返回 `false`。
+  Future<bool> probeNow() => _heartbeat();
 
   void _handleHeartbeatFailure() {
     if (_stateController.value != ServerConnectionState.connected) return;
@@ -615,10 +659,15 @@ class ServerConnection {
     // watcher in EmbeddedServerService also independently triggers restart;
     // both paths converge on a fresh handshake + applyTo.
     if (_embeddedMode) {
+      // 失败打点是唤醒取证(C 面)的关键仪器:只有 connected 态才走到这里,
+      // 重连期间的后续失败不会刷屏。
+      AppLogger.w('ServerConnection',
+          'server heartbeat failed (embedded mode) — restarting child');
       _stateController.value = ServerConnectionState.reconnecting;
       _scheduleEmbeddedRestart();
       return;
     }
+    AppLogger.w('ServerConnection', 'server heartbeat failed — reconnecting');
     _stateController.value = ServerConnectionState.reconnecting;
     _reconnectAttempt = 0;
     _scheduleReconnect();

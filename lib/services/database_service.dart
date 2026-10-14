@@ -64,6 +64,13 @@ class _ConnectionState {
   final SshTunnelManager sshTunnelManager = SshTunnelManager();
   final Map<String, Timer> keepAliveTimers = {};
   final Map<String, int> keepAliveFailures = {};
+
+  /// keepalive in-flight 单飞守卫:connectionId 在集合中 = 上一发 ping(含
+  /// 整个重连流程)尚未结算,本次 tick 跳过(sleep-resume-fix T5,防 SSE 挂死
+  /// 时每 10s 堆积一条永不完成的请求)。释放只经由 _keepAlivePing 的 finally,
+  /// _stopKeepAlive 不清此集合——否则重连中途重启的 timer 会在旧流程仍持有
+  /// 时放行新 ping,破坏「守卫覆盖整个重连流程」语义。
+  final Set<String> keepAliveInFlight = {};
   final Map<String, int> reconnectAttempts = {};
   static const int maxReconnectAttempts = 5;
   static const List<Duration> reconnectDelays = [
@@ -563,6 +570,14 @@ class _ConnectionManager {
     final server = _state.servers[connectionId];
     if (server == null) return;
 
+    // In-flight 单飞守卫:上一发 ping 未结算则跳过本次 tick,防止 SSE 挂死时
+    // 每 10s 堆积一条永不完成的请求(睡眠过夜 ≈8,640 条,sleep-resume-fix T5)。
+    // 守卫持有期覆盖整个重连流程(ping + 失败计数 + 退避 delay + connect)——
+    // 重连期间跳过新 ping 正是防堆积点。
+    // 不另加 ping 级超时(任务书 D4 裁决):网关型连接的 ping 经 SSE 通道,已由
+    // SSE 三层超时有界传导;SQLite 在后台 isolate;再加一层会与 SSE 超时互相
+    // 干扰(双计时器竞态)。
+    if (!_state.keepAliveInFlight.add(connectionId)) return;
     try {
       final adapter = _state.adapters[connectionId];
       if (adapter != null && adapter.isConnected) {
@@ -639,6 +654,10 @@ class _ConnectionManager {
           await disconnect(connectionId: connectionId);
         }
       }
+    } finally {
+      // finally 释放守卫:ping 抛异常、isSwitchingDatabase 早退、重连全流程
+      // 结束都必须清除,后续 tick 才不会被永久吞。
+      _state.keepAliveInFlight.remove(connectionId);
     }
   }
 
@@ -3199,6 +3218,14 @@ class DatabaseService {
   @visibleForTesting
   void markConnectingForTest(String connectionId) =>
       _connMgr.markConnectingForTest(connectionId);
+
+  /// Test-only：手动启动 keepalive 定时器（keepalive 单飞守卫单测的注入缝，
+  /// sleep-resume-fix T5；生产路径由 connect() 内部启动，不经此入口）。
+  @visibleForTesting
+  void startKeepAliveForTest(
+    String connectionId, {
+    Duration interval = const Duration(seconds: 10),
+  }) => _connMgr.startKeepAlive(connectionId, interval: interval);
 
   /// Test-only：覆写某数据库类型的 adapter 工厂（见 _ConnectionManager
   /// 同名 hook 的说明；连接失败路径单测注入 stub adapter 用）。

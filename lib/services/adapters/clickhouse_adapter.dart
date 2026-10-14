@@ -37,6 +37,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../database_abstract.dart';
 import '../server_connection.dart';
+import '../sse_timeout.dart';
 import '../../models/connection_failure.dart';
 import '../../models/database_models.dart' show DbColumn, DbTable;
 import '../../utils/app_logger.dart';
@@ -338,7 +339,14 @@ class ClickhouseAdapter extends DatabaseAdapter
     final client = httpClient ?? http.Client();
     final ownsClient = httpClient == null;
     try {
-      final response = await client.send(request);
+      // T3 三层超时（D3）：first-byte 30s（响应头）/ idle 45s（行流看门狗，
+      // 含 `:` keep-alive 重置）/ total timeoutMs+30s（聚合版总兜底）。
+      final response = await client
+          .send(request)
+          .timeout(
+            SseTimeouts.firstByte,
+            onTimeout: SseTimeouts.firstByteThrower,
+          );
 
       // 前置校验失败（4xx JSON，流未开始）：错误形状 {"error":{code,message}}。
       if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -347,10 +355,13 @@ class ClickhouseAdapter extends DatabaseAdapter
       }
 
       // SSE 流聚合：meta → rows* → complete | error。
+      final total = SseTimeouts.totalFor(timeoutMs);
       final lines = await response.stream
           .transform(utf8.decoder)
           .transform(const LineSplitter())
-          .toList();
+          .timeout(SseTimeouts.idle, onTimeout: SseTimeouts.idleSinkTimeout)
+          .toList()
+          .timeout(total, onTimeout: () => SseTimeouts.totalThrower(total));
       return _parseSse(lines, startTime: startTime);
     } on ClickhouseGatewayException catch (e) {
       // 传输/连接级失败 → 触发 onDisconnect（对齐其它壳语义；SQL 错误
@@ -364,6 +375,13 @@ class ClickhouseAdapter extends DatabaseAdapter
       throw ClickhouseGatewayException(
         'CONNECTION_FAILED',
         'gateway unreachable (${e.message})',
+      );
+    } on TimeoutException catch (e) {
+      // T3：三层超时与传输级失败同判——挂死 server 本就该撕连接。
+      onDisconnect?.call();
+      throw ClickhouseGatewayException(
+        'CONNECTION_FAILED',
+        'gateway SSE timeout (${e.message})',
       );
     } finally {
       if (ownsClient) client.close();

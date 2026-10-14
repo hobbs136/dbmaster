@@ -40,6 +40,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../database_abstract.dart';
 import '../server_connection.dart';
+import '../sse_timeout.dart';
 import '../../models/connection_failure.dart'
     show AdapterConnectException, ConnectionFailure, gatewayEnvelopeFailure;
 import '../../models/database_models.dart';
@@ -285,6 +286,13 @@ class TDengineAdapter extends DatabaseAdapter
         'CONNECTION_FAILED',
         'gateway unreachable (${e.message})',
       );
+    } on TimeoutException catch (e) {
+      // T3：三层超时与传输级失败同判——挂死 server 本就该撕连接。
+      onDisconnect?.call();
+      throw TdengineGatewayException(
+        'CONNECTION_FAILED',
+        'gateway SSE timeout (${e.message})',
+      );
     } finally {
       if (_inFlightExecutionId == executionId) {
         _inFlightExecutionId = null;
@@ -324,7 +332,15 @@ class TDengineAdapter extends DatabaseAdapter
     final client = httpClient ?? http.Client();
     final ownsClient = httpClient == null;
     try {
-      final response = await client.send(request);
+      // T3 三层超时（D3）：first-byte 30s（响应头）/ idle 45s（行流看门狗，
+      // 含 `:` keep-alive 重置）/ total timeoutMs+30s（聚合版总兜底）。
+      // 异常映射在外层调用点（executeQuery 的 catch 链）。
+      final response = await client
+          .send(request)
+          .timeout(
+            SseTimeouts.firstByte,
+            onTimeout: SseTimeouts.firstByteThrower,
+          );
 
       // 前置校验失败（4xx JSON，流未开始）：{"error":{code,message}}。
       if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -332,10 +348,13 @@ class TDengineAdapter extends DatabaseAdapter
         throw _decodeErrResponse(response.statusCode, text);
       }
 
+      final total = SseTimeouts.totalFor(timeoutMs);
       final lines = await response.stream
           .transform(utf8.decoder)
           .transform(const LineSplitter())
-          .toList();
+          .timeout(SseTimeouts.idle, onTimeout: SseTimeouts.idleSinkTimeout)
+          .toList()
+          .timeout(total, onTimeout: () => SseTimeouts.totalThrower(total));
       return _parseSse(lines, startTime: startTime);
     } finally {
       if (ownsClient) client.close();

@@ -12,6 +12,7 @@
 //! demand via the embedded-only `GET /api/connections/:id/credential` endpoint
 //! — see [fetchCredentials].
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -19,6 +20,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/database_models.dart';
 import '../utils/app_logger.dart';
+import 'api_http_timeout.dart';
 import 'connection_mapping.dart';
 import 'server_connection.dart';
 
@@ -71,15 +73,32 @@ class ConnectionSyncService {
     try {
       switch (method) {
         case 'GET':
-          return await client.get(uri, headers: headers);
+          return await client
+              .get(uri, headers: headers)
+              .timeout(ApiHttpTimeouts.request);
         case 'POST':
-          return await client.post(uri,
-              headers: headers, body: body == null ? '' : jsonEncode(body));
+          return await client
+              .post(
+                uri,
+                headers: headers,
+                body: body == null ? '' : jsonEncode(body),
+              )
+              .timeout(ApiHttpTimeouts.request);
         case 'DELETE':
-          return await client.delete(uri, headers: headers);
+          return await client
+              .delete(uri, headers: headers)
+              .timeout(ApiHttpTimeouts.request);
         default:
           throw StateError('Unsupported HTTP method: $method');
       }
+    } on TimeoutException {
+      // D5 (.specs/tasks-sleep-resume-fix.md): an unbounded request would
+      // pile up after sleep/resume; bound it and surface through this file's
+      // existing transport-error convention (StateError — this service has
+      // no typed exception). Message carries method+path, never the host.
+      throw StateError(
+        '$method $path timed out after ${ApiHttpTimeouts.request.inSeconds}s',
+      );
     } finally {
       if (ownsClient) client.close();
     }

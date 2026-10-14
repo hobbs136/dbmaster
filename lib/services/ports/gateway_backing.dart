@@ -26,6 +26,7 @@ import 'package:uuid/uuid.dart';
 import '../../models/database_models.dart';
 import '../../utils/app_logger.dart';
 import '../server_connection.dart';
+import '../sse_timeout.dart';
 import 'capability_table.dart';
 import 'db_capability_port.dart';
 import 'port_types.dart';
@@ -180,7 +181,17 @@ class GatewayBacking implements DbCapabilityPort {
     final client = _httpClient ?? http.Client();
     final ownsClient = _httpClient == null;
     try {
-      final response = await client.send(req);
+      // T3 三层超时（D3）生成器版：只接 first-byte + idle 两层；**total 层
+      // 刻意不实现**（D3 已裁决）——async* 生成器内整体 deadline 需重写为
+      // drain 结构，收益低（idle 已兜「停发」；「只发 keep-alive 永不终态」
+      // 的极端病态由用户 cancel（DELETE /api/gw/executions/{id} 既有）与
+      // 关 tab 兜底）。
+      final response = await client
+          .send(req)
+          .timeout(
+            SseTimeouts.firstByte,
+            onTimeout: SseTimeouts.firstByteThrower,
+          );
       // 前置校验失败（4xx JSON，流未开始）：{"error":{code,message}}。
       if (response.statusCode < 200 || response.statusCode >= 300) {
         final text = await response.stream.bytesToString();
@@ -190,9 +201,11 @@ class GatewayBacking implements DbCapabilityPort {
 
       var pendingEvent = '';
       var pendingData = '';
+      // idle 45s：行流看门狗（任意一行含 `:` keep-alive 注释行到达即重置）。
       await for (final line in response.stream
           .transform(utf8.decoder)
-          .transform(const LineSplitter())) {
+          .transform(const LineSplitter())
+          .timeout(SseTimeouts.idle, onTimeout: SseTimeouts.idleSinkTimeout)) {
         if (line.isEmpty) {
           if (pendingData.isNotEmpty) {
             final chunk = _chunkFromEvent(pendingEvent, pendingData);
@@ -223,10 +236,12 @@ class GatewayBacking implements DbCapabilityPort {
         code: 'CONNECTION_FAILED',
         message: 'gateway unreachable (${e.message})',
       );
-    } on TimeoutException {
+    } on TimeoutException catch (e) {
+      // T3 激活（原不可达——send/行流此前无超时）：first-byte/idle 超时与
+      // 传输级失败同判（e.message 含层名，取证区分挂死形态）。
       yield ExecutionError(
         code: 'CONNECTION_FAILED',
-        message: 'gateway query connection timed out',
+        message: 'gateway SSE timeout (${e.message})',
       );
     } finally {
       if (ownsClient) client.close();

@@ -9,12 +9,14 @@
 //! - POST   /api/mcp/tokens      — create; plaintext returned exactly once.
 //! - DELETE /api/mcp/tokens/:id  — revoke (soft delete, audited server-side).
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/mcp_token.dart';
+import 'api_http_timeout.dart';
 import 'server_connection.dart';
 
 /// Exception carrying the Server's stable error `code` when present.
@@ -116,14 +118,27 @@ class McpTokenApiService {
     try {
       switch (method) {
         case 'GET':
-          return await client.get(uri, headers: headers);
+          return await client
+              .get(uri, headers: headers)
+              .timeout(ApiHttpTimeouts.request);
         case 'POST':
-          return await client.post(uri, headers: headers, body: body ?? '');
+          return await client
+              .post(uri, headers: headers, body: body ?? '')
+              .timeout(ApiHttpTimeouts.request);
         case 'DELETE':
-          return await client.delete(uri, headers: headers);
+          return await client
+              .delete(uri, headers: headers)
+              .timeout(ApiHttpTimeouts.request);
         default:
           throw McpTokenApiException('Unsupported HTTP method: $method');
       }
+    } on TimeoutException {
+      // D5 (.specs/tasks-sleep-resume-fix.md): bound the request and map the
+      // timeout onto this service's existing transport error type. Message
+      // carries method+path, never the host (gateway_backing.dart discipline).
+      throw McpTokenApiException(
+        '$method $path timed out after ${ApiHttpTimeouts.request.inSeconds}s',
+      );
     } finally {
       if (ownsClient) client.close();
     }

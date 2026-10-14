@@ -59,6 +59,7 @@ import '../../utils/app_logger.dart';
 import '../database_abstract.dart';
 import '../redis_result_formatter.dart';
 import '../server_connection.dart';
+import '../sse_timeout.dart';
 import 'ai_adapter_mixin.dart';
 
 /// 网关查询错误（SSE error 事件 / 4xx 前置校验失败）。`code` 对齐 c01 §4.4
@@ -311,16 +312,26 @@ class RedisAdapter extends DatabaseAdapter
     final client = httpClient ?? http.Client();
     final ownsClient = httpClient == null;
     try {
-      final response = await client.send(request);
+      // T3 三层超时（D3）：first-byte 30s（响应头）/ idle 45s（行流看门狗，
+      // 含 `:` keep-alive 重置）/ total 有效 timeoutMs+30s（聚合版总兜底；
+      // 与请求体同源——timeoutMs ?? _timeoutMs，对齐 server 侧实际钳制值）。
+      final response = await client
+          .send(request)
+          .timeout(
+            SseTimeouts.firstByte,
+            onTimeout: SseTimeouts.firstByteThrower,
+          );
       if (response.statusCode < 200 || response.statusCode >= 300) {
         final text = await response.stream.bytesToString();
         throw _decodeErrResponse(response.statusCode, text);
       }
-      final lines =
-          await response.stream
-              .transform(utf8.decoder)
-              .transform(const LineSplitter())
-              .toList();
+      final total = SseTimeouts.totalFor(timeoutMs ?? _timeoutMs);
+      final lines = await response.stream
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .timeout(SseTimeouts.idle, onTimeout: SseTimeouts.idleSinkTimeout)
+          .toList()
+          .timeout(total, onTimeout: () => SseTimeouts.totalThrower(total));
       final result = _parseSse(lines, startTime: startTime);
       _invalidateScanPagesIfWrite([command]);
       return result;
@@ -334,6 +345,13 @@ class RedisAdapter extends DatabaseAdapter
       throw RedisGatewayException(
         'CONNECTION_FAILED',
         'gateway unreachable (${e.message})',
+      );
+    } on TimeoutException catch (e) {
+      // T3：三层超时与传输级失败同判——挂死 server 本就该撕连接。
+      onDisconnect?.call();
+      throw RedisGatewayException(
+        'CONNECTION_FAILED',
+        'gateway SSE timeout (${e.message})',
       );
     } finally {
       if (_inFlightExecutionId == executionId) {
@@ -531,16 +549,25 @@ class RedisAdapter extends DatabaseAdapter
     final client = httpClient ?? http.Client();
     final ownsClient = httpClient == null;
     try {
-      final response = await client.send(request);
+      // T3 三层超时（D3）：first-byte 30s / idle 45s / total _timeoutMs+30s
+      // （与请求体同源——pipeline 恒带 _timeoutMs）。
+      final response = await client
+          .send(request)
+          .timeout(
+            SseTimeouts.firstByte,
+            onTimeout: SseTimeouts.firstByteThrower,
+          );
       if (response.statusCode < 200 || response.statusCode >= 300) {
         final text = await response.stream.bytesToString();
         throw _decodeErrResponse(response.statusCode, text);
       }
-      final lines =
-          await response.stream
-              .transform(utf8.decoder)
-              .transform(const LineSplitter())
-              .toList();
+      final total = SseTimeouts.totalFor(_timeoutMs);
+      final lines = await response.stream
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .timeout(SseTimeouts.idle, onTimeout: SseTimeouts.idleSinkTimeout)
+          .toList()
+          .timeout(total, onTimeout: () => SseTimeouts.totalThrower(total));
       final result = _parseSse(lines, startTime: startTime);
       // pipeline 行 = [index, result]，按 index 归位。
       final out = List<dynamic>.filled(commands.length, null);
@@ -562,6 +589,13 @@ class RedisAdapter extends DatabaseAdapter
       throw RedisGatewayException(
         'CONNECTION_FAILED',
         'gateway unreachable (${e.message})',
+      );
+    } on TimeoutException catch (e) {
+      // T3：三层超时与传输级失败同判——挂死 server 本就该撕连接。
+      onDisconnect?.call();
+      throw RedisGatewayException(
+        'CONNECTION_FAILED',
+        'gateway SSE timeout (${e.message})',
       );
     } finally {
       if (_inFlightExecutionId == executionId) {

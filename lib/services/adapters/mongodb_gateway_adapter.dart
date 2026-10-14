@@ -63,6 +63,7 @@ import '../../utils/app_logger.dart';
 import '../database_abstract.dart';
 import '../mongodb_shell_parser.dart';
 import '../server_connection.dart';
+import '../sse_timeout.dart';
 import 'ai_adapter_mixin.dart';
 import 'mongo_cluster_strategy.dart';
 import 'parsed_mongo_uri.dart';
@@ -349,15 +350,25 @@ class MongoDBAdapter extends DatabaseAdapter
     final client = httpClient ?? http.Client();
     final ownsClient = httpClient == null;
     try {
-      final response = await client.send(request);
+      // T3 三层超时（D3）：first-byte 30s（响应头）/ idle 45s（行流看门狗，
+      // 含 `:` keep-alive 重置）/ total timeoutMs+30s（聚合版总兜底）。
+      final response = await client
+          .send(request)
+          .timeout(
+            SseTimeouts.firstByte,
+            onTimeout: SseTimeouts.firstByteThrower,
+          );
       if (response.statusCode < 200 || response.statusCode >= 300) {
         final text = await response.stream.bytesToString();
         throw _decodeErrResponse(response.statusCode, text);
       }
+      final total = SseTimeouts.totalFor(timeoutMs);
       final lines = await response.stream
           .transform(utf8.decoder)
           .transform(const LineSplitter())
-          .toList();
+          .timeout(SseTimeouts.idle, onTimeout: SseTimeouts.idleSinkTimeout)
+          .toList()
+          .timeout(total, onTimeout: () => SseTimeouts.totalThrower(total));
       return _parseSse(lines, startTime: startTime);
     } on MongoGatewayException catch (e) {
       // 传输/连接级失败 → 触发 onDisconnect（对齐旧版死 socket 语义；
@@ -371,6 +382,13 @@ class MongoDBAdapter extends DatabaseAdapter
       throw MongoGatewayException(
         'CONNECTION_FAILED',
         'gateway unreachable (${e.message})',
+      );
+    } on TimeoutException catch (e) {
+      // T3：三层超时与传输级失败同判——挂死 server 本就该撕连接。
+      onDisconnect?.call();
+      throw MongoGatewayException(
+        'CONNECTION_FAILED',
+        'gateway SSE timeout (${e.message})',
       );
     } finally {
       if (_inFlightExecutionId == executionId) {

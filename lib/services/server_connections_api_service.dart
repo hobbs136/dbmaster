@@ -20,6 +20,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/drift_models.dart';
 import '../utils/app_logger.dart';
+import 'api_http_timeout.dart';
 import 'server_connection.dart';
 
 /// Exception carrying the Server's stable error `code` when present.
@@ -193,9 +194,22 @@ class ServerConnectionsApiService {
       if (token != null) {
         req.headers['Authorization'] = 'Bearer $token';
       }
-      final streamed = await client.send(req);
-      final resp = await http.Response.fromStream(streamed);
+      // Both phases of the request (dispatch + body drain) are bounded by
+      // the same D5 budget — `client.get`-style services cover both in one
+      // await, this streamed variant wraps each await with the same constant.
+      final streamed = await client.send(req).timeout(ApiHttpTimeouts.request);
+      final resp = await http.Response.fromStream(
+        streamed,
+      ).timeout(ApiHttpTimeouts.request);
       return _decode(method, path, resp.statusCode, resp.body);
+    } on TimeoutException {
+      // D5 (.specs/tasks-sleep-resume-fix.md): bound the request and map the
+      // timeout onto this service's existing transport error type. Message
+      // carries method+path, never the host (gateway_backing.dart discipline).
+      AppLogger.w('ServerConnectionsApi', '$method $path request timed out');
+      throw ServerConnectionsApiException(
+        '$method $path timed out after ${ApiHttpTimeouts.request.inSeconds}s',
+      );
     } on ServerConnectionsApiException {
       rethrow;
     } catch (e) {

@@ -177,6 +177,26 @@ class EmbeddedServer {
   int _restartAttempts = 0;
   static const int _maxRestartAttempts = 5;
 
+  // ── stop() 分级超时预算（sleep-resume 修复批 D2）──
+  // stdin.close 2s（管道异常态防御）/ 优雅退出 3s / SIGKILL 后等待 3s。
+  // 三者为 @visibleForTesting 可变量：测试注入缩短值做计时断言（测试负责
+  // save/restore），生产读默认值。
+  // [D2 残留裁决] SIGKILL 后仍不退出 → 放弃等待，子进程成为孤儿
+  // dbmaster-server.exe（Windows 上父进程退出不连带杀子进程）：罕见路径下
+  // 的孤儿远优于窗口永久死锁；用户可手动杀，job-object 根治属 server 侧
+  // ADR 层面，不在本批。
+  @visibleForTesting
+  static Duration stopStdinCloseTimeout = const Duration(seconds: 2);
+  @visibleForTesting
+  static Duration stopGracefulExitTimeout = const Duration(seconds: 3);
+  @visibleForTesting
+  static Duration stopPostKillExitTimeout = const Duration(seconds: 3);
+
+  /// 测试缝（SVC-EMB）：最近一次 [stop] 是否在 SIGKILL 后放弃等待子进程
+  /// 退出（leaked-child 路径）。每次 stop() 入口复位。
+  @visibleForTesting
+  bool lastStopLeakedChild = false;
+
   // U12 双通道竞态守卫：spawn 入口同步旗标 + 在飞 restart 单飞。两条重启通道
   // （崩溃退避 _autoRestartWithBackoff / 心跳触发的 restart()）与 stop() 并发
   // 交错时，旧逻辑可在同一 --data-dir 上产出孤儿双子进程（双 data_sync 调度器
@@ -192,6 +212,11 @@ class EmbeddedServer {
   /// 测试缝：当前将用/已用的 --data-dir（隔离目录断言用；生产勿读）。
   @visibleForTesting
   String? get debugDataDir => _dataDir;
+
+  /// 测试缝：注入 fake Process 以驱动 [stop] 的分级超时路径
+  /// （embedded_server_service_test 专用；生产代码勿用）。
+  @visibleForTesting
+  set debugProcess(Process? value) => _process = value;
 
   // ── Binary discovery ──
 
@@ -569,6 +594,7 @@ class EmbeddedServer {
   }
 
   Future<void> stop() async {
+    lastStopLeakedChild = false;
     _stopping = true;
     _handshakeTimeout?.cancel();
     _handshakeTimeout = null;
@@ -604,22 +630,37 @@ class EmbeddedServer {
       return;
     }
     // Close stdin → triggers the server's stdin-EOF shutdown path (the
-    // canonical parent-lifecycle signal per ADR-0003 S2).
+    // canonical parent-lifecycle signal per ADR-0003 S2). Bounded (D2): a
+    // wedged pipe (sleep/resume aftermath) must not hang app shutdown —
+    // abandon after the budget and keep going.
     try {
-      await proc.stdin.close();
+      await proc.stdin.close().timeout(stopStdinCloseTimeout);
     } catch (_) {
-      // stdin may already be closed; ignore.
+      // stdin may already be closed, or the close future never settles
+      // (wedged pipe); either way we abandon and continue.
     }
     try {
-      await proc.exitCode.timeout(const Duration(seconds: 3));
+      await proc.exitCode.timeout(stopGracefulExitTimeout);
     } catch (_) {
       // Didn't exit gracefully in time → force kill.
       try {
         proc.kill(ProcessSignal.sigkill);
       } catch (_) {}
+      // Bounded wait after SIGKILL (D2): on Windows TerminateProcess can
+      // hang against a process stuck in uninterruptible kernel I/O (high
+      // after sleep/resume). Abandoning the wait leaves a rare orphaned
+      // dbmaster-server.exe — strictly better than the window deadlocking
+      // forever on close; the user can kill it manually (see the budget
+      // constants above for the full D2 residual ruling).
       try {
-        await proc.exitCode;
-      } catch (_) {}
+        await proc.exitCode.timeout(stopPostKillExitTimeout);
+      } catch (_) {
+        lastStopLeakedChild = true;
+        AppLogger.w('EmbeddedServer',
+            'child process did not exit after SIGKILL within '
+            '${stopPostKillExitTimeout.inMilliseconds}ms; leaking child '
+            '(pid ${proc.pid})');
+      }
     }
     _stopping = false;
     _handshake = null;
