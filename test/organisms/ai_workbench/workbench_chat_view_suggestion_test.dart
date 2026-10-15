@@ -215,6 +215,9 @@ void main() {
       app.updateTabSql(app.activeTabIndex, 'SELECT existing');
       final int tabsBefore = app.tabs.length;
       final int auditBefore = _auditCount();
+      // T1（S5）：开绑定 tab = 连接级手势，tab 激活回同步把侧栏选中锚到
+      // conn-9——零副作用断言改为快照比对（卡片渲染不得再动侧栏锚定）。
+      final String? sidebarSelBefore = app.sidebar.selectedConnectionId;
       await tester.pumpAndSettle();
 
       app.addAiMessage(_suggestion('sg_zero'));
@@ -228,7 +231,8 @@ void main() {
           reason: '决策前「未执行」chip 恒显（§4.2-2）');
       expect(app.tabs.length, tabsBefore, reason: 'AC6.1：未点击不开 tab');
       expect(app.activeTab?.sql, 'SELECT existing', reason: '既有 tab 不动');
-      expect(app.sidebar.selectedConnectionId, isNull, reason: '未点击不动侧栏');
+      expect(app.sidebar.selectedConnectionId, sidebarSelBefore,
+          reason: '未点击不动侧栏锚定');
       expect(_auditCount(), auditBefore, reason: '未点击不落审计');
     });
   });
@@ -303,6 +307,9 @@ void main() {
       app.updateTabSql(app.activeTabIndex, 'SELECT existing');
       final int tabsBefore = app.tabs.length;
       final int auditBefore = _auditCount();
+      // T1（S5）：同 AC6.1——开绑定 tab 已把侧栏选中回同步锚到 conn-9，
+      // 忽略动作零副作用 = 锚定不被再动（快照比对）。
+      final String? sidebarSelBefore = app.sidebar.selectedConnectionId;
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(AgentSuggestionCard.dismissButtonKey));
@@ -311,7 +318,8 @@ void main() {
 
       expect(app.tabs.length, tabsBefore, reason: 'AC6.3：忽略不开 tab');
       expect(app.activeTab?.sql, 'SELECT existing');
-      expect(app.sidebar.selectedConnectionId, isNull, reason: '忽略不动侧栏');
+      expect(app.sidebar.selectedConnectionId, sidebarSelBefore,
+          reason: '忽略不动侧栏锚定');
       expect(_auditCount(), auditBefore, reason: '忽略不落审计');
 
       expect(find.text(l10n.agentSuggestBadgeDismissed), findsOneWidget);

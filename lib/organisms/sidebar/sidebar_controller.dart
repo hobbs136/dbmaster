@@ -403,6 +403,10 @@ class SidebarController extends ChangeNotifier {
         if (!_appProvider.isConnectionConnected(connId)) {
           _connectAndExpand(connId);
         } else {
+          // T1b（S5）：键盘激活已连接连接根 = 连接级手势，写选中锚定
+          //（与鼠标 onTap 同款；离线连接成功路径由 AppProvider 的
+          // currentServer 变更回同步兜底）。
+          _appProvider.sidebar.selectConnection(connId);
           // T019 — immutable Set replacement
           _expandedItems = {..._expandedItems, connId};
           // 展开即刷新（与鼠标路径一致）：重查库列表。
@@ -411,6 +415,9 @@ class SidebarController extends ChangeNotifier {
           saveExpandedState();
         }
       } else if (!expand && _expandedItems.contains(connId)) {
+        // T1b（S5）：收起也是激活手势，同款写选中（与鼠标 onTap 无方向
+        // 判断同构）。
+        _appProvider.sidebar.selectConnection(connId);
         // T019 — immutable Set replacement
         _expandedItems = _expandedItems.where((e) => e != connId).toSet();
         notifyListeners();
@@ -551,6 +558,9 @@ class SidebarController extends ChangeNotifier {
         }
       } else {
         // Toggle expand/collapse (no auto-expand)
+        // T1b（S5）：Enter 激活已连接连接根 = 连接级手势，写选中锚定
+        //（与鼠标 onTap 同款；toggle 两方向均写）。
+        provider.sidebar.selectConnection(connId);
         // T020 — immutable Set replacement
         if (_expandedItems.contains(connId)) {
           _expandedItems = _expandedItems.where((e) => e != connId).toSet();
@@ -796,14 +806,19 @@ class SidebarController extends ChangeNotifier {
     return KeyEventResult.ignored;
   }
 
-  // ==================== 连接点击（折叠态 / 树连接节点共用） ====================
+  // ==================== 连接点击（折叠 rail 专用；展开树根行 onTap/onDoubleTap
+  // 在 sidebar_tree.dart 内联装配——两处语义须同步维护）====================
 
   Future<void> handleConnectionTap(DbServer server) async {
     if (_appProvider.isConnectionConnected(server.id)) {
-      // J3 导航与动作分离（plan §10.1⑤）：树内点击已连接连接 = 纯展开
-      // （去全局 switchToConnection——多连接长驻树下不再「切换」，浏览
-      // 导航类不应劫持用户正在其它连接上编辑的 tab 上下文；动作类右键
-      // 链在 sidebar_tree._anchorActionsTo 自带先 switch 锚定）。
+      // J3 导航与动作分离（plan §10.1⑤）：树内点击已连接连接不全局
+      // switchToConnection——多连接长驻树下不再「切换」，浏览导航类不应
+      // 劫持用户正在其它连接上编辑的 tab 上下文；动作类右键链在
+      // sidebar_tree._anchorActionsTo 自带先 switch 锚定。
+      // T1（S5 重锚定）：点已连接连接 = 连接级手势——写侧栏选中，能力
+      // 菜单与 activeContextConnection 消费面跟随该连接（锚定序：选中
+      // 优先，见 capability_menu_assembly 头注）。
+      _appProvider.sidebar.selectConnection(server.id);
       final wasExpanded = _expandedItems.contains(server.id);
       toggleExpand(server.id);
       // 展开即刷新语义：折叠态 → 展开是一次显式的「看看现在有什么」。
@@ -819,6 +834,9 @@ class SidebarController extends ChangeNotifier {
       // Auto-expand is now handled by the ConnectionEstablished stream
       // listener. The connection node auto-expands after the event fires.
       if (success && !_disposed) {
+        // T1：连接成功即写选中锚定——保持 J3 前「连接时能切换」的既有
+        // 行为（否则连接成功但选中停在旧连接，面板不跟随刚连上的实例）。
+        _appProvider.sidebar.selectConnection(server.id);
         // T1：await 顺序化——恢复在库列表装载完成后执行（connectToServer
         // 的连接级状态收尾已写定，防默认库 stub 覆写恢复值）。
         await _appProvider.refreshDatabases(connectionId: server.id);

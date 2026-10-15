@@ -63,15 +63,18 @@ String capabilityBadgeLabel(PluginDescriptor descriptor, DatabaseType type) {
   }
 }
 
-/// 能力菜单的活动连接锚定（C14 → T25 序位反转，2026-10）：活动 tab 的
-/// 连接（须已连接）优先 → currentServer → 侧栏选中（须已连接）→ 全空
-/// null。C14 原序为 currentServer 优先（SST-C22-003：显式切换语义 > tab
-/// 上下文，倒序会出现「开着旧连接 tab 时切换永远被抢回」）；J3 多连接
-/// 长驻树删除连接切换入口后该场景消亡，序位反转为「面板跟随活动 tab」
-///（T25 定案，留痕 SST-C22-003 随切换入口消亡）。id 级护栏保持：tab/
-/// 侧栏选中仅在该连接**已连接**时提供——菜单动作（对话框/面板）假定活
-/// 连接，选中但未连接的节点不提供锚点（动作会打到错误连接上）；
-/// currentServer 本身即为已连接的执行默认连接，直取不过滤。
+/// 能力菜单的活动连接锚定（C14 → T25 → T1 再反转，2026-10）：侧栏选中
+/// （须已连接）优先 → 活动 tab 的连接（须已连接）→ currentServer → 全空
+/// null。序位史：C14 原序 currentServer 优先（SST-C22-003：显式切换语义
+/// > tab 上下文）→ T25 随 J3 删除连接切换入口反转为「tab 优先」→ 本批
+/// （S5）发现该序在多连接并存时第三级（侧栏选中）永不可达（currentServer
+/// 恒非空，第二级永命中），已连接实例间失去重锚定手势——用户无法把能力
+/// 面板切回已打开的实例。新语义 = **面板跟随最近连接级手势**：树点选连
+/// 接（SidebarController.handleConnectionTap 写选中）与 tab 激活回同步
+/// （AppProvider 写选中）都是连接级手势，谁最近发生谁锚定面板。
+/// id 级护栏保持：选中/tab 仅在该连接**已连接**时提供——菜单动作（对话
+/// 框/面板）假定活连接，选中但未连接的节点不提供锚点（动作会打到错误
+/// 连接上）；currentServer 本身即为已连接的执行默认连接，直取不过滤。
 DbServer? resolveCapabilityMenuServer({
   required DbServer? currentServer,
   required String? activeTabConnectionId,
@@ -87,10 +90,11 @@ DbServer? resolveCapabilityMenuServer({
     return null;
   }
 
+  final selectedServer = connectedById(selectedConnectionId);
+  if (selectedServer != null) return selectedServer;
   final tabServer = connectedById(activeTabConnectionId);
   if (tabServer != null) return tabServer;
-  if (currentServer != null) return currentServer;
-  return connectedById(selectedConnectionId);
+  return currentServer;
 }
 
 /// 插件侧便捷锚定（C15）：capabilityGroups/onActivate 闭包里解析活动连接。

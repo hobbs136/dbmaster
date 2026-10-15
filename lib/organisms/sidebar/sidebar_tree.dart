@@ -596,6 +596,11 @@ class SidebarTree extends StatelessWidget {
           ),
           onTap: () {
             if (isConnected) {
+              // T1b（S5）：展开树根行点选已连接连接 = 连接级手势——写侧栏
+              // 选中锚定（能力菜单/activeContextConnection 消费面跟随，
+              // 锚定序选中优先），随后展开；与 SidebarController
+              // .handleConnectionTap 的 T1 实现同构（两处语义须同步维护）。
+              provider.sidebar.selectConnection(server.id);
               onToggleExpand(server.id);
             } else {
               // Auto-expand is handled by sidebar_widget's ConnectionEstablished
@@ -605,6 +610,8 @@ class SidebarTree extends StatelessWidget {
           },
           onDoubleTap: () {
             if (isConnected) {
+              // T1b（S5）：同 onTap——双击激活同款写选中锚定。
+              provider.sidebar.selectConnection(server.id);
               onToggleExpand(server.id);
             } else {
               // Same — auto-expand handled by ConnectionEstablished listener.

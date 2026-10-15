@@ -451,15 +451,65 @@ class AppProvider extends ChangeNotifier {
     if (connection.errorMessage != _errorMessage) {
       _errorMessage = connection.errorMessage;
     }
+    _syncSidebarSelectionToCurrentServer();
     notifyListeners();
   }
+
+  /// T1b（S5）：currentServer 变更回同步的上次快照（last-seen id）。
+  /// databases 刷新类高频 notify 时做 O(1) 变化检测——id 不变零写零
+  /// notify（selectConnection 自带幂等守卫双保险）。
+  String? _currentServerAnchorId;
+
+  /// T1b（S5）：currentServer 变更回同步——任何让 X 成为 currentServer 的
+  /// 路径（connectToServer 全仓 ≥9 处入口：ai_panel / workbench_context_
+  /// picker / connection_dialog / sidebar_controller / sidebar_tree 等）
+  /// 都是连接级事件，统一经本 listener 回写侧栏选中，语义闭合为「面板
+  /// 跟随最近连接级事件」（与 tab 回同步 [_syncSidebarSelectionToActiveTab]
+  /// 同模式：Facade 监听自有子 Provider，复用 [_onConnectionChange] 注册
+  /// 对）。变为 null（断开清理/无剩余连接）→ 只更新快照不写不清——侧栏
+  /// 选中保持，锚点降级交由已连接护栏（resolveCapabilityMenuServer）与
+  /// activeContextConnection 解析链处理。
+  void _syncSidebarSelectionToCurrentServer() {
+    final currentServerId = connection.currentServer?.id;
+    if (currentServerId == _currentServerAnchorId) return;
+    _currentServerAnchorId = currentServerId;
+    if (currentServerId == null) return;
+    sidebar.selectConnection(currentServerId);
+  }
+
+  /// T1（S5）：tab 激活回同步的上次锚定快照（(activeTab.id, connectionId)
+  /// 二元组）。查询执行期 tab 高频 notify 时做 O(1) 变化检测——无变化
+  /// 零写零 notify（selectConnection 自带幂等守卫双保险）。
+  String? _tabAnchorTabId;
+  String? _tabAnchorConnectionId;
 
   void _onTabChange() {
     if (tab.errorMessage != _errorMessage) {
       _errorMessage = tab.errorMessage;
     }
+    _syncSidebarSelectionToActiveTab();
     _scheduleTabSessionSave();
     notifyListeners();
+  }
+
+  /// T1（S5 重锚定）：tab 激活回同步——活动 tab 的连接变化（切 tab /
+  /// 工具栏下拉改绑 syncTabConnection 同 tab 换连接）即连接级手势，回写
+  /// 侧栏选中；配合锚定序「选中优先」（[activeContextConnection] /
+  /// resolveCapabilityMenuServer）= 最新手势胜出。空白/未绑定 tab
+  /// （cid=null）**不清选中**——选中保持用户最后一次连接级手势。
+  /// Facade 监听自有子 Provider（构造期 addListener / dispose 期
+  /// removeListener 均复用 [_onTabChange] 注册），不违反跨 Provider 禁令。
+  void _syncSidebarSelectionToActiveTab() {
+    final activeTab = tab.activeTab;
+    final tabId = activeTab?.id;
+    final connectionId = activeTab?.connectionId;
+    if (tabId == _tabAnchorTabId && connectionId == _tabAnchorConnectionId) {
+      return;
+    }
+    _tabAnchorTabId = tabId;
+    _tabAnchorConnectionId = connectionId;
+    if (connectionId == null) return;
+    sidebar.selectConnection(connectionId);
   }
 
   void _onAiPanelChange() {
@@ -728,16 +778,23 @@ class AppProvider extends ChangeNotifier {
     return connection.currentServer?.database;
   }
 
-  /// T25（J3 多连接长驻树地基，2026-10）：UI 层「活动上下文连接」——
-  /// 活动tab 的连接 → currentServer → 侧栏选中，逐级从 savedConnections
-  /// 解析对象；某级 id 非空但已不在 savedConnections（连接被删除）时降级
-  /// 下一级（不崩不悬空），三级全空 → null。
+  /// T25（J3 多连接长驻树地基，2026-10）→ T1 再反转（S5）：UI 层「活动
+  /// 上下文连接」——侧栏选中 → 活动 tab 的连接 → currentServer，逐级从
+  /// savedConnections 解析对象；某级 id 非空但已不在 savedConnections
+  /// （连接被删除）时降级下一级（不崩不悬空），三级全空 → null。
+  ///
+  /// 序位史：T25 原序为「活动 tab → currentServer → 侧栏选中」；T1 随
+  /// 能力菜单锚定序（[resolveCapabilityMenuServer]）同步反转为「选中优
+  /// 先」——多连接并存时 tab 优先序使选中级不可达，已连接实例间失去
+  /// 重锚定手势。新语义 = **面板跟随最近连接级手势**：树点选连接
+  /// （handleConnectionTap）与 tab 激活回同步（[_syncSidebarSelectionToActiveTab]）
+  /// 都写侧栏选中，谁最近发生谁锚定，两消费面同序一致。
   ///
   /// 与执行默认语义分层（[activeConnectionId] = tab → currentServer 两级，
   /// 本任务零改动）：本 getter 面向 UI 上下文锚定（Q1 面板、命令面板、
-  /// T26 树根活动高亮——跟随用户所在 tab），**不做已连接过滤**：上下文
-  /// 锚定 ≠ 动作锚定，动作侧（resolveCapabilityMenuServer 等）自带已连接
-  /// 护栏；未连接连接亦可作为上下文（树根可高亮未连接连接）。
+  /// T26 树根活动高亮、折叠 rail），**不做已连接过滤**：上下文锚定 ≠
+  /// 动作锚定，动作侧（resolveCapabilityMenuServer 等）自带已连接护栏；
+  /// 未连接连接亦可作为上下文（树根可高亮未连接连接）。
   DbServer? get activeContextConnection {
     DbServer? resolve(String? id) {
       if (id == null) return null;
@@ -747,9 +804,9 @@ class AppProvider extends ChangeNotifier {
       return null;
     }
 
-    return resolve(tab.activeTab?.connectionId) ??
-        resolve(connection.currentServer?.id) ??
-        resolve(sidebar.selectedConnectionId);
+    return resolve(sidebar.selectedConnectionId) ??
+        resolve(tab.activeTab?.connectionId) ??
+        resolve(connection.currentServer?.id);
   }
 
   Future<void> openQueryTab(

@@ -12,6 +12,8 @@
 // 折叠态持久记忆、行级「新建」徽标（[_releaseNewItemIds] 框架侧集合，
 // 不改 SidebarCapabilityItem 契约）、面板局部键盘（Alt+Q 折叠/聚焦全局键 +
 // 聚焦后 1~9 直达 / ↑↓ 移动 / Space·Enter 激活）。装配机制零改动。
+// header 主标识 = 锚定连接名（server.name，数据非文案；Tooltip + 省略号
+// 防溢出），库型名标题沿既有 l10n 调用降为次级行——同型多实例可辨。
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -20,6 +22,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../models/database_models.dart';
 import '../../../plugins/bootstrap.dart';
 import '../../../providers/app_provider.dart';
 import '../../../services/layout_preferences_service.dart';
@@ -262,7 +265,7 @@ class _SidebarCapabilityMenuState extends State<SidebarCapabilityMenu> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildHeader(context, colors, server.type.displayName),
+            _buildHeader(context, colors, server),
             if (_expanded)
               ConstrainedBox(
                 constraints: const BoxConstraints(
@@ -298,7 +301,7 @@ class _SidebarCapabilityMenuState extends State<SidebarCapabilityMenu> {
   Widget _buildHeader(
     BuildContext context,
     ThemeColors colors,
-    String typeDisplayName,
+    DbServer server,
   ) {
     final l10n = AppLocalizations.of(context)!;
     return InkWell(
@@ -323,17 +326,40 @@ class _SidebarCapabilityMenuState extends State<SidebarCapabilityMenu> {
             const SizedBox(width: AppDesignSystem.space1_5),
             Icon(LucideIcons.layoutGrid, size: 14, color: colors.textMuted),
             const SizedBox(width: AppDesignSystem.space1_5),
+            // 主行 = 连接名（数据，非文案；Tooltip + 省略号沿行级既有
+            // 溢出模式），次行 = 库型名标题（既有 l10n 调用零改动）。
             Expanded(
-              child: Text(
-                l10n.sidebarCapabilityTitleWithType(typeDisplayName),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: AppDesignSystem.fontSizeXs,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                  color: colors.textSecondary,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Tooltip(
+                    message: server.name,
+                    preferBelow: false,
+                    child: Text(
+                      server.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: AppDesignSystem.fontSizeSm,
+                        fontWeight: FontWeight.w600,
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    l10n.sidebarCapabilityTitleWithType(
+                      server.type.displayName,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: AppDesignSystem.fontSizeXs,
+                      letterSpacing: 0.5,
+                      color: colors.textMuted,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

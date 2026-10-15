@@ -150,8 +150,9 @@ class _SidebarWidgetState extends State<SidebarWidget> {
       builder: (context, provider, _) {
         final colors = context.themeColors;
         final activeTab = provider.tab.activeTab;
-        final activeId =
-            activeTab?.connectionId ?? provider.sidebar.selectedConnectionId;
+        // T1：rail 活动判定统一走「活动上下文连接」（选中 → 活动 tab →
+        // currentServer，与树根高亮/进程面板挂载同源——侧栏消费面单口径）。
+        final activeId = provider.activeContextConnection?.id;
         if (activeId == null && provider.savedConnections.isEmpty) {
           return _buildCollapsedEmptyState();
         }

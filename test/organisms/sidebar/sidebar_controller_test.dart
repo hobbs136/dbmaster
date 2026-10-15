@@ -83,6 +83,31 @@ void _registerConnected(AppProvider provider, DbServer server) {
   );
 }
 
+/// T1 已连接分支专用：已连接 + getDatabases 零 IO（handleConnectionTap
+/// 展开即刷新 → 恢复链会调 getDatabases，Fake 抛错虽被吞仍引入竞态）。
+class _ConnectedNoIoAdapter extends SQLiteAdapter {
+  @override
+  bool get isConnected => true;
+
+  @override
+  Future<List<String>> getDatabases() async => const <String>['db'];
+}
+
+/// T1 连接成功路径 spy：connectToServer 谎报成功（不碰真库 IO），
+/// refreshDatabases 置空（选中锚定断言与库装载链解耦）。
+class _ConnectSuccessProvider extends AppProvider {
+  int connectCalls = 0;
+
+  @override
+  Future<bool> connectToServer(DbServer server) async {
+    connectCalls++;
+    return true;
+  }
+
+  @override
+  Future<void> refreshDatabases({String? connectionId}) async {}
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -414,6 +439,80 @@ void main() {
       expect(controller.expandedItems, isNot(contains('alpha-conn')));
     });
 
+    // T1b（S5）：键盘激活连接根 = 独立激活路径（不走树 onTap 闭包），
+    // 同款写选中锚定——审计结论：_handleKeyExpandCollapse(→) 与
+    // _handleTreeEnter(Enter/Space) 两条；↑↓/type-to-select 只移动选中
+    // 不激活，不写。
+    testWidgets('T1b：键盘 → 展开已连接连接根 → 写选中锚定（与鼠标同款）', (
+      tester,
+    ) async {
+      final provider = AppProvider();
+      final a = _testServer(id: 'conn-a', name: 'A');
+      final b = _testServer(id: 'conn-b', name: 'B');
+      provider.connection.addSavedServerForTest(a);
+      provider.connection.addSavedServerForTest(b);
+      _registerConnected(provider, a);
+      provider.connection.dbService.registerConnectedAdapterForTest(
+        'conn-b',
+        _ConnectedNoIoAdapter(),
+      );
+      provider.sidebar.selectConnection('conn-a'); // 初始锚在 A
+
+      final controller = SidebarController(appProvider: provider);
+      addTearDown(controller.dispose);
+      controller
+        ..rebuildVisibleNodeKeys(provider)
+        ..selectNode('conn:conn-b');
+
+      final result = controller.handleTreeKeyEvent(
+        FocusNode(),
+        _key(LogicalKeyboardKey.arrowRight, PhysicalKeyboardKey.arrowRight),
+      );
+      expect(result, KeyEventResult.handled);
+      await tester.pump(const Duration(milliseconds: 20));
+
+      expect(
+        provider.sidebar.selectedConnectionId,
+        'conn-b',
+        reason: '键盘展开已连接连接根 = 连接级手势，写选中',
+      );
+      expect(controller.expandedItems, contains('conn-b'));
+    });
+
+    testWidgets('T1b：键盘 Enter 激活已连接连接根 → 写选中锚定', (tester) async {
+      final provider = AppProvider();
+      final a = _testServer(id: 'conn-a', name: 'A');
+      final b = _testServer(id: 'conn-b', name: 'B');
+      provider.connection.addSavedServerForTest(a);
+      provider.connection.addSavedServerForTest(b);
+      _registerConnected(provider, a);
+      provider.connection.dbService.registerConnectedAdapterForTest(
+        'conn-b',
+        _ConnectedNoIoAdapter(),
+      );
+      provider.sidebar.selectConnection('conn-a');
+
+      final controller = SidebarController(appProvider: provider);
+      addTearDown(controller.dispose);
+      controller
+        ..rebuildVisibleNodeKeys(provider)
+        ..selectNode('conn:conn-b');
+
+      final result = controller.handleTreeKeyEvent(
+        FocusNode(),
+        _key(LogicalKeyboardKey.enter, PhysicalKeyboardKey.enter),
+      );
+      expect(result, KeyEventResult.handled);
+      await tester.pump(const Duration(milliseconds: 20));
+
+      expect(
+        provider.sidebar.selectedConnectionId,
+        'conn-b',
+        reason: 'Enter toggle 已连接连接根（两方向均写选中）',
+      );
+      expect(controller.expandedItems, contains('conn-b'));
+    });
+
     // T29 走查修复：连接在途时点连接节点不得重入弹密码框（重入弹窗 +
     // 不可中止长链路 = 「取消后卡死」的入口）。
     testWidgets('连接在途时 handleConnectionTap 不弹密码框不重复连接', (tester) async {
@@ -436,6 +535,67 @@ void main() {
       await controller.handleConnectionTap(server);
       expect(promptCount, 0, reason: '在途连接不应再弹密码框');
       expect(provider.isConnectionConnected(server.id), isFalse);
+    });
+
+    // T1（S5 重锚定）：handleConnectionTap 两分支写侧栏选中锚定——能力
+    // 菜单与 activeContextConnection 消费面跟随最近连接级手势。
+    testWidgets('handleConnectionTap 已连接分支：写选中锚定 + 展开态翻转', (
+      tester,
+    ) async {
+      final provider = AppProvider();
+      final a = _testServer(id: 'conn-a', name: 'A');
+      final b = _testServer(id: 'conn-b', name: 'B');
+      provider.connection.addSavedServerForTest(a);
+      provider.connection.addSavedServerForTest(b);
+      _registerConnected(provider, a);
+      provider.connection.dbService.registerConnectedAdapterForTest(
+        'conn-b',
+        _ConnectedNoIoAdapter(),
+      );
+      provider.sidebar.selectConnection('conn-a'); // 初始锚在 A
+
+      final controller = SidebarController(appProvider: provider);
+      addTearDown(controller.dispose);
+
+      await controller.handleConnectionTap(b);
+      await tester.pump(const Duration(milliseconds: 20));
+      expect(
+        provider.sidebar.selectedConnectionId,
+        'conn-b',
+        reason: 'T1：点已连接连接 = 连接级手势，选中锚定跟随（零 switch）',
+      );
+      expect(controller.expandedItems, contains('conn-b'));
+
+      // 再点一次 = 收起（展开态翻转），选中保持锚定。
+      await controller.handleConnectionTap(b);
+      expect(controller.expandedItems, isNot(contains('conn-b')));
+      expect(provider.sidebar.selectedConnectionId, 'conn-b');
+    });
+
+    testWidgets('handleConnectionTap 未连接分支：连接成功后选中锚定到新连接', (
+      tester,
+    ) async {
+      final provider = _ConnectSuccessProvider();
+      final a = _testServer(id: 'conn-a', name: 'A');
+      final b = _testServer(id: 'conn-b', name: 'B');
+      provider.connection.addSavedServerForTest(a);
+      provider.connection.addSavedServerForTest(b);
+      _registerConnected(provider, a);
+      provider.sidebar.selectConnection('conn-a'); // 旧连接：选中停在 A
+
+      final controller = SidebarController(
+        appProvider: provider,
+        promptPassword: (server) async => server,
+      );
+      addTearDown(controller.dispose);
+
+      await controller.handleConnectionTap(b);
+      expect(provider.connectCalls, 1);
+      expect(
+        provider.sidebar.selectedConnectionId,
+        'conn-b',
+        reason: 'T1：连接成功即写选中——保持「连接时能切换」既有行为',
+      );
     });
 
     testWidgets('→/← 展开/收起 cat: 分类节点', (tester) async {

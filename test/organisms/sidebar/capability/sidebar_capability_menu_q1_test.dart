@@ -7,6 +7,8 @@
 // ④ Alt+Q 触发折叠切换 + 展开后聚焦面板根；聚焦后数字直达 / ↑↓ 移动 /
 //    Enter 激活（Focus 测试；数字直达边界 = 序号超可见项数忽略）。
 // ⑤ 无连接自隐藏由既有 sidebar_capability_menu_test.dart 锚定，不重复。
+// ⑥ header 主标识 = 锚定连接名（同型双连接锚定切换用例，见「header 锚定
+//    连接名」组）；库型名标题沿既有 l10n 输出保留为次级行。
 // 用例登记建议编号：DBT-CAPMENU-101~108（回报 T13 汇总）。
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -302,6 +304,57 @@ void main() {
       expect(find.text('Schema Diff & Sync'), findsOneWidget);
       expect(find.text('AI Assistant'), findsOneWidget);
       expect(find.text('Stored Procedures'), findsNothing);
+    });
+  });
+
+  group('Q1 header 锚定连接名（同型实例可辨）', () {
+    testWidgets('同型双连接：锚定 A 显 A.name，切 B 显 B.name；库型名标题保留',
+        (tester) async {
+      final provider = AppProvider();
+      // 缺陷场景：两台同类型（mysql×2）连接——旧版 header 仅库型名时
+      // 两态外观一致，无法辨认面板锚定谁。
+      const aName = 'Prod MySQL';
+      const bName = 'Staging MySQL';
+      final a = DbServer(
+        id: 'conn-a',
+        type: DatabaseType.mysql,
+        name: aName,
+        host: 'host-a',
+        port: 3306,
+      );
+      final b = DbServer(
+        id: 'conn-b',
+        type: DatabaseType.mysql,
+        name: bName,
+        host: 'host-b',
+        port: 3307,
+      );
+      provider.connection.addSavedServerForTest(a);
+      provider.connection.addSavedServerForTest(b);
+      provider.connection.setCurrentServer(a);
+      await tester.pumpWidget(_host(provider));
+      await tester.pump();
+
+      expect(find.text(aName), findsOneWidget);
+      expect(find.text(bName), findsNothing);
+      // 库型名次级行沿既有 l10n 调用输出（零改动）。
+      expect(find.text('Capabilities: MySQL'), findsOneWidget);
+      // 连接名溢出防护沿既有 Tooltip + 省略号模式。
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Tooltip && (w.message ?? '') == aName,
+        ),
+        findsOneWidget,
+      );
+
+      // 切锚定到 B：setCurrentServer（改 id）notifyListeners → 经 AppProvider
+      // 转发重建（同型切换，旧版渲染应零变化，新版连接名行随之更替）。
+      provider.connection.setCurrentServer(b);
+      await tester.pump();
+
+      expect(find.text(bName), findsOneWidget);
+      expect(find.text(aName), findsNothing);
+      expect(find.text('Capabilities: MySQL'), findsOneWidget);
     });
   });
 

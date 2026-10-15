@@ -153,8 +153,16 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      // 双根常驻 + 活动根 = A（活动 tab 所属），非 currentServer 的 B
-      expect(find.text('Connection Beta'), findsOneWidget);
+      // 双根常驻 + 活动根 = A（活动 tab 所属），非 currentServer 的 B。
+      // 文本断言按树根行（TreeItem）收窄：Q1 能力菜单 header 现渲染锚定
+      // 连接名，本用例锚定回退 currentServer=B 时面板 header 出现第二个
+      // 同文本——本断言对象是树根行本身，菜单渲染不在本用例语义内。
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is TreeItem && w.label == 'Connection Beta',
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Connection Alpha'), findsOneWidget);
       expect(
         find.byWidgetPredicate(

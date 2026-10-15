@@ -22,7 +22,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:dbmaster/l10n/app_localizations.dart';
 import 'package:dbmaster/l10n/app_localizations_en.dart';
-import 'package:dbmaster/models/database_models.dart';
+import 'package:dbmaster/models/database_models.dart' hide QueryTab;
+import 'package:dbmaster/providers/tab_provider.dart' show QueryTab;
 import 'package:dbmaster/organisms/connection/database_dialog.dart';
 import 'package:dbmaster/organisms/sidebar/sidebar_controller.dart';
 import 'package:dbmaster/organisms/sidebar/sidebar_tree.dart';
@@ -63,6 +64,19 @@ class _SwitchSpyProvider extends AppProvider {
 class _FakeTreeAdapter extends Fake implements DatabaseAdapter {
   @override
   bool get isConnected => true;
+}
+
+/// T1b 连接护栏 spy：connectToServer 谎报成功并模拟真实链路的
+/// 「成功 → 目标连接成为 currentServer + notify」——AppProvider 的
+/// currentServer 变更回同步据此写侧栏选中。
+class _ConnectAnchorsSpyProvider extends _SwitchSpyProvider {
+  @override
+  Future<bool> connectToServer(DbServer server) async {
+    connectCalls++;
+    connection.setCurrentServerForTest(server);
+    connection.clearError(); // 无条件 notify（零状态副作用的触发面）
+    return true;
+  }
 }
 
 DbServer _server(
@@ -462,7 +476,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('handleConnectionTap 已连接分支：纯展开零 switch', (tester) async {
+    testWidgets('handleConnectionTap 已连接分支：展开 + 写选中锚定，零 switch', (tester) async {
       final provider = _SwitchSpyProvider();
       final server = _server('conn-a', 'MySQL One');
       provider.connection.addSavedServerForTest(server);
@@ -472,8 +486,211 @@ void main() {
       addTearDown(controller.dispose);
 
       await controller.handleConnectionTap(server);
-      expect(provider.switchCalls, 0, reason: '树内点击已连接连接 = 纯展开');
+      expect(provider.switchCalls, 0, reason: '树内点击已连接连接零全局切换');
       expect(controller.expandedItems, contains('conn-a'));
+      expect(
+        provider.sidebar.selectedConnectionId,
+        'conn-a',
+        reason: 'T1：点已连接连接 = 连接级手势，写选中锚定',
+      );
+    });
+  });
+
+  group('MTREE-T1 · 能力面板重锚定（面板跟随最近连接级手势）', () {
+    testWidgets('双实例 A/B：点 B 根 → 活动上下文/树根高亮跟随 B，零 switch', (
+      tester,
+    ) async {
+      final provider = _SwitchSpyProvider();
+      final a = _server('conn-a', 'MySQL One');
+      final b = _server('conn-b', 'MySQL Two');
+      provider.connection.addSavedServerForTest(a);
+      provider.connection.addSavedServerForTest(b);
+      _connectForTest(provider, a);
+      _connectForTest(provider, b);
+      // 活动tab 绑 A——tab 激活回同步已把侧栏选中锚到 A（两锚同源）。
+      provider.tab.addTab(
+        QueryTab(
+          id: 'tab-1',
+          title: 'query',
+          sql: 'SELECT 1',
+          connectionId: 'conn-a',
+          databaseName: 'db_a',
+        ),
+      );
+      expect(
+        provider.sidebar.selectedConnectionId,
+        'conn-a',
+        reason: '前置：tab 激活回同步把选中锚到 A',
+      );
+
+      final controller = SidebarController(appProvider: provider);
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        _buildTestApp(provider, child: _tree(provider)),
+      );
+      await tester.pumpAndSettle();
+
+      // 前置：活动上下文 = A（tab 回同步），A 树根高亮、B 不高亮。
+      expect(provider.activeContextConnection?.id, 'conn-a');
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is TreeItem && w.isSelected && w.label == 'MySQL One',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is TreeItem && w.isSelected && w.label == 'MySQL Two',
+        ),
+        findsNothing,
+      );
+
+      // 点 B 根（经 handleConnectionTap 入口，与折叠 rail 共用）：
+      // S5 缺陷场景——已连接实例间重锚定，面板跟随最近连接级手势。
+      await controller.handleConnectionTap(b);
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(provider.activeContextConnection?.id, 'conn-b');
+      expect(provider.sidebar.selectedConnectionId, 'conn-b');
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is TreeItem && w.isSelected && w.label == 'MySQL Two',
+        ),
+        findsOneWidget,
+        reason: 'B 树根高亮（选中优先锚定序）',
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is TreeItem && w.isSelected && w.label == 'MySQL One',
+        ),
+        findsNothing,
+        reason: 'A 树根不再高亮',
+      );
+      expect(provider.switchCalls, 0, reason: 'J3 零 switchToConnection 不回归');
+      expect(provider.connectCalls, 0, reason: '已连接点击不触发重连');
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('T1b：真实树根行 onTap 点 B → 写选中 + B 根高亮，零 switch', (
+      tester,
+    ) async {
+      final provider = _SwitchSpyProvider();
+      final a = _server('conn-a', 'MySQL One');
+      final b = _server('conn-b', 'MySQL Two');
+      provider.connection.addSavedServerForTest(a);
+      provider.connection.addSavedServerForTest(b);
+      _connectForTest(provider, a);
+      _connectForTest(provider, b);
+      provider.tab.addTab(
+        QueryTab(
+          id: 'tab-1',
+          title: 'query',
+          sql: 'SELECT 1',
+          connectionId: 'conn-a',
+          databaseName: 'db_a',
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(provider, child: _tree(provider)),
+      );
+      await tester.pumpAndSettle();
+
+      // 展开树根行真实点击（sidebar_tree 内联装配，非 handleConnectionTap
+      // 入口）——单击要过 TreeItem 双击消歧窗口（300ms Timer）。
+      await tester.tap(find.text('MySQL Two'));
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      expect(provider.sidebar.selectedConnectionId, 'conn-b');
+      expect(provider.activeContextConnection?.id, 'conn-b');
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is TreeItem && w.isSelected && w.label == 'MySQL Two',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is TreeItem && w.isSelected && w.label == 'MySQL One',
+        ),
+        findsNothing,
+      );
+      expect(provider.switchCalls, 0);
+      expect(provider.connectCalls, 0, reason: '已连接点击不触发重连');
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('T1b：真实树根行 onDoubleTap 点 B → 同款写选中（零 switch）', (
+      tester,
+    ) async {
+      final provider = _SwitchSpyProvider();
+      final a = _server('conn-a', 'MySQL One');
+      final b = _server('conn-b', 'MySQL Two');
+      provider.connection.addSavedServerForTest(a);
+      provider.connection.addSavedServerForTest(b);
+      _connectForTest(provider, a);
+      _connectForTest(provider, b);
+      provider.tab.addTab(
+        QueryTab(
+          id: 'tab-1',
+          title: 'query',
+          sql: 'SELECT 1',
+          connectionId: 'conn-a',
+          databaseName: 'db_a',
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(provider, child: _tree(provider)),
+      );
+      await tester.pumpAndSettle();
+
+      // 双击（两次 tap 间隔 < 双击窗口）触发 onDoubleTap 闭包。
+      await tester.tap(find.text('MySQL Two'));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.text('MySQL Two'));
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      expect(provider.sidebar.selectedConnectionId, 'conn-b');
+      expect(provider.activeContextConnection?.id, 'conn-b');
+      expect(provider.switchCalls, 0);
+      expect(provider.connectCalls, 0);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('T1b：展开树点未连接 B 根 → 连接成功（currentServer=B）后选中 B', (
+      tester,
+    ) async {
+      final provider = _ConnectAnchorsSpyProvider();
+      final a = _server('conn-a', 'MySQL One');
+      final b = _server('conn-b', 'MySQL Two');
+      provider.connection.addSavedServerForTest(a);
+      provider.connection.addSavedServerForTest(b);
+      _connectForTest(provider, a); // B 保持未连接
+      provider.connection.setCurrentServerForTest(a);
+      provider.connection.clearError(); // currentServer 变更回同步 → 选中 A
+      expect(provider.sidebar.selectedConnectionId, 'conn-a');
+
+      await tester.pumpWidget(
+        _buildTestApp(provider, child: _tree(provider)),
+      );
+      await tester.pumpAndSettle();
+
+      // 点未连接 B 根 → sidebar_tree._connectToServer（密码已有不弹窗）
+      // → spy connectToServer 成功 + B 成为 currentServer → 回同步写选中。
+      await tester.tap(find.text('MySQL Two'));
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      expect(provider.connectCalls, 1);
+      expect(provider.sidebar.selectedConnectionId, 'conn-b');
+      expect(provider.activeContextConnection?.id, 'conn-b');
+      expect(provider.switchCalls, 0, reason: '连接流程不走全局切换');
+      expect(tester.takeException(), isNull);
     });
   });
 

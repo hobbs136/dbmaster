@@ -302,7 +302,7 @@ void main() {
     );
   });
 
-  test('活动连接锚定（T25 序位反转）：tab（须已连接）→ currentServer → 选中', () {
+  test('活动连接锚定（T1 再反转）：选中（须已连接）→ tab（须已连接）→ currentServer', () {
     final a = DbServer(
       id: 'a',
       type: DatabaseType.mysql,
@@ -319,8 +319,9 @@ void main() {
     );
     final saved = [a, b];
 
-    // 新序①：活动 tab 已连接 → tab 胜出（不看 currentServer——J3 删除
-    // 切换入口后 SST-C22-003 场景消亡，面板跟随活动 tab）。
+    // 新序①：选中（已连接）+ tab（已连接）并存 → 选中胜（S5：树点选
+    // 已连接连接 = 最近连接级手势，面板跟随该连接——T25 tab 优先序下
+    // 选中级在多连接并存时永不可达，已连接实例间失去重锚定手势）。
     expect(
       resolveCapabilityMenuServer(
         currentServer: b,
@@ -329,10 +330,47 @@ void main() {
         isConnected: (_) => true,
         savedConnections: saved,
       ),
+      same(b),
+    );
+
+    // 新序②：选中 null → 活动 tab（已连接）胜（tab 激活回同步写选中前
+    // 的窗口期 / 冷启动 tab 先于选中）
+    expect(
+      resolveCapabilityMenuServer(
+        currentServer: b,
+        activeTabConnectionId: 'a',
+        selectedConnectionId: null,
+        isConnected: (_) => true,
+        savedConnections: saved,
+      ),
+      same(a),
+    );
+    // 断开降级（验收⑥链第一跳）：选中指向已断开连接 → 不提供锚点
+    //（动作假定活连接）→ 降级 tab（已连接）
+    expect(
+      resolveCapabilityMenuServer(
+        currentServer: null,
+        activeTabConnectionId: 'a',
+        selectedConnectionId: 'b',
+        isConnected: (id) => id != 'b',
+        savedConnections: saved,
+      ),
       same(a),
     );
 
-    // 新序②：tab 未连接 → 回退 currentServer（多连接下 tab 属未连接连接）
+    // 新序③：前两级空（未连接/null）→ currentServer 胜
+    expect(
+      resolveCapabilityMenuServer(
+        currentServer: b,
+        activeTabConnectionId: null,
+        selectedConnectionId: null,
+        isConnected: (_) => true,
+        savedConnections: saved,
+      ),
+      same(b),
+    );
+    // 断开降级（验收⑥链第二跳）：tab 属未连接连接（多连接下常见）→
+    // 降级 currentServer
     expect(
       resolveCapabilityMenuServer(
         currentServer: b,
@@ -343,60 +381,36 @@ void main() {
       ),
       same(b),
     );
-
-    // 新序③：tab 连接已删除（isConnected 但不在 saved）→ 回退 currentServer
-    expect(
-      resolveCapabilityMenuServer(
-        currentServer: b,
-        activeTabConnectionId: 'gone',
-        selectedConnectionId: null,
-        isConnected: (_) => true,
-        savedConnections: saved,
-      ),
-      same(b),
-    );
-
-    // currentServer 空 → 回退链保持：活动 tab 优先于侧栏选中
+    // 选中连接已删除（isConnected 真但不在 saved）→ 降级 tab（已连接）
     expect(
       resolveCapabilityMenuServer(
         currentServer: null,
         activeTabConnectionId: 'a',
-        selectedConnectionId: 'b',
+        selectedConnectionId: 'gone',
         isConnected: (_) => true,
         savedConnections: saved,
       ),
       same(a),
     );
 
-    // 选中节点已连接 → 提供锚点（连接已建但 currentServer 未写入的窗口）
-    expect(
-      resolveCapabilityMenuServer(
-        currentServer: null,
-        activeTabConnectionId: null,
-        selectedConnectionId: 'b',
-        isConnected: (id) => id == 'b',
-        savedConnections: saved,
-      ),
-      same(b),
-    );
-
-    // 选中节点未连接 / 未登记 → 不提供（动作假定活连接）
-    expect(
-      resolveCapabilityMenuServer(
-        currentServer: null,
-        activeTabConnectionId: null,
-        selectedConnectionId: 'b',
-        isConnected: (_) => false,
-        savedConnections: saved,
-      ),
-      isNull,
-    );
+    // 新序④：全空 → null（自隐藏）
     expect(
       resolveCapabilityMenuServer(
         currentServer: null,
         activeTabConnectionId: null,
         selectedConnectionId: null,
         isConnected: (_) => true,
+        savedConnections: saved,
+      ),
+      isNull,
+    );
+    // 全部候选未连接 → null（动作锚定护栏）
+    expect(
+      resolveCapabilityMenuServer(
+        currentServer: null,
+        activeTabConnectionId: 'a',
+        selectedConnectionId: 'b',
+        isConnected: (_) => false,
         savedConnections: saved,
       ),
       isNull,

@@ -266,7 +266,9 @@ void main() {
           databaseName: 'db_from_tab',
           bindContext: false,
         );
-        // 无归属记录的孤儿库选择（selectedConnectionId 保持 null）。
+        // T1（S5）：开绑定 tab 会经激活回同步写侧栏选中锚定——先显式清空
+        // 构造「无归属记录的孤儿库选择」窄面（selectedConnectionId == null）。
+        provider.sidebar.selectConnection(null);
         provider.sidebar.selectDatabase('db_orphan');
 
         final value = resolveWorkbenchContext(provider);
