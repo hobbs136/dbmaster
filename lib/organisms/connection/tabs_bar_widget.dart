@@ -726,6 +726,7 @@ class _TabItem extends StatelessWidget {
               ),
             ),
             child: Stack(
+              alignment: Alignment.center,
               children: [
                 Row(
                   children: [
