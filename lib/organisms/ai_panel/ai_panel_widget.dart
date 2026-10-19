@@ -1417,6 +1417,25 @@ class AiPanelWidgetState extends State<AiPanelWidget>
                   tooltip: l10n.aiPanelFullscreen,
                 ),
               ),
+              // dock 形态头部关闭钮：经典面板鼠标可达的收起入口。
+              // overlay 形态自身工具栏已有关闭钮，不重复渲染。
+              if (!widget.isOverlay) ...[
+                const SizedBox(width: AppDesignSystem.space1),
+                SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: IconButton(
+                    icon: const Icon(LucideIcons.x, size: 14),
+                    color: context.themeColors.textMuted,
+                    onPressed: () {
+                      AppLogger.d('AiPanel', 'AI Panel: close button pressed');
+                      provider.aiPanel.closeAiPanel();
+                    },
+                    padding: EdgeInsets.zero,
+                    tooltip: l10n.commonClose,
+                  ),
+                ),
+              ],
             ],
           ),
         );
