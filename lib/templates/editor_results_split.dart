@@ -53,6 +53,16 @@ class _EditorResultsSplitState extends State<EditorResultsSplit> {
   bool _filterPopupOpen = false;
   final FocusNode _filterEntryFocus = FocusNode();
 
+  /// UI35-141~144：FilterBarStrip 上抛的草稿态（draft ≠ applied），
+  /// 驱动 Filter 入口的未应用圆点 / tooltip / accent 边框。
+  bool _filterHasDraft = false;
+
+  void _onFilterDraftChanged(bool hasDraft) {
+    if (hasDraft != _filterHasDraft) {
+      setState(() => _filterHasDraft = hasDraft);
+    }
+  }
+
   /// 过滤弹层收起并归还焦点到 Filter 入口（弹层 Esc / 关闭钮 / Apply 收起共用）。
   void _closeFilterPopup() {
     // 已关闭时 no-op：弹层常驻挂载（Offstage 保活）后，关闭态下的时间戳
@@ -167,6 +177,7 @@ class _EditorResultsSplitState extends State<EditorResultsSplit> {
                     filterEntry: _buildFilterEntry(
                       activeTabId,
                       filterConditionCount,
+                      _filterHasDraft,
                     ),
                   ),
                 ),
@@ -193,6 +204,7 @@ class _EditorResultsSplitState extends State<EditorResultsSplit> {
                       ),
                     ),
                     onClose: _closeFilterPopup,
+                    onDraftChanged: _onFilterDraftChanged,
                   ),
                 ),
               ),
@@ -203,61 +215,82 @@ class _EditorResultsSplitState extends State<EditorResultsSplit> {
   }
 
   /// UIRV-A41：Filter 入口按钮（工具栏内；显示激活条件数徽标，0 时无徽标）。
-  Widget _buildFilterEntry(String? tabId, int conditionCount) {
+  /// UI35-141~144：草稿态追加 6px warning 圆点（不承载语义/数量）+ 草稿
+  /// tooltip + accent 边框（不只靠颜色），数字徽标仍只数生效条件。
+  Widget _buildFilterEntry(String? tabId, int conditionCount, bool hasDraft) {
     final l10n = AppLocalizations.of(context)!;
     final colors = context.themeColors;
-    return Focus(
-      focusNode: _filterEntryFocus,
-      child: TextButton.icon(
-        key: const ValueKey('uirv-a41-filter-entry'),
-        onPressed: tabId == null
-            ? null
-            : () => setState(() => _filterPopupOpen = !_filterPopupOpen),
-        icon: Icon(
-          LucideIcons.filter,
-          size: 16,
-          color: colors.textSecondary,
-        ),
-        label: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              l10n.resultsFilterEntry,
-              style: TextStyle(fontSize: 12, color: colors.textSecondary),
-            ),
-            if (conditionCount > 0) ...[
-              const SizedBox(width: AppDesignSystem.space1),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppDesignSystem.space1_5,
-                  vertical: 1,
-                ),
-                decoration: BoxDecoration(
-                  color: colors.accentBlue.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
-                ),
-                child: Text(
-                  '$conditionCount',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: colors.accentBlue,
-                  ),
+    final button = TextButton.icon(
+      key: const ValueKey('uirv-a41-filter-entry'),
+      onPressed: tabId == null
+          ? null
+          : () => setState(() => _filterPopupOpen = !_filterPopupOpen),
+      icon: Icon(
+        LucideIcons.filter,
+        size: 16,
+        color: colors.textSecondary,
+      ),
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            l10n.resultsFilterEntry,
+            style: TextStyle(fontSize: 12, color: colors.textSecondary),
+          ),
+          if (conditionCount > 0) ...[
+            const SizedBox(width: AppDesignSystem.space1),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDesignSystem.space1_5,
+                vertical: 1,
+              ),
+              decoration: BoxDecoration(
+                color: colors.accentBlue.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
+              ),
+              child: Text(
+                '$conditionCount',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: colors.accentBlue,
                 ),
               ),
-            ],
+            ),
           ],
-        ),
-        style: TextButton.styleFrom(
-          foregroundColor: colors.textSecondary,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppDesignSystem.space2,
-            vertical: AppDesignSystem.space1,
-          ),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
+          if (hasDraft) ...[
+            const SizedBox(width: AppDesignSystem.space1),
+            // 未应用修改圆点：纯视觉指示，不单独声明 Semantics
+            //（语义由按钮 tooltip 承载）。
+            Container(
+              key: const ValueKey('uirv-a41-filter-draft-dot'),
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: colors.warning,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ],
+        ],
       ),
+      style: TextButton.styleFrom(
+        foregroundColor: colors.textSecondary,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDesignSystem.space2,
+          vertical: AppDesignSystem.space1,
+        ),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        // UI35-附加：草稿态 accent 边框与圆点同现（不只靠颜色）。
+        side: hasDraft ? BorderSide(color: colors.accentBlue) : null,
+      ),
+    );
+    return Focus(
+      focusNode: _filterEntryFocus,
+      child: hasDraft
+          ? Tooltip(message: l10n.filterDraftDotTooltip, child: button)
+          : button,
     );
   }
 
@@ -606,12 +639,16 @@ class _FilterPopupPanel extends StatefulWidget {
   final double maxWidth;
   final VoidCallback onClose;
 
+  /// UI35-141~144：FilterBarStrip 草稿态上抛通道（面板只透传，不复制逻辑）。
+  final ValueChanged<bool>? onDraftChanged;
+
   const _FilterPopupPanel({
     super.key,
     required this.tabId,
     required this.open,
     required this.maxWidth,
     required this.onClose,
+    this.onDraftChanged,
   });
 
   @override
@@ -726,7 +763,11 @@ class _FilterPopupPanelState extends State<_FilterPopupPanel> {
               ),
               const SizedBox(height: AppDesignSystem.space1),
               // 既有过滤构造器原样挂载（per-tab 实例，内部逻辑零改动）。
-              FilterBarStrip(key: ValueKey('filterbar:${widget.tabId}'), tabId: widget.tabId),
+              FilterBarStrip(
+                key: ValueKey('filterbar:${widget.tabId}'),
+                tabId: widget.tabId,
+                onDraftChanged: widget.onDraftChanged,
+              ),
               if (_showApplyFailed) ...[
                 const SizedBox(height: AppDesignSystem.space1),
                 Row(

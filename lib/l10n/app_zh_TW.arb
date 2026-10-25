@@ -4009,5 +4009,13 @@
   "connectionPasswordEmptyHint": "留空將以無密碼方式連線；非空時才可使用「儲存密碼」。",
   "@connectionPasswordEmptyHint": {"description": "密碼彈窗提示：留空即以無密碼方式連線；「儲存密碼」僅在密碼非空時可用"},
   "uirvDockContextChangeConnection": "切換 AI 連線：{connectionName}",
-  "@uirvDockContextChangeConnection": {"description": "UIRV-A1: connection trigger tooltip/a11y label with the current connection name", "placeholders": {"connectionName": {"type": "String"}}}
+  "@uirvDockContextChangeConnection": {"description": "UIRV-A1: connection trigger tooltip/a11y label with the current connection name", "placeholders": {"connectionName": {"type": "String"}}},
+  "connectionTooltipTypeVersion": "{type} · 伺服器 {version}（已偵測）",
+  "@connectionTooltipTypeVersion": {},
+  "connectionTooltipTypeOnly": "{type} · 未偵測到版本",
+  "@connectionTooltipTypeOnly": {},
+  "aiDockToggleTooltip": "開合 AI 助手（Ctrl+Shift+A）",
+  "@aiDockToggleTooltip": {},
+  "filterDraftDotTooltip": "有未套用的篩選變更",
+  "@filterDraftDotTooltip": {}
 }

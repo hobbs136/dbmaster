@@ -361,7 +361,12 @@ void main() {
       await tester.pumpAndSettle();
 
       final item = _treeItemOf(tester, 'mysql-8.0');
-      expect(item.environmentBarColor, ConnectionEnvironment.testing.badgeColor);
+      // v0.3.5 T1：色值同源不变，透明度编码连接态——断开 = 40%。
+      expect(item.environmentBarColor, isNotNull);
+      expect(
+        item.environmentBarColor!.a,
+        closeTo(ConnectionEnvironment.testing.badgeColor.a * 0.4, 0.001),
+      );
       expect(tester.takeException(), isNull);
     });
 

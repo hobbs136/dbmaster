@@ -374,7 +374,170 @@ void main() {
       expect(find.text('row-two'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
+
+    group('UI35-141~144 · Filter 草稿状态感知（Epic 4.1）', () {
+      const draftDotKey = ValueKey('uirv-a41-filter-draft-dot');
+
+      /// 有草稿的公共前置：fake 列 + 展开弹层 + 输入草稿值。
+      Future<void> seedDraft(WidgetTester tester, AppProvider fakeApp) async {
+        seedDataModeTab(fakeApp);
+        await tester.pumpWidget(buildHost(providerOverride: fakeApp));
+        await tester.pumpAndSettle();
+        await openPopup(tester);
+        await tester.enterText(find.byType(TextField), 'draft-42');
+        await tester.pumpAndSettle();
+      }
+
+      testWidgets('UI35-141: 有草稿 → 6px warning 圆点存在；无草稿 findsNothing', (
+        tester,
+      ) async {
+        useLargeSurface(tester);
+        final fakeApp = _FakeColumnsProvider();
+        seedDataModeTab(fakeApp);
+        await tester.pumpWidget(buildHost(providerOverride: fakeApp));
+        await tester.pumpAndSettle();
+
+        // 无草稿：初始空行（空值条件在投影中等价于无条件）不显示圆点。
+        expect(find.byKey(draftDotKey), findsNothing);
+
+        await openPopup(tester);
+        await tester.enterText(find.byType(TextField), 'draft-42');
+        await tester.pumpAndSettle();
+        final dot = tester.widget<Container>(find.byKey(draftDotKey));
+        expect(dot.constraints?.maxWidth, 6, reason: '圆点 6px');
+        expect(dot.constraints?.maxHeight, 6, reason: '圆点 6px');
+        final decoration = dot.decoration! as BoxDecoration;
+        // warning 语义色按主题分发：暗色 0xFFFF8A30 / 亮色 warningLight 0xFFD97706。
+        expect(
+          decoration.color,
+          anyOf(const Color(0xFFFF8A30), const Color(0xFFD97706)),
+          reason: '圆点用 warning 语义色',
+        );
+      });
+
+      testWidgets('UI35-142: 0 生效 + 有草稿 → 仅圆点、无数字徽标', (tester) async {
+        useLargeSurface(tester);
+        final fakeApp = _FakeColumnsProvider();
+        await seedDraft(tester, fakeApp);
+
+        expect(find.byKey(draftDotKey), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byKey(filterEntryKey),
+            matching: find.text('1'),
+          ),
+          findsNothing,
+          reason: '0 生效条件时不显示数字徽标',
+        );
+      });
+
+      testWidgets('UI35-143: Apply 后圆点消失、数字更新', (tester) async {
+        useLargeSurface(tester);
+        final fakeApp = _NoExecProvider();
+        await seedDraft(tester, fakeApp);
+        expect(find.byKey(draftDotKey), findsOneWidget);
+
+        // 走真实 Apply 路径（执行替身 no-op，不触真库）。
+        await tester.tap(find.byIcon(LucideIcons.play));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(draftDotKey), findsNothing, reason: 'Apply 清点');
+        expect(
+          find.descendant(
+            of: find.byKey(filterEntryKey),
+            matching: find.text('1'),
+          ),
+          findsOneWidget,
+          reason: '数字徽标更新为生效条件数',
+        );
+      });
+
+      testWidgets('UI35-144: 关闭弹层再开——草稿与圆点保持（保活回归锁）', (tester) async {
+        useLargeSurface(tester);
+        final fakeApp = _FakeColumnsProvider();
+        await seedDraft(tester, fakeApp);
+
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+        await tester.pumpAndSettle();
+        expect(find.byKey(draftDotKey), findsOneWidget,
+            reason: '关闭弹层不清草稿，圆点保持');
+
+        await openPopup(tester);
+        expect(find.byKey(draftDotKey), findsOneWidget);
+        expect(find.text('draft-42'), findsOneWidget,
+            reason: '重开后草稿值保留');
+      });
+
+      testWidgets('UI35-附加: tooltip 追加 filterDraftDotTooltip + accent 边框同现', (
+        tester,
+      ) async {
+        useLargeSurface(tester);
+        final fakeApp = _FakeColumnsProvider();
+        seedDataModeTab(fakeApp);
+        await tester.pumpWidget(buildHost(providerOverride: fakeApp));
+        await tester.pumpAndSettle();
+
+        // 无草稿：无草稿 tooltip。
+        expect(
+          find.byWidgetPredicate(
+            (w) => w is Tooltip && w.message == 'Unapplied filter changes',
+          ),
+          findsNothing,
+        );
+
+        await seedDraft(tester, fakeApp);
+        expect(
+          find.byWidgetPredicate(
+            (w) => w is Tooltip && w.message == 'Unapplied filter changes',
+          ),
+          findsOneWidget,
+        );
+        // 不只靠颜色：草稿态按钮带 accent 边框。
+        final button = tester.widget<TextButton>(
+          find.widgetWithText(TextButton, 'Filter'),
+        );
+        final side = button.style?.side?.resolve({});
+        expect(side, isNotNull, reason: '草稿态出现 accent 边框');
+      });
+
+      testWidgets('探针: 加一条再删同一条 → 回到无草稿（顺序不敏感等价）', (tester) async {
+        useLargeSurface(tester);
+        final fakeApp = _FakeColumnsProvider();
+        seedDataModeTab(fakeApp);
+        await tester.pumpWidget(buildHost(providerOverride: fakeApp));
+        await tester.pumpAndSettle();
+        await openPopup(tester);
+
+        // 加一条（空值，不改变有效投影）再删掉 → 回无草稿。
+        await tester.tap(find.byIcon(LucideIcons.circlePlus));
+        await tester.pumpAndSettle();
+        expect(find.byKey(draftDotKey), findsNothing,
+            reason: '新增空值行不改变有效投影（空值条件在拼 SQL 时被跳过）');
+        await tester.tap(find.byIcon(LucideIcons.circleMinus).last);
+        await tester.pumpAndSettle();
+        expect(find.byKey(draftDotKey), findsNothing, reason: '加删同条回无草稿');
+
+        // 输入值（真实草稿）→ 圆点出现；清空该值 → 投影回无草稿 → 圆点消失。
+        await tester.enterText(find.byType(TextField), 'x');
+        await tester.pumpAndSettle();
+        expect(find.byKey(draftDotKey), findsOneWidget);
+        await tester.enterText(find.byType(TextField), '');
+        await tester.pumpAndSettle();
+        expect(find.byKey(draftDotKey), findsNothing,
+            reason: '清空草稿值后回到无草稿');
+      });
+    });
   });
+}
+
+/// 执行替身：Apply 路径可走通但不触真库（仅服务 UI35-143 圆点清点断言）。
+class _NoExecProvider extends _FakeColumnsProvider {
+  @override
+  Future<List<ExecutionResult>> executeCurrentQueryAndRecord({
+    String? overrideSql,
+    bool skipDdlAnalysis = false,
+    void Function(int current, int total)? onStatementProgress,
+  }) async => const [];
 }
 
 /// 列加载替身：绕开真实库连接（本批纯呈现层无真库依赖），令 FilterBarStrip

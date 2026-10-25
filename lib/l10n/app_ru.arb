@@ -3998,5 +3998,13 @@
   "connectionPasswordEmptyHint": "Оставьте пустым для подключения без пароля; «Сохранить пароль» доступно только при введённом пароле.",
   "@connectionPasswordEmptyHint": {"description": "Подсказка в окне пароля: пустое поле — подключение без пароля; Сохранить пароль только при непустом пароле"},
   "uirvDockContextChangeConnection": "Сменить ИИ-подключение: {connectionName}",
-  "@uirvDockContextChangeConnection": {"description": "UIRV-A1: connection trigger tooltip/a11y label with the current connection name", "placeholders": {"connectionName": {"type": "String"}}}
+  "@uirvDockContextChangeConnection": {"description": "UIRV-A1: connection trigger tooltip/a11y label with the current connection name", "placeholders": {"connectionName": {"type": "String"}}},
+  "connectionTooltipTypeVersion": "{type} · сервер {version} (определено)",
+  "@connectionTooltipTypeVersion": {},
+  "connectionTooltipTypeOnly": "{type} · версия не определена",
+  "@connectionTooltipTypeOnly": {},
+  "aiDockToggleTooltip": "Показать или скрыть ИИ-помощника (Ctrl+Shift+A)",
+  "@aiDockToggleTooltip": {},
+  "filterDraftDotTooltip": "Есть неприменённые изменения фильтра",
+  "@filterDraftDotTooltip": {}
 }

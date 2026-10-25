@@ -25,7 +25,11 @@ import '../../utils/filter_query_builder.dart';
 class FilterBarStrip extends StatefulWidget {
   final String tabId;
 
-  const FilterBarStrip({super.key, required this.tabId});
+  /// UI35-141~144：草稿状态回调——`draft ≠ applied`（有效条件投影 + combinator）
+  /// 变化时上抛，供 Filter 入口按钮渲染未应用圆点。null 表示不关心。
+  final ValueChanged<bool>? onDraftChanged;
+
+  const FilterBarStrip({super.key, required this.tabId, this.onDraftChanged});
 
   @override
   State<FilterBarStrip> createState() => _FilterBarStripState();
@@ -38,6 +42,13 @@ class _FilterBarStripState extends State<FilterBarStrip> {
   bool _loading = true;
   bool _columnsLoaded = false;
 
+  // UI35-141~144：草稿状态感知。applied 快照 = 首次装配时 provider 中的生效
+  // 条件；Apply 成功后刷新。圆点 = 当前有效投影 ≠ applied 快照（含 combinator）。
+  List<FilterCondition> _appliedConditions = const [];
+  FilterCombinator _appliedCombinator = FilterCombinator.and;
+  bool _appliedLoaded = false;
+  bool _emittedDraft = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -45,6 +56,69 @@ class _FilterBarStripState extends State<FilterBarStrip> {
       _columnsLoaded = true; // 防止 didChangeDependencies 重复触发
       _loadColumns();
     }
+    if (!_appliedLoaded) {
+      _appliedLoaded = true;
+      final p = context.read<AppProvider>();
+      _appliedConditions =
+          List<FilterCondition>.of(p.filterConditionsFor(widget.tabId));
+      _appliedCombinator = p.filterCombinatorFor(widget.tabId);
+      _notifyDraft();
+    }
+  }
+
+  /// 当前条件行 → 条件模型（与 [_apply] 写入 provider 的投影一致）。
+  List<FilterCondition> _currentConditions() {
+    return _rows.map((r) {
+      final col = _columnFor(r.field);
+      final isBoolean = col != null && _kindFor(col.type) == _ValueKind.boolean;
+      return FilterCondition(
+        field: r.field,
+        op: r.op,
+        value: r.valueController.text,
+        kind: isBoolean ? FilterValueKind.boolean : FilterValueKind.string,
+      );
+    }).toList();
+  }
+
+  /// 有效草稿投影：空值条件（需值操作符）在 buildFilteredSelect 拼 SQL 时被
+  /// 跳过、无生效效果，投影时同步剔除——「加一条空行」不算草稿。
+  List<FilterCondition> _effectiveProjection() => _currentConditions().where(
+        (c) =>
+            c.op == FilterOperator.isNull ||
+            c.op == FilterOperator.isNotNull ||
+            c.value.isNotEmpty,
+      ).toList();
+
+  /// 草稿判定：按序比较（加一条再删同一条 → 列表还原 → 回无草稿），
+  /// combinator 变化同样计为未应用修改。
+  bool _hasDraft() {
+    final proj = _effectiveProjection();
+    if (_combinator != _appliedCombinator) return true;
+    if (proj.length != _appliedConditions.length) return true;
+    for (var i = 0; i < proj.length; i++) {
+      final a = proj[i];
+      final b = _appliedConditions[i];
+      if (a.field != b.field ||
+          a.op != b.op ||
+          a.value != b.value ||
+          a.kind != b.kind) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// 上抛草稿态（post-frame：值控制器监听/didChangeDependencies 触发点
+  /// 可能处于 build 期，宿主 setState 须避开）。
+  void _notifyDraft() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final draft = _hasDraft();
+      if (draft != _emittedDraft) {
+        _emittedDraft = draft;
+        widget.onDraftChanged?.call(draft);
+      }
+    });
   }
 
   Future<void> _loadColumns() async {
@@ -56,11 +130,15 @@ class _FilterBarStripState extends State<FilterBarStrip> {
         _columns = cols;
         _loading = false;
         if (_rows.isEmpty && _columns.isNotEmpty) {
-          _rows.add(
-            _FilterRow(field: _columns.first.name, op: FilterOperator.eq),
+          final row = _FilterRow(
+            field: _columns.first.name,
+            op: FilterOperator.eq,
           );
+          row.valueController.addListener(_notifyDraft);
+          _rows.add(row);
         }
       });
+      _notifyDraft();
     } catch (e) {
       if (!mounted) return;
       AppLogger.e('FilterBarStrip', '加载字段失败', e);
@@ -77,20 +155,23 @@ class _FilterBarStripState extends State<FilterBarStrip> {
 
   void _addRow() {
     setState(() {
-      _rows.add(
-        _FilterRow(
-          field: _columns.isNotEmpty ? _columns.first.name : '',
-          op: FilterOperator.eq,
-        ),
+      final row = _FilterRow(
+        field: _columns.isNotEmpty ? _columns.first.name : '',
+        op: FilterOperator.eq,
       );
+      row.valueController.addListener(_notifyDraft);
+      _rows.add(row);
     });
+    _notifyDraft();
   }
 
   void _removeRow(int index) {
     setState(() {
+      _rows[index].valueController.removeListener(_notifyDraft);
       _rows[index].valueController.dispose();
       _rows.removeAt(index);
     });
+    _notifyDraft();
   }
 
   /// date/time 列弹出日期选择器，写入 'YYYY-MM-DD'（跨库 date 列均接受引号日期串）。
@@ -116,19 +197,14 @@ class _FilterBarStripState extends State<FilterBarStrip> {
     final dbType = matching.first.databaseType;
     if (dbType == null) return;
 
-    final conditions = _rows.map((r) {
-      final col = _columnFor(r.field);
-      final isBoolean = col != null && _kindFor(col.type) == _ValueKind.boolean;
-      return FilterCondition(
-        field: r.field,
-        op: r.op,
-        value: r.valueController.text,
-        kind: isBoolean ? FilterValueKind.boolean : FilterValueKind.string,
-      );
-    }).toList();
+    final conditions = _currentConditions();
     // 同步到 provider（per-tab 模型，供未来持久化/复用）
     provider.setFilterConditions(widget.tabId, conditions);
     provider.setFilterCombinator(widget.tabId, _combinator);
+    // UI35-143：Apply 即清点——applied 快照刷新为当前草稿投影。
+    _appliedConditions = List<FilterCondition>.of(conditions);
+    _appliedCombinator = _combinator;
+    _notifyDraft();
 
     final sql = buildFilteredSelect(
       qualifiedTable: target,
@@ -256,11 +332,14 @@ class _FilterBarStripState extends State<FilterBarStrip> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: InkWell(
-        onTap: () => setState(
-          () => _combinator = _combinator == FilterCombinator.and
-              ? FilterCombinator.or
-              : FilterCombinator.and,
-        ),
+        onTap: () {
+          setState(
+            () => _combinator = _combinator == FilterCombinator.and
+                ? FilterCombinator.or
+                : FilterCombinator.and,
+          );
+          _notifyDraft(); // UI35: combinator 切换也是未应用修改
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
@@ -277,7 +356,6 @@ class _FilterBarStripState extends State<FilterBarStrip> {
       ),
     );
   }
-
   Widget _buildConditionRow(int index) {
     final row = _rows[index];
     final col = _columnFor(row.field);
@@ -310,6 +388,7 @@ class _FilterBarStripState extends State<FilterBarStrip> {
             onChanged: (v) => setState(() {
               row.field = v ?? row.field;
               row.valueController.clear(); // 切字段时清空值（列类型可能变）
+              _notifyDraft(); // UI35: 字段切换计入草稿态
             }),
             underline: const SizedBox(),
             isDense: true,
@@ -332,7 +411,10 @@ class _FilterBarStripState extends State<FilterBarStrip> {
                   ),
                 )
                 .toList(),
-            onChanged: (v) => setState(() => row.op = v ?? row.op),
+            onChanged: (v) {
+              setState(() => row.op = v ?? row.op);
+              _notifyDraft(); // UI35: 操作符切换计入草稿态
+            },
             underline: const SizedBox(),
             isDense: true,
           ),

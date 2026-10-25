@@ -219,20 +219,91 @@ class _BootRootState extends State<_BootRoot> {
 
   @override
   Widget build(BuildContext context) {
+    // UIRV-B4 T4b：换壳带 150ms opacity 渐隐（BootShell ↔ 真实工作区交叉
+    // 渐隐），`MediaQuery.disableAnimations` 时 0ms 直切（reduced-motion）。
+    // 状态机语义不变：booting/error 仍渲染启动壳（error 为错误卡），ready
+    // 渲染 DbmasterApp；error phase 的重试路径（重新 _runBootSequence）会
+    // 经历一次 0→150ms 的回切渐入，与首启一致。
     if (_phase == _BootPhase.ready) {
-      return DbmasterApp(
-        proModule: widget.proModule,
-        proSyncUi: const RealProSyncUi(),
-        proImportUi: const RealProImportUi(),
+      return BootShellCrossFade(
+        ready: true,
+        bootChild: BootShellHost(
+          stage: _stage,
+          errorDetail: _errorDetail,
+          onRetry: _runBootSequence,
+        ),
+        appChild: DbmasterApp(
+          proModule: widget.proModule,
+          proSyncUi: const RealProSyncUi(),
+          proImportUi: const RealProImportUi(),
+        ),
       );
     }
     // UIRV-B4 返工：启动壳 MaterialApp 配置（l10n delegates/supportedLocales/
     // 亮暗主题）收敛到 BootShellHost 单一事实源（boot_shell.dart），与本批
     // UI-B4-107 回归锁同源——漏配 delegates 时测试与生产同红。
-    return BootShellHost(
-      stage: _stage,
-      errorDetail: _errorDetail,
-      onRetry: _runBootSequence,
+    return BootShellCrossFade(
+      ready: false,
+      bootChild: BootShellHost(
+        stage: _stage,
+        errorDetail: _errorDetail,
+        onRetry: _runBootSequence,
+      ),
+      appChild: DbmasterApp(
+        proModule: widget.proModule,
+        proSyncUi: const RealProSyncUi(),
+        proImportUi: const RealProImportUi(),
+      ),
+    );
+  }
+}
+
+/// 换壳渐隐包装件（UIRV-B4 T4b，可测公开件——单测受限导入，见
+/// test/screens/boot/boot_shell_crossfade_test.dart 头注）。
+///
+/// 用 [AnimatedSwitcher] 承载 BootShellHost ↔ DbmasterApp 的 150ms opacity
+/// 交叉渐隐；`MediaQuery.disableAnimations` 时 duration 取 0（无中间帧）。
+/// 过渡期间两个子树（各含一个 MaterialApp）短暂并存于 AnimatedSwitcher 的
+/// Stack 布局中：appNavigatorKey 仅挂在 DbmasterApp 侧且此刻 BootShellHost
+/// 不持有任何 GlobalKey，无键冲突；过渡结束旧子树即被移除。
+/// BootShellHost 单源宿主规则不变：delegates/supportedLocales/主题仍只在
+/// boot_shell.dart 内配置，本件不新增配置源。
+class BootShellCrossFade extends StatelessWidget {
+  const BootShellCrossFade({
+    super.key,
+    required this.ready,
+    required this.bootChild,
+    required this.appChild,
+  });
+
+  /// true = 已换壳为真实工作区子树；false = 仍处启动壳。
+  final bool ready;
+
+  /// 启动壳子树（生产 = [BootShellHost]）。
+  final Widget bootChild;
+
+  /// 真实工作区子树（生产 = [DbmasterApp]）。
+  final Widget appChild;
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = MediaQuery.of(context).disableAnimations
+        ? Duration.zero
+        : const Duration(milliseconds: 150);
+    return AnimatedSwitcher(
+      key: const ValueKey('boot-shell-switcher'),
+      duration: duration,
+      switchInCurve: AppDesignSystem.curveDefault,
+      switchOutCurve: AppDesignSystem.curveDefault,
+      child: ready
+          ? KeyedSubtree(
+              key: const ValueKey('boot-shell-app'),
+              child: appChild,
+            )
+          : KeyedSubtree(
+              key: const ValueKey('boot-shell-boot'),
+              child: bootChild,
+            ),
     );
   }
 }

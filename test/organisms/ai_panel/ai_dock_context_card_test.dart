@@ -18,6 +18,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey, MethodChannel;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -25,10 +26,29 @@ import 'package:dbmaster/l10n/app_localizations.dart';
 import 'package:dbmaster/models/database_models.dart';
 import 'package:dbmaster/organisms/ai_panel/ai_dock_context_card.dart';
 import 'package:dbmaster/organisms/ai_panel/ai_panel_widget.dart';
-import 'package:dbmaster/providers/ai_panel_provider.dart' show AiDockContextSource;
+import 'package:dbmaster/organisms/ai_workbench/workbench_context_picker.dart';
+import 'package:dbmaster/providers/ai_panel_provider.dart'
+    show AiDockContextSource;
 import 'package:dbmaster/providers/app_provider.dart';
 import 'package:dbmaster/providers/connection_provider.dart';
 import 'package:dbmaster/providers/layout_preferences_provider.dart';
+import 'package:dbmaster/services/database_abstract.dart';
+
+/// getDatabases 假适配器（workbench_context_picker_test 同款最小桩）。
+class _FakeDbAdapter implements DatabaseAdapter {
+  _FakeDbAdapter(this.dbs);
+
+  final List<String> dbs;
+
+  @override
+  bool get isConnected => true;
+
+  @override
+  Future<List<String>> getDatabases() async => dbs;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 /// connectToServer 计数 spy（AC6b 建连断言基座：connect 经
 /// `provider.connection.connectToServer` 走 ConnectionProvider，须注入层拦）。
@@ -48,7 +68,8 @@ class _ConnectSpyConnectionProvider extends ConnectionProvider {
 /// switchToConnection 计数 spy（AC6 断言基座，
 /// multi_connection_tree_test 同款模式）。
 class _SwitchSpyProvider extends AppProvider {
-  _SwitchSpyProvider() : super(connectionProvider: _ConnectSpyConnectionProvider());
+  _SwitchSpyProvider()
+    : super(connectionProvider: _ConnectSpyConnectionProvider());
 
   int get switchCalls => _switchCalls;
   int _switchCalls = 0;
@@ -64,13 +85,13 @@ class _SwitchSpyProvider extends AppProvider {
 }
 
 DbServer _server(String id, String name) => DbServer(
-      id: id,
-      name: name,
-      type: DatabaseType.mysql,
-      host: '127.0.0.1',
-      port: 3306,
-      username: 'root',
-    );
+  id: id,
+  name: name,
+  type: DatabaseType.mysql,
+  host: '127.0.0.1',
+  port: 3306,
+  username: 'root',
+);
 
 Future<void> _seedConnections(AppProvider app, {required bool connected}) {
   app.connection.addSavedServerForTest(_server('conn_a', 'Chinook Alpha'));
@@ -115,6 +136,7 @@ Widget _cardHost({
   bool isManual = false,
   AiDockContextSource? followSource,
   bool compact = false,
+  double width = 280,
   ValueChanged<DbServer>? onManualSelect,
 }) {
   tester.view.physicalSize = const Size(320, 640);
@@ -127,7 +149,7 @@ Widget _cardHost({
     home: Scaffold(
       body: Center(
         child: SizedBox(
-          width: 280,
+          width: width,
           child: AiDockContextCard(
             connection: connection,
             databaseName: databaseName,
@@ -148,10 +170,7 @@ Widget _cardHost({
 }
 
 /// 经连接选择器改选（新版整行触发器，点开菜单选目标连接）。
-Future<void> _selectConnection(
-  WidgetTester tester,
-  String targetName,
-) async {
+Future<void> _selectConnection(WidgetTester tester, String targetName) async {
   await tester.tap(find.byKey(kAiDockContextConnectionTrigger));
   await tester.pumpAndSettle();
   await tester.tap(find.text(targetName).last);
@@ -165,17 +184,17 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
-      (call) async => null,
-    );
+          const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+          (call) async => null,
+        );
   });
 
   tearDown(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
-      null,
-    );
+          const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+          null,
+        );
   });
 
   testWidgets('AC1 FOLLOW：侧栏选中 → 连接行（名+徽章+chevron）整行可点开菜单，'
@@ -188,13 +207,14 @@ void main() {
     await tester.pumpWidget(_host(app));
     await tester.pumpAndSettle();
 
-    expect(find.text('Chinook Alpha'), findsWidgets,
-        reason: '卡显示锚定连接名（欢迎区 badge 可能复现同名，用 findsWidgets）');
-    expect(find.text('Auto-follow'), findsOneWidget,
-        reason: '第 1 行 = 自动跟随');
+    expect(
+      find.text('Chinook Alpha'),
+      findsWidgets,
+      reason: '卡显示锚定连接名（欢迎区 badge 可能复现同名，用 findsWidgets）',
+    );
+    expect(find.text('Auto-follow'), findsOneWidget, reason: '第 1 行 = 自动跟随');
     expect(find.text('Sidebar'), findsOneWidget, reason: '第 1 行附实际命中级来源');
-    expect(find.text('Manual select'), findsNothing,
-        reason: '原右上角小链接已删除');
+    expect(find.text('Manual select'), findsNothing, reason: '原右上角小链接已删除');
     // 整行触发器直接开菜单（不再两跳）。
     await tester.tap(find.byKey(kAiDockContextConnectionTrigger));
     await tester.pumpAndSettle();
@@ -204,8 +224,7 @@ void main() {
     expect(find.text('Manually set AI context'), findsOneWidget);
   });
 
-  testWidgets('AC1 侧栏选中不可解析（指向已删连接）时降级活动 tab 级并标注来源',
-      (tester) async {
+  testWidgets('AC1 侧栏选中不可解析（指向已删连接）时降级活动 tab 级并标注来源', (tester) async {
     final app = AppProvider();
     await _seedConnections(app, connected: false);
     await app.tab.openQueryTab(connectionId: 'conn_b', databaseName: 'main');
@@ -234,14 +253,16 @@ void main() {
     await tester.pumpWidget(_host(app));
     await tester.pumpAndSettle();
 
-    expect(find.text('main'), findsWidgets,
-        reason: '库路径进入卡（欢迎区/其它位置可能复现同名，用 findsWidgets）');
+    expect(
+      find.text('main'),
+      findsWidgets,
+      reason: '库路径进入卡（欢迎区/其它位置可能复现同名，用 findsWidgets）',
+    );
     expect(find.text('Album'), findsOneWidget);
     expect(find.text('Current table'), findsOneWidget);
   });
 
-  testWidgets('AC2b 无浏览目标 → 整棵树不存在「/」分隔与表占位文本；占位不阻塞输入',
-      (tester) async {
+  testWidgets('AC2b 无浏览目标 → 整棵树不存在「/」分隔与表占位文本；占位不阻塞输入', (tester) async {
     final app = AppProvider();
     await _seedConnections(app, connected: false);
     app.sidebar.selectConnection('conn_a');
@@ -250,15 +271,16 @@ void main() {
     await tester.pumpWidget(_host(app));
     await tester.pumpAndSettle();
 
-    expect(find.text('No table specified'), findsNothing,
-        reason: '表占位文本退役：无表时隐藏整个表段');
-    expect(find.text('/'), findsNothing,
-        reason: '无表时不渲染库/表分隔符（不暗示可点选）');
+    expect(
+      find.text('No table specified'),
+      findsNothing,
+      reason: '表占位文本退役：无表时隐藏整个表段',
+    );
+    expect(find.text('/'), findsNothing, reason: '无表时不渲染库/表分隔符（不暗示可点选）');
     expect(find.byType(AiInputArea), findsOneWidget, reason: '不阻塞输入');
   });
 
-  testWidgets('AC3 MANUAL 态连接行直接改选；「恢复跟随」后回 FOLLOW 头部即时更新',
-      (tester) async {
+  testWidgets('AC3 MANUAL 态连接行直接改选；「恢复跟随」后回 FOLLOW 头部即时更新', (tester) async {
     final app = _SwitchSpyProvider();
     await _seedConnections(app, connected: true);
     app.sidebar.selectConnection('conn_a');
@@ -277,13 +299,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Auto-follow'), findsOneWidget);
-    expect(find.text('Chinook Alpha'), findsWidgets,
-        reason: '恢复后头部即时更新为跟随锚定');
+    expect(find.text('Chinook Alpha'), findsWidgets, reason: '恢复后头部即时更新为跟随锚定');
     expect(app.aiPanel.manualContextOverride, isFalse);
   });
 
-  testWidgets('AC4 手动覆盖不被树选中/tab 激活冲掉；被覆盖连接删除后回退 FOLLOW',
-      (tester) async {
+  testWidgets('AC4 手动覆盖不被树选中/tab 激活冲掉；被覆盖连接删除后回退 FOLLOW', (tester) async {
     final app = _SwitchSpyProvider();
     await _seedConnections(app, connected: true);
     app.sidebar.selectConnection('conn_a');
@@ -299,29 +319,37 @@ void main() {
     // 连接级事件 1：树选中 conn_a
     app.sidebar.selectConnection('conn_a');
     await tester.pumpAndSettle();
-    expect(find.text('Manually set AI context'), findsOneWidget,
-        reason: '树选中不冲掉手动覆盖');
+    expect(
+      find.text('Manually set AI context'),
+      findsOneWidget,
+      reason: '树选中不冲掉手动覆盖',
+    );
     expect(find.text('Chinook Beta'), findsWidgets);
 
     // 连接级事件 2：激活绑定 conn_a 的 tab
     await app.tab.openQueryTab(connectionId: 'conn_a', databaseName: 'main');
     await tester.pumpAndSettle();
-    expect(find.text('Manually set AI context'), findsOneWidget,
-        reason: 'tab 激活不冲掉手动覆盖');
+    expect(
+      find.text('Manually set AI context'),
+      findsOneWidget,
+      reason: 'tab 激活不冲掉手动覆盖',
+    );
     expect(find.text('Chinook Beta'), findsWidgets);
 
     // 被覆盖连接从已保存列表删除 → 回退 FOLLOW
     await app.connection.deleteConnection('conn_b');
     await tester.pumpAndSettle();
 
-    expect(app.aiPanel.manualContextOverride, isFalse,
-        reason: '被覆盖连接删除后自动解除覆盖（T25 删除降级先例）');
+    expect(
+      app.aiPanel.manualContextOverride,
+      isFalse,
+      reason: '被覆盖连接删除后自动解除覆盖（T25 删除降级先例）',
+    );
     expect(find.text('Auto-follow'), findsOneWidget);
     expect(find.text('Chinook Alpha'), findsWidgets);
   });
 
-  testWidgets('AC5 三级全空 → EMPTY 态；EMPTY 连接行可直接开菜单选择',
-      (tester) async {
+  testWidgets('AC5 三级全空 → EMPTY 态；EMPTY 连接行可直接开菜单选择', (tester) async {
     final app = AppProvider();
     await _seedConnections(app, connected: false);
     // 无任何连接级锚点（侧栏/tab/currentServer 全空）。
@@ -331,10 +359,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('No connection set'), findsOneWidget);
-    expect(find.text('Choose a connection'), findsNothing,
-        reason: 'EMPTY 入口并入连接行触发器，独立小链接退役');
-    expect(find.text('No Connection'), findsNothing,
-        reason: 'EMPTY 走新空态文案，旧「No Connection」退役');
+    expect(
+      find.text('Choose a connection'),
+      findsNothing,
+      reason: 'EMPTY 入口并入连接行触发器，独立小链接退役',
+    );
+    expect(
+      find.text('No Connection'),
+      findsNothing,
+      reason: 'EMPTY 走新空态文案，旧「No Connection」退役',
+    );
 
     // EMPTY 态点连接行 → 菜单直接可达并可选择。
     await tester.tap(find.byKey(kAiDockContextConnectionTrigger));
@@ -362,12 +396,15 @@ void main() {
     app.sidebar.selectConnection('conn_a');
     await tester.pumpAndSettle();
 
-    expect(app.switchCalls, 0, reason: '浏览/改选手势零 switchToConnection（红线只锁 switch，conn_b 无密码弹窗待输入时 connectCalls 恒 0）');
+    expect(
+      app.switchCalls,
+      0,
+      reason:
+          '浏览/改选手势零 switchToConnection（红线只锁 switch，conn_b 无密码弹窗待输入时 connectCalls 恒 0）',
+    );
   });
 
-  testWidgets('AC6b 选中未连接连接 → 恢复「选择即建连」（connectToServer 恰一次）', (
-    tester,
-  ) async {
+  testWidgets('AC6b 选中未连接连接 → 恢复「选择即建连」（connectToServer 恰一次）', (tester) async {
     // 打回修复回归锁：手动改选恢复旧下拉等价行为——未连接连接被选中时
     // 经 ensurePassword（_seedConnections 预置密码直返，免弹窗）+
     // connectToServer 建连；零 switchToConnection 不变。
@@ -383,12 +420,14 @@ void main() {
 
     expect(app.connectCalls, 1, reason: '选中未连接连接发起建连（恰一次）');
     expect(app.switchCalls, 0, reason: '建连路径仍零 switchToConnection');
-    expect(find.text('Manually set AI context'), findsOneWidget,
-        reason: '覆盖语义不变：上下文先写、建连不冲掉手动态');
+    expect(
+      find.text('Manually set AI context'),
+      findsOneWidget,
+      reason: '覆盖语义不变：上下文先写、建连不冲掉手动态',
+    );
   });
 
-  testWidgets('N1 MANUAL 态直接点连接行换到另一连接（无需先恢复），换选后仍是 MANUAL',
-      (tester) async {
+  testWidgets('N1 MANUAL 态直接点连接行换到另一连接（无需先恢复），换选后仍是 MANUAL', (tester) async {
     final app = _SwitchSpyProvider();
     await _seedConnections(app, connected: true);
     app.sidebar.selectConnection('conn_a');
@@ -404,16 +443,18 @@ void main() {
 
     // 第二次改选：MANUAL 态直接点连接行（不点恢复跟随）→ 换 Alpha，仍是 MANUAL
     await _selectConnection(tester, 'Chinook Alpha');
-    expect(find.text('Manually set AI context'), findsOneWidget,
-        reason: '直接换选不退出手动态');
+    expect(
+      find.text('Manually set AI context'),
+      findsOneWidget,
+      reason: '直接换选不退出手动态',
+    );
     expect(app.aiPanel.manualContextOverride, isTrue);
     // 建连计数不锁精确值（加载库列表的已连接判定由 Provider 层管）；
     // 红线只锁 switch：直接换选零 switchToConnection。
     expect(app.switchCalls, 0);
   });
 
-  testWidgets('N2 MANUAL 态点「恢复跟随」不弹连接菜单，直接回 FOLLOW',
-      (tester) async {
+  testWidgets('N2 MANUAL 态点「恢复跟随」不弹连接菜单，直接回 FOLLOW', (tester) async {
     final app = _SwitchSpyProvider();
     await _seedConnections(app, connected: true);
     app.sidebar.selectConnection('conn_a');
@@ -429,49 +470,63 @@ void main() {
     await tester.tap(find.text('Restore follow').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Chinook Beta'), findsNothing,
-        reason: '恢复跟随不弹菜单（Beta 只在菜单中出现，恢复后不可见）');
+    expect(
+      find.text('Chinook Beta'),
+      findsNothing,
+      reason: '恢复跟随不弹菜单（Beta 只在菜单中出现，恢复后不可见）',
+    );
     expect(find.text('Auto-follow'), findsOneWidget, reason: '直接回 FOLLOW');
     expect(app.connectCalls, connectsAfterSelect, reason: '恢复跟随零额外副作用');
   });
 
-  testWidgets('N3 紧凑态无表 → 不渲染「/」与表占位文本', (tester) async {
-    await tester.pumpWidget(_cardHost(
-      tester: tester,
-      connection: _server('conn_a', 'Chinook Alpha'),
-      databaseName: 'main',
-      tableName: null,
-      compact: true,
-    ));
+  testWidgets('N3 紧凑态无表 → 只保留连接/库分隔符，无表段分隔与占位文本',
+      (tester) async {
+    await tester.pumpWidget(
+      _cardHost(
+        tester: tester,
+        connection: _server('conn_a', 'Chinook Alpha'),
+        databaseName: 'main',
+        tableName: null,
+        compact: true,
+      ),
+    );
     await tester.pumpAndSettle();
 
-    expect(find.text('/'), findsNothing,
-        reason: '紧凑态无表同样隐藏表段分隔符');
+    // UI35-123 起紧凑行 2 = 连接名 / 库名（无表时表段整体隐藏）：
+    // 仅剩连接/库之间的一个「/」。
+    expect(find.text('/'), findsOneWidget,
+        reason: '仅连接/库分隔符；表段分隔符随表段隐藏');
     expect(find.text('No table specified'), findsNothing);
     expect(find.text('main'), findsOneWidget);
   });
 
-  testWidgets('N4 紧凑态 280px 宽 + 长连接名 + MANUAL 恢复链接无 overflow',
-      (tester) async {
-    final longServer = _server('conn_b', 'A Very Long Connection Name For Overflow');
-    await tester.pumpWidget(_cardHost(
-      tester: tester,
-      connection: longServer,
-      databaseName: 'main',
-      tableName: 'Album',
-      isManual: true,
-      compact: true,
-    ));
+  testWidgets('N4 紧凑态 280px 宽 + 长连接名 + MANUAL 恢复链接无 overflow', (tester) async {
+    final longServer = _server(
+      'conn_b',
+      'A Very Long Connection Name For Overflow',
+    );
+    await tester.pumpWidget(
+      _cardHost(
+        tester: tester,
+        connection: longServer,
+        databaseName: 'main',
+        tableName: 'Album',
+        isManual: true,
+        compact: true,
+      ),
+    );
     await tester.pumpAndSettle();
 
-    expect(tester.takeException(), isNull,
-        reason: '280px 宽 + 长连接名 + MANUAL 恢复链接不产生 RenderFlex overflow');
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: '280px 宽 + 长连接名 + MANUAL 恢复链接不产生 RenderFlex overflow',
+    );
     expect(find.text('Restore follow'), findsOneWidget);
-    expect(find.byKey(kAiDockContextConnectionTrigger), findsOneWidget);
+    expect(find.byKey(kAiDockCompactContextTrigger), findsOneWidget);
   });
 
-  testWidgets('N5 键盘：聚焦连接触发器 → Enter 开菜单 → Esc 关闭且焦点回触发器',
-      (tester) async {
+  testWidgets('N5 键盘：聚焦连接触发器 → Enter 开菜单 → Esc 关闭且焦点回触发器', (tester) async {
     final app = AppProvider();
     await _seedConnections(app, connected: false);
     app.sidebar.selectConnection('conn_a');
@@ -513,5 +568,294 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Chinook Beta'), findsNothing, reason: 'Esc 关闭菜单');
     expect(focusedOnTrigger(), isTrue, reason: '焦点回连接触发器');
+  });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // v0.3.5 批1 T2 · UI35-121~133：44px 紧凑上下文卡改版
+  // 行 1（18px）= ● Auto-follow / ▲ Manual（+ 右端 Restore follow）；
+  // 行 2（24px）= [库图标] 连接名 / 库名 / 表名 ▾，整行触发级联选择器；
+  // 截断优先级：表名 > 库名 > 连接名。
+  // ══════════════════════════════════════════════════════════════════════════
+
+  testWidgets('UI35-121 紧凑 FOLLOW：行1 = ● Auto-follow（无恢复链接）', (tester) async {
+    await tester.pumpWidget(
+      _cardHost(
+        tester: tester,
+        connection: _server('conn_a', 'Chinook Alpha'),
+        databaseName: 'main',
+        tableName: null,
+        compact: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Auto-follow'),
+      findsOneWidget,
+      reason: '紧凑行 1 = 状态点 + Auto-follow',
+    );
+    expect(find.text('Restore follow'), findsNothing, reason: 'FOLLOW 态无恢复链接');
+    expect(
+      find.byKey(const Key('aiDockCompactContextTrigger')),
+      findsOneWidget,
+      reason: '行 2 触发器存在',
+    );
+  });
+
+  testWidgets('UI35-122 紧凑 MANUAL：行1 = ▲ Manual + 右端 Restore follow', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _cardHost(
+        tester: tester,
+        connection: _server('conn_a', 'Chinook Alpha'),
+        databaseName: 'main',
+        tableName: null,
+        isManual: true,
+        compact: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Manually set AI context'),
+      findsOneWidget,
+      reason: '紧凑行 1 = 警示标识 + Manual 态标签',
+    );
+    expect(
+      find.text('Restore follow'),
+      findsOneWidget,
+      reason: 'MANUAL 右端保留恢复跟随入口',
+    );
+    expect(
+      find.byKey(const Key('aiDockCompactContextTrigger')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('UI35-123 紧凑行2 = [库图标] 连接名 / 库名 / 表名 + chevron（整行触发器）', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _cardHost(
+        tester: tester,
+        connection: _server('conn_a', 'Chinook Alpha'),
+        databaseName: 'main',
+        tableName: 'Album',
+        compact: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Chinook Alpha'), findsOneWidget, reason: '行 2 显示连接名');
+    expect(find.text('main'), findsOneWidget, reason: '行 2 显示库名');
+    expect(
+      find.text('Album'),
+      findsOneWidget,
+      reason: '行 2 显示表名（表选择入口，本批只要求存在）',
+    );
+    expect(find.byIcon(LucideIcons.chevronDown), findsOneWidget);
+  });
+
+  testWidgets('UI35-124 截断优先级：长连接名中间省略（…），库名/表名完整', (tester) async {
+    await tester.pumpWidget(
+      _cardHost(
+        tester: tester,
+        connection: _server(
+          'conn_b',
+          'A Very Long Connection Name For Overflow',
+        ),
+        databaseName: 'main',
+        tableName: 'Album',
+        compact: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('…'),
+      findsOneWidget,
+      reason: '连接名中间省略（预算 ~100px）',
+    );
+    expect(
+      find.textContaining('A Very Long Connection Name'),
+      findsNothing,
+      reason: '长连接名不再原样显示',
+    );
+    expect(find.text('main'), findsOneWidget, reason: '库名不省略');
+    expect(find.text('Album'), findsOneWidget, reason: '表名不省略');
+  });
+
+  testWidgets('UI35-125 极窄 dock（280px）：无 overflow，表名仍完整', (tester) async {
+    await tester.pumpWidget(
+      _cardHost(
+        tester: tester,
+        connection: _server('conn_b', 'Chinook Beta'),
+        databaseName: 'a_long_database_name_here',
+        tableName: 'Album',
+        compact: true,
+        width: 280,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: '极窄卡不产生 RenderFlex overflow',
+    );
+    expect(find.text('Album'), findsOneWidget, reason: '表名仍完整（截断优先级最高）');
+  });
+
+  testWidgets('UI35-126/127 紧凑态点行 2 → 打开 WorkbenchContextPicker 级联选择器', (
+    tester,
+  ) async {
+    final app = AppProvider();
+    await _seedConnections(app, connected: false);
+    app.sidebar.selectConnection('conn_a');
+
+    await tester.binding.setSurfaceSize(const Size(1400, 400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(_host(app));
+    await tester.pumpAndSettle();
+
+    // 1400x400 → totalHeight < 420 → 紧凑头生效。
+    expect(
+      find.byKey(const Key('aiDockCompactContextTrigger')),
+      findsOneWidget,
+      reason: '矮面板走紧凑上下文卡',
+    );
+
+    await tester.tap(find.byKey(const Key('aiDockCompactContextTrigger')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('workbench_context_picker_content')),
+      findsOneWidget,
+      reason: '复用 WorkbenchContextPicker（左列连接/库，右列库表级联）',
+    );
+    expect(find.text('Set AI context'), findsOneWidget);
+
+    // 关闭（零状态变化路径）。
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('workbench_context_picker_content')),
+      findsNothing,
+    );
+  });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // v0.3.5 批1 返工 T2b：紧凑卡行 2 打开 picker 的写入面 = dock 手动上下文
+  // （setManualDockContext），不是工作台锁定（lockWorkbenchContext）。
+  // ══════════════════════════════════════════════════════════════════════════
+
+  testWidgets('T2b 紧凑卡行2 picker 选库确认 → 写 dock 手动上下文，工作台零锁定', (
+    tester,
+  ) async {
+    final app = AppProvider();
+    await _seedConnections(app, connected: false);
+    // conn_b 标记已连接 + 注入库列表：picker 免建连直装库。
+    app.connection.dbService.registerConnectedServerForTest(
+      _server('conn_b', 'Chinook Beta'),
+    );
+    app.connection.dbService.registerConnectedAdapterForTest(
+      'conn_b',
+      _FakeDbAdapter(['main']),
+    );
+    app.sidebar.selectConnection('conn_a');
+
+    await tester.binding.setSurfaceSize(const Size(1400, 400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(_host(app));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('aiDockCompactContextTrigger')),
+      findsOneWidget,
+      reason: '矮面板走紧凑上下文卡',
+    );
+    await tester.tap(find.byKey(const Key('aiDockCompactContextTrigger')));
+    await tester.pumpAndSettle();
+
+    // 选连接 → 装库 → 点库确认（均 scope 到 picker Dialog，避开侧栏树同名）。
+    await tester.tap(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.text('Chinook Beta'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(Dialog), matching: find.text('main')),
+    );
+    await tester.pumpAndSettle();
+
+    // picker 关闭。
+    expect(
+      find.byKey(const ValueKey('workbench_context_picker_content')),
+      findsNothing,
+    );
+
+    // dock 手动上下文已写（setManualDockContext 语义）。
+    expect(app.aiPanel.manualContextOverride, isTrue);
+    expect(app.aiPanel.selectedConnectionId, 'conn_b');
+    expect(app.aiPanel.selectedDatabaseName, 'main');
+
+    // 工作台零锁定（承载字段 = 会话 metadata workbench.contextLock →
+    // workbenchContextLock getter 必须为 null）。
+    expect(
+      app.aiPanel.workbenchContextLock,
+      isNull,
+      reason: '紧凑卡路径只写 dock 上下文，不得写工作台锁定',
+    );
+  });
+
+  testWidgets('T2b 紧凑卡行2 picker「仅锁定连接」确认 → dock 连接级手动覆盖，工作台零锁定', (
+    tester,
+  ) async {
+    final app = AppProvider();
+    await _seedConnections(app, connected: false);
+    app.connection.dbService.registerConnectedServerForTest(
+      _server('conn_b', 'Chinook Beta'),
+    );
+    app.connection.dbService.registerConnectedAdapterForTest(
+      'conn_b',
+      _FakeDbAdapter([]),
+    );
+    app.sidebar.selectConnection('conn_a');
+
+    await tester.binding.setSurfaceSize(const Size(1400, 400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(_host(app));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('aiDockCompactContextTrigger')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.text('Chinook Beta'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 空库列表 → 「仅锁定连接」出口。
+    await tester.tap(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.text('Use connection only'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('workbench_context_picker_content')),
+      findsNothing,
+    );
+    expect(app.aiPanel.manualContextOverride, isTrue);
+    expect(app.aiPanel.selectedConnectionId, 'conn_b');
+    expect(app.aiPanel.selectedDatabaseName, isNull);
+    expect(app.aiPanel.workbenchContextLock, isNull);
   });
 }

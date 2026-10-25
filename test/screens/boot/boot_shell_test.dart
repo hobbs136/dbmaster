@@ -12,6 +12,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:dbmaster/l10n/app_localizations.dart';
 import 'package:dbmaster/screens/boot/boot_shell.dart';
+import 'package:dbmaster/services/layout_preferences_service.dart';
+import 'package:dbmaster/theme/design_system.dart';
 Widget _host({
   required BootStage stage,
   String? errorDetail,
@@ -193,4 +195,93 @@ void main() {
     expect(find.text('Preparing your workspace…'), findsOneWidget);
     expect(find.text('Startup problem'), findsNothing);
   });
+
+  testWidgets('UI35-151 AC1 · 骨架侧栏宽跟随注入的 sidebarWidth；默认回落 LayoutPreferencesService.defaultSidebarWidth', (
+    tester,
+  ) async {
+    // 注入 300（非 260/280 任意写死值）：骨架侧栏宽度应跟随。
+    await _pumpShellWithSidebar(tester, sidebarWidth: 300);
+    final sidebar = find.byKey(const ValueKey('uirvBootSidebarSkeleton'));
+    expect(sidebar, findsOneWidget);
+    expect(
+      tester.getSize(sidebar).width,
+      300,
+      reason: '骨架侧栏宽应等于注入的 sidebarWidth（宽度真相 = LayoutPreferencesProvider.sidebarWidth）',
+    );
+
+    // 未注入时回落服务层默认宽（provider 未加载完成的回落路径）。
+    await _pumpShell(tester, stage: BootStage.generic);
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('uirvBootSidebarSkeleton')))
+          .width,
+      LayoutPreferencesService.defaultSidebarWidth,
+    );
+  });
+
+  testWidgets('UI35-152 AC2 · 底部 24px 状态栏骨架：3 个 6px 色块', (tester) async {
+    await _pumpShell(tester, stage: BootStage.generic);
+    final strip = find.byKey(const ValueKey('uirvBootStatusbarSkeleton'));
+    expect(strip, findsOneWidget);
+    expect(
+      tester.getSize(strip).height,
+      AppDesignSystem.statusHeight,
+      reason: '状态栏骨架高度 = statusHeight token（24）',
+    );
+    final containerFinder = find.descendant(
+      of: strip,
+      matching: find.byType(Container),
+    );
+    final sixPxBlocks = containerFinder
+        .evaluate()
+        .map((e) => e.size)
+        .whereType<Size>()
+        .where((s) => s.height == 6)
+        .toList();
+    expect(sixPxBlocks.length, 3, reason: '状态栏骨架应为 3 个 6px 高色块');
+  });
+
+  testWidgets('UI35-153 AC3 · 中心状态区位于主区中心：x = sidebarWidth + (W − sidebarWidth)/2', (
+    tester,
+  ) async {
+    // 固定窗口 800×600（默认测试面），注入 sidebarWidth=300 → 期望中心 x = 550。
+    tester.view.physicalSize = const Size(800, 600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await _pumpShellWithSidebar(tester, sidebarWidth: 300);
+
+    final region = find.byKey(const ValueKey('uirvBootStatusRegion'));
+    expect(region, findsOneWidget);
+    final centerX = tester.getCenter(region).dx;
+    const windowWidth = 800.0;
+    expect(
+      centerX,
+      300 + (windowWidth - 300) / 2,
+      reason: '状态区应与 400 宽欢迎卡同坐标（主区中心），不再用窗口 Center',
+    );
+  });
+}
+
+/// 注入侧栏宽的宿主（BootShell 直接构造；生产路径经 BootShellHost 解析
+/// LayoutPreferencesProvider 后透传同参）。
+Future<void> _pumpShellWithSidebar(
+  WidgetTester tester, {
+  required double sidebarWidth,
+}) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: MediaQuery(
+        data: const MediaQueryData(),
+        child: BootShell(sidebarWidth: sidebarWidth),
+      ),
+    ),
+  );
+  await tester.pump(const Duration(milliseconds: 100));
 }

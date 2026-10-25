@@ -295,32 +295,22 @@ void main() {
       await tester.pumpAndSettle();
 
       // 三色 = environment.badgeColor 同源（与活动标签色条/状态栏徽章一致）。
-      expect(
-        find.byWidgetPredicate(
-          (w) =>
-              w is TreeItem &&
-              w.environmentBarColor ==
-                  ConnectionEnvironment.production.badgeColor,
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.byWidgetPredicate(
-          (w) =>
-              w is TreeItem &&
-              w.environmentBarColor == ConnectionEnvironment.testing.badgeColor,
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.byWidgetPredicate(
-          (w) =>
-              w is TreeItem &&
-              w.environmentBarColor ==
-                  ConnectionEnvironment.development.badgeColor,
-        ),
-        findsOneWidget,
-      );
+      // v0.3.5 T1：色值同源不变，透明度编码连接态——未连接 = 40%。
+      bool barMatches(String label, ConnectionEnvironment env) {
+        final item = tester.widget<TreeItem>(
+          find.byWidgetPredicate((w) => w is TreeItem && w.label == label),
+        );
+        final bar = item.environmentBarColor;
+        return bar != null &&
+            (bar.a - env.badgeColor.a * 0.4).abs() < 0.001 &&
+            bar.red == env.badgeColor.red &&
+            bar.green == env.badgeColor.green &&
+            bar.blue == env.badgeColor.blue;
+      }
+
+      expect(barMatches('Prod', ConnectionEnvironment.production), isTrue);
+      expect(barMatches('Test', ConnectionEnvironment.testing), isTrue);
+      expect(barMatches('Dev', ConnectionEnvironment.development), isTrue);
       // 无 environment 连接：environmentBarColor == null（零视觉变化）。
       expect(
         find.byWidgetPredicate(

@@ -7790,5 +7790,13 @@
   "connectionPasswordEmptyHint": "Leave empty to connect without a password; Save Password is only available when a password is entered.",
   "@connectionPasswordEmptyHint": {"description": "Password prompt helper: empty input connects without a password; Save Password applies only to a non-empty password"},
   "uirvDockContextChangeConnection": "Change AI connection: {connectionName}",
-  "@uirvDockContextChangeConnection": {"description": "UIRV-A1: connection trigger tooltip/a11y label with the current connection name", "placeholders": {"connectionName": {"type": "String"}}}
+  "@uirvDockContextChangeConnection": {"description": "UIRV-A1: connection trigger tooltip/a11y label with the current connection name", "placeholders": {"connectionName": {"type": "String"}}},
+  "connectionTooltipTypeVersion": "{type} · server {version} (detected)",
+  "@connectionTooltipTypeVersion": {"description": "Connection item tooltip: type name with detected server version", "placeholders": {"type": {"type": "String"}, "version": {"type": "String"}}},
+  "connectionTooltipTypeOnly": "{type} · version not detected",
+  "@connectionTooltipTypeOnly": {"description": "Connection item tooltip: type name when server version was not detected", "placeholders": {"type": {"type": "String"}}},
+  "aiDockToggleTooltip": "Toggle AI Assistant (Ctrl+Shift+A)",
+  "@aiDockToggleTooltip": {"description": "AI dock toggle button tooltip with the keyboard shortcut"},
+  "filterDraftDotTooltip": "Unapplied filter changes",
+  "@filterDraftDotTooltip": {"description": "Tooltip for the dot marker indicating unapplied filter changes"}
 }

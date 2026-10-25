@@ -3998,5 +3998,13 @@
   "connectionPasswordEmptyHint": "Laissez vide pour vous connecter sans mot de passe ; « Enregistrer le mot de passe » n'est disponible que lorsqu'un mot de passe est saisi.",
   "@connectionPasswordEmptyHint": {"description": "Aide du dialogue de mot de passe : champ vide = connexion sans mot de passe ; Enregistrer le mot de passe seulement si un mot de passe est saisi"},
   "uirvDockContextChangeConnection": "Changer la connexion IA : {connectionName}",
-  "@uirvDockContextChangeConnection": {"description": "UIRV-A1: connection trigger tooltip/a11y label with the current connection name", "placeholders": {"connectionName": {"type": "String"}}}
+  "@uirvDockContextChangeConnection": {"description": "UIRV-A1: connection trigger tooltip/a11y label with the current connection name", "placeholders": {"connectionName": {"type": "String"}}},
+  "connectionTooltipTypeVersion": "{type} · serveur {version} (détecté)",
+  "@connectionTooltipTypeVersion": {},
+  "connectionTooltipTypeOnly": "{type} · version non détectée",
+  "@connectionTooltipTypeOnly": {},
+  "aiDockToggleTooltip": "Basculer l'assistant IA (Ctrl+Maj+A)",
+  "@aiDockToggleTooltip": {},
+  "filterDraftDotTooltip": "Modifications de filtre non appliquées",
+  "@filterDraftDotTooltip": {}
 }

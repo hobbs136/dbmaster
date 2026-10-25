@@ -4001,5 +4001,13 @@
   "connectionPasswordEmptyHint": "Leer lassen, um ohne Passwort zu verbinden; „Passwort speichern“ ist nur bei eingegebenem Passwort verfügbar.",
   "@connectionPasswordEmptyHint": {"description": "Passwort-Dialog-Hinweis: Leeres Feld verbindet ohne Passwort; Passwort speichern nur bei eingegebenem Passwort"},
   "uirvDockContextChangeConnection": "KI-Verbindung wechseln: {connectionName}",
-  "@uirvDockContextChangeConnection": {"description": "UIRV-A1: connection trigger tooltip/a11y label with the current connection name", "placeholders": {"connectionName": {"type": "String"}}}
+  "@uirvDockContextChangeConnection": {"description": "UIRV-A1: connection trigger tooltip/a11y label with the current connection name", "placeholders": {"connectionName": {"type": "String"}}},
+  "connectionTooltipTypeVersion": "{type} · Server {version} (erkannt)",
+  "@connectionTooltipTypeVersion": {},
+  "connectionTooltipTypeOnly": "{type} · Version nicht erkannt",
+  "@connectionTooltipTypeOnly": {},
+  "aiDockToggleTooltip": "KI-Assistent umschalten (Strg+Umschalt+A)",
+  "@aiDockToggleTooltip": {},
+  "filterDraftDotTooltip": "Nicht angewendete Filteränderungen",
+  "@filterDraftDotTooltip": {}
 }

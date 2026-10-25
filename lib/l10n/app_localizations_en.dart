@@ -11649,4 +11649,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String uirvDockContextChangeConnection(String connectionName) {
     return 'Change AI connection: $connectionName';
   }
+
+  @override
+  String connectionTooltipTypeVersion(String type, String version) {
+    return '$type · server $version (detected)';
+  }
+
+  @override
+  String connectionTooltipTypeOnly(String type) {
+    return '$type · version not detected';
+  }
+
+  @override
+  String get aiDockToggleTooltip => 'Toggle AI Assistant (Ctrl+Shift+A)';
+
+  @override
+  String get filterDraftDotTooltip => 'Unapplied filter changes';
 }

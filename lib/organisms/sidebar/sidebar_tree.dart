@@ -268,6 +268,19 @@ class SidebarTree extends StatelessWidget {
     return '${server.name} · $subtitle';
   }
 
+  /// v0.3.5 P2-1 根行主行 tooltip：类型 + 连接名 + 端点（host:port /
+  /// 文件路径）。副行在「展开且已连接」时隐藏，端点必须仍可从 tooltip
+  /// 看到；端点缺失（null）保持「类型 + 连接名」两行。不伪造版本号。
+  String _rootLabelTooltip(AppLocalizations l10n, DbServer server) {
+    final typeLine = l10n.connectionTooltipTypeOnly(server.type.displayName);
+    final endpoint = _connectionSubtitle(server);
+    final buffer = StringBuffer('$typeLine\n${server.name}');
+    if (endpoint != null) {
+      buffer.write('\n$endpoint');
+    }
+    return buffer.toString();
+  }
+
   /// J3 树底轻入口：新建连接（ConnectionDialog 既有形态）+ 管理连接
   /// （宿主 onShowConnectionManager 回调；命令面板两命令在册兜底）。
   Widget _buildTreeFooter(BuildContext context) {
@@ -571,6 +584,15 @@ class SidebarTree extends StatelessWidget {
     final unhandledFailure = provider.connection.lastFailureFor(server.id);
     var isExpanded = expandedItems.contains(server.id) && isConnected;
     final connectionDatabases = provider.getConnectionDatabases(server.id);
+    // v0.3.5 T1（Epic 1.1）：展开且已连接 → 副行让位给子树（行高 36→28
+    // 过渡）；其余形态保留副行。
+    final showSubtitle = !(isExpanded && isConnected);
+    final colors = context.themeColors;
+    final l10n = AppLocalizations.of(context)!;
+    // v0.3.5 T1（AC3）：tooltip = 类型 + 连接名 + 端点（_rootLabelTooltip）。
+    // per-connection 探测版本（ConnectionTestResult.serverVersion）无
+    // provider 缓存消费源——统一 type-only，不伪造版本；版本源落地后切
+    // connectionTooltipTypeVersion 即可。
 
     if (searchQuery.isNotEmpty && isConnected) {
       final hasMatchingDatabase = connectionDatabases.any(
@@ -604,17 +626,29 @@ class SidebarTree extends StatelessWidget {
           icon: server.type.typeIcon,
           iconColor: context.themeColors.brandColor(server.type),
           label: server.name,
-          badge: server.type.displayName,
+          // v0.3.5 T1（P2-1）：类型文字徽章退役（视觉减负）；类型信息移入主行
+          // tooltip（+ 完整连接名 + 端点）。副行在「展开且已连接」时隐藏，
+          // 端点全值必须仍可从 tooltip 看到。端点缺失（null）保持两行。
+          labelTooltip: _rootLabelTooltip(l10n, server),
+          labelColor: isConnected
+              ? colors.connectionLabelConnected
+              : colors.connectionLabelDisconnected,
           // UIRV-B5：根行副行 host 事实（socket = host:port、SQLite =
           // 文件路径〔DbServer.host 存完整路径，port=0〕、host 空整行
           // 省略）；tooltip 给全值。环境词不进副行（环境由 3px 色条 +
           // 状态栏徽章承载，host 不参与配色）。
-          subtitle: _connectionSubtitle(server),
-          subtitleTooltip: _connectionSubtitleTooltip(server),
+          subtitle: showSubtitle ? _connectionSubtitle(server) : null,
+          subtitleTooltip: showSubtitle
+              ? _connectionSubtitleTooltip(server)
+              : null,
           isExpanded: isExpanded && isConnected,
           // 活动根高亮（含右键/键盘选中）；S9 环境色条挂左缘 gutter。
           isSelected: isActive || isCurrentContext,
-          environmentBarColor: server.environment?.badgeColor,
+          // v0.3.5 T1（Epic 1.2）：环境条透明度编码连接态——断开 40%、
+          // 连接 100%（badgeColor 色值本身不变）。
+          environmentBarColor: server.environment?.badgeColor.withValues(
+            alpha: isConnected ? 1.0 : 0.4,
+          ),
           isLoading: isConnecting,
           showArrow: isConnected,
           trailing: _buildConnectionStatusDots(
@@ -767,9 +801,8 @@ class SidebarTree extends StatelessWidget {
     final colors = context.themeColors;
     final l10n = AppLocalizations.of(context)!;
     // T10 · 未处置失败 → 状态点 error 态（tooltip 为最新失败人话原因）；
-    // 其余三态：断开（含仍为活动上下文的——高亮归 isSelected，状态语义
-    // 归本点）muted/disconnect、当前连接（J3 活动上下文）success/current、
-    // 其它已连接 accentBlue/connected。
+    // 其余状态 tooltip：断开 disconnect、当前连接 current（J3 活动上下文）、
+    // 其它已连接 connected——颜色不再区分 current（v0.3.5 T1）。
     final String statusTooltip;
     if (unhandledFailure != null) {
       statusTooltip = l10n.connectFailureLatestTooltip(
@@ -782,38 +815,26 @@ class SidebarTree extends StatelessWidget {
     } else {
       statusTooltip = l10n.connectionConnected;
     }
-    final Color statusDotColor;
+    // v0.3.5 T1（Epic 1.2）：状态点三态形状编码（双色编码退役——
+    // current 由既有行选中背景 accent 15% + 3px 左条承载）：
+    // 未处置失败 → error 实心；未连接 → 空心环（1.5px textDisabled 描边
+    // + 透明填充）；已连接 → success 实心（current 与否同色）。
+    final Color statusDotFill;
+    final Color statusDotBorder;
     if (unhandledFailure != null) {
-      statusDotColor = colors.error;
+      statusDotFill = colors.error;
+      statusDotBorder = colors.bgSecondary;
     } else if (!isConnected) {
-      statusDotColor = colors.textMuted.withValues(alpha: 0.5);
-    } else if (isCurrent) {
-      statusDotColor = colors.success;
+      statusDotFill = Colors.transparent;
+      statusDotBorder = colors.textDisabled;
     } else {
-      statusDotColor = colors.accentBlue;
+      statusDotFill = colors.success;
+      statusDotBorder = colors.bgSecondary;
     }
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (server.environment != null)
-          Tooltip(
-            message: server.environment!.displayName,
-            child: Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: server.environment!.badgeColor,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: context.themeColors.bgSecondary,
-                  width: 1.5,
-                ),
-              ),
-            ),
-          ),
-        if (server.environment != null)
-          const SizedBox(width: AppDesignSystem.space1_5),
         if (server.useSSL) ...[
           const SizedBox(width: AppDesignSystem.space1),
           Icon(LucideIcons.lock, size: 10, color: context.themeColors.success),
@@ -843,12 +864,9 @@ class SidebarTree extends StatelessWidget {
             width: 10,
             height: 10,
             decoration: BoxDecoration(
-              color: statusDotColor,
+              color: statusDotFill,
               shape: BoxShape.circle,
-              border: Border.all(
-                color: context.themeColors.bgSecondary,
-                width: 1.5,
-              ),
+              border: Border.all(color: statusDotBorder, width: 1.5),
             ),
           ),
         ),

@@ -4,10 +4,14 @@ import 'package:provider/provider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers/app_provider.dart';
 import '../../providers/layout_preferences_provider.dart';
 import '../../molecules/toolbar_button.dart';
 import '../../molecules/compact_popup_menu_item.dart';
 import '../../theme/app_colors.dart';
+
+/// 工具栏 AI Dock 开关稳定 Key（测试与自动化定位用，UI35-129~133）。
+const Key kEditorToolbarAiDockToggle = Key('editorToolbarAiDockToggle');
 
 /// QueryEditorToolbar - 查询编辑器工具栏
 ///
@@ -254,6 +258,8 @@ class QueryEditorToolbar extends StatelessWidget {
             timeoutSelector,
             const SizedBox(width: AppDesignSystem.space2),
           ],
+          _aiDockToggle(context, l10n),
+          const SizedBox(width: AppDesignSystem.space1),
           commandPaletteButton,
           const SizedBox(width: AppDesignSystem.space2),
 
@@ -261,6 +267,42 @@ class QueryEditorToolbar extends StatelessWidget {
           _buildSplitButton(context),
         ],
       ),
+    );
+  }
+
+  /// AI Dock 开关（UI35-129~133，v0.3.5 批1 T2）：24px 见方，位于命令面板
+  /// 入口（⌘K）左侧 4px；tap = `toggleAiPanel()`（只开合经典 dock，不进
+  /// 工作台、不新增快捷键）；点亮条件 `aiPanelOpen && !aiPanelFullscreen`
+  /// （开态 accentSubtle 底 + accent 描边）。isWorkspaceMode 下恒显
+  /// （在四芯片隐藏块之外渲染）。⌘K 徽章/键位/交互零改动。
+  Widget _aiDockToggle(BuildContext context, AppLocalizations l10n) {
+    return Consumer<AppProvider>(
+      builder: (context, provider, _) {
+        final colors = context.themeColors;
+        final bool active = provider.aiPanelOpen && !provider.aiPanelFullscreen;
+        return Tooltip(
+          message: l10n.aiDockToggleTooltip,
+          child: InkWell(
+            key: kEditorToolbarAiDockToggle,
+            onTap: provider.toggleAiPanel,
+            borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: active ? colors.accentSubtle : Colors.transparent,
+                borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
+                border: active ? Border.all(color: colors.accentBlue) : null,
+              ),
+              child: Icon(
+                LucideIcons.sparkles,
+                size: 14,
+                color: active ? colors.accentBlue : colors.textSecondary,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

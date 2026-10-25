@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../providers/layout_preferences_provider.dart';
+import '../../services/layout_preferences_service.dart';
 import '../../theme/app_theme.dart';
 
 /// 启动初始化阶段（UIRV-B4）。
@@ -43,6 +46,7 @@ class BootShell extends StatelessWidget {
     this.stage = BootStage.generic,
     this.errorDetail,
     this.onRetry,
+    this.sidebarWidth,
   });
 
   /// 当前初始化阶段（驱动阶段文案行）。
@@ -54,6 +58,11 @@ class BootShell extends StatelessWidget {
   /// 错误卡重试按钮回调（= 重跑初始化序列）；null 时按钮禁用。
   final VoidCallback? onRetry;
 
+  /// 侧栏宽度真相（UI35-151）：生产由 BootShellHost 从
+  /// LayoutPreferencesProvider 解析后透传；null 时回落
+  /// LayoutPreferencesService.defaultSidebarWidth。
+  final double? sidebarWidth;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.themeColors;
@@ -61,24 +70,49 @@ class BootShell extends StatelessWidget {
     // main.dart 启动壳经 AppLocalizations.localizationsDelegates 注册
     //（UIRV-B4 打回修复；无 delegates 的宿主会取到 null）。
     final l10n = AppLocalizations.of(context)!;
+    // 宽度真相（UI35-151 / 裁决 #13）：侧栏骨架宽跟随运行时偏好；provider
+    // 未注入或未加载完成时回落服务层默认宽（与真实首帧的侧栏渲染一致）。
+    final sidebarWidth =
+        this.sidebarWidth ?? LayoutPreferencesService.defaultSidebarWidth;
 
     return Scaffold(
       backgroundColor: colors.bgPrimary,
-      body: Stack(
-        children: [
-          // 结构骨架：描述即将到来的侧栏 / 编辑器 / 网格布局（纯静态色块）。
-          Positioned.fill(child: _BootSkeleton(colors: colors)),
-          Center(
-            child: errorDetail != null
-                ? _BootErrorCard(
-                    colors: colors,
-                    l10n: l10n,
-                    detail: errorDetail ?? '',
-                    onRetry: onRetry,
-                  )
-                : _BootStatus(colors: colors, l10n: l10n, stage: stage),
-          ),
-        ],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final windowWidth = constraints.maxWidth;
+          // UI35-153：状态区/错误卡锚定主区中心（x = sidebarWidth +
+          // (W − sidebarWidth)/2），与主区 400 宽欢迎卡同坐标——换壳后内容
+          // 不横跳；不再用窗口 Center（会落在侧栏骨架之上）。
+          final mainRegionLeft = sidebarWidth;
+          return Stack(
+            children: [
+              // 结构骨架：描述即将到来的侧栏 / 编辑器 / 网格布局（纯静态色块）。
+              Positioned.fill(
+                child: _BootSkeleton(
+                  colors: colors,
+                  sidebarWidth: sidebarWidth,
+                ),
+              ),
+              Positioned(
+                key: const ValueKey('uirvBootStatusRegion'),
+                left: mainRegionLeft,
+                top: 0,
+                bottom: 0,
+                width: windowWidth - mainRegionLeft,
+                child: Center(
+                  child: errorDetail != null
+                      ? _BootErrorCard(
+                          colors: colors,
+                          l10n: l10n,
+                          detail: errorDetail ?? '',
+                          onRetry: onRetry,
+                        )
+                      : _BootStatus(colors: colors, l10n: l10n, stage: stage),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -231,8 +265,27 @@ class BootShellHost extends StatelessWidget {
         stage: stage,
         errorDetail: errorDetail,
         onRetry: onRetry,
+        // 宽度真相（UI35-151 / 裁决 #13）：启动序列期间 provider 尚未创建
+        //（LayoutPreferencesProvider 在 DbmasterApp 内注册），回落服务层
+        // 默认宽；provider 已就绪时跟随运行时 sidebarWidth。
+        sidebarWidth: _resolveSidebarWidth(context),
       ),
     );
+  }
+
+  /// 从上游解析侧栏宽度真相；provider 缺席或未加载完成时返回 null
+  ///（由 [BootShell] 回落 [LayoutPreferencesService.defaultSidebarWidth]）。
+  double? _resolveSidebarWidth(BuildContext context) {
+    try {
+      final prefs = Provider.of<LayoutPreferencesProvider>(
+        context,
+        listen: false,
+      );
+      if (prefs.isLoaded) return prefs.sidebarWidth;
+    } on ProviderNotFoundException {
+      // 启动壳阶段 provider 尚未创建（生产常态）：走默认宽回落。
+    }
+    return null;
   }
 }
 
@@ -306,12 +359,16 @@ class _BootErrorCard extends StatelessWidget {
   }
 }
 
-/// 工作区结构骨架：左侧栏（搜索 + 树行缩进节奏）+ 主区（tab 条 / 编辑器 / 网格）。
-/// 纯静态色块，不随时间变化（骨架不闪烁）；颜色经 ThemeColors 分发（bg 层级）。
+/// 工作区结构骨架：左侧栏（搜索 + 树行缩进节奏）+ 主区（tab 条 / 编辑器 / 网格）
+/// + 底部状态栏。纯静态色块，不随时间变化（骨架不闪烁）；颜色经 ThemeColors
+/// 分发（bg 层级）。侧栏宽跟随运行时偏好（UI35-151），色块宽度按可用宽钳制。
 class _BootSkeleton extends StatelessWidget {
-  const _BootSkeleton({required this.colors});
+  const _BootSkeleton({required this.colors, required this.sidebarWidth});
 
   final ThemeColors colors;
+
+  /// 侧栏宽度真相（provider 值或服务层默认，已在 [BootShell] 回落）。
+  final double sidebarWidth;
 
   Widget _bar(double height, double width, Color color, {double? indent}) {
     return Padding(
@@ -327,56 +384,88 @@ class _BootSkeleton extends StatelessWidget {
     );
   }
 
+  /// 树行色块按注入宽钳制（不写死基准宽），窄侧栏不溢出。
+  double _treeWidth(double nominal, double available) =>
+      nominal > available ? available : nominal;
+
   @override
   Widget build(BuildContext context) {
+    final innerWidth =
+        sidebarWidth - AppDesignSystem.space4 * 2; // 减去侧栏左右内距
     return KeyedSubtree(
       key: const ValueKey('uirvBootSkeleton'),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
         children: [
-          // 侧栏骨架：搜索条 + 缩进树行。
-          SizedBox(
-            width: 260,
-            child: Padding(
-              padding: const EdgeInsets.all(AppDesignSystem.space4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _bar(28, double.infinity, colors.bgTertiary),
-                  const SizedBox(height: AppDesignSystem.space3),
-                  _bar(12, 220, colors.bgTertiary),
-                  const SizedBox(height: AppDesignSystem.space2),
-                  _bar(12, 190, colors.bgTertiary, indent: 16),
-                  const SizedBox(height: AppDesignSystem.space2),
-                  _bar(12, 160, colors.bgTertiary, indent: 32),
-                  const SizedBox(height: AppDesignSystem.space2),
-                  _bar(12, 150, colors.bgTertiary, indent: 32),
-                  const SizedBox(height: AppDesignSystem.space2),
-                  _bar(12, 180, colors.bgTertiary, indent: 16),
-                  const SizedBox(height: AppDesignSystem.space2),
-                  _bar(12, 140, colors.bgTertiary, indent: 32),
-                ],
-              ),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 侧栏骨架：搜索条 + 缩进树行（宽度跟随运行时偏好）。
+                SizedBox(
+                  key: const ValueKey('uirvBootSidebarSkeleton'),
+                  width: sidebarWidth,
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppDesignSystem.space4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _bar(28, double.infinity, colors.bgTertiary),
+                        const SizedBox(height: AppDesignSystem.space3),
+                        _bar(12, _treeWidth(220, innerWidth), colors.bgTertiary),
+                        const SizedBox(height: AppDesignSystem.space2),
+                        _bar(12, _treeWidth(190, innerWidth), colors.bgTertiary, indent: 16),
+                        const SizedBox(height: AppDesignSystem.space2),
+                        _bar(12, _treeWidth(160, innerWidth - 32), colors.bgTertiary, indent: 32),
+                        const SizedBox(height: AppDesignSystem.space2),
+                        _bar(12, _treeWidth(150, innerWidth - 32), colors.bgTertiary, indent: 32),
+                        const SizedBox(height: AppDesignSystem.space2),
+                        _bar(12, _treeWidth(180, innerWidth - 16), colors.bgTertiary, indent: 16),
+                        const SizedBox(height: AppDesignSystem.space2),
+                        _bar(12, _treeWidth(140, innerWidth - 32), colors.bgTertiary, indent: 32),
+                      ],
+                    ),
+                  ),
+                ),
+                // 主区骨架：tab 条 + 编辑器行 + 网格行。
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppDesignSystem.space4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _bar(28, 320, colors.bgTertiary),
+                        const SizedBox(height: AppDesignSystem.space3),
+                        _bar(12, 480, colors.bgTertiary),
+                        const SizedBox(height: AppDesignSystem.space2),
+                        _bar(12, 420, colors.bgTertiary),
+                        const SizedBox(height: AppDesignSystem.space2),
+                        _bar(12, 460, colors.bgTertiary),
+                        const SizedBox(height: AppDesignSystem.space2),
+                        _bar(12, 300, colors.bgTertiary),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          // 主区骨架：tab 条 + 编辑器行 + 网格行。
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(AppDesignSystem.space4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _bar(28, 320, colors.bgTertiary),
-                  const SizedBox(height: AppDesignSystem.space3),
-                  _bar(12, 480, colors.bgTertiary),
-                  const SizedBox(height: AppDesignSystem.space2),
-                  _bar(12, 420, colors.bgTertiary),
-                  const SizedBox(height: AppDesignSystem.space2),
-                  _bar(12, 460, colors.bgTertiary),
-                  const SizedBox(height: AppDesignSystem.space2),
-                  _bar(12, 300, colors.bgTertiary),
-                ],
-              ),
+          // UI35-152：24px 状态栏骨架（3 个 6px 色块），沿 _bar 静态风格。
+          Container(
+            key: const ValueKey('uirvBootStatusbarSkeleton'),
+            height: AppDesignSystem.statusHeight,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppDesignSystem.space4,
+            ),
+            alignment: Alignment.centerLeft,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _bar(6, 80, colors.bgTertiary),
+                const SizedBox(width: 3),
+                _bar(6, 56, colors.bgTertiary),
+                const SizedBox(width: 3),
+                _bar(6, 40, colors.bgTertiary),
+              ],
             ),
           ),
         ],

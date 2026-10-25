@@ -11698,4 +11698,21 @@ class AppLocalizationsRu extends AppLocalizations {
   String uirvDockContextChangeConnection(String connectionName) {
     return 'Сменить ИИ-подключение: $connectionName';
   }
+
+  @override
+  String connectionTooltipTypeVersion(String type, String version) {
+    return '$type · сервер $version (определено)';
+  }
+
+  @override
+  String connectionTooltipTypeOnly(String type) {
+    return '$type · версия не определена';
+  }
+
+  @override
+  String get aiDockToggleTooltip =>
+      'Показать или скрыть ИИ-помощника (Ctrl+Shift+A)';
+
+  @override
+  String get filterDraftDotTooltip => 'Есть неприменённые изменения фильтра';
 }

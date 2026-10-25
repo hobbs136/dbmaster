@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../theme/app_theme.dart';
@@ -34,6 +36,10 @@ class TreeItem extends StatefulWidget {
   /// 完整路径）；null 回退用 subtitle 本身（ellipsis 时悬停可读全值）。
   final String? subtitleTooltip;
 
+  /// v0.3.5 T1：主行名 tooltip 覆盖（根行 = 类型/版本行 + 完整连接名，
+  /// 配合中间省略——长名截短渲染后悬停仍可读全值）；null 回退 label。
+  final String? labelTooltip;
+
   const TreeItem({
     super.key,
     required this.level,
@@ -45,6 +51,7 @@ class TreeItem extends StatefulWidget {
     this.badge,
     this.subtitle,
     this.subtitleTooltip,
+    this.labelTooltip,
     this.isExpanded = false,
     this.isSelected = false,
     this.isLoading = false,
@@ -63,6 +70,23 @@ class TreeItem extends StatefulWidget {
 
 class _TreeItemState extends State<TreeItem> {
   bool _isHovered = false;
+
+  /// v0.3.5 T1：副行淡出过渡期间保留的上一帧副行文本（subtitle 置 null
+  /// 后由 AnimatedOpacity 100ms 淡出，onEnd 后清空回收）。
+  String? _fadingSubtitle;
+
+  @override
+  void didUpdateWidget(covariant TreeItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.subtitle != null && widget.subtitle == null) {
+      _fadingSubtitle = oldWidget.subtitle;
+    } else if (widget.subtitle != null) {
+      _fadingSubtitle = null;
+    }
+  }
+
+  /// v0.3.5 T1：系统「减弱动态效果」开启时过渡时长归零。
+  bool get _animationsDisabled => MediaQuery.disableAnimationsOf(context);
 
   double get _itemHeight {
     switch (widget.level) {
@@ -151,8 +175,16 @@ class _TreeItemState extends State<TreeItem> {
             ? (details) => widget.onContextMenu!(details.globalPosition)
             : null,
         behavior: HitTestBehavior.opaque,
-        child: Container(
+        // v0.3.5 T1（Epic 1.1）：行高 36↔28 过渡（副行显隐）200ms +
+        // curveDefault；disableAnimations 时 0ms。clipBehavior 收敛过渡
+        // 期间副行的越界绘制。
+        child: AnimatedContainer(
+          duration: _animationsDisabled
+              ? Duration.zero
+              : const Duration(milliseconds: 200),
+          curve: AppDesignSystem.curveDefault,
           height: _itemHeight,
+          clipBehavior: Clip.hardEdge,
           margin: _hasBackground
               ? EdgeInsets.symmetric(
                   horizontal: AppDesignSystem.space1,
@@ -252,17 +284,17 @@ class _TreeItemState extends State<TreeItem> {
           child:
               widget.labelWidget ??
               Tooltip(
-                // ellipsis 截断时悬停可见完整名（契约 C6）；label 为空时不触发
-                message: widget.label ?? '',
-                child: Text(
-                  widget.label ?? '',
+                // ellipsis/中间省略截断时悬停可见完整名（契约 C6 +
+                // v0.3.5 T1 labelTooltip 覆盖）；label 为空时不触发
+                message: widget.labelTooltip ?? widget.label ?? '',
+                child: _MiddleEllipsisText(
+                  text: widget.label ?? '',
                   style: TextStyle(
                     fontSize: _fontSize,
                     fontWeight: _fontWeight,
                     color: widget.labelColor ?? colors.textPrimary,
                     height: 1.3,
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
         ),
@@ -275,8 +307,13 @@ class _TreeItemState extends State<TreeItem> {
       ],
     );
 
-    final subtitle = widget.subtitle;
+    // v0.3.5 T1：副行显隐带 100ms 淡出——subtitle 置 null 后保留上一帧
+    // 文本淡出（didUpdateWidget 记录，onEnd 回收）；disableAnimations 时
+    // 0ms。Flexible 收敛：行高收缩期间剩余空间不足时由 RenderParagraph
+    // 自行裁剪（无 RenderFlex overflow 告警）。
+    final subtitle = widget.subtitle ?? _fadingSubtitle;
     if (subtitle == null || subtitle.isEmpty) return row;
+    final subtitleVisible = widget.subtitle != null;
 
     // UIRV-B5 副行：mono 单行 ellipsis（mockup B5 规格表：
     // textSecondary + JetBrains Mono fallback / line-height 1.25）；
@@ -291,19 +328,32 @@ class _TreeItemState extends State<TreeItem> {
       children: [
         row,
         const SizedBox(height: AppDesignSystem.space0_5),
-        Tooltip(
-          message: tooltipMessage,
-          child: Text(
-            subtitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w400,
-              fontFamily: AppDesignSystem.monoFontFamily,
-              fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
-              height: 1.25,
-              color: colors.textSecondary,
+        Flexible(
+          child: AnimatedOpacity(
+            duration: _animationsDisabled
+                ? Duration.zero
+                : const Duration(milliseconds: 100),
+            opacity: subtitleVisible ? 1 : 0,
+            onEnd: () {
+              if (!subtitleVisible && mounted) {
+                setState(() => _fadingSubtitle = null);
+              }
+            },
+            child: Tooltip(
+              message: tooltipMessage,
+              child: Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w400,
+                  fontFamily: AppDesignSystem.monoFontFamily,
+                  fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
+                  height: 1.25,
+                  color: colors.textSecondary,
+                ),
+              ),
             ),
           ),
         ),
@@ -330,5 +380,74 @@ class _TreeItemState extends State<TreeItem> {
       );
     }
     return connectors;
+  }
+}
+
+/// v0.3.5 T1（Epic 1.1）：长名中间省略——超物理宽度时保留首段 + 尾段、
+/// 省略号居中（区别于普通 ellipsis 尾部截断）；宽度足够时原样渲染。
+/// 完整值始终经外层 Tooltip 可读。
+class _MiddleEllipsisText extends StatelessWidget {
+  final String text;
+  final TextStyle style;
+
+  const _MiddleEllipsisText({required this.text, required this.style});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth;
+        final rendered = _fittingText(
+          text,
+          style,
+          maxWidth,
+          Directionality.of(context),
+        );
+        return Text(
+          rendered,
+          maxLines: 1,
+          overflow: TextOverflow.clip,
+          style: style,
+        );
+      },
+    );
+  }
+
+  static String _fittingText(
+    String text,
+    TextStyle style,
+    double maxWidth,
+    TextDirection direction,
+  ) {
+    if (text.isEmpty || maxWidth <= 0) return text;
+    TextPainter painter(String s) => TextPainter(
+      text: TextSpan(text: s, style: style),
+      textDirection: direction,
+      maxLines: 1,
+    );
+    final full = painter(text)..layout(maxWidth: maxWidth);
+    if (!full.didExceedMaxLines) {
+      full.dispose();
+      return text;
+    }
+    // 字符预算初估（均宽），再逐字符收缩到实际可容纳。
+    var keep = ((text.length * maxWidth) / full.width).floor();
+    full.dispose();
+    keep = math.min(keep, text.length - 1);
+    String candidate = text;
+    while (keep >= 2) {
+      final headLen = keep - keep ~/ 2; // 首段 ~60%
+      final tailLen = keep ~/ 2; // 尾段 ~40%
+      final head = text.substring(0, headLen);
+      final tail = text.substring(text.length - tailLen);
+      candidate = '$head…$tail';
+      final probe = painter(candidate)..layout(maxWidth: maxWidth);
+      final fits = probe.width <= maxWidth;
+      probe.dispose();
+      if (fits) return candidate;
+      keep -= 1;
+    }
+    // 极窄兜底：仅首字符 + 省略号（交给 clip 兜底）。
+    return '${text.substring(0, 1)}…';
   }
 }

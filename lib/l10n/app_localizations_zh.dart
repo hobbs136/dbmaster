@@ -11369,6 +11369,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String uirvDockContextChangeConnection(String connectionName) {
     return '切换 AI 连接：$connectionName';
   }
+
+  @override
+  String connectionTooltipTypeVersion(String type, String version) {
+    return '$type · 服务端 $version（已探测）';
+  }
+
+  @override
+  String connectionTooltipTypeOnly(String type) {
+    return '$type · 未探测到版本';
+  }
+
+  @override
+  String get aiDockToggleTooltip => '开合 AI 助手（Ctrl+Shift+A）';
+
+  @override
+  String get filterDraftDotTooltip => '有未应用的筛选修改';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -20185,4 +20201,20 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String uirvDockContextChangeConnection(String connectionName) {
     return '切換 AI 連線：$connectionName';
   }
+
+  @override
+  String connectionTooltipTypeVersion(String type, String version) {
+    return '$type · 伺服器 $version（已偵測）';
+  }
+
+  @override
+  String connectionTooltipTypeOnly(String type) {
+    return '$type · 未偵測到版本';
+  }
+
+  @override
+  String get aiDockToggleTooltip => '開合 AI 助手（Ctrl+Shift+A）';
+
+  @override
+  String get filterDraftDotTooltip => '有未套用的篩選變更';
 }

@@ -130,11 +130,8 @@ class AppTheme {
   // ============================================================================
   // 布局尺寸（已弃用，请使用 AppDesignSystem）
   // ============================================================================
-  @Deprecated('使用 AppDesignSystem.sidebarWidth')
-  static const double sidebarWidth = AppDesignSystem.sidebarWidth;
-
-  @Deprecated('使用 AppDesignSystem.aiPanelWidth')
-  static const double aiPanelWidth = AppDesignSystem.aiPanelWidth;
+  // sidebarWidth / aiPanelWidth 已删除（裁决 #13 宽度真相收敛）：请改用
+  // LayoutPreferencesService.defaultSidebarWidth / defaultAiPanelWidth。
 
   @Deprecated('使用 AppDesignSystem.toolbarHeight')
   static const double toolbarHeight = AppDesignSystem.toolbarHeight;

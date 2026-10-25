@@ -20494,6 +20494,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Change AI connection: {connectionName}'**
   String uirvDockContextChangeConnection(String connectionName);
+
+  /// Connection item tooltip: type name with detected server version
+  ///
+  /// In en, this message translates to:
+  /// **'{type} · server {version} (detected)'**
+  String connectionTooltipTypeVersion(String type, String version);
+
+  /// Connection item tooltip: type name when server version was not detected
+  ///
+  /// In en, this message translates to:
+  /// **'{type} · version not detected'**
+  String connectionTooltipTypeOnly(String type);
+
+  /// AI dock toggle button tooltip with the keyboard shortcut
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle AI Assistant (Ctrl+Shift+A)'**
+  String get aiDockToggleTooltip;
+
+  /// Tooltip for the dot marker indicating unapplied filter changes
+  ///
+  /// In en, this message translates to:
+  /// **'Unapplied filter changes'**
+  String get filterDraftDotTooltip;
 }
 
 class _AppLocalizationsDelegate

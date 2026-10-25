@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:dbmaster/services/layout_preferences_service.dart';
 import 'package:dbmaster/theme/app_theme.dart';
 import 'package:dbmaster/organisms/connection/error_boundary.dart';
 
@@ -108,8 +109,10 @@ void main() {
     });
 
     test('AppDesignSystem layout dimensions are positive', () {
-      expect(AppDesignSystem.sidebarWidth, greaterThan(0));
-      expect(AppDesignSystem.aiPanelWidth, greaterThan(0));
+      // 裁决 #13：sidebarWidth / aiPanelWidth 视觉层常量已删除，宽度真相
+      // 收敛到 LayoutPreferencesService（运行时宽度唯一事实源）。
+      expect(LayoutPreferencesService.defaultSidebarWidth, greaterThan(0));
+      expect(LayoutPreferencesService.defaultAiPanelWidth, greaterThan(0));
       expect(AppDesignSystem.toolbarHeight, greaterThan(0));
     });
 

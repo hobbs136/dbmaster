@@ -4721,5 +4721,13 @@
   "connectionPasswordEmptyHint": "留空将以无密码方式连接；非空时才可使用「保存密码」。",
   "@connectionPasswordEmptyHint": {"description": "密码弹窗提示：留空即以无密码方式连接；「保存密码」仅在密码非空时可用"},
   "uirvDockContextChangeConnection": "切换 AI 连接：{connectionName}",
-  "@uirvDockContextChangeConnection": {"description": "UIRV-A1: connection trigger tooltip/a11y label with the current connection name", "placeholders": {"connectionName": {"type": "String"}}}
+  "@uirvDockContextChangeConnection": {"description": "UIRV-A1: connection trigger tooltip/a11y label with the current connection name", "placeholders": {"connectionName": {"type": "String"}}},
+  "connectionTooltipTypeVersion": "{type} · 服务端 {version}（已探测）",
+  "@connectionTooltipTypeVersion": {"description": "连接项提示：类型名与探测到的服务端版本", "placeholders": {"type": {"type": "String"}, "version": {"type": "String"}}},
+  "connectionTooltipTypeOnly": "{type} · 未探测到版本",
+  "@connectionTooltipTypeOnly": {"description": "连接项提示：未探测到服务端版本时的类型名", "placeholders": {"type": {"type": "String"}}},
+  "aiDockToggleTooltip": "开合 AI 助手（Ctrl+Shift+A）",
+  "@aiDockToggleTooltip": {"description": "AI 坞站开合按钮提示，含快捷键"},
+  "filterDraftDotTooltip": "有未应用的筛选修改",
+  "@filterDraftDotTooltip": {"description": "标记存在未应用筛选修改的圆点提示"}
 }

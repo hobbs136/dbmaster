@@ -70,6 +70,12 @@ class AppDesignSystem {
   /// 反色文本（用于亮色/强调色底）
   static const Color textInverted = Color(0xFF161616);
 
+  /// 已连接连接名（暗色 #FFFFFF）：侧栏连接树，v0.3.5 E1
+  static const Color connectionLabelConnected = Color(0xFFFFFFFF);
+
+  /// 未连接连接名（暗色 #A3A3A3）：侧栏连接树，v0.3.5 E1
+  static const Color connectionLabelDisconnected = Color(0xFFA3A3A3);
+
   // ==================== 边框和分隔线 - Borders & Dividers（白色低透明度，暗色） ====================
   // 对应 plan §2.2 outline / outlineVariant：borderDefault=弱分割线、borderLight=可辨识边框。
   // 深色改版：白色低透明度叠层（叠不同底色自适应），非等效实色。
@@ -190,6 +196,12 @@ class AppDesignSystem {
 
   /// 亮色禁用文字（Slate-400，梯度最底档）
   static const Color textDisabledLight = Color(0xFF94A3B8);
+
+  /// 亮色已连接连接名（Slate-900 #0F172A）：侧栏连接树，v0.3.5 E1
+  static const Color connectionLabelConnectedLight = Color(0xFF0F172A);
+
+  /// 亮色未连接连接名（Slate-500 #64748B）：侧栏连接树，v0.3.5 E1
+  static const Color connectionLabelDisconnectedLight = Color(0xFF64748B);
 
   /// 亮色边框（Slate-300 → outline）
   static const Color borderLightColorLight = Color(0xFFCBD5E1);
@@ -414,10 +426,11 @@ class AppDesignSystem {
   static const Duration animationSlow = durationSlow;
 
   // ==================== 布局尺寸 - Layout Sizes ====================
-  static const double sidebarWidth = 240.0;
+  // sidebarWidth / aiPanelWidth 已删除（裁决 #13 宽度真相收敛）：运行时宽度
+  // 与默认值以 LayoutPreferencesService.defaultSidebarWidth /
+  // defaultAiPanelWidth 为唯一事实源，不再持有视觉层平行常量。
   static const double sidebarMinWidth = 200.0;
   static const double sidebarCollapsedWidth = 44.0;
-  static const double aiPanelWidth = 360.0;
   static const double aiPanelMinWidth = 320.0;
   static const double toolbarHeight = 36.0;
   static const double statusHeight = 24.0; // plan §3.5：26→24

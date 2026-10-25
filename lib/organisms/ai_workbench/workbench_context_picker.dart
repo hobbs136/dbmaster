@@ -43,14 +43,25 @@ import 'workbench_context_change_hint.dart';
 /// AI 工作台上下文选择器（三态全态可开；选择即锁定，R2）。
 class WorkbenchContextPicker extends StatefulWidget {
   /// 创建上下文选择器。
-  const WorkbenchContextPicker({super.key});
+  ///
+  /// [onSelected] 可选：传入时确认选择改为回调写入（v0.3.5 批1 返工 T2b，
+  /// 经典 dock 紧凑卡入口用——写 dock 手动上下文而非工作台锁定），回调后
+  /// 直接关闭、不落 `lockWorkbenchContext`；null（默认）保持 R2「选择即
+  /// 锁定」语义逐字节不变（工作台入口零回归）。
+  const WorkbenchContextPicker({super.key, this.onSelected});
+
+  /// 确认选择回调（连接 id + 库名，null = 仅连接）。
+  final void Function(String connectionId, String? databaseName)? onSelected;
 
   /// 以模态对话框打开（ConnectFailureDialog.show 同款 showAnimatedDialog）。
   /// 遮罩可点关闭（取消 = 零状态变化）。
-  static Future<void> show(BuildContext context) {
+  static Future<void> show(
+    BuildContext context, {
+    void Function(String connectionId, String? databaseName)? onSelected,
+  }) {
     return context.showAnimatedDialog<void>(
       barrierDismissible: true,
-      builder: (_) => const WorkbenchContextPicker(),
+      builder: (_) => WorkbenchContextPicker(onSelected: onSelected),
     );
   }
 
@@ -344,10 +355,20 @@ class _WorkbenchContextPickerState extends State<WorkbenchContextPicker> {
     }
   }
 
-  /// 点库行 / 库栏 Enter：选择即锁定（三态语义裁决），随即关闭。
+  /// 点库行 / 库栏 Enter：选择即确认（三态语义裁决），随即关闭。
+  ///
+  /// [onSelected] 传入（经典 dock 入口）→ 回调写入后直接关闭，不落工作台
+  /// 锁定；null（工作台入口）→ 保持 R2「选择即锁定」+ run 活跃提示，逐字节
+  /// 不变。
   void _commitDatabase(String databaseName) {
     final connection = _activeConnection;
     if (connection == null) return;
+    final onSelected = widget.onSelected;
+    if (onSelected != null) {
+      onSelected(connection.id, databaseName);
+      Navigator.of(context).pop();
+      return;
+    }
     final aiPanel = context.read<AppProvider>().aiPanel;
     aiPanel.lockWorkbenchContext(connection.id, databaseName);
     // T6：run 活跃时提示「改选下次运行生效」（D15 快照契约显示面）；放在
@@ -356,10 +377,17 @@ class _WorkbenchContextPickerState extends State<WorkbenchContextPicker> {
     Navigator.of(context).pop();
   }
 
-  /// 库列表为空时允许仅锁定连接（databaseName = null）。
+  /// 库列表为空时允许仅确认连接（databaseName = null）；出口语义同
+  /// [_commitDatabase]（回调路径 / 工作台锁定路径）。
   void _lockConnectionOnly() {
     final connection = _activeConnection;
     if (connection == null) return;
+    final onSelected = widget.onSelected;
+    if (onSelected != null) {
+      onSelected(connection.id, null);
+      Navigator.of(context).pop();
+      return;
+    }
     final aiPanel = context.read<AppProvider>().aiPanel;
     aiPanel.lockWorkbenchContext(connection.id, null);
     WorkbenchContextChangeHint.showIfRunActive(context, aiPanel);

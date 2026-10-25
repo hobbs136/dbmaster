@@ -11714,4 +11714,20 @@ class AppLocalizationsDe extends AppLocalizations {
   String uirvDockContextChangeConnection(String connectionName) {
     return 'KI-Verbindung wechseln: $connectionName';
   }
+
+  @override
+  String connectionTooltipTypeVersion(String type, String version) {
+    return '$type · Server $version (erkannt)';
+  }
+
+  @override
+  String connectionTooltipTypeOnly(String type) {
+    return '$type · Version nicht erkannt';
+  }
+
+  @override
+  String get aiDockToggleTooltip => 'KI-Assistent umschalten (Strg+Umschalt+A)';
+
+  @override
+  String get filterDraftDotTooltip => 'Nicht angewendete Filteränderungen';
 }

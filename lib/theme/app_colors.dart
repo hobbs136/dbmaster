@@ -91,6 +91,16 @@ class ThemeColors {
   /// 转发既有 AppDesignSystem.textInverted：零新色值，两主题同值。
   Color get textInverted => AppDesignSystem.textInverted;
 
+  /// 已连接连接名（v0.3.5 E1 侧栏连接名专用）
+  Color get connectionLabelConnected => _isDark
+      ? AppDesignSystem.connectionLabelConnected
+      : AppDesignSystem.connectionLabelConnectedLight;
+
+  /// 未连接连接名（v0.3.5 E1 侧栏连接名专用）
+  Color get connectionLabelDisconnected => _isDark
+      ? AppDesignSystem.connectionLabelDisconnected
+      : AppDesignSystem.connectionLabelDisconnectedLight;
+
   // Border colors
   Color get borderColor => Theme.of(_ctx).colorScheme.outline;
   Color get borderLight => _isDark
