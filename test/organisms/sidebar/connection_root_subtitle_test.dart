@@ -318,6 +318,32 @@ void main() {
       );
     });
 
+    testWidgets('品牌色恒定：未连接根行类型图标仍用 brandColor（对齐折叠 rail）', (
+      tester,
+    ) async {
+      // 真机走查裁决：展开树连接根行图标恒用品牌色，连接态由状态点/
+      // 子树灰化承载，颜色不再编码连接态（未连接不再灰化为 textSecondary）。
+      final provider = _SwitchSpyProvider();
+      provider.connection.addSavedServerForTest(
+        _server('conn-a', 'mysql-8.0', host: '127.0.0.1'),
+      );
+      // 未连接：不调用 _connectForTest。
+
+      await tester.pumpWidget(
+        _buildTestApp(provider, child: _tree(provider)),
+      );
+      await tester.pumpAndSettle();
+
+      final item = _treeItemOf(tester, 'mysql-8.0');
+      // mysql 走 brandColor 的 default 分支，亮/暗主题同值。
+      expect(item.iconColor, DatabaseType.mysql.brandColor);
+      // 连接态语义不丢：未连接不显示展开箭头，状态点 trailing 仍在。
+      expect(item.showArrow, isFalse);
+      expect(item.trailing, isNotNull);
+      // 环境色条语义既有验收4已覆盖，不重复。
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('验收4：环境色条仍随根行传入（ConnectionEnvironment 同源）', (tester) async {
       final provider = _SwitchSpyProvider();
       provider.connection.addSavedServerForTest(

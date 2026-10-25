@@ -11315,19 +11315,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get resultsFilterApplyFailed => '筛选应用失败——详情见结果区';
 
   @override
-  String get uirvDockContextFollow => '自动跟随 · 当前上下文';
+  String get uirvDockContextFollow => '自动跟随';
 
   @override
-  String get uirvDockContextManual => '已手动选择';
-
-  @override
-  String get uirvDockContextManualSelect => '手动改选';
+  String get uirvDockContextManual => '手动指定 AI 上下文';
 
   @override
   String get uirvDockContextRestoreFollow => '恢复跟随';
-
-  @override
-  String get uirvDockContextNoTable => '未指定表';
 
   @override
   String get uirvDockContextEmptyTitle => '未设置连接';
@@ -11370,6 +11364,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get connectionPasswordEmptyHint => '留空将以无密码方式连接；非空时才可使用「保存密码」。';
+
+  @override
+  String uirvDockContextChangeConnection(String connectionName) {
+    return '切换 AI 连接：$connectionName';
+  }
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -20132,19 +20131,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get resultsFilterApplyFailed => '篩選套用失敗——詳情見結果區';
 
   @override
-  String get uirvDockContextFollow => '自動跟隨 · 當前上下文';
+  String get uirvDockContextFollow => '自動跟隨';
 
   @override
-  String get uirvDockContextManual => '已手動選擇';
-
-  @override
-  String get uirvDockContextManualSelect => '手動改選';
+  String get uirvDockContextManual => '手動指定 AI 上下文';
 
   @override
   String get uirvDockContextRestoreFollow => '恢復跟隨';
-
-  @override
-  String get uirvDockContextNoTable => '未指定資料表';
 
   @override
   String get uirvDockContextEmptyTitle => '未設定連線';
@@ -20187,4 +20180,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get connectionPasswordEmptyHint => '留空將以無密碼方式連線；非空時才可使用「儲存密碼」。';
+
+  @override
+  String uirvDockContextChangeConnection(String connectionName) {
+    return '切換 AI 連線：$connectionName';
+  }
 }

@@ -11643,19 +11643,13 @@ class AppLocalizationsRu extends AppLocalizations {
       'Не удалось применить фильтр — подробности в результатах';
 
   @override
-  String get uirvDockContextFollow => 'Автоследование · текущий контекст';
+  String get uirvDockContextFollow => 'Автоследование';
 
   @override
-  String get uirvDockContextManual => 'Выбрано вручную';
-
-  @override
-  String get uirvDockContextManualSelect => 'Выбрать вручную';
+  String get uirvDockContextManual => 'Контекст ИИ задан вручную';
 
   @override
   String get uirvDockContextRestoreFollow => 'Вернуть следование';
-
-  @override
-  String get uirvDockContextNoTable => 'Таблица не указана';
 
   @override
   String get uirvDockContextEmptyTitle => 'Подключение не задано';
@@ -11699,4 +11693,9 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get connectionPasswordEmptyHint =>
       'Оставьте пустым для подключения без пароля; «Сохранить пароль» доступно только при введённом пароле.';
+
+  @override
+  String uirvDockContextChangeConnection(String connectionName) {
+    return 'Сменить ИИ-подключение: $connectionName';
+  }
 }

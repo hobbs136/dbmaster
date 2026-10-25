@@ -20390,32 +20390,20 @@ abstract class AppLocalizations {
   /// UIRV-A1: dock context card follow-mode label
   ///
   /// In en, this message translates to:
-  /// **'Auto-follow · current context'**
+  /// **'Auto-follow'**
   String get uirvDockContextFollow;
 
   /// UIRV-A1: dock context card manual-override label
   ///
   /// In en, this message translates to:
-  /// **'Manually selected'**
+  /// **'Manually set AI context'**
   String get uirvDockContextManual;
-
-  /// UIRV-A1: dock context card entry to pick a connection manually
-  ///
-  /// In en, this message translates to:
-  /// **'Manual select'**
-  String get uirvDockContextManualSelect;
 
   /// UIRV-A1: dock context card action to return to follow mode
   ///
   /// In en, this message translates to:
   /// **'Restore follow'**
   String get uirvDockContextRestoreFollow;
-
-  /// UIRV-A1: path-line placeholder when no browse table target
-  ///
-  /// In en, this message translates to:
-  /// **'No table specified'**
-  String get uirvDockContextNoTable;
 
   /// UIRV-A1: EMPTY state title when all three anchor levels are empty
   ///
@@ -20500,6 +20488,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Leave empty to connect without a password; Save Password is only available when a password is entered.'**
   String get connectionPasswordEmptyHint;
+
+  /// UIRV-A1: connection trigger tooltip/a11y label with the current connection name
+  ///
+  /// In en, this message translates to:
+  /// **'Change AI connection: {connectionName}'**
+  String uirvDockContextChangeConnection(String connectionName);
 }
 
 class _AppLocalizationsDelegate

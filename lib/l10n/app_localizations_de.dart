@@ -11659,19 +11659,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Filter konnte nicht angewendet werden – Details im Ergebnisbereich';
 
   @override
-  String get uirvDockContextFollow => 'Automatisch folgen · aktueller Kontext';
+  String get uirvDockContextFollow => 'Automatisch folgen';
 
   @override
-  String get uirvDockContextManual => 'Manuell ausgewählt';
-
-  @override
-  String get uirvDockContextManualSelect => 'Manuell wählen';
+  String get uirvDockContextManual => 'KI-Kontext manuell festgelegt';
 
   @override
   String get uirvDockContextRestoreFollow => 'Folgen wiederherstellen';
-
-  @override
-  String get uirvDockContextNoTable => 'Keine Tabelle angegeben';
 
   @override
   String get uirvDockContextEmptyTitle => 'Keine Verbindung festgelegt';
@@ -11715,4 +11709,9 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get connectionPasswordEmptyHint =>
       'Leer lassen, um ohne Passwort zu verbinden; „Passwort speichern“ ist nur bei eingegebenem Passwort verfügbar.';
+
+  @override
+  String uirvDockContextChangeConnection(String connectionName) {
+    return 'KI-Verbindung wechseln: $connectionName';
+  }
 }

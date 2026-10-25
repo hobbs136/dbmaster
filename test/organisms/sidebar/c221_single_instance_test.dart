@@ -14,6 +14,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:dbmaster/l10n/app_localizations.dart';
+import 'package:dbmaster/l10n/app_localizations_en.dart';
 import 'package:dbmaster/models/database_models.dart' hide QueryTab;
 import 'package:dbmaster/providers/tab_provider.dart' show QueryTab;
 import 'package:dbmaster/organisms/sidebar/sidebar_footer.dart';
@@ -221,7 +222,7 @@ void main() {
       expect(settingsCalled, isTrue);
     });
 
-    testWidgets('AI 按钮点击切换 aiPanelOpen（激活高亮）', (tester) async {
+    testWidgets('AI 键 = 经典 dock 开合（非全屏；tooltip；再点关闭）', (tester) async {
       final provider = AppProvider();
 
       await tester.pumpWidget(
@@ -231,8 +232,40 @@ void main() {
         ),
       );
 
+      // tooltip 口径：开合经典 dock（aiAssistantOpenTooltip），非进入工作台。
+      expect(
+        find.byTooltip(AppLocalizationsEn().aiAssistantOpenTooltip),
+        findsOneWidget,
+      );
+
       await tester.tap(find.byIcon(LucideIcons.sparkles));
       await tester.pump();
+      expect(provider.aiPanelOpen, isTrue, reason: '第一击打开经典 dock');
+      expect(
+        provider.aiPanelFullscreen,
+        isFalse,
+        reason: 'footer 键不再进入工作台（全屏）',
+      );
+
+      await tester.tap(find.byIcon(LucideIcons.sparkles));
+      await tester.pump();
+      expect(provider.aiPanelOpen, isFalse, reason: '再点关闭 dock');
+    });
+
+    testWidgets('工作台入口不受影响：toggleAiPanelFullscreen 后仍进全屏', (tester) async {
+      final provider = AppProvider();
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          provider,
+          child: SidebarFooter(onShowSettings: () {}),
+        ),
+      );
+
+      provider.toggleAiPanel();
+      provider.toggleAiPanelFullscreen();
+      await tester.pump();
+      expect(provider.aiPanelFullscreen, isTrue);
       expect(provider.aiPanelOpen, isTrue);
     });
   });

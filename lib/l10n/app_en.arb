@@ -7755,16 +7755,12 @@
   "@resultsFilterEntry": {"description": "UIRV-A41: results toolbar filter entry label"},
   "resultsFilterApplyFailed": "Filter apply failed — see the result details",
   "@resultsFilterApplyFailed": {"description": "UIRV-A41: results toolbar filter entry label / popup apply-failure note"},
-  "uirvDockContextFollow": "Auto-follow · current context",
+  "uirvDockContextFollow": "Auto-follow",
   "@uirvDockContextFollow": {"description": "UIRV-A1: dock context card follow-mode label"},
-  "uirvDockContextManual": "Manually selected",
+  "uirvDockContextManual": "Manually set AI context",
   "@uirvDockContextManual": {"description": "UIRV-A1: dock context card manual-override label"},
-  "uirvDockContextManualSelect": "Manual select",
-  "@uirvDockContextManualSelect": {"description": "UIRV-A1: dock context card entry to pick a connection manually"},
   "uirvDockContextRestoreFollow": "Restore follow",
   "@uirvDockContextRestoreFollow": {"description": "UIRV-A1: dock context card action to return to follow mode"},
-  "uirvDockContextNoTable": "No table specified",
-  "@uirvDockContextNoTable": {"description": "UIRV-A1: path-line placeholder when no browse table target"},
   "uirvDockContextEmptyTitle": "No connection set",
   "@uirvDockContextEmptyTitle": {"description": "UIRV-A1: EMPTY state title when all three anchor levels are empty"},
   "uirvDockContextChooseConnection": "Choose a connection",
@@ -7792,5 +7788,7 @@
   "uirvBootErrorTitle": "Startup problem",
   "@uirvBootErrorTitle": {"description": "UIRV-B4: boot error card title when initialization fails unexpectedly"},
   "connectionPasswordEmptyHint": "Leave empty to connect without a password; Save Password is only available when a password is entered.",
-  "@connectionPasswordEmptyHint": {"description": "Password prompt helper: empty input connects without a password; Save Password applies only to a non-empty password"}
+  "@connectionPasswordEmptyHint": {"description": "Password prompt helper: empty input connects without a password; Save Password applies only to a non-empty password"},
+  "uirvDockContextChangeConnection": "Change AI connection: {connectionName}",
+  "@uirvDockContextChangeConnection": {"description": "UIRV-A1: connection trigger tooltip/a11y label with the current connection name", "placeholders": {"connectionName": {"type": "String"}}}
 }

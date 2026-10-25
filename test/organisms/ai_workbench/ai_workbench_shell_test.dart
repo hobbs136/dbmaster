@@ -3,7 +3,8 @@
 // 覆盖：AC1.3 对话为主体 / AC1.1 启动默认经典与进入退出 / AC2.1 发送入流
 // / AC2.2 会话流复用 provider / AC2.3 同源 / AC9.1 欢迎态 / AC9.2 加载骨架
 // / AC9.3 请求失败错误态 / AC1.6 死页面删除静态断言 / §3.1 footer AI 键
-// 进入工作台 / 统计接线（recordEntry / recordSession）。
+// 开合经典 dock（工作台入口经全屏钮/快捷键，footer 不再直接进工作台）
+// / 统计接线（recordEntry / recordSession）。
 import 'dart:async' show unawaited;
 import 'dart:io';
 
@@ -414,36 +415,54 @@ void main() {
     });
   });
 
-  group('§3.1 入口：侧栏 footer AI 键进入工作台', () {
-    testWidgets(
-      'footer AI 键 = setAiPanelOpen(true)+setAiPanelFullscreen(true)',
-      (tester) async {
-        final app = AppProvider();
-        await tester.pumpWidget(
-          MultiProvider(
-            providers: [
-              ChangeNotifierProvider<AppProvider>.value(value: app),
-              ChangeNotifierProvider<ThemeProvider>.value(
-                value: ThemeProvider(),
-              ),
-            ],
-            child: MaterialApp(
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-              locale: const Locale('en'),
-              home: Scaffold(body: SidebarFooter(onShowSettings: () {})),
+  // B9 口径变更：footer AI 键 = 开合经典 dock（toggleAiPanel），不再直接
+  // 进入工作台；工作台入口 = dock 头部全屏钮 / Ctrl+Shift+G / 命令面板。
+  group('§3.1 入口：footer AI 键开合经典 dock；工作台入口经全屏切换', () {
+    testWidgets('footer AI 键 = toggleAiPanel()（开 dock 非全屏，再点关闭）',
+        (tester) async {
+      final app = AppProvider();
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<AppProvider>.value(value: app),
+            ChangeNotifierProvider<ThemeProvider>.value(
+              value: ThemeProvider(),
             ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('en'),
+            home: Scaffold(body: SidebarFooter(onShowSettings: () {})),
           ),
-        );
+        ),
+      );
 
-        expect(app.aiPanelOpen, isFalse);
-        expect(app.aiPanelFullscreen, isFalse);
+      expect(app.aiPanelOpen, isFalse);
+      expect(app.aiPanelFullscreen, isFalse);
 
-        await tester.tap(find.byIcon(LucideIcons.sparkles));
+      await tester.tap(find.byIcon(LucideIcons.sparkles));
+      await tester.pumpAndSettle();
+
+      expect(app.aiPanelOpen, isTrue, reason: 'footer 键打开经典 dock');
+      expect(app.aiPanelFullscreen, isFalse, reason: 'footer 键不再进入工作台');
+
+      await tester.tap(find.byIcon(LucideIcons.sparkles));
+      await tester.pumpAndSettle();
+      expect(app.aiPanelOpen, isFalse, reason: '再点关闭 dock');
+    });
+
+    testWidgets(
+      '工作台入口仍可用：toggleAiPanelFullscreen 后 shell 渲染',
+      (tester) async {
+        final app = await pumpShell(tester, enterWorkbench: false);
+        app.toggleAiPanel();
+        app.toggleAiPanelFullscreen();
         await tester.pumpAndSettle();
 
-        expect(app.aiPanelOpen, isTrue, reason: 'footer 键打开 AI 面（工作台）');
-        expect(app.aiPanelFullscreen, isTrue, reason: 'footer 键进入工作台（fs）');
+        expect(app.aiPanelOpen, isTrue);
+        expect(app.aiPanelFullscreen, isTrue);
+        expect(find.byType(AiWorkbenchShell), findsOneWidget);
       },
     );
   });

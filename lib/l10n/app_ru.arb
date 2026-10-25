@@ -3963,16 +3963,12 @@
   "@resultsFilterEntry": {},
   "resultsFilterApplyFailed": "Не удалось применить фильтр — подробности в результатах",
   "@resultsFilterApplyFailed": {},
-  "uirvDockContextFollow": "Автоследование · текущий контекст",
+  "uirvDockContextFollow": "Автоследование",
   "@uirvDockContextFollow": {},
-  "uirvDockContextManual": "Выбрано вручную",
+  "uirvDockContextManual": "Контекст ИИ задан вручную",
   "@uirvDockContextManual": {},
-  "uirvDockContextManualSelect": "Выбрать вручную",
-  "@uirvDockContextManualSelect": {},
   "uirvDockContextRestoreFollow": "Вернуть следование",
   "@uirvDockContextRestoreFollow": {},
-  "uirvDockContextNoTable": "Таблица не указана",
-  "@uirvDockContextNoTable": {},
   "uirvDockContextEmptyTitle": "Подключение не задано",
   "@uirvDockContextEmptyTitle": {},
   "uirvDockContextChooseConnection": "Выбрать подключение",
@@ -4000,5 +3996,7 @@
   "uirvBootErrorTitle": "Проблема при запуске",
   "@uirvBootErrorTitle": {},
   "connectionPasswordEmptyHint": "Оставьте пустым для подключения без пароля; «Сохранить пароль» доступно только при введённом пароле.",
-  "@connectionPasswordEmptyHint": {"description": "Подсказка в окне пароля: пустое поле — подключение без пароля; Сохранить пароль только при непустом пароле"}
+  "@connectionPasswordEmptyHint": {"description": "Подсказка в окне пароля: пустое поле — подключение без пароля; Сохранить пароль только при непустом пароле"},
+  "uirvDockContextChangeConnection": "Сменить ИИ-подключение: {connectionName}",
+  "@uirvDockContextChangeConnection": {"description": "UIRV-A1: connection trigger tooltip/a11y label with the current connection name", "placeholders": {"connectionName": {"type": "String"}}}
 }

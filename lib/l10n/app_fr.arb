@@ -3963,16 +3963,12 @@
   "@resultsFilterEntry": {},
   "resultsFilterApplyFailed": "Échec de l'application du filtre — voir les détails dans les résultats",
   "@resultsFilterApplyFailed": {},
-  "uirvDockContextFollow": "Suivi auto · contexte actuel",
+  "uirvDockContextFollow": "Suivi auto",
   "@uirvDockContextFollow": {},
-  "uirvDockContextManual": "Sélection manuelle",
+  "uirvDockContextManual": "Contexte IA défini manuellement",
   "@uirvDockContextManual": {},
-  "uirvDockContextManualSelect": "Choix manuel",
-  "@uirvDockContextManualSelect": {},
   "uirvDockContextRestoreFollow": "Reprendre le suivi",
   "@uirvDockContextRestoreFollow": {},
-  "uirvDockContextNoTable": "Aucune table spécifiée",
-  "@uirvDockContextNoTable": {},
   "uirvDockContextEmptyTitle": "Aucune connexion définie",
   "@uirvDockContextEmptyTitle": {},
   "uirvDockContextChooseConnection": "Choisir une connexion",
@@ -4000,5 +3996,7 @@
   "uirvBootErrorTitle": "Problème au démarrage",
   "@uirvBootErrorTitle": {},
   "connectionPasswordEmptyHint": "Laissez vide pour vous connecter sans mot de passe ; « Enregistrer le mot de passe » n'est disponible que lorsqu'un mot de passe est saisi.",
-  "@connectionPasswordEmptyHint": {"description": "Aide du dialogue de mot de passe : champ vide = connexion sans mot de passe ; Enregistrer le mot de passe seulement si un mot de passe est saisi"}
+  "@connectionPasswordEmptyHint": {"description": "Aide du dialogue de mot de passe : champ vide = connexion sans mot de passe ; Enregistrer le mot de passe seulement si un mot de passe est saisi"},
+  "uirvDockContextChangeConnection": "Changer la connexion IA : {connectionName}",
+  "@uirvDockContextChangeConnection": {"description": "UIRV-A1: connection trigger tooltip/a11y label with the current connection name", "placeholders": {"connectionName": {"type": "String"}}}
 }

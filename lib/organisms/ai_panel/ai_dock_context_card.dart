@@ -6,6 +6,9 @@
 // MANUAL = 会话级内存覆盖（不落盘），EMPTY = 三级全空才出现。
 // 手动改选不移植工作台 ContextChip 锁定语义；本卡零连接切换
 // （无 switchToConnection / connectToServer 调用）。
+// 真机走查修订（2026-10-25）：连接行升级为恒显 chevron 的整行触发器，
+// FOLLOW/MANUAL/EMPTY 三态均可直接打开已保存连接菜单（删除原右上角
+// 「Manual select」小链接与手动态两跳流程）；表段仅在指定表时显示。
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -15,12 +18,17 @@ import '../../providers/ai_panel_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 
+/// 连接触发器稳定 Key（测试与自动化定位用）。
+const Key kAiDockContextConnectionTrigger =
+    Key('aiDockContextConnectionTrigger');
+
 /// dock 头部上下文卡。
 ///
 /// 三态由入参派生（宿主 ai_panel_widget 计算，本卡纯呈现）：
 /// - EMPTY：[connection] 为 null 且非 [isManual]（三级全空）；
 /// - MANUAL：[isManual] = true（warning 语义 + 「恢复跟随」入口）；
-/// - FOLLOW：其余（accent 语义 + 来源徽章 + 「手动改选」入口）。
+/// - FOLLOW：其余（accent 语义 + 第 1 行来源标注）。
+/// 三态的连接选择器行均可直接打开已保存连接菜单。
 class AiDockContextCard extends StatelessWidget {
   /// 生效上下文连接（FOLLOW = activeContextConnection 锚定；MANUAL = 手动
   /// 选择且仍在已保存列表，删除降级由宿主处理）。
@@ -29,13 +37,13 @@ class AiDockContextCard extends StatelessWidget {
   /// 生效库名（null = 未指定/全部库）。
   final String? databaseName;
 
-  /// 活动 browse tab 的表对象（null = 未指定表占位，不阻塞输入）。
+  /// 活动 browse tab 的表对象（null = 未指定，隐藏表段，不阻塞输入）。
   final String? tableName;
 
   /// 会话级手动覆盖标记（MANUAL 态）。
   final bool isManual;
 
-  /// FOLLOW 态实际命中的锚定级（来源徽章）；MANUAL 态不消费。
+  /// FOLLOW 态实际命中的锚定级（第 1 行来源标注）；MANUAL 态不消费。
   final AiDockContextSource? followSource;
 
   /// 手动改选候选（已保存连接列表）。
@@ -50,8 +58,8 @@ class AiDockContextCard extends StatelessWidget {
   /// MANUAL 态内联库选择器（宿主传入，通常为既有库下拉；null 不显示）。
   final Widget? databaseSelector;
 
-  /// 紧凑模式（矮面板 <420 档，44px 头）：双行卡（连接行 + 库/表行），
-  /// 来源徽章与完整态脚注省略（自决：高度预算内保连接/库表两级语义）。
+  /// 紧凑模式（矮面板 <420 档，44px 头）：两行卡（连接行 + 库/表行），
+  /// 来源标注与库型徽章省略（高度预算内保连接/库表两级语义）。
   final bool compact;
 
   const AiDockContextCard({
@@ -79,34 +87,25 @@ class AiDockContextCard extends StatelessWidget {
     }
 
     if (conn == null && !isManual) {
+      // EMPTY：单行整行触发器（状态点 + 空态文案 + chevron）。
       return _cardShell(
         context,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                _statusDot(colors, colors.textMuted.withValues(alpha: 0.5)),
-                const SizedBox(width: AppDesignSystem.space2),
-                Expanded(
-                  child: Text(
-                    l10n.uirvDockContextEmptyTitle,
-                    maxLines: 1,
-                    style: TextStyle(
-                      fontSize: AppDesignSystem.fontSizeSm,
-                      color: colors.textMuted,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                _connectionMenu(
-                  context,
-                  label: l10n.uirvDockContextChooseConnection,
-                  accent: colors.accentBlue,
-                ),
-              ],
-            ),
-          ],
+        isManual: false,
+        child: _connectionTrigger(
+          context,
+          l10n,
+          colors,
+          triggerLabel: l10n.uirvDockContextEmptyTitle,
+          prefix: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _statusDot(colors, colors.textMuted.withValues(alpha: 0.5)),
+              const SizedBox(width: AppDesignSystem.space2),
+            ],
+          ),
+          labelStyle: TextStyle(fontSize: AppDesignSystem.fontSizeSm),
+          labelColor: colors.textMuted,
+          showTypeBadge: false,
         ),
       );
     }
@@ -115,18 +114,20 @@ class AiDockContextCard extends StatelessWidget {
     final String stateLabel = isManual
         ? l10n.uirvDockContextManual
         : l10n.uirvDockContextFollow;
+    final String triggerLabel = _connectionLabel(conn);
 
     return _cardShell(
       context,
+      isManual: isManual,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 顶行：状态标识 + 态标签 + 动作入口
+          // 第 1 行：状态标识 + 态标签（FOLLOW 附实际来源标注）+ MANUAL 恢复入口
           Row(
             children: [
               _statusDot(colors, semanticColor),
               const SizedBox(width: AppDesignSystem.space2),
-              Expanded(
+              Flexible(
                 child: Text(
                   stateLabel,
                   maxLines: 1,
@@ -137,73 +138,61 @@ class AiDockContextCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              if (!isManual && followSource != null) ...[
+                const SizedBox(width: AppDesignSystem.space1),
+                Flexible(
+                  child: Text(
+                    _followSourceLabel(l10n),
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: AppDesignSystem.fontSizeXs,
+                      color: colors.textMuted,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
               if (isManual)
                 _linkAction(
                   context,
                   label: l10n.uirvDockContextRestoreFollow,
                   color: colors.accentBlue,
                   onTap: onRestoreFollow,
-                )
-              else
-                _connectionMenu(
-                  context,
-                  label: l10n.uirvDockContextManualSelect,
-                  accent: colors.textMuted,
                 ),
             ],
           ),
           const SizedBox(height: AppDesignSystem.space0_5),
-          // 连接行：类型图标 + 连接名 + 类型徽章（数据非文案，Q1 header 先例）
-          Row(
-            children: [
-              Icon(
-                conn?.type.typeIcon ?? LucideIcons.database,
-                size: 14,
-                color: conn == null
-                    ? colors.textMuted
-                    : context.themeColors.brandColor(conn.type),
-              ),
-              const SizedBox(width: AppDesignSystem.space1_5),
-              Expanded(
-                child: Text(
-                  _connectionLabel(conn),
-                  maxLines: 1,
-                  style: TextStyle(
-                    fontSize: AppDesignSystem.fontSizeSm,
-                    fontWeight: FontWeight.w600,
-                    color: colors.textPrimary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+          // 第 2 行：连接选择器（类型图标 + 连接名 + 类型徽章 + 恒显 chevron），
+          // 整行可点，三态均可直接打开已保存连接菜单。
+          _connectionTrigger(
+            context,
+            l10n,
+            colors,
+            triggerLabel: triggerLabel,
+            prefix: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  conn?.type.typeIcon ?? LucideIcons.database,
+                  size: 14,
+                  color: conn == null
+                      ? colors.textMuted
+                      : colors.brandColor(conn.type),
                 ),
-              ),
-              if (conn != null) ...[
                 const SizedBox(width: AppDesignSystem.space1_5),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppDesignSystem.space1_5,
-                    vertical: 1,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colors.accentSubtle,
-                    borderRadius: BorderRadius.circular(
-                      AppDesignSystem.radiusSm,
-                    ),
-                  ),
-                  child: Text(
-                    conn.type.name,
-                    maxLines: 1,
-                    style: TextStyle(
-                      fontSize: AppDesignSystem.fontSizeXs,
-                      color: colors.accentBlue,
-                    ),
-                  ),
-                ),
               ],
-            ],
+            ),
+            labelStyle: TextStyle(
+              fontSize: AppDesignSystem.fontSizeSm,
+              fontWeight: FontWeight.w600,
+            ),
+            labelColor: colors.textPrimary,
+            showTypeBadge: conn != null,
           ),
           const SizedBox(height: AppDesignSystem.space0_5),
-          // 路径行：库 / 表（表对象来自活动 browse tab）。MANUAL 态库段
-          // 换成宿主注入的内联库选择器（沿用既有库下拉）。
+          // 第 3 行：库 / 表（表对象来自活动 browse tab）。MANUAL 态库段
+          // 换成宿主注入的内联库选择器（沿用既有库下拉）；未指定表时
+          // 整个表段（含分隔符）隐藏，避免暗示可点选。
           Row(
             children: [
               if (isManual && databaseSelector != null)
@@ -217,8 +206,7 @@ class AiDockContextCard extends StatelessWidget {
                 const SizedBox(width: AppDesignSystem.space1_5),
                 Expanded(
                   child: Text(
-                    databaseName ??
-                        AppLocalizations.of(context)!.aiPanelAllDatabases,
+                    databaseName ?? l10n.aiPanelAllDatabases,
                     maxLines: 1,
                     style: TextStyle(
                       fontSize: AppDesignSystem.fontSizeXs,
@@ -228,29 +216,27 @@ class AiDockContextCard extends StatelessWidget {
                   ),
                 ),
               ],
-              Text(
-                '/',
-                style: TextStyle(
-                  fontSize: AppDesignSystem.fontSizeXs,
-                  color: colors.textMuted,
-                ),
-              ),
-              const SizedBox(width: AppDesignSystem.space1_5),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  tableName ?? l10n.uirvDockContextNoTable,
-                  maxLines: 1,
+              if (tableName != null) ...[
+                Text(
+                  '/',
                   style: TextStyle(
                     fontSize: AppDesignSystem.fontSizeXs,
-                    color: tableName != null
-                        ? colors.textPrimary
-                        : colors.textMuted,
+                    color: colors.textMuted,
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              if (tableName != null) ...[
+                const SizedBox(width: AppDesignSystem.space1_5),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    tableName!,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: AppDesignSystem.fontSizeXs,
+                      color: colors.textPrimary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
                 const SizedBox(width: AppDesignSystem.space1),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -275,31 +261,6 @@ class AiDockContextCard extends StatelessWidget {
               ],
             ],
           ),
-          // FOLLOW 脚注：来源徽章（实际命中的锚定级，设计稿 #a1 foot 行）
-          if (!isManual) ...[
-            const SizedBox(height: AppDesignSystem.space1),
-            Row(
-              children: [
-                Icon(
-                  LucideIcons.check,
-                  size: 12,
-                  color: colors.success,
-                ),
-                const SizedBox(width: AppDesignSystem.space1_5),
-                Expanded(
-                  child: Text(
-                    _followSourceLabel(l10n),
-                    maxLines: 1,
-                    style: TextStyle(
-                      fontSize: AppDesignSystem.fontSizeXs,
-                      color: colors.textMuted,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ],
         ],
       ),
     );
@@ -318,8 +279,9 @@ class AiDockContextCard extends StatelessWidget {
     }
   }
 
-  /// 紧凑双行卡（44px 头预算）：行 1 = 状态点 + 连接名（+态动作），行 2 =
-  /// 库 / 表（MANUAL 紧凑态库为文本，不挂库下拉——高度放不下，自决申报）。
+  /// 紧凑两行卡（44px 头预算）：行 1 = 状态点 + 库型图标 + 连接名 +
+  /// chevron（整行触发器）+ MANUAL 恢复链接；行 2 = 库 / 表。
+  /// 省略来源标注与库型徽章；MANUAL 态库为文本，不挂库下拉（高度放不下）。
   Widget _buildCompact(
     BuildContext context,
     AppLocalizations l10n,
@@ -327,35 +289,53 @@ class AiDockContextCard extends StatelessWidget {
     DbServer? conn,
   ) {
     final bool isEmpty = conn == null && !isManual;
+    final String triggerLabel = isEmpty
+        ? l10n.uirvDockContextEmptyTitle
+        : _connectionLabel(conn);
     return _cardShell(
       context,
+      isManual: isManual,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
-              _statusDot(
-                colors,
-                isEmpty
-                    ? colors.textMuted.withValues(alpha: 0.5)
-                    : isManual
-                        ? colors.warning
-                        : colors.accentBlue,
-              ),
-              const SizedBox(width: AppDesignSystem.space1),
               Expanded(
-                child: Text(
-                  isEmpty
-                      ? l10n.uirvDockContextEmptyTitle
-                      : _connectionLabel(conn),
-                  maxLines: 1,
-                  style: TextStyle(
+                child: _connectionTrigger(
+                  context,
+                  l10n,
+                  colors,
+                  triggerLabel: triggerLabel,
+                  prefix: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _statusDot(
+                        colors,
+                        isEmpty
+                            ? colors.textMuted.withValues(alpha: 0.5)
+                            : isManual
+                                ? colors.warning
+                                : colors.accentBlue,
+                      ),
+                      const SizedBox(width: AppDesignSystem.space1),
+                      Icon(
+                        conn?.type.typeIcon ?? LucideIcons.database,
+                        size: 14,
+                        color: conn == null
+                            ? colors.textMuted
+                            : colors.brandColor(conn.type),
+                      ),
+                      const SizedBox(width: AppDesignSystem.space1_5),
+                    ],
+                  ),
+                  labelStyle: TextStyle(
                     fontSize: AppDesignSystem.fontSizeSm,
                     fontWeight: FontWeight.w600,
-                    color: isEmpty ? colors.textMuted : colors.textPrimary,
                   ),
-                  overflow: TextOverflow.ellipsis,
+                  labelColor:
+                      isEmpty ? colors.textMuted : colors.textPrimary,
+                  showTypeBadge: false,
                 ),
               ),
               if (isManual)
@@ -364,14 +344,6 @@ class AiDockContextCard extends StatelessWidget {
                   label: l10n.uirvDockContextRestoreFollow,
                   color: colors.accentBlue,
                   onTap: onRestoreFollow,
-                )
-              else
-                _connectionMenu(
-                  context,
-                  label: isEmpty
-                      ? l10n.uirvDockContextChooseConnection
-                      : l10n.uirvDockContextManualSelect,
-                  accent: isEmpty ? colors.accentBlue : colors.textMuted,
                 ),
             ],
           ),
@@ -380,8 +352,7 @@ class AiDockContextCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  databaseName ??
-                      AppLocalizations.of(context)!.aiPanelAllDatabases,
+                  databaseName ?? l10n.aiPanelAllDatabases,
                   maxLines: 1,
                   style: TextStyle(
                     fontSize: AppDesignSystem.fontSizeXs,
@@ -390,28 +361,28 @@ class AiDockContextCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Text(
-                '/',
-                style: TextStyle(
-                  fontSize: AppDesignSystem.fontSizeXs,
-                  color: colors.textMuted,
-                ),
-              ),
-              const SizedBox(width: AppDesignSystem.space1),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  tableName ?? l10n.uirvDockContextNoTable,
-                  maxLines: 1,
+              if (tableName != null) ...[
+                Text(
+                  '/',
                   style: TextStyle(
                     fontSize: AppDesignSystem.fontSizeXs,
-                    color: tableName != null
-                        ? colors.textPrimary
-                        : colors.textMuted,
+                    color: colors.textMuted,
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
+                const SizedBox(width: AppDesignSystem.space1),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    tableName!,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: AppDesignSystem.fontSizeXs,
+                      color: colors.textPrimary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ],
           ),
         ],
@@ -425,7 +396,11 @@ class AiDockContextCard extends StatelessWidget {
     return c.name.isNotEmpty ? c.name : '${c.host}:${c.port}';
   }
 
-  Widget _cardShell(BuildContext context, {required Widget child}) {
+  Widget _cardShell(
+    BuildContext context, {
+    required Widget child,
+    required bool isManual,
+  }) {
     final colors = context.themeColors;
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -435,7 +410,10 @@ class AiDockContextCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.bgPrimary,
         borderRadius: BorderRadius.circular(AppDesignSystem.radiusMd),
-        border: Border.all(color: colors.borderLight),
+        border: Border.all(
+          // MANUAL 外卡 warning 边框（设计稿漂移修正，2026-10-25 走查）。
+          color: isManual ? colors.warning : colors.borderLight,
+        ),
       ),
       child: child,
     );
@@ -449,16 +427,26 @@ class AiDockContextCard extends StatelessWidget {
     );
   }
 
-  /// 「手动改选 / 选择已有连接」入口：PopupMenu 列已保存连接（数据项，
-  /// 零连接切换——选择仅写 AI 面板上下文）。
-  Widget _connectionMenu(
-    BuildContext context, {
-    required String label,
-    required Color accent,
+  /// 连接选择器触发器：整行可点，恒显 chevron，PopupMenu 列已保存连接
+  /// （数据项，零连接切换——选择仅写 AI 面板上下文）。tooltip /
+  /// 无障碍名为「切换 AI 连接：<连接名>」。
+  /// [prefix] 必须只含定宽小组件（状态点/图标等，不得再嵌 Flexible 文本），
+  /// 连接名文本由本方法直接以 Flexible 放进行 Row（Row 不约束非 flex
+  /// 子项宽度，嵌套 min Row + Flexible 文本会在窄卡下溢出）。
+  Widget _connectionTrigger(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeColors colors, {
+    required String triggerLabel,
+    required Widget prefix,
+    required TextStyle labelStyle,
+    required Color labelColor,
+    required bool showTypeBadge,
   }) {
-    final colors = context.themeColors;
+    final conn = connection;
     return PopupMenuButton<DbServer>(
-      tooltip: label,
+      key: kAiDockContextConnectionTrigger,
+      tooltip: l10n.uirvDockContextChangeConnection(triggerLabel),
       padding: EdgeInsets.zero,
       color: colors.bgSecondary,
       onSelected: onManualSelect,
@@ -487,28 +475,50 @@ class AiDockContextCard extends StatelessWidget {
             ),
           )
           .toList(),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 132),
-        child: Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: AppDesignSystem.space1),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(
+      child: Padding(
+        padding:
+            const EdgeInsets.symmetric(horizontal: AppDesignSystem.space1),
+        child: Row(
+          children: [
+            prefix,
+            Flexible(
+              child: Text(
+                triggerLabel,
+                maxLines: 1,
+                style: labelStyle.copyWith(color: labelColor),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (showTypeBadge && conn != null) ...[
+              const SizedBox(width: AppDesignSystem.space1_5),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDesignSystem.space1_5,
+                  vertical: 1,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.accentSubtle,
+                  borderRadius: BorderRadius.circular(
+                    AppDesignSystem.radiusSm,
+                  ),
+                ),
                 child: Text(
-                  label,
+                  conn.type.name,
                   maxLines: 1,
                   style: TextStyle(
                     fontSize: AppDesignSystem.fontSizeXs,
-                    color: accent,
+                    color: colors.accentBlue,
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Icon(LucideIcons.chevronDown, size: 12, color: accent),
             ],
-          ),
+            const SizedBox(width: AppDesignSystem.space1),
+            Icon(
+              LucideIcons.chevronDown,
+              size: 12,
+              color: colors.textMuted,
+            ),
+          ],
         ),
       ),
     );

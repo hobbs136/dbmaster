@@ -598,10 +598,11 @@ class SidebarTree extends StatelessWidget {
       children: [
         TreeItem(
           level: 1,
+          // 展开树连接根行图标恒用品牌色（对齐折叠 rail 先例
+          // sidebar_widget.dart），连接状态由状态点/子树灰化承载，
+          // 颜色不再编码连接态。
           icon: server.type.typeIcon,
-          iconColor: isConnected
-              ? context.themeColors.brandColor(server.type)
-              : context.themeColors.textSecondary,
+          iconColor: context.themeColors.brandColor(server.type),
           label: server.name,
           badge: server.type.displayName,
           // UIRV-B5：根行副行 host 事实（socket = host:port、SQLite =

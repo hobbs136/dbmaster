@@ -11594,19 +11594,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Filter apply failed — see the result details';
 
   @override
-  String get uirvDockContextFollow => 'Auto-follow · current context';
+  String get uirvDockContextFollow => 'Auto-follow';
 
   @override
-  String get uirvDockContextManual => 'Manually selected';
-
-  @override
-  String get uirvDockContextManualSelect => 'Manual select';
+  String get uirvDockContextManual => 'Manually set AI context';
 
   @override
   String get uirvDockContextRestoreFollow => 'Restore follow';
-
-  @override
-  String get uirvDockContextNoTable => 'No table specified';
 
   @override
   String get uirvDockContextEmptyTitle => 'No connection set';
@@ -11650,4 +11644,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get connectionPasswordEmptyHint =>
       'Leave empty to connect without a password; Save Password is only available when a password is entered.';
+
+  @override
+  String uirvDockContextChangeConnection(String connectionName) {
+    return 'Change AI connection: $connectionName';
+  }
 }

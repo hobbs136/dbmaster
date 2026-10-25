@@ -4686,16 +4686,12 @@
   "@resultsFilterEntry": {},
   "resultsFilterApplyFailed": "筛选应用失败——详情见结果区",
   "@resultsFilterApplyFailed": {},
-  "uirvDockContextFollow": "自动跟随 · 当前上下文",
+  "uirvDockContextFollow": "自动跟随",
   "@uirvDockContextFollow": {},
-  "uirvDockContextManual": "已手动选择",
+  "uirvDockContextManual": "手动指定 AI 上下文",
   "@uirvDockContextManual": {},
-  "uirvDockContextManualSelect": "手动改选",
-  "@uirvDockContextManualSelect": {},
   "uirvDockContextRestoreFollow": "恢复跟随",
   "@uirvDockContextRestoreFollow": {},
-  "uirvDockContextNoTable": "未指定表",
-  "@uirvDockContextNoTable": {},
   "uirvDockContextEmptyTitle": "未设置连接",
   "@uirvDockContextEmptyTitle": {},
   "uirvDockContextChooseConnection": "选择已有连接",
@@ -4723,5 +4719,7 @@
   "uirvBootErrorTitle": "初始化遇到问题",
   "@uirvBootErrorTitle": {},
   "connectionPasswordEmptyHint": "留空将以无密码方式连接；非空时才可使用「保存密码」。",
-  "@connectionPasswordEmptyHint": {"description": "密码弹窗提示：留空即以无密码方式连接；「保存密码」仅在密码非空时可用"}
+  "@connectionPasswordEmptyHint": {"description": "密码弹窗提示：留空即以无密码方式连接；「保存密码」仅在密码非空时可用"},
+  "uirvDockContextChangeConnection": "切换 AI 连接：{connectionName}",
+  "@uirvDockContextChangeConnection": {"description": "UIRV-A1: connection trigger tooltip/a11y label with the current connection name", "placeholders": {"connectionName": {"type": "String"}}}
 }

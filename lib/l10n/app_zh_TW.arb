@@ -3974,16 +3974,12 @@
   "@resultsFilterEntry": {},
   "resultsFilterApplyFailed": "篩選套用失敗——詳情見結果區",
   "@resultsFilterApplyFailed": {},
-  "uirvDockContextFollow": "自動跟隨 · 當前上下文",
+  "uirvDockContextFollow": "自動跟隨",
   "@uirvDockContextFollow": {},
-  "uirvDockContextManual": "已手動選擇",
+  "uirvDockContextManual": "手動指定 AI 上下文",
   "@uirvDockContextManual": {},
-  "uirvDockContextManualSelect": "手動改選",
-  "@uirvDockContextManualSelect": {},
   "uirvDockContextRestoreFollow": "恢復跟隨",
   "@uirvDockContextRestoreFollow": {},
-  "uirvDockContextNoTable": "未指定資料表",
-  "@uirvDockContextNoTable": {},
   "uirvDockContextEmptyTitle": "未設定連線",
   "@uirvDockContextEmptyTitle": {},
   "uirvDockContextChooseConnection": "選擇已有連線",
@@ -4011,5 +4007,7 @@
   "uirvBootErrorTitle": "初始化遇到問題",
   "@uirvBootErrorTitle": {},
   "connectionPasswordEmptyHint": "留空將以無密碼方式連線；非空時才可使用「儲存密碼」。",
-  "@connectionPasswordEmptyHint": {"description": "密碼彈窗提示：留空即以無密碼方式連線；「儲存密碼」僅在密碼非空時可用"}
+  "@connectionPasswordEmptyHint": {"description": "密碼彈窗提示：留空即以無密碼方式連線；「儲存密碼」僅在密碼非空時可用"},
+  "uirvDockContextChangeConnection": "切換 AI 連線：{connectionName}",
+  "@uirvDockContextChangeConnection": {"description": "UIRV-A1: connection trigger tooltip/a11y label with the current connection name", "placeholders": {"connectionName": {"type": "String"}}}
 }

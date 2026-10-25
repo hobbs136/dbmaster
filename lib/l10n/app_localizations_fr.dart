@@ -11689,19 +11689,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Échec de l\'application du filtre — voir les détails dans les résultats';
 
   @override
-  String get uirvDockContextFollow => 'Suivi auto · contexte actuel';
+  String get uirvDockContextFollow => 'Suivi auto';
 
   @override
-  String get uirvDockContextManual => 'Sélection manuelle';
-
-  @override
-  String get uirvDockContextManualSelect => 'Choix manuel';
+  String get uirvDockContextManual => 'Contexte IA défini manuellement';
 
   @override
   String get uirvDockContextRestoreFollow => 'Reprendre le suivi';
-
-  @override
-  String get uirvDockContextNoTable => 'Aucune table spécifiée';
 
   @override
   String get uirvDockContextEmptyTitle => 'Aucune connexion définie';
@@ -11745,4 +11739,9 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get connectionPasswordEmptyHint =>
       'Laissez vide pour vous connecter sans mot de passe ; « Enregistrer le mot de passe » n\'est disponible que lorsqu\'un mot de passe est saisi.';
+
+  @override
+  String uirvDockContextChangeConnection(String connectionName) {
+    return 'Changer la connexion IA : $connectionName';
+  }
 }

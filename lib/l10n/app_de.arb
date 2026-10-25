@@ -3966,16 +3966,12 @@
   "@resultsFilterEntry": {},
   "resultsFilterApplyFailed": "Filter konnte nicht angewendet werden – Details im Ergebnisbereich",
   "@resultsFilterApplyFailed": {},
-  "uirvDockContextFollow": "Automatisch folgen · aktueller Kontext",
+  "uirvDockContextFollow": "Automatisch folgen",
   "@uirvDockContextFollow": {},
-  "uirvDockContextManual": "Manuell ausgewählt",
+  "uirvDockContextManual": "KI-Kontext manuell festgelegt",
   "@uirvDockContextManual": {},
-  "uirvDockContextManualSelect": "Manuell wählen",
-  "@uirvDockContextManualSelect": {},
   "uirvDockContextRestoreFollow": "Folgen wiederherstellen",
   "@uirvDockContextRestoreFollow": {},
-  "uirvDockContextNoTable": "Keine Tabelle angegeben",
-  "@uirvDockContextNoTable": {},
   "uirvDockContextEmptyTitle": "Keine Verbindung festgelegt",
   "@uirvDockContextEmptyTitle": {},
   "uirvDockContextChooseConnection": "Verbindung wählen",
@@ -4003,5 +3999,7 @@
   "uirvBootErrorTitle": "Problem beim Start",
   "@uirvBootErrorTitle": {},
   "connectionPasswordEmptyHint": "Leer lassen, um ohne Passwort zu verbinden; „Passwort speichern“ ist nur bei eingegebenem Passwort verfügbar.",
-  "@connectionPasswordEmptyHint": {"description": "Passwort-Dialog-Hinweis: Leeres Feld verbindet ohne Passwort; Passwort speichern nur bei eingegebenem Passwort"}
+  "@connectionPasswordEmptyHint": {"description": "Passwort-Dialog-Hinweis: Leeres Feld verbindet ohne Passwort; Passwort speichern nur bei eingegebenem Passwort"},
+  "uirvDockContextChangeConnection": "KI-Verbindung wechseln: {connectionName}",
+  "@uirvDockContextChangeConnection": {"description": "UIRV-A1: connection trigger tooltip/a11y label with the current connection name", "placeholders": {"connectionName": {"type": "String"}}}
 }

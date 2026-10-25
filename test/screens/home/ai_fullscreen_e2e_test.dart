@@ -148,8 +148,10 @@ void main() {
       reason: '退出工作台应回到停靠面板，而非消失',
     );
     // UIRV-B1：迷你 FAB 已移除——整树任何状态都不应出现 FAB。
+    //（B9 口径变更后 aiAssistantOpenTooltip 归 footer AI 键，不再是 FAB
+    // 独占标记，改用 FloatingActionButton 类型标记。）
     expect(
-      find.byTooltip(l10n.aiAssistantOpenTooltip),
+      find.byType(FloatingActionButton),
       findsNothing,
       reason: '面板仍开，FAB 不出现',
     );
@@ -160,14 +162,13 @@ void main() {
   ) async {
     // UIRV-B1（设计稿 B1）：AI 迷你 FAB 悬浮层删除，AI 入口归 SidebarFooter
     // AI 键 / Ctrl+Shift+A / Ctrl+Shift+G / 命令面板。面板关闭时右下不存在
-    // 56px 悬浮命中区域——用 FAB 独占 tooltip（aiAssistantOpenTooltip）
-    // 作为整树标记断言。
+    // 56px 悬浮命中区域——用 FloatingActionButton 类型作为整树标记断言
+    //（aiAssistantOpenTooltip 现归 footer AI 键，不再是 FAB 独占标记）。
     final app = await pumpHome(tester, openPanel: false);
-    final l10n = AppLocalizations.of(tester.element(find.byType(HomeScreen)))!;
 
     expect(app.aiPanelOpen, isFalse);
     expect(
-      find.byTooltip(l10n.aiAssistantOpenTooltip),
+      find.byType(FloatingActionButton),
       findsNothing,
       reason: 'AI 面板关闭时右下不存在迷你 FAB 命中区域',
     );

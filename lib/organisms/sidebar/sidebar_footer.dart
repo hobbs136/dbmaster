@@ -83,7 +83,8 @@ class SidebarFooter extends StatelessWidget {
     final colors = context.themeColors;
     return Consumer2<AppProvider, ThemeProvider>(
       builder: (context, provider, themeProvider, _) {
-        final aiActive = provider.aiPanelOpen;
+        // 仅经典 dock 打开（非全屏）时高亮；全屏态（工作台）或关闭恢复常规色。
+        final aiActive = provider.aiPanelOpen && !provider.aiPanelFullscreen;
         return SizedBox(
           height: 30,
           child: Row(
@@ -91,15 +92,12 @@ class SidebarFooter extends StatelessWidget {
               const SizedBox(width: AppDesignSystem.space2),
               _ActionButton(
                 icon: LucideIcons.sparkles,
-                // design §3.1 再裁决：footer AI 键 = 进入 AI 工作台
-                //（setAiPanelOpen(true)+setAiPanelFullscreen(true) 组合）；
-                // dock 经典面板的开合保留 Ctrl+Shift+A 与面板自身按钮。
-                tooltip: l10n.workbenchEnter,
+                // footer AI 键 = 开合经典 dock AI 面板（toggleAiPanel 含
+                // "关面板同时退全屏"）；不再直接进入工作台。工作台仍可经
+                // ① Ctrl+Shift+G ② 命令面板 ③ dock 面板头部全屏钮进入。
+                tooltip: l10n.aiAssistantOpenTooltip,
                 color: aiActive ? colors.accentBlue : colors.textSecondary,
-                onPressed: () {
-                  provider.aiPanel.setAiPanelOpen(true);
-                  provider.aiPanel.setAiPanelFullscreen(true);
-                },
+                onPressed: () => provider.toggleAiPanel(),
               ),
               _ActionButton(
                 icon: themeProvider.isDarkMode
