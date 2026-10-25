@@ -106,13 +106,30 @@ class _PasswordPromptDialogState extends State<PasswordPromptDialog> {
               onChanged: (_) => setState(() {}),
               onSubmitted: (_) => _submit(),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
+            Text(
+              l10n.connectionPasswordEmptyHint,
+              style: TextStyle(
+                color: c.textSecondary,
+                fontSize: AppDesignSystem.fontSizeXs,
+              ),
+            ),
+            const SizedBox(height: 8),
             CheckboxListTile(
               value: _savePassword,
-              onChanged: (v) => setState(() => _savePassword = v ?? false),
+              // B3: Save Password only applies to a non-empty password;
+              // disabled (no side effect) while the input is empty.
+              onChanged: _passwordController.text.isEmpty
+                  ? null
+                  : (v) => setState(() => _savePassword = v ?? false),
               title: Text(
                 l10n.connectionSavePassword,
-                style: TextStyle(color: c.textSecondary, fontSize: 13),
+                style: TextStyle(
+                  color: _passwordController.text.isEmpty
+                      ? c.textMuted
+                      : c.textSecondary,
+                  fontSize: 13,
+                ),
               ),
               controlAffinity: ListTileControlAffinity.leading,
               contentPadding: EdgeInsets.zero,
@@ -129,15 +146,8 @@ class _PasswordPromptDialogState extends State<PasswordPromptDialog> {
             style: TextStyle(color: c.textSecondary),
           ),
         ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(''),
-          child: Text(
-            l10n.connectionConnectNoPassword,
-            style: TextStyle(color: c.textSecondary),
-          ),
-        ),
         ElevatedButton(
-          onPressed: _passwordController.text.isEmpty ? null : _submit,
+          onPressed: _submit,
           style: ElevatedButton.styleFrom(
             backgroundColor: context.themeColors.accentBlue,
             foregroundColor: Colors.white,
@@ -150,9 +160,10 @@ class _PasswordPromptDialogState extends State<PasswordPromptDialog> {
 
   Future<void> _submit() async {
     final password = _passwordController.text;
-    if (password.isEmpty) return;
 
-    if (_savePassword) {
+    // B3: empty input is a legal no-password path — pop '' without touching
+    // secure storage; non-empty with Save Password persists first.
+    if (password.isNotEmpty && _savePassword) {
       try {
         await SecureStorageService.savePassword(widget.server.id, password);
         // 同时更新内存中的连接对象，使同一会话中断开重连时无需再次输入密码

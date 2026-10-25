@@ -17,7 +17,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:dbmaster/l10n/app_localizations.dart';
 import 'package:dbmaster/models/database_models.dart';
-import 'package:dbmaster/organisms/ai_panel/ai_mini_fab.dart';
 import 'package:dbmaster/organisms/ai_panel/ai_panel_overlay.dart';
 import 'package:dbmaster/organisms/ai_panel/ai_panel_widget.dart';
 import 'package:dbmaster/organisms/ai_workbench/ai_workbench_shell.dart';
@@ -148,24 +147,29 @@ void main() {
       findsOneWidget,
       reason: '退出工作台应回到停靠面板，而非消失',
     );
-    expect(find.byType(AiMiniFab), findsNothing, reason: '面板仍开，FAB 不出现');
+    // UIRV-B1：迷你 FAB 已移除——整树任何状态都不应出现 FAB。
+    expect(
+      find.byTooltip(l10n.aiAssistantOpenTooltip),
+      findsNothing,
+      reason: '面板仍开，FAB 不出现',
+    );
   });
 
-  testWidgets('E2E-FS-003: 面板关闭态点 FAB → 直入全屏（不消失）', (tester) async {
-    // FAB onTap = toggleAiPanel + setAiPanelFullscreen(true)——面板从关闭
-    // 直入全屏，同一渲染路径（用户「全屏化直接消失」的最可能入口）。
+  testWidgets('E2E-FS-003: 面板关闭态整树无 FAB 命中区域（UIRV-B1 移除）', (
+    tester,
+  ) async {
+    // UIRV-B1（设计稿 B1）：AI 迷你 FAB 悬浮层删除，AI 入口归 SidebarFooter
+    // AI 键 / Ctrl+Shift+A / Ctrl+Shift+G / 命令面板。面板关闭时右下不存在
+    // 56px 悬浮命中区域——用 FAB 独占 tooltip（aiAssistantOpenTooltip）
+    // 作为整树标记断言。
     final app = await pumpHome(tester, openPanel: false);
+    final l10n = AppLocalizations.of(tester.element(find.byType(HomeScreen)))!;
 
-    final fab = find.byType(AiMiniFab);
-    expect(fab, findsOneWidget, reason: '面板关闭时 FAB 应可见');
-
-    await tester.tap(fab);
-    await tester.pumpAndSettle();
-
-    expect(app.aiPanelOpen, isTrue);
-    expect(app.aiPanelFullscreen, isTrue);
-    final shell = find.byType(AiWorkbenchShell);
-    expect(shell, findsOneWidget, reason: 'FAB 直入全屏后工作台必须可见');
-    expect(tester.getSize(shell), const Size(1400, 875));
+    expect(app.aiPanelOpen, isFalse);
+    expect(
+      find.byTooltip(l10n.aiAssistantOpenTooltip),
+      findsNothing,
+      reason: 'AI 面板关闭时右下不存在迷你 FAB 命中区域',
+    );
   });
 }

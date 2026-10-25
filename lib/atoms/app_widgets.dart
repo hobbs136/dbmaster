@@ -3,16 +3,16 @@
 /// ============================================================================
 ///
 /// 包含常用的 UI 组件，提升代码复用性
-/// 组件：状态徽章、加载遮罩、错误提示、空状态等
+/// 组件：状态徽章、加载遮罩、空状态、卡片、分隔线等
 ///
 /// 实际使用（2026-07 审计）：AppStatusBadge（tree_item）、AppEmptyState
 /// （results_widget / sidebar_tree / main_workspace / welcome_screen）。
 /// 其余组件当前无生产引用，但已全部改为主题感知，可安全复用。
+/// AppErrorBanner 已随 UIRV-A2 旧错误面退役删除（死代码，全仓零引用）。
 /// ============================================================================
 library;
 
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../theme/app_colors.dart';
 
 /// ============================================================================
@@ -218,99 +218,6 @@ class AppEmptyState extends StatelessWidget {
     );
   }
 }
-
-/// ============================================================================
-/// 错误提示 - Error Banner
-/// ============================================================================
-///
-/// 用于显示错误信息的横幅组件
-class AppErrorBanner extends StatelessWidget {
-  final String message;
-  final VoidCallback? onRetry;
-  final VoidCallback? onDismiss;
-  final ErrorType type;
-
-  const AppErrorBanner({
-    super.key,
-    required this.message,
-    this.onRetry,
-    this.onDismiss,
-    this.type = ErrorType.error,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final errorColor = _getErrorColor(context, type);
-    return Container(
-      padding: const EdgeInsets.all(AppDesignSystem.space3),
-      decoration: BoxDecoration(
-        color: errorColor.withValues(alpha: 0.15),
-        border: Border.all(color: errorColor.withValues(alpha: 0.3)),
-        borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
-      ),
-      child: Row(
-        children: [
-          Icon(_getErrorIcon(type), size: 20, color: errorColor),
-          const SizedBox(width: AppDesignSystem.space3),
-          Expanded(
-            child: Text(
-              message,
-              style: TextStyle(
-                fontSize: AppDesignSystem.fontSizeSm,
-                color: errorColor,
-              ),
-            ),
-          ),
-          if (onRetry != null)
-            TextButton(
-              onPressed: onRetry,
-              child: Text(
-                '重试',
-                style: TextStyle(
-                  color: errorColor,
-                  fontWeight: AppDesignSystem.fontWeightMedium,
-                ),
-              ),
-            ),
-          if (onDismiss != null)
-            IconButton(
-              icon: const Icon(LucideIcons.x, size: 18),
-              onPressed: onDismiss,
-              color: errorColor,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-            ),
-        ],
-      ),
-    );
-  }
-
-  IconData _getErrorIcon(ErrorType type) {
-    switch (type) {
-      case ErrorType.error:
-        return LucideIcons.circleAlert;
-      case ErrorType.warning:
-        return LucideIcons.triangleAlert;
-      case ErrorType.info:
-        return LucideIcons.info;
-    }
-  }
-
-  // 语义色改走 ThemeColors 主题分发
-  Color _getErrorColor(BuildContext context, ErrorType type) {
-    final colors = context.themeColors;
-    switch (type) {
-      case ErrorType.error:
-        return colors.error;
-      case ErrorType.warning:
-        return colors.warning;
-      case ErrorType.info:
-        return colors.info;
-    }
-  }
-}
-
-enum ErrorType { error, warning, info }
 
 /// ============================================================================
 /// 卡片容器 - Card Container

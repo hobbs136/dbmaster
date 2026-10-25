@@ -5094,9 +5094,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get connectionConnectNoPassword => 'Connect Without Password';
-
-  @override
   String get embeddedRequiresRemoteServer => 'Remote server only';
 
   @override
@@ -11572,4 +11569,85 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get environmentDevelopment => 'Development environment';
+
+  @override
+  String get connectionTestPendingHint =>
+      'Not tested yet · verify the configuration before saving';
+
+  @override
+  String connectionTestPassedSummary(String target) {
+    return 'Test passed · $target · ready to save';
+  }
+
+  @override
+  String get connectionRetest => 'Test Again';
+
+  @override
+  String get connectionTestResultScope =>
+      'Result applies to the current draft only';
+
+  @override
+  String get resultsFilterEntry => 'Filter';
+
+  @override
+  String get resultsFilterApplyFailed =>
+      'Filter apply failed — see the result details';
+
+  @override
+  String get uirvDockContextFollow => 'Auto-follow · current context';
+
+  @override
+  String get uirvDockContextManual => 'Manually selected';
+
+  @override
+  String get uirvDockContextManualSelect => 'Manual select';
+
+  @override
+  String get uirvDockContextRestoreFollow => 'Restore follow';
+
+  @override
+  String get uirvDockContextNoTable => 'No table specified';
+
+  @override
+  String get uirvDockContextEmptyTitle => 'No connection set';
+
+  @override
+  String get uirvDockContextChooseConnection => 'Choose a connection';
+
+  @override
+  String get uirvDockContextSourceSidebar => 'Sidebar';
+
+  @override
+  String get uirvDockContextSourceActiveTab => 'Active tab';
+
+  @override
+  String get uirvDockContextSourceCurrentServer => 'Current server';
+
+  @override
+  String get uirvDockContextCurrentTableTag => 'Current table';
+
+  @override
+  String get uirvBootPreparing => 'Preparing your workspace…';
+
+  @override
+  String get uirvBootStageLogger => 'Initializing logging';
+
+  @override
+  String get uirvBootStageExtensions => 'Loading extension modules';
+
+  @override
+  String get uirvBootStageTelemetry => 'Initializing telemetry';
+
+  @override
+  String get uirvBootStageServer => 'Initializing connection services';
+
+  @override
+  String get uirvBootStageSession => 'Restoring server session';
+
+  @override
+  String get uirvBootErrorTitle => 'Startup problem';
+
+  @override
+  String get connectionPasswordEmptyHint =>
+      'Leave empty to connect without a password; Save Password is only available when a password is entered.';
 }

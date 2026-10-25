@@ -5116,9 +5116,6 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get connectionConnectNoPassword => 'Ohne Passwort verbinden';
-
-  @override
   String get embeddedRequiresRemoteServer => 'Nur Remote-Server';
 
   @override
@@ -11637,4 +11634,85 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get environmentDevelopment => 'Entwicklungsumgebung';
+
+  @override
+  String get connectionTestPendingHint =>
+      'Noch nicht getestet · Konfiguration vor dem Speichern prüfen';
+
+  @override
+  String connectionTestPassedSummary(String target) {
+    return 'Test bestanden · $target · bereit zum Speichern';
+  }
+
+  @override
+  String get connectionRetest => 'Erneut testen';
+
+  @override
+  String get connectionTestResultScope =>
+      'Ergebnis gilt nur für den aktuellen Entwurf';
+
+  @override
+  String get resultsFilterEntry => 'Filter';
+
+  @override
+  String get resultsFilterApplyFailed =>
+      'Filter konnte nicht angewendet werden – Details im Ergebnisbereich';
+
+  @override
+  String get uirvDockContextFollow => 'Automatisch folgen · aktueller Kontext';
+
+  @override
+  String get uirvDockContextManual => 'Manuell ausgewählt';
+
+  @override
+  String get uirvDockContextManualSelect => 'Manuell wählen';
+
+  @override
+  String get uirvDockContextRestoreFollow => 'Folgen wiederherstellen';
+
+  @override
+  String get uirvDockContextNoTable => 'Keine Tabelle angegeben';
+
+  @override
+  String get uirvDockContextEmptyTitle => 'Keine Verbindung festgelegt';
+
+  @override
+  String get uirvDockContextChooseConnection => 'Verbindung wählen';
+
+  @override
+  String get uirvDockContextSourceSidebar => 'Seitenleiste';
+
+  @override
+  String get uirvDockContextSourceActiveTab => 'Aktiver Tab';
+
+  @override
+  String get uirvDockContextSourceCurrentServer => 'Aktueller Server';
+
+  @override
+  String get uirvDockContextCurrentTableTag => 'Aktuelle Tabelle';
+
+  @override
+  String get uirvBootPreparing => 'Arbeitsbereich wird vorbereitet…';
+
+  @override
+  String get uirvBootStageLogger => 'Protokollierung wird initialisiert';
+
+  @override
+  String get uirvBootStageExtensions => 'Erweiterungsmodule werden geladen';
+
+  @override
+  String get uirvBootStageTelemetry => 'Telemetrie wird initialisiert';
+
+  @override
+  String get uirvBootStageServer => 'Verbindungsdienste werden initialisiert';
+
+  @override
+  String get uirvBootStageSession => 'Serversitzung wird wiederhergestellt';
+
+  @override
+  String get uirvBootErrorTitle => 'Problem beim Start';
+
+  @override
+  String get connectionPasswordEmptyHint =>
+      'Leer lassen, um ohne Passwort zu verbinden; „Passwort speichern“ ist nur bei eingegebenem Passwort verfügbar.';
 }

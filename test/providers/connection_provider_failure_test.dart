@@ -1,8 +1,9 @@
 // ConnectionProvider 连接失败结构化状态测试（连接失败 UX 重构 T3 + T10）。
 //
-// T3 覆盖：connectToServer 失败 → lastConnectFailure 非 null 且 errorMessage
-// 兼容面不破；失败后成功 → lastConnectFailure 清空；openSqliteFile 非法
-// 扩展名 → unknown 兜底。走真实 DatabaseService + 真实 SQLite adapter
+// T3 覆盖：connectToServer 失败 → lastConnectFailure 非 null；失败后成功 →
+// lastConnectFailure 清空；openSqliteFile 非法扩展名 → unknown 兜底。
+// UIRV-A2 起连接类失败停写 errorMessage（退役口径 1，断言已同步反转）。
+// 走真实 DatabaseService + 真实 SQLite adapter
 // （「不 mock 数据库服务」纪律；失败用垃圾文件构造，无需平台通道 mock）。
 //
 // T10 覆盖：每连接未处置失败 map（lastFailureFor / hasUnacknowledgedFailures
@@ -42,7 +43,7 @@ void main() {
 
   group('ConnectionProvider 连接失败结构化状态（T3）', () {
     test(
-      'connectToServer 失败（SQLite 垃圾文件）→ lastConnectFailure 非 null + errorMessage 非空',
+      'connectToServer 失败（SQLite 垃圾文件）→ lastConnectFailure 非 null + errorMessage 停写（UIRV-A2）',
       () async {
         final provider = ConnectionProvider(dbService: DatabaseService());
         final garbage = File(
@@ -64,9 +65,9 @@ void main() {
         expect(failure!.kind, ConnectionFailureKind.notADatabase);
         expect(failure.errorCode, '26');
         expect(failure.target, garbage.path);
-        // 兼容面不破：errorMessage getter 仍非空（app_provider 镜像 / AI 面板消费）。
-        expect(provider.errorMessage, isNotNull);
-        expect(provider.errorMessage, isNotEmpty);
+        // UIRV-A2 退役口径 1：连接类失败只走结构化失败（ConnectFailureDialog），
+        // errorMessage 兼容面停写——旧通用模态不再对连接失败双重播报。
+        expect(provider.errorMessage, isNull);
         expect(provider.isConnecting, isFalse);
       },
     );
@@ -98,7 +99,8 @@ void main() {
           provider.lastConnectFailure?.kind,
           ConnectionFailureKind.fileNotFound,
         );
-        expect(provider.errorMessage, isNotEmpty);
+        // UIRV-A2：连接类失败不再写 errorMessage 兼容面。
+        expect(provider.errorMessage, isNull);
 
         // 再成功：真实临时 SQLite 文件。
         final good = File(
@@ -130,7 +132,8 @@ void main() {
         expect(failure, isNotNull);
         expect(failure!.kind, ConnectionFailureKind.unknown);
         expect(failure.rawMessage, contains('Not a supported SQLite file'));
-        expect(provider.errorMessage, contains('Not a supported SQLite file'));
+        // UIRV-A2：打开前置校验失败属连接类，errorMessage 停写。
+        expect(provider.errorMessage, isNull);
       },
     );
   });

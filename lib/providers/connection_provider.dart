@@ -1274,7 +1274,9 @@ class ConnectionProvider extends ChangeNotifier {
     } catch (e) {
       AppLogger.e('ConnectionProvider', 'Connection error', e);
       _isConnecting = false;
-      _errorMessage = e.toString();
+      // UIRV-A2（退役口径 1）：连接类失败只走结构化失败（ConnectFailureDialog），
+      // 不再写 _errorMessage——旧通用模态不再对连接失败双重播报；errorMessage
+      // 兼容面保留给保存/克隆/删除等非连接类失败。
       // 连接失败 UX 重构 T3：typed failure 直接取异常携带的结构；非 typed
       // （如取消路径的「数据库连接失败」）构造 unknown 兜底，保证
       // lastConnectFailure 与失败结果同生共死。
@@ -1408,9 +1410,8 @@ class ConnectionProvider extends ChangeNotifier {
     final trimmed = path.trim();
     if (trimmed.isEmpty || !isSqliteFilePath(trimmed)) {
       final message = 'Not a supported SQLite file: $path';
-      _errorMessage = message;
-      // T3：与 _errorMessage 同步写结构化失败（打开前置校验失败属
-      // unknown 型，无 target）。
+      // UIRV-A2（退役口径 1）：打开前置校验失败属连接类——只写结构化失败
+      // （unknown 型，无 target），不再写 _errorMessage。
       _lastConnectFailure = ConnectionFailure(
         kind: ConnectionFailureKind.unknown,
         errorCode: '',
@@ -1439,7 +1440,15 @@ class ConnectionProvider extends ChangeNotifier {
       );
     } catch (e) {
       AppLogger.e('ConnectionProvider', 'openSqliteFile failed for "$path"', e);
-      _errorMessage = e.toString();
+      // UIRV-A2（退役口径 1）：打开链路异常（如保存连接失败）属连接类——
+      // 写结构化 unknown 兜底（与失败结果同生共死），不再写 _errorMessage。
+      _lastConnectFailure = ConnectionFailure(
+        kind: ConnectionFailureKind.unknown,
+        errorCode: '',
+        target: path,
+        rawMessage: e.toString(),
+        occurredAt: DateTime.now(),
+      );
       notifyListeners();
       return false;
     }

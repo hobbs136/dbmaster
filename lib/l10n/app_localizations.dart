@@ -9110,12 +9110,6 @@ abstract class AppLocalizations {
   /// **'Enter the password for {serverName} to connect'**
   String passwordRequiredMessage(String serverName);
 
-  /// Button in the password prompt to connect to servers that require no authentication
-  ///
-  /// In en, this message translates to:
-  /// **'Connect Without Password'**
-  String get connectionConnectNoPassword;
-
   /// Hint shown on menu entries that are unavailable in embedded local mode
   ///
   /// In en, this message translates to:
@@ -20356,6 +20350,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Development environment'**
   String get environmentDevelopment;
+
+  /// UIRV-B2: soft-gate hint shown while the connection has not been tested yet
+  ///
+  /// In en, this message translates to:
+  /// **'Not tested yet · verify the configuration before saving'**
+  String get connectionTestPendingHint;
+
+  /// UIRV-B2: success summary line after a passed connection test
+  ///
+  /// In en, this message translates to:
+  /// **'Test passed · {target} · ready to save'**
+  String connectionTestPassedSummary(String target);
+
+  /// UIRV-B2: secondary action to re-run the connection test
+  ///
+  /// In en, this message translates to:
+  /// **'Test Again'**
+  String get connectionRetest;
+
+  /// UIRV-B2: note that a test result applies to the current draft only
+  ///
+  /// In en, this message translates to:
+  /// **'Result applies to the current draft only'**
+  String get connectionTestResultScope;
+
+  /// UIRV-A41: results toolbar filter entry label
+  ///
+  /// In en, this message translates to:
+  /// **'Filter'**
+  String get resultsFilterEntry;
+
+  /// UIRV-A41: results toolbar filter entry label / popup apply-failure note
+  ///
+  /// In en, this message translates to:
+  /// **'Filter apply failed — see the result details'**
+  String get resultsFilterApplyFailed;
+
+  /// UIRV-A1: dock context card follow-mode label
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-follow · current context'**
+  String get uirvDockContextFollow;
+
+  /// UIRV-A1: dock context card manual-override label
+  ///
+  /// In en, this message translates to:
+  /// **'Manually selected'**
+  String get uirvDockContextManual;
+
+  /// UIRV-A1: dock context card entry to pick a connection manually
+  ///
+  /// In en, this message translates to:
+  /// **'Manual select'**
+  String get uirvDockContextManualSelect;
+
+  /// UIRV-A1: dock context card action to return to follow mode
+  ///
+  /// In en, this message translates to:
+  /// **'Restore follow'**
+  String get uirvDockContextRestoreFollow;
+
+  /// UIRV-A1: path-line placeholder when no browse table target
+  ///
+  /// In en, this message translates to:
+  /// **'No table specified'**
+  String get uirvDockContextNoTable;
+
+  /// UIRV-A1: EMPTY state title when all three anchor levels are empty
+  ///
+  /// In en, this message translates to:
+  /// **'No connection set'**
+  String get uirvDockContextEmptyTitle;
+
+  /// UIRV-A1: EMPTY state entry to pick a saved connection
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a connection'**
+  String get uirvDockContextChooseConnection;
+
+  /// UIRV-A1: follow source badge - sidebar selection level
+  ///
+  /// In en, this message translates to:
+  /// **'Sidebar'**
+  String get uirvDockContextSourceSidebar;
+
+  /// UIRV-A1: follow source badge - active tab level
+  ///
+  /// In en, this message translates to:
+  /// **'Active tab'**
+  String get uirvDockContextSourceActiveTab;
+
+  /// UIRV-A1: follow source badge - currentServer level
+  ///
+  /// In en, this message translates to:
+  /// **'Current server'**
+  String get uirvDockContextSourceCurrentServer;
+
+  /// UIRV-A1: accent tag marking the browse table in the path line
+  ///
+  /// In en, this message translates to:
+  /// **'Current table'**
+  String get uirvDockContextCurrentTableTag;
+
+  /// UIRV-B4: boot shell generic status line shown when no stage event has arrived
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing your workspace…'**
+  String get uirvBootPreparing;
+
+  /// UIRV-B4: boot stage - log file initialization
+  ///
+  /// In en, this message translates to:
+  /// **'Initializing logging'**
+  String get uirvBootStageLogger;
+
+  /// UIRV-B4: boot stage - Pro capability module / plugin registry
+  ///
+  /// In en, this message translates to:
+  /// **'Loading extension modules'**
+  String get uirvBootStageExtensions;
+
+  /// UIRV-B4: boot stage - anonymous telemetry initialization
+  ///
+  /// In en, this message translates to:
+  /// **'Initializing telemetry'**
+  String get uirvBootStageTelemetry;
+
+  /// UIRV-B4: boot stage - embedded server start / remote server setup
+  ///
+  /// In en, this message translates to:
+  /// **'Initializing connection services'**
+  String get uirvBootStageServer;
+
+  /// UIRV-B4: boot stage - remote server session restore
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring server session'**
+  String get uirvBootStageSession;
+
+  /// UIRV-B4: boot error card title when initialization fails unexpectedly
+  ///
+  /// In en, this message translates to:
+  /// **'Startup problem'**
+  String get uirvBootErrorTitle;
+
+  /// Password prompt helper: empty input connects without a password; Save Password applies only to a non-empty password
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to connect without a password; Save Password is only available when a password is entered.'**
+  String get connectionPasswordEmptyHint;
 }
 
 class _AppLocalizationsDelegate

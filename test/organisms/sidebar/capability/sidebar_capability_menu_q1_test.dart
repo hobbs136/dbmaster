@@ -4,11 +4,14 @@
 // ② 折叠记忆（toggle → 重建 widget 态保持，mock prefs）；
 // ③ 「新建」徽标只命中 _releaseNewItemIds（构造命中/不命中 id）；
 //    T22 追加：第二程序预登记 4 id 命中面（sqlserver 注入件）。
-// ④ Alt+Q 触发折叠切换 + 展开后聚焦面板根；聚焦后数字直达 / ↑↓ 移动 /
+// ④ Alt+Q 触折叠切换 + 展开后聚焦抽屉面板根；聚焦后数字直达 / ↑↓ 移动 /
 //    Enter 激活（Focus 测试；数字直达边界 = 序号超可见项数忽略）。
 // ⑤ 无连接自隐藏由既有 sidebar_capability_menu_test.dart 锚定，不重复。
 // ⑥ header 主标识 = 锚定连接名（同型双连接锚定切换用例，见「header 锚定
 //    连接名」组）；库型名标题沿既有 l10n 输出保留为次级行。
+// A42（UIRV-A42）：常驻面收缩为 32px 入口行 + 覆盖抽屉——宿主改为与
+// sidebar_widget 展开态装配同构（树区 Stack + 抽屉覆盖 + 入口行）；
+// Alt+Q 聚焦目标 = 抽屉面板根（SidebarCapabilityDrawer）。
 // 用例登记建议编号：DBT-CAPMENU-101~108（回报 T13 汇总）。
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -198,7 +201,21 @@ Widget _host(AppProvider provider, {Key? menuKey, bool withWrapper = false}) =>
             child: SizedBox(
               width: 260,
               height: 800,
-              child: SidebarCapabilityMenu(key: menuKey),
+              // A42：与 sidebar_widget 展开态装配同构（树位占位 + 抽屉覆盖
+              // + 入口行）。
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        const Positioned.fill(child: SizedBox.expand()),
+                        SidebarCapabilityDrawer(),
+                      ],
+                    ),
+                  ),
+                  SidebarCapabilityMenu(key: menuKey),
+                ],
+              ),
             ),
           ),
         ),
@@ -226,19 +243,27 @@ List<AssembledCapabilityItem> _flatItems(
 }
 
 /// Alt+Q 全局键（经 GlobalShortcutsWrapper 的 HardwareKeyboard 管线）。
-/// _safeExecute 延迟一帧执行，故补 pump。
+/// _safeExecute 的动作排在 post-frame，而测试绑定 pump 仅在
+/// hasScheduledFrame 时真正出帧（真机 vsync 恒排帧，无此问题）——每泵前
+/// 显式排帧，确保 post-frame 动作与焦点微任务在本辅助函数内完成。
 Future<void> _sendAltQ(WidgetTester tester) async {
   await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
   await tester.sendKeyDownEvent(LogicalKeyboardKey.keyQ);
   await tester.sendKeyUpEvent(LogicalKeyboardKey.keyQ);
   await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+  tester.binding.scheduleFrame();
   await tester.pump();
+  tester.binding.scheduleFrame();
   await tester.pump(const Duration(milliseconds: 100));
+  tester.binding.scheduleFrame();
+  await tester.pump();
 }
 
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    // A42 文件级共享态跨用例复位（抽屉默认开 = 首帧展开语义）。
+    capabilityDrawerOpen.value = true;
     variablesActivated = false;
     noBadgeActivated = false;
   });
@@ -469,8 +494,10 @@ void main() {
       await tester.pump();
       await tester.pump();
 
+      // A42：折叠态 = 抽屉关 + 32px 入口行保留（短标签）。
+      expect(capabilityDrawerOpen.value, isFalse);
       expect(find.text('AI Assistant'), findsNothing);
-      expect(find.text('Capabilities: MySQL'), findsOneWidget);
+      expect(find.text('Capabilities'), findsOneWidget);
     });
   });
 
@@ -572,11 +599,11 @@ void main() {
 
       await _sendAltQ(tester);
       expect(find.text('Q1 Test Variables'), findsOneWidget);
-      // 聚焦断言：primary focus 落在菜单 State 子树（面板根 Focus）
+      // 聚焦断言：primary focus 落在抽屉 State 子树（A42 抽屉面板根 Focus）
       final primary = FocusManager.instance.primaryFocus;
       expect(primary, isNotNull);
       final inMenu = primary!.context?.findAncestorStateOfType<
-          State<SidebarCapabilityMenu>>();
+          State<SidebarCapabilityDrawer>>();
       expect(inMenu, isNotNull);
     });
 

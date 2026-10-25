@@ -3,6 +3,10 @@
 // → 侧栏选中回退；本文件各用例仅设 currentServer，序位差分见
 // capability_menu_assembly_test.dart 与 q1 测试的 T25 组）。
 //
+// A42（UIRV-A42）：常驻面收缩为 32px 入口行（SidebarCapabilityMenu）+
+// 向上覆盖抽屉（SidebarCapabilityDrawer）——宿主改为与 sidebar_widget
+// 展开态装配同构（树区 Stack + 抽屉覆盖 + 入口行）。
+//
 // 用例登记：「侧边栏能力菜单（CAP-MENU）」。
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -49,11 +53,25 @@ Widget _host(AppProvider provider) => MaterialApp(
             create: (_) => ServerConnectionProvider(),
           ),
         ],
-        child: const Scaffold(
+        child: Scaffold(
           body: SizedBox(
             width: 260,
             height: 800,
-            child: SidebarCapabilityMenu(),
+            // A42：与 sidebar_widget 展开态装配同构（树位占位 + 抽屉覆盖 +
+            // 入口行）。
+            child: Column(
+              children: [
+                Expanded(
+                  child: Stack(
+                    children: [
+                      const Positioned.fill(child: SizedBox.expand()),
+                      SidebarCapabilityDrawer(),
+                    ],
+                  ),
+                ),
+                const SidebarCapabilityMenu(),
+              ],
+            ),
           ),
         ),
       ),
@@ -62,6 +80,8 @@ Widget _host(AppProvider provider) => MaterialApp(
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    // A42 文件级共享态跨用例复位（抽屉默认开 = 首帧展开语义）。
+    capabilityDrawerOpen.value = true;
   });
 
   setUpAll(() {
@@ -132,7 +152,7 @@ void main() {
     expect(provider.aiPanel.aiPanelOpen, isTrue);
   });
 
-  testWidgets('折叠：点头部隐藏项、保留段头', (tester) async {
+  testWidgets('折叠：点抽屉头部隐藏项、入口行保留（A42）', (tester) async {
     final provider = AppProvider();
     provider.connection.setCurrentServer(_server(DatabaseType.mysql));
     await tester.pumpWidget(_host(provider));
@@ -141,8 +161,11 @@ void main() {
     await tester.tap(find.text('Capabilities: MySQL'));
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.text('Capabilities: MySQL'), findsOneWidget);
+    // 抽屉关：项与抽屉头部消失；32px 入口行保留（短标签）。
+    expect(capabilityDrawerOpen.value, isFalse);
+    expect(find.text('Capabilities: MySQL'), findsNothing);
     expect(find.text('Stored Procedures'), findsNothing);
     expect(find.text('AI Assistant'), findsNothing);
+    expect(find.text('Capabilities'), findsOneWidget);
   });
 }

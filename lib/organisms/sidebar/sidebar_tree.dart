@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -17,6 +19,7 @@ import '../../models/table_maintenance_command.dart';
 import '../sidebar/mysql_engine_status_dialog.dart';
 import '../../services/ports/capability_table.dart';
 import '../connection/connection_dialog.dart';
+import '../connection/connect_failure_dialog.dart';
 import '../connection/connection_export_import_dialog.dart';
 import '../connection/error_boundary.dart';
 import '../connection/password_prompt_dialog.dart';
@@ -243,6 +246,26 @@ class SidebarTree extends StatelessWidget {
       }
     }
     return false;
+  }
+
+  /// UIRV-B5 根行副行文本（§1.4 结论）：socket 型 `host:port`
+  /// （port==0 不拼 `:0`）；SQLite 型 = 完整文件路径（host 字段承载）；
+  /// host 空的异常数据 → null（副行整行省略，不显示占位/null）。
+  String? _connectionSubtitle(DbServer server) {
+    final host = server.host;
+    if (host.isEmpty) return null;
+    if (server.type == DatabaseType.sqlite) return host;
+    return server.port > 0 ? '$host:${server.port}' : host;
+  }
+
+  /// 副行 Tooltip 全值：socket = 「连接名 · host:port」；SQLite = 完整
+  /// 路径（副行本身即全值，tooltip 供 ellipsis 时悬停）。host 空不渲染
+  /// 副行，tooltip 一并省略。
+  String? _connectionSubtitleTooltip(DbServer server) {
+    final subtitle = _connectionSubtitle(server);
+    if (subtitle == null) return null;
+    if (server.type == DatabaseType.sqlite) return subtitle;
+    return '${server.name} · $subtitle';
   }
 
   /// J3 树底轻入口：新建连接（ConnectionDialog 既有形态）+ 管理连接
@@ -581,6 +604,12 @@ class SidebarTree extends StatelessWidget {
               : context.themeColors.textSecondary,
           label: server.name,
           badge: server.type.displayName,
+          // UIRV-B5：根行副行 host 事实（socket = host:port、SQLite =
+          // 文件路径〔DbServer.host 存完整路径，port=0〕、host 空整行
+          // 省略）；tooltip 给全值。环境词不进副行（环境由 3px 色条 +
+          // 状态栏徽章承载，host 不参与配色）。
+          subtitle: _connectionSubtitle(server),
+          subtitleTooltip: _connectionSubtitleTooltip(server),
           isExpanded: isExpanded && isConnected,
           // 活动根高亮（含右键/键盘选中）；S9 环境色条挂左缘 gutter。
           isSelected: isActive || isCurrentContext,
@@ -1192,6 +1221,9 @@ class SidebarTree extends StatelessWidget {
   ) async {
     final l10n = AppLocalizations.of(context)!;
     final dt = server.type;
+    // UIRV-A3 — 三段两 divider：常规（浏览/查看/维护/分析）→ 结构（建表/
+    // 编辑/重命名）→ 破坏（Empty/Drop 恒居末段）。组序改动不新增/删除
+    // 菜单项，能力门控（CapabilityTable/adapter 位）逐项原样保留。
     final items = <ContextMenuItem>[
       ContextMenuItem(
         id: 'browse',
@@ -1201,28 +1233,8 @@ class SidebarTree extends StatelessWidget {
       ),
     ];
 
-    // Create Table — all SQL databases (not schema-less)
-    if (!dt.isSchemaLess) {
-      items.add(
-        ContextMenuItem(
-          id: 'create_table',
-          label: l10n.createNewTable,
-          icon: LucideIcons.plus,
-          onTap: () => _doCreateTable(context, provider, cid, db),
-        ),
-      );
-    }
-
-    // Edit Table — only column-editable SQL databases
+    // ── 第一段：常规 ──
     if (dt.supportsColumnEdit) {
-      items.add(
-        ContextMenuItem(
-          id: 'edit',
-          label: l10n.editTable,
-          icon: LucideIcons.pencil,
-          onTap: () => _doEditTable(context, provider, cid, db, table),
-        ),
-      );
       items.add(
         ContextMenuItem(
           id: 'properties',
@@ -1263,62 +1275,57 @@ class SidebarTree extends StatelessWidget {
     }
 
     // Maintenance commands — per-database granular capability
-    if (dt.supportsAnalyzeTable ||
-        dt.supportsOptimizeTable ||
-        dt.supportsCheckTable) {
-      items.add(const ContextMenuItem.divider());
-      if (dt.supportsAnalyzeTable) {
-        items.add(
-          ContextMenuItem(
-            id: 'analyze_table',
-            label: l10n.analyzeTable,
-            icon: LucideIcons.chartLine,
-            onTap: () => _doMaintenance(
-              context,
-              provider,
-              cid,
-              db,
-              table,
-              TableMaintenanceCommand.analyze,
-            ),
+    //（UIRV-A3：维护项归常规段，段内不再自设 divider。）
+    if (dt.supportsAnalyzeTable) {
+      items.add(
+        ContextMenuItem(
+          id: 'analyze_table',
+          label: l10n.analyzeTable,
+          icon: LucideIcons.chartLine,
+          onTap: () => _doMaintenance(
+            context,
+            provider,
+            cid,
+            db,
+            table,
+            TableMaintenanceCommand.analyze,
           ),
-        );
-      }
-      if (dt.supportsOptimizeTable) {
-        items.add(
-          ContextMenuItem(
-            id: 'optimize_table',
-            label: l10n.optimizeTable,
-            icon: LucideIcons.database,
-            onTap: () => _doMaintenance(
-              context,
-              provider,
-              cid,
-              db,
-              table,
-              TableMaintenanceCommand.optimize,
-            ),
+        ),
+      );
+    }
+    if (dt.supportsOptimizeTable) {
+      items.add(
+        ContextMenuItem(
+          id: 'optimize_table',
+          label: l10n.optimizeTable,
+          icon: LucideIcons.database,
+          onTap: () => _doMaintenance(
+            context,
+            provider,
+            cid,
+            db,
+            table,
+            TableMaintenanceCommand.optimize,
           ),
-        );
-      }
-      if (dt.supportsCheckTable) {
-        items.add(
-          ContextMenuItem(
-            id: 'check_table',
-            label: l10n.checkTable,
-            icon: LucideIcons.clipboardCheck,
-            onTap: () => _doMaintenance(
-              context,
-              provider,
-              cid,
-              db,
-              table,
-              TableMaintenanceCommand.check,
-            ),
+        ),
+      );
+    }
+    if (dt.supportsCheckTable) {
+      items.add(
+        ContextMenuItem(
+          id: 'check_table',
+          label: l10n.checkTable,
+          icon: LucideIcons.clipboardCheck,
+          onTap: () => _doMaintenance(
+            context,
+            provider,
+            cid,
+            db,
+            table,
+            TableMaintenanceCommand.check,
           ),
-        );
-      }
-      items.add(const ContextMenuItem.divider());
+        ),
+      );
     }
 
     // AI analysis（ai.analyze 位：MySQL/Doris MVP）
@@ -1352,20 +1359,48 @@ class SidebarTree extends StatelessWidget {
       );
     }
 
-    // Rename — supported databases (SQL + Redis)
-    if (dt.supportsRenameTable) {
-      items.add(
-        ContextMenuItem(
-          id: 'rename',
-          label: l10n.rename,
-          icon: LucideIcons.pencilLine,
-          onTap: () => _doRenameTable(context, provider, cid, db, table),
-        ),
-      );
+    // ── 第二段：结构 ──
+    final hasStructureItems =
+        !dt.isSchemaLess || dt.supportsColumnEdit || dt.supportsRenameTable;
+    if (hasStructureItems) {
+      items.add(const ContextMenuItem.divider());
+      // Create Table — all SQL databases (not schema-less)
+      if (!dt.isSchemaLess) {
+        items.add(
+          ContextMenuItem(
+            id: 'create_table',
+            label: l10n.createNewTable,
+            icon: LucideIcons.plus,
+            onTap: () => _doCreateTable(context, provider, cid, db),
+          ),
+        );
+      }
+      // Edit Table — only column-editable SQL databases
+      if (dt.supportsColumnEdit) {
+        items.add(
+          ContextMenuItem(
+            id: 'edit',
+            label: l10n.editTable,
+            icon: LucideIcons.pencil,
+            onTap: () => _doEditTable(context, provider, cid, db, table),
+          ),
+        );
+      }
+      // Rename — supported databases (SQL + Redis)
+      if (dt.supportsRenameTable) {
+        items.add(
+          ContextMenuItem(
+            id: 'rename',
+            label: l10n.rename,
+            icon: LucideIcons.pencilLine,
+            onTap: () => _doRenameTable(context, provider, cid, db, table),
+          ),
+        );
+      }
     }
 
-    // T018/FR-006 — Truncate is destructive and grouped with Drop at the
-    // menu bottom behind a single divider (matches Drop's danger treatment).
+    // ── 第三段：破坏（Empty/Drop 恒居末段，error 色 + 危险图标走既有
+    // isDestructive 语义；确认门不变——truncate 确认 / drop 表名校验）。
     // （redis 特例为死分支：本菜单仅 SQL 类树透传，Redis 树菜单在插件内。）
     final hasTruncate = !dt.isSchemaLess;
     final hasDrop = !dt.isSchemaLess;
@@ -1494,6 +1529,8 @@ class SidebarTree extends StatelessWidget {
           icon: LucideIcons.logIn,
           onTap: () => _insertSchemaName(context, provider, idx.name),
         ),
+        // UIRV-A3 — 结构段独立于破坏段（两 divider 节奏）。
+        const ContextMenuItem.divider(),
         ContextMenuItem(
           id: 'editIndex',
           label: l10n.editIndex,
@@ -2273,13 +2310,46 @@ class SidebarTree extends StatelessWidget {
         ),
       );
     } else if (!success && context.mounted) {
-      AppErrorHandler.showErrorSnackBar(
-        context,
-        AppLocalizations.of(
-          context,
-        )!.connectionFailedWith(provider.errorMessage ?? 'unknown'),
-      );
+      // UIRV-A2：连接失败只走结构化 ConnectFailureDialog（人话原因 + 目标 +
+      // 恢复动作），不再走 errorMessage → 通用 snackbar 双重播报。
+      _showConnectFailureDialog(context, provider, serverWithPassword);
     }
+  }
+
+  /// UIRV-A2：树连接入口统一失败面。重试闭包 = 同一连接调用（复用已解析
+  /// 凭据的 [server]，不重复弹密码框）；重试失败后由对话框从
+  /// lastFailureFor 原地更新（provider 在 connectToServer 失败路径保证写入，
+  /// null 时防御性兜底 unknown）。不传 onChooseFile——树入口的 SQLite 打开
+  /// 重选文件归 home_screen picker 路径（fileNotFound 主动作退回重试）。
+  void _showConnectFailureDialog(
+    BuildContext context,
+    AppProvider provider,
+    DbServer server,
+  ) {
+    final failure =
+        provider.connection.lastFailureFor(server.id) ??
+        provider.connection.lastConnectFailure ??
+        ConnectionFailure(
+          kind: ConnectionFailureKind.unknown,
+          errorCode: '',
+          target: '${server.host}:${server.port}',
+          rawMessage: '',
+          occurredAt: DateTime.now(),
+        );
+    unawaited(
+      ConnectFailureDialog.show(
+        context,
+        failure: failure,
+        onRetry: () async {
+          // 重入守卫与入口一致：连接在途时不重发。
+          if (provider.connection.isConnectionConnecting(server.id)) {
+            return false;
+          }
+          return provider.connectToServer(server);
+        },
+        latestFailure: () => provider.connection.lastFailureFor(server.id),
+      ),
+    );
   }
 
   /// J3 导航与动作分离（plan §10.1⑤）：动作类右键链（新建库/建表/改表/
@@ -2337,16 +2407,9 @@ class SidebarTree extends StatelessWidget {
         final connected = await provider.connectToServer(serverWithPassword);
         if (!connected) {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  AppLocalizations.of(
-                    context,
-                  )!.sidebarConnectFailed(server.name),
-                ),
-                backgroundColor: context.themeColors.accentRed,
-              ),
-            );
+            // UIRV-A2：收藏/最近重连护栏失败走同一结构化失败面（原
+            // sidebarConnectFailed 固定文案 snackbar 退役）。
+            _showConnectFailureDialog(context, provider, serverWithPassword);
           }
           return;
         }

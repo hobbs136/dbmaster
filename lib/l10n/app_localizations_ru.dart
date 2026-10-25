@@ -5122,9 +5122,6 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get connectionConnectNoPassword => 'Подключиться без пароля';
-
-  @override
   String get embeddedRequiresRemoteServer => 'Только удалённый сервер';
 
   @override
@@ -11621,4 +11618,85 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get environmentDevelopment => 'Среда разработки';
+
+  @override
+  String get connectionTestPendingHint =>
+      'Ещё не проверено · проверьте конфигурацию перед сохранением';
+
+  @override
+  String connectionTestPassedSummary(String target) {
+    return 'Тест пройден · $target · готово к сохранению';
+  }
+
+  @override
+  String get connectionRetest => 'Проверить снова';
+
+  @override
+  String get connectionTestResultScope =>
+      'Результат действует только для текущего черновика';
+
+  @override
+  String get resultsFilterEntry => 'Фильтр';
+
+  @override
+  String get resultsFilterApplyFailed =>
+      'Не удалось применить фильтр — подробности в результатах';
+
+  @override
+  String get uirvDockContextFollow => 'Автоследование · текущий контекст';
+
+  @override
+  String get uirvDockContextManual => 'Выбрано вручную';
+
+  @override
+  String get uirvDockContextManualSelect => 'Выбрать вручную';
+
+  @override
+  String get uirvDockContextRestoreFollow => 'Вернуть следование';
+
+  @override
+  String get uirvDockContextNoTable => 'Таблица не указана';
+
+  @override
+  String get uirvDockContextEmptyTitle => 'Подключение не задано';
+
+  @override
+  String get uirvDockContextChooseConnection => 'Выбрать подключение';
+
+  @override
+  String get uirvDockContextSourceSidebar => 'Боковая панель';
+
+  @override
+  String get uirvDockContextSourceActiveTab => 'Активная вкладка';
+
+  @override
+  String get uirvDockContextSourceCurrentServer => 'Текущий сервер';
+
+  @override
+  String get uirvDockContextCurrentTableTag => 'Текущая таблица';
+
+  @override
+  String get uirvBootPreparing => 'Подготовка рабочей области…';
+
+  @override
+  String get uirvBootStageLogger => 'Инициализация журнала';
+
+  @override
+  String get uirvBootStageExtensions => 'Загрузка модулей расширений';
+
+  @override
+  String get uirvBootStageTelemetry => 'Инициализация телеметрии';
+
+  @override
+  String get uirvBootStageServer => 'Инициализация служб подключения';
+
+  @override
+  String get uirvBootStageSession => 'Восстановление сеанса сервера';
+
+  @override
+  String get uirvBootErrorTitle => 'Проблема при запуске';
+
+  @override
+  String get connectionPasswordEmptyHint =>
+      'Оставьте пустым для подключения без пароля; «Сохранить пароль» доступно только при введённом пароле.';
 }

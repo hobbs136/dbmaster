@@ -5,6 +5,7 @@
 // 新增图标后请运行：dart run tool/subset_lucide_font.dart
 const Map<String, int> kLucideSubsetCodepoints = <String, int>{
   'activity': 57400,
+  'alertTriangle': 57747,
   'alignLeft': 57733,
   'appWindow': 58406,
   'archive': 57409,
@@ -156,7 +157,6 @@ const Map<String, int> kLucideSubsetCodepoints = <String, int>{
   'minimize': 57626,
   'monitor': 57629,
   'moon': 57630,
-  'mousePointerClick': 57632,
   'network': 57637,
   'notebookPen': 58774,
   'package': 57641,
@@ -195,7 +195,6 @@ const Map<String, int> kLucideSubsetCodepoints = <String, int>{
   'send': 57682,
   'server': 57683,
   'settings': 57684,
-  'settings2': 57925,
   'shapes': 58547,
   'share2': 57686,
   'shield': 57688,

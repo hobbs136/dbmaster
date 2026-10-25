@@ -11,6 +11,11 @@
 //                每层只订阅自己的状态切片；本地 UI 状态（resizer/GlobalKey）
 //                下沉到 z0；shell 仅保留 dialog / 命令面板 / _onProviderChange /
 //                布局投影 toggle（用 _lastConstraints）。
+//   2026-10-25 (UIRV-B1) — z3 AiMiniFabLayer 移除（设计稿 B1：AI 入口归
+//                SidebarFooter AI 键 / Ctrl+Shift+A / Ctrl+Shift+G / 命令面板，
+//                不再保留悬浮 FAB）。Stack 退为 3 层：
+//                  z0 MainWorkspaceLayer / z1 ExecutionCenterOverlay /
+//                  z2 AiFullscreenOverlay
 // ============================================================================
 
 import 'package:desktop_drop/desktop_drop.dart';
@@ -52,8 +57,8 @@ import '../core/commands/app_commands.dart';
 // 查询执行编排单一真相源（spec 040 Phase 2.1）
 import '../core/commands/query_execution_helper.dart';
 import '../theme/app_colors.dart';
-// Stack 4 层（layout plan §3.1）——z-order 由 build() 内 Stack 代码顺序决定
-import 'home/ai_mini_fab_layer.dart';
+// Stack 3 层（layout plan §3.1；z3 AiMiniFabLayer 已随 UIRV-B1 移除）
+// ——z-order 由 build() 内 Stack 代码顺序决定
 import 'home/ai_fullscreen_overlay.dart';
 import 'home/execution_center_overlay.dart';
 import 'home/main_workspace_layer.dart';
@@ -124,8 +129,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _initializeProvider(AppProvider provider) async {
     try {
       await provider.initialize();
-      // Note: AiPanelOverlay 和 AiMiniFab 各自在 initState 中从
-      // LayoutPreferencesProvider 加载自己的偏移量，无需在此处集中加载。
+      // Note: AiPanelOverlay 在 initState 中从 LayoutPreferencesProvider
+      // 加载自己的偏移量，无需在此处集中加载。
     } catch (e, stackTrace) {
       AppLogger.e(
         'HomeScreen',
@@ -573,13 +578,10 @@ class _HomeScreenState extends State<HomeScreen> {
   /// 重试复用同一条 openSqliteFile 路径（成功时顺带选中连接）；
   /// latestFailure 取 provider 最新结构化失败供对话框原地更新；
   /// 重新选择文件走 _openSqliteFile 自带的重入。
+  /// UIRV-A2：连接类失败不再写 errorMessage（双写已退役），无需在此
+  /// 清兼容面防双弹——_onProviderChange 的通用模态不再被连接失败触发。
   void _showSqliteConnectFailure(AppProvider provider, String path) {
     final l10n = AppLocalizations.of(context)!;
-    // errorMessage 兼容面（T3）会被 _onProviderChange 兜底成原始异常的通用
-    // 错误弹窗，叠在本结构化对话框之上盖住重试动作——SQLite 打开失败路径
-    // 的失败展示已由 ConnectFailureDialog 接管，清掉兼容面避免双重弹窗
-    // （clearError 不影响 lastConnectFailure，结构化失败照常可用）。
-    provider.clearError();
     final failure = provider.connection.lastConnectFailure;
     // T3 契约：lastConnectFailure 与失败结果同生共死；null 仅防御性兜底。
     unawaited(
@@ -597,9 +599,6 @@ class _HomeScreenState extends State<HomeScreen> {
           final ok = await provider.connection.openSqliteFile(path);
           if (ok) {
             _selectSqliteConnection(provider, path);
-          } else {
-            // 重试失败同样由本对话框原地更新，压掉遗留通用弹窗兜底。
-            provider.clearError();
           }
           return ok;
         },
@@ -723,9 +722,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     // 侧栏选择器、命令面板在面包屑栏、AI/主题/设置在侧栏
                     // footer、Server 状态在底部状态栏）——顶部垂直空间让给
                     // 工作区。
-                    // Main content——4 层 Stack，z-order 由代码顺序决定（plan §3.1）：
+                    // Main content——3 层 Stack，z-order 由代码顺序决定
+                    //（plan §3.1；z3 AiMiniFabLayer 已随 UIRV-B1 移除）：
                     //   z0 MainWorkspaceLayer / z1 ExecutionCenterOverlay /
-                    //   z2 AiFullscreenOverlay / z3 AiMiniFabLayer
+                    //   z2 AiFullscreenOverlay
                     Expanded(
                       child: Stack(
                         children: [
@@ -742,7 +742,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             constraints: constraints,
                             onToggleFullscreen: _toggleAiFullscreen,
                           ),
-                          const AiMiniFabLayer(),
                         ],
                       ),
                     ),

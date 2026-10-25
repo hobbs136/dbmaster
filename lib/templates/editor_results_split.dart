@@ -4,6 +4,7 @@
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../providers/app_provider.dart';
@@ -48,6 +49,21 @@ class _EditorResultsSplitState extends State<EditorResultsSplit> {
   /// methods (e.g. append SQL from history) on the active tab.
   final Map<String, GlobalKey<QueryEditorWidgetState>> _editorKeys = {};
 
+  /// UIRV-A41：过滤弹层开关 + Filter 入口焦点（Esc 关闭后归还焦点）。
+  bool _filterPopupOpen = false;
+  final FocusNode _filterEntryFocus = FocusNode();
+
+  /// 过滤弹层收起并归还焦点到 Filter 入口（弹层 Esc / 关闭钮 / Apply 收起共用）。
+  void _closeFilterPopup() {
+    // 已关闭时 no-op：弹层常驻挂载（Offstage 保活）后，关闭态下的时间戳
+    // 推进仍会触发 onClose，重复执行会把焦点错误抢回 Filter 入口。
+    if (!mounted || !_filterPopupOpen) return;
+    setState(() => _filterPopupOpen = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _filterEntryFocus.requestFocus();
+    });
+  }
+
   GlobalKey<QueryEditorWidgetState> _editorKeyFor(String tabId) {
     return _editorKeys.putIfAbsent(
       tabId,
@@ -68,6 +84,7 @@ class _EditorResultsSplitState extends State<EditorResultsSplit> {
     if (widget.provider.insertIntoActiveEditor == _insertIntoActiveEditor) {
       widget.provider.insertIntoActiveEditor = null;
     }
+    _filterEntryFocus.dispose();
     super.dispose();
   }
 
@@ -120,35 +137,130 @@ class _EditorResultsSplitState extends State<EditorResultsSplit> {
     );
     final isDataMode = layout.filterBarVisible && supportsFilterBar;
     if (isDataMode) {
-      // data 模式：FilterBar + 结果数据网格（无子标签栏、无 editor/工具栏）
-      return Column(
-        children: [
-          _buildFilterBarRegion(),
-          Expanded(child: _buildResults(showSubTabs: false)),
-        ],
-      );
+      // data 模式：结果数据网格（无子标签栏、无 editor/工具栏）+ Filter 入口；
+      // FilterBarStrip 改为覆盖式弹层承载（UIRV-A41）。
+      final filterConditionCount = activeTabId == null
+          ? 0
+          : context.select<AppProvider, int>(
+              (p) => p.filterConditionsFor(activeTabId).length,
+            );
+      return _buildDataMode(activeTabId, filterConditionCount);
     }
     // query 模式
     return _buildQueryMode(context, layout);
   }
 
-  /// Region-1 FilterBar：per-tab 实例（IndexedStack，各 tab 自持控制器，非跨 tab 单例）。
-  /// 仅在 active tab 的 filterBarVisible && supportsFilterBar 时由 build 渲染本区域。
-  Widget _buildFilterBarRegion() {
-    final tabs = widget.provider.tabs;
-    if (tabs.isEmpty) return const SizedBox.shrink();
-    return IndexedStack(
-      index: widget.provider.activeTabIndex.clamp(0, tabs.length - 1),
-      children: tabs
-          .map(
-            (tab) => FilterBarStrip(
-              key: ValueKey('filterbar:${tab.id}'),
-              tabId: tab.id,
+  /// UIRV-A41：data 模式装配——单一结果工具栏（含 Filter 入口）+ 覆盖式过滤
+  /// 弹层（Stack，不推挤网格布局）。弹层经 Offstage 常驻挂载（打回修复：
+  /// 关闭再开草稿条件行保留；offstage 下不绘制/不命中/零布局占位），
+  /// FilterBarStrip 内部条件/combinator/Apply 执行路径零改动。
+  Widget _buildDataMode(String? activeTabId, int filterConditionCount) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Stack(
+          children: [
+            Column(
+              children: [
+                Expanded(
+                  child: _buildResults(
+                    showSubTabs: false,
+                    filterEntry: _buildFilterEntry(
+                      activeTabId,
+                      filterConditionCount,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          )
-          .toList(),
+            if (activeTabId != null)
+              Positioned(
+                top: 40,
+                left: AppDesignSystem.space3,
+                // UIRV-A41 打回修复：弹层常驻挂载（Offstage 保活）——关闭时
+                // FilterBarStrip 子树状态（未 Apply 的草稿条件行）不丢失；
+                // offstage 下不绘制、不命中测试、布局占位为零，不遮挡交互。
+                child: Offstage(
+                  offstage: !_filterPopupOpen,
+                  child: _FilterPopupPanel(
+                    key: const ValueKey('uirv-a41-filter-popup'),
+                    tabId: activeTabId,
+                    open: _filterPopupOpen,
+                    maxWidth: math.min(
+                      _kFilterPopupMaxWidth,
+                      math.max(
+                        120.0,
+                        constraints.maxWidth - AppDesignSystem.space3 * 2,
+                      ),
+                    ),
+                    onClose: _closeFilterPopup,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
+
+  /// UIRV-A41：Filter 入口按钮（工具栏内；显示激活条件数徽标，0 时无徽标）。
+  Widget _buildFilterEntry(String? tabId, int conditionCount) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = context.themeColors;
+    return Focus(
+      focusNode: _filterEntryFocus,
+      child: TextButton.icon(
+        key: const ValueKey('uirv-a41-filter-entry'),
+        onPressed: tabId == null
+            ? null
+            : () => setState(() => _filterPopupOpen = !_filterPopupOpen),
+        icon: Icon(
+          LucideIcons.filter,
+          size: 16,
+          color: colors.textSecondary,
+        ),
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              l10n.resultsFilterEntry,
+              style: TextStyle(fontSize: 12, color: colors.textSecondary),
+            ),
+            if (conditionCount > 0) ...[
+              const SizedBox(width: AppDesignSystem.space1),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDesignSystem.space1_5,
+                  vertical: 1,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.accentBlue.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
+                ),
+                child: Text(
+                  '$conditionCount',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: colors.accentBlue,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        style: TextButton.styleFrom(
+          foregroundColor: colors.textSecondary,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDesignSystem.space2,
+            vertical: AppDesignSystem.space1,
+          ),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ),
+    );
+  }
+
 
   /// query 模式：editor 恒显；results 按 resultsVisible（首次执行前 editor 占满）。
   Widget _buildQueryMode(BuildContext context, PanelLayout layout) {
@@ -261,13 +373,14 @@ class _EditorResultsSplitState extends State<EditorResultsSplit> {
     );
   }
 
-  Widget _buildResults({bool showSubTabs = true}) {
+  Widget _buildResults({bool showSubTabs = true, Widget? filterEntry}) {
     return Column(
       children: [
         Expanded(
           child: ResultsWidget(
             key: widget.resultsWidgetKey,
             showSubTabs: showSubTabs,
+            filterEntry: filterEntry,
             onHistoryDoubleTapped: (history) =>
                 _onHistoryDoubleTapped(history.sql),
             onHistoryTapped: (history) => _onHistoryTapped(history.sql),
@@ -467,6 +580,179 @@ class _ExecutionStatusBarState extends State<ExecutionStatusBar> {
           ),
         );
       },
+    );
+  }
+}
+
+// ============================================================================
+// _FilterPopupPanel — UIRV-A41 过滤弹层（覆盖式，FilterBarStrip 呈现容器）
+// ============================================================================
+///
+/// 只换呈现容器：内部条件/combinator/Apply → buildFilteredSelect → 执行
+/// 守卫/行限/历史/PII 路径全部留在 [FilterBarStrip]，本面板零复制。
+/// 收起信号：Apply 成功 = 活跃结果子标签时间戳推进且非失败 → onClose；
+/// 执行失败（子标签 errorMessage 或结果 success=false）→ 保持展开并在
+/// 面板内呈现失败提示（验收条款 4：不用空白顶替）。
+const double _kFilterPopupMaxWidth = 400;
+
+class _FilterPopupPanel extends StatefulWidget {
+  final String tabId;
+
+  /// 弹层是否展开（宿主 Offstage 保活：关闭时子树仍在但不可见不可命中；
+  /// 打开瞬间经本标志把焦点交给面板，支持 Esc 关闭）。
+  final bool open;
+
+  /// 弹层宽度上限（窄窗取宿主可用宽，由装配处预算）。
+  final double maxWidth;
+  final VoidCallback onClose;
+
+  const _FilterPopupPanel({
+    super.key,
+    required this.tabId,
+    required this.open,
+    required this.maxWidth,
+    required this.onClose,
+  });
+
+  @override
+  State<_FilterPopupPanel> createState() => _FilterPopupPanelState();
+}
+
+class _FilterPopupPanelState extends State<_FilterPopupPanel> {
+  /// 打开（或上次执行）时观察到的活跃子标签时间戳——Apply 完成的观察面。
+  DateTime? _lastSeenTimestamp;
+  bool _showApplyFailed = false;
+
+  /// 面板焦点（打开时接管，Esc 在此关闭；替代常驻化后失效的 autofocus）。
+  final FocusNode _panelFocus = FocusNode();
+
+  @override
+  void didUpdateWidget(covariant _FilterPopupPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.open && !oldWidget.open) {
+      _panelFocus.requestFocus();
+    }
+  }
+
+  @override
+  void dispose() {
+    _panelFocus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = context.themeColors;
+    final timestamp = context.select<AppProvider, DateTime?>(
+      (p) => p.tab.activeResultSubTab?.timestamp,
+    );
+    if (_lastSeenTimestamp == null) {
+      _lastSeenTimestamp = timestamp;
+    } else if (timestamp != _lastSeenTimestamp) {
+      _lastSeenTimestamp = timestamp;
+      final provider = context.read<AppProvider>();
+      final sub = provider.tab.activeResultSubTab;
+      final failed =
+          sub?.hasError == true ||
+          (sub?.executionResults.any((r) => !r.success) ?? false);
+      _showApplyFailed = failed;
+      if (!failed && widget.open) {
+        // Apply 成功 → 收起弹层（build 期不触发回调，post-frame 执行）。
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) widget.onClose();
+        });
+      }
+    }
+
+    return Focus(
+      focusNode: _panelFocus,
+      onKeyEvent: (node, event) {
+        if (widget.open &&
+            event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.escape) {
+          widget.onClose();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: Material(
+        elevation: 6,
+        borderRadius: BorderRadius.circular(AppDesignSystem.radiusMd),
+        color: colors.bgPrimary,
+        child: Container(
+          width: widget.maxWidth,
+          padding: const EdgeInsets.all(AppDesignSystem.space2),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppDesignSystem.radiusMd),
+            border: Border.all(color: colors.borderLight),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 弹层头：标题 + 关闭钮（Esc 的可见等价物）。
+              Row(
+                children: [
+                  Icon(
+                    LucideIcons.filter,
+                    size: 14,
+                    color: colors.textSecondary,
+                  ),
+                  const SizedBox(width: AppDesignSystem.space1_5),
+                  Expanded(
+                    child: Text(
+                      l10n.resultsFilterEntry,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  InkResponse(
+                    onTap: widget.onClose,
+                    radius: 12,
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppDesignSystem.space1),
+                      child: Icon(
+                        LucideIcons.x,
+                        size: 14,
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppDesignSystem.space1),
+              // 既有过滤构造器原样挂载（per-tab 实例，内部逻辑零改动）。
+              FilterBarStrip(key: ValueKey('filterbar:${widget.tabId}'), tabId: widget.tabId),
+              if (_showApplyFailed) ...[
+                const SizedBox(height: AppDesignSystem.space1),
+                Row(
+                  children: [
+                    Icon(
+                      LucideIcons.triangleAlert,
+                      size: 14,
+                      color: colors.accentRed,
+                    ),
+                    const SizedBox(width: AppDesignSystem.space1_5),
+                    Expanded(
+                      child: Text(
+                        l10n.resultsFilterApplyFailed,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: colors.accentRed,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

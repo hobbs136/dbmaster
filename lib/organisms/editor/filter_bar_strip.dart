@@ -288,44 +288,54 @@ class _FilterBarStripState extends State<FilterBarStrip> {
         row.op == FilterOperator.isNull || row.op == FilterOperator.isNotNull;
     return Row(
       children: [
-        DropdownButton<String>(
-          value: fieldValue,
-          items: _columns
-              .map(
-                (c) => DropdownMenuItem(
-                  value: c.name,
-                  child: Text(
-                    '${c.name}  (${c.type})',
-                    style: const TextStyle(fontSize: 12),
-                    overflow: TextOverflow.ellipsis,
+        // UIRV-A41 返工：弹层容器 ≤400px 下长字段标签（含类型串）会挤出
+        // Row overflow——两个字段/操作符下拉改 Flexible + isExpanded 收缩
+        // （item 文本既有 ellipsis 生效），仅布局容器，选择/执行逻辑零改动。
+        Flexible(
+          child: DropdownButton<String>(
+            value: fieldValue,
+            isExpanded: true,
+            items: _columns
+                .map(
+                  (c) => DropdownMenuItem(
+                    value: c.name,
+                    child: Text(
+                      '${c.name}  (${c.type})',
+                      style: const TextStyle(fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              )
-              .toList(),
-          onChanged: (v) => setState(() {
-            row.field = v ?? row.field;
-            row.valueController.clear(); // 切字段时清空值（列类型可能变）
-          }),
-          underline: const SizedBox(),
-          isDense: true,
+                )
+                .toList(),
+            onChanged: (v) => setState(() {
+              row.field = v ?? row.field;
+              row.valueController.clear(); // 切字段时清空值（列类型可能变）
+            }),
+            underline: const SizedBox(),
+            isDense: true,
+          ),
         ),
         const SizedBox(width: 6),
-        DropdownButton<FilterOperator>(
-          value: row.op,
-          items: FilterOperator.values
-              .map(
-                (o) => DropdownMenuItem(
-                  value: o,
-                  child: Text(
-                    _opLabel(o),
-                    style: const TextStyle(fontSize: 12),
+        Flexible(
+          child: DropdownButton<FilterOperator>(
+            value: row.op,
+            isExpanded: true,
+            items: FilterOperator.values
+                .map(
+                  (o) => DropdownMenuItem(
+                    value: o,
+                    child: Text(
+                      _opLabel(o),
+                      style: const TextStyle(fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              )
-              .toList(),
-          onChanged: (v) => setState(() => row.op = v ?? row.op),
-          underline: const SizedBox(),
-          isDense: true,
+                )
+                .toList(),
+            onChanged: (v) => setState(() => row.op = v ?? row.op),
+            underline: const SizedBox(),
+            isDense: true,
+          ),
         ),
         const SizedBox(width: 6),
         if (noValue)

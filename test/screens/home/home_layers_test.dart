@@ -2,18 +2,21 @@
 // layer 显隐测试（layout plan §3.1）
 // ============================================================================
 //
-// 验证 4 个 layer 的 z-order 显隐条件与重构前 home_screen.dart 内联 Stack
-// 逐字一致（见 design §2.2）。每个 layer 独立 pump + 断言 findsNothing /
+// 验证 z0-z2 各 layer 的 z-order 显隐条件与 home_screen.dart 内联 Stack
+// 逐字一致。每个 layer 独立 pump + 断言 findsNothing /
 // findsOneWidget。effective 降级态（aiAsOverlay / ecAsFloating）用窄宽度触发。
 //
 // layers 的 constraints 是构造参数——直接传 BoxConstraints，无需 tester.view。
+//
+// UIRV-B1（2026-10-25）：z3 AiMiniFabLayer 已删除（AI 入口归 SidebarFooter
+// AI 键 / Ctrl+Shift+A / Ctrl+Shift+G / 命令面板）；关闭态整树无 FAB 的
+// 断言在 test/screens/home/ai_fullscreen_e2e_test.dart（真实 HomeScreen 路径）。
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:dbmaster/l10n/app_localizations.dart';
-import 'package:dbmaster/organisms/ai_panel/ai_mini_fab.dart';
 import 'package:dbmaster/organisms/ai_panel/ai_panel_overlay.dart';
 import 'package:dbmaster/organisms/ai_workbench/ai_workbench_shell.dart';
 import 'package:dbmaster/organisms/execution_center/execution_center_panel.dart';
@@ -23,7 +26,6 @@ import 'package:dbmaster/providers/layout_preferences_provider.dart';
 import 'package:dbmaster/providers/task_provider.dart';
 import 'package:dbmaster/providers/theme_provider.dart';
 import 'package:dbmaster/screens/home/ai_fullscreen_overlay.dart';
-import 'package:dbmaster/screens/home/ai_mini_fab_layer.dart';
 import 'package:dbmaster/screens/home/execution_center_overlay.dart';
 import 'package:dbmaster/screens/home/main_workspace_layer.dart';
 import 'package:dbmaster/templates/main_workspace.dart';
@@ -85,22 +87,6 @@ MainWorkspaceLayer _workspaceLayer(double w) => MainWorkspaceLayer(
     );
 
 void main() {
-  group('z3 AiMiniFabLayer', () {
-    testWidgets('hidden when AI panel open', (tester) async {
-      final app = AppProvider()..toggleAiPanel(); // open
-      await tester.pumpWidget(_harness(const AiMiniFabLayer(), app: app));
-      await tester.pumpAndSettle();
-      expect(find.byType(AiMiniFab), findsNothing);
-    });
-
-    testWidgets('shown when AI panel closed', (tester) async {
-      final app = AppProvider(); // closed (default)
-      await tester.pumpWidget(_harness(const AiMiniFabLayer(), app: app));
-      await tester.pumpAndSettle();
-      expect(find.byType(AiMiniFab), findsOneWidget);
-    });
-  });
-
   group('z0 MainWorkspaceLayer', () {
     testWidgets('skipped (hidden) when AI fullscreen', (tester) async {
       final app = AppProvider()

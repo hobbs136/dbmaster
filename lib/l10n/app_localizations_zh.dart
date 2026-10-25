@@ -4986,9 +4986,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get connectionConnectNoPassword => '不使用密码连接';
-
-  @override
   String get embeddedRequiresRemoteServer => '需要远程 Server';
 
   @override
@@ -11296,6 +11293,83 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get environmentDevelopment => '开发环境';
+
+  @override
+  String get connectionTestPendingHint => '尚未测试 · 建议先验证配置';
+
+  @override
+  String connectionTestPassedSummary(String target) {
+    return '连接测试通过 · $target · 可以保存';
+  }
+
+  @override
+  String get connectionRetest => '重新测试';
+
+  @override
+  String get connectionTestResultScope => '测试结果仅对当前草稿有效';
+
+  @override
+  String get resultsFilterEntry => '筛选';
+
+  @override
+  String get resultsFilterApplyFailed => '筛选应用失败——详情见结果区';
+
+  @override
+  String get uirvDockContextFollow => '自动跟随 · 当前上下文';
+
+  @override
+  String get uirvDockContextManual => '已手动选择';
+
+  @override
+  String get uirvDockContextManualSelect => '手动改选';
+
+  @override
+  String get uirvDockContextRestoreFollow => '恢复跟随';
+
+  @override
+  String get uirvDockContextNoTable => '未指定表';
+
+  @override
+  String get uirvDockContextEmptyTitle => '未设置连接';
+
+  @override
+  String get uirvDockContextChooseConnection => '选择已有连接';
+
+  @override
+  String get uirvDockContextSourceSidebar => '侧栏';
+
+  @override
+  String get uirvDockContextSourceActiveTab => '活动 tab';
+
+  @override
+  String get uirvDockContextSourceCurrentServer => 'currentServer';
+
+  @override
+  String get uirvDockContextCurrentTableTag => '当前表';
+
+  @override
+  String get uirvBootPreparing => '正在准备工作区…';
+
+  @override
+  String get uirvBootStageLogger => '正在初始化日志服务';
+
+  @override
+  String get uirvBootStageExtensions => '正在加载扩展模块';
+
+  @override
+  String get uirvBootStageTelemetry => '正在初始化遥测';
+
+  @override
+  String get uirvBootStageServer => '正在初始化连接服务';
+
+  @override
+  String get uirvBootStageSession => '正在恢复服务器会话';
+
+  @override
+  String get uirvBootErrorTitle => '初始化遇到问题';
+
+  @override
+  String get connectionPasswordEmptyHint => '留空将以无密码方式连接；非空时才可使用「保存密码」。';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -15838,9 +15912,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get connectionConnectNoPassword => '不使用密碼連線';
-
-  @override
   String get embeddedRequiresRemoteServer => '需要遠端 Server';
 
   @override
@@ -20039,4 +20110,81 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get environmentDevelopment => '開發環境';
+
+  @override
+  String get connectionTestPendingHint => '尚未測試 · 建議先驗證設定';
+
+  @override
+  String connectionTestPassedSummary(String target) {
+    return '連線測試通過 · $target · 可以儲存';
+  }
+
+  @override
+  String get connectionRetest => '重新測試';
+
+  @override
+  String get connectionTestResultScope => '測試結果僅對目前草稿有效';
+
+  @override
+  String get resultsFilterEntry => '篩選';
+
+  @override
+  String get resultsFilterApplyFailed => '篩選套用失敗——詳情見結果區';
+
+  @override
+  String get uirvDockContextFollow => '自動跟隨 · 當前上下文';
+
+  @override
+  String get uirvDockContextManual => '已手動選擇';
+
+  @override
+  String get uirvDockContextManualSelect => '手動改選';
+
+  @override
+  String get uirvDockContextRestoreFollow => '恢復跟隨';
+
+  @override
+  String get uirvDockContextNoTable => '未指定資料表';
+
+  @override
+  String get uirvDockContextEmptyTitle => '未設定連線';
+
+  @override
+  String get uirvDockContextChooseConnection => '選擇已有連線';
+
+  @override
+  String get uirvDockContextSourceSidebar => '側欄';
+
+  @override
+  String get uirvDockContextSourceActiveTab => '活動分頁';
+
+  @override
+  String get uirvDockContextSourceCurrentServer => 'currentServer';
+
+  @override
+  String get uirvDockContextCurrentTableTag => '當前資料表';
+
+  @override
+  String get uirvBootPreparing => '正在準備工作區…';
+
+  @override
+  String get uirvBootStageLogger => '正在初始化日誌服務';
+
+  @override
+  String get uirvBootStageExtensions => '正在載入擴充模組';
+
+  @override
+  String get uirvBootStageTelemetry => '正在初始化遙測';
+
+  @override
+  String get uirvBootStageServer => '正在初始化連線服務';
+
+  @override
+  String get uirvBootStageSession => '正在還原伺服器工作階段';
+
+  @override
+  String get uirvBootErrorTitle => '初始化遇到問題';
+
+  @override
+  String get connectionPasswordEmptyHint => '留空將以無密碼方式連線；非空時才可使用「儲存密碼」。';
 }

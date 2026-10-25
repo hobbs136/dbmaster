@@ -285,9 +285,15 @@ class _SidebarWidgetState extends State<SidebarWidget> {
                 _controller.updateSearchQuery('');
               },
             ),
+            // A42（UIRV-A42）：树区包 Stack——能力覆盖抽屉 Positioned 底部
+            // 锚定（入口行上方）向上覆盖，树布局高度不被扣减；抽屉自身按
+            // 开合共享态决定是否渲染（关/自隐藏 → SizedBox.shrink）。
             Expanded(
               flex: 2,
-              child: SidebarTree(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: SidebarTree(
                 // 稳定 key（plan §3.5）：SidebarTree 内部已按 searchQuery 过滤，
                 // 动态 key 会导致每次搜索 dispose/create 整树、丢失滚动位置。
                 key: const ValueKey('sidebar_tree'),
@@ -318,10 +324,21 @@ class _SidebarWidgetState extends State<SidebarWidget> {
                 selectedNodeKey: _controller.selectedNodeKey,
                 onSelectNode: _controller.selectNode,
                 onRightClickTargetChanged: _controller.setRightClickedNodeKey,
+                  ),
+                  ),
+                  // A42：能力覆盖抽屉（树区 Stack 底部锚定 = 入口行上缘）。
+                  const Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: SidebarCapabilityDrawer(),
+                  ),
+                ],
               ),
             ),
-            // C14 — 能力菜单（分组能力目录：插件合并 + port 门控；无活动
-            // 连接时自隐藏，位于树与进程面板之间）
+            // C14 — 能力菜单入口行（A42：32px 常驻入口 = 短标签 + 可见项数
+            // + Alt+Q 徽章；连接名/库型在 tooltip 与覆盖抽屉头部；无活动
+            // 连接时自隐藏，位于树区与进程面板之间）
             const SidebarCapabilityMenu(),
             // T014 — MySQL process panel (between tree and footer)
             // J3（T26）：挂载锚定改「活动上下文连接」（活动 tab →

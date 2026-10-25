@@ -17,12 +17,22 @@ import '../../providers/app_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/app_logger.dart';
 import '../../atoms/app_loading.dart';
+import 'connect_failure_dialog.dart';
 import 'connection_export_import_dialog.dart';
 import 'error_boundary.dart';
 import '../../molecules/compact_popup_menu_item.dart';
+import '../../models/connection_failure.dart';
 import '../../theme/app_colors.dart';
 import 'forms/connection_form_fields.dart';
 import 'forms/network_connection_form.dart';
+import 'forms/sqlite_connection_form.dart';
+
+/// UIRV-B2（软门）· 表单测试状态：
+/// dirty = 未测试/草稿已变更（Test 主动作，Save 次样式但始终可点）；
+/// testing = 测试进行中（主动作 loading 禁点防重）；
+/// tested = 测试通过（摘要条 + Save 接手主动作 + Test 变「重新测试」）。
+/// 测试失败不走独立态——结构化面（ConnectFailureDialog）呈现后回 dirty。
+enum _ConnectionTestState { dirty, testing, tested }
 
 class ConnectionDialog extends StatefulWidget {
   final DbServer? existingServer;
@@ -42,6 +52,11 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
   PluginDescriptor? _sessionDescriptor;
   bool _isLoading = false;
 
+  // UIRV-B2（软门）：测试状态机与最近一次测试的草稿快照/结构化失败。
+  _ConnectionTestState _testState = _ConnectionTestState.dirty;
+  DbServer? _lastTestedServer;
+  ConnectionFailure? _lastFailure;
+
   @override
   void initState() {
     super.initState();
@@ -59,7 +74,78 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
           ),
     );
     _nameController = TextEditingController(text: server?.name ?? '');
+    _draft.addListener(_invalidateTestState);
     _createSession();
+  }
+
+  /// 脏态失效（UIRV-B2）：任意影响连接的草稿/表单字段变更 → 回 dirty，
+  /// 旧测试态失效、成功摘要条清除。按字段来源分两条监听：
+  /// ① `_draft`（名称/环境/类型切换）；② 表单会话（host/port/凭据/
+  /// 文件路径等 per-type 控制器与开关）——会话接口只读消费，不改其契约。
+  void _invalidateTestState() {
+    if (_testState == _ConnectionTestState.dirty) return;
+    setState(() {
+      _testState = _ConnectionTestState.dirty;
+      _lastTestedServer = null;
+    });
+  }
+
+  void _attachSessionListeners() {
+    final session = _session;
+    if (session == null) return;
+    if (session is ChangeNotifier) {
+      (session as ChangeNotifier).addListener(_invalidateTestState);
+    }
+    if (session is NetworkConnectionFormSession) {
+      for (final controller in [
+        session.hostController,
+        session.portController,
+        session.usernameController,
+        session.passwordController,
+        session.databaseController,
+        session.timeoutController,
+        session.sshHostController,
+        session.sshPortController,
+        session.sshUsernameController,
+        session.sshPasswordController,
+        session.sshPrivateKeyController,
+        session.sshPassphraseController,
+      ]) {
+        controller.addListener(_invalidateTestState);
+      }
+    }
+    if (session is SqliteConnectionFormSession) {
+      session.pathController.addListener(_invalidateTestState);
+    }
+  }
+
+  void _detachSessionListeners() {
+    final session = _session;
+    if (session == null) return;
+    if (session is ChangeNotifier) {
+      (session as ChangeNotifier).removeListener(_invalidateTestState);
+    }
+    if (session is NetworkConnectionFormSession) {
+      for (final controller in [
+        session.hostController,
+        session.portController,
+        session.usernameController,
+        session.passwordController,
+        session.databaseController,
+        session.timeoutController,
+        session.sshHostController,
+        session.sshPortController,
+        session.sshUsernameController,
+        session.sshPasswordController,
+        session.sshPrivateKeyController,
+        session.sshPassphraseController,
+      ]) {
+        controller.removeListener(_invalidateTestState);
+      }
+    }
+    if (session is SqliteConnectionFormSession) {
+      session.pathController.removeListener(_invalidateTestState);
+    }
   }
 
   String _defaultUsername(DatabaseType type) {
@@ -77,6 +163,7 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
   }
 
   void _createSession() {
+    _detachSessionListeners();
     _session?.dispose();
     final plugin = defaultPluginRegistry.connectionFormFor(_selectedType) ??
         const GenericConnectionFormPlugin();
@@ -84,6 +171,7 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
     _session = plugin.createSession(
       ConnectionFormPluginContext(type: _selectedType, draft: _draft),
     );
+    _attachSessionListeners();
   }
 
   /// 切换类型：全量重建草稿——保留身份/头部字段（id/name/groupId/
@@ -119,6 +207,8 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
 
   @override
   void dispose() {
+    _detachSessionListeners();
+    _draft.removeListener(_invalidateTestState);
     _session?.dispose();
     _nameController.dispose();
     super.dispose();
@@ -292,6 +382,10 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
                   _buildEnvironmentSelector(),
                   const SizedBox(height: AppDesignSystem.space5),
                   if (_session != null) _session!.build(context),
+                  if (_testState == _ConnectionTestState.tested)
+                    _buildTestSummary(context)
+                  else
+                    _buildTestPendingHint(context),
                 ],
               ),
             ),
@@ -302,8 +396,87 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
     );
   }
 
+  /// UIRV-B2：tested 态成功摘要条（success token；SQLite 目标为文件名，
+  /// socket 型为 host:port，port==0 不拼 `:0`——与 B5 副信息口径同源）。
+  Widget _buildTestSummary(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = context.themeColors;
+    final target = _lastTestedServer == null
+        ? ''
+        : _targetLabel(_lastTestedServer!);
+    return Container(
+      key: const ValueKey('connection-test-summary'),
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: AppDesignSystem.space4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDesignSystem.space3,
+        vertical: AppDesignSystem.space2_5,
+      ),
+      decoration: BoxDecoration(
+        color: colors.successContainer,
+        borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
+        border: Border.all(color: colors.success.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(LucideIcons.circleCheck, size: 14, color: colors.success),
+          const SizedBox(width: AppDesignSystem.space2),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.connectionTestPassedSummary(target),
+                  style: TextStyle(
+                    fontSize: AppDesignSystem.fontSizeSm,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  l10n.connectionTestResultScope,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// UIRV-B2：dirty 态未测试提示（弱提示，不构成硬门——Save 始终可点）。
+  Widget _buildTestPendingHint(BuildContext context) {
+    final colors = context.themeColors;
+    return Padding(
+      padding: const EdgeInsets.only(top: AppDesignSystem.space4),
+      child: Row(
+        children: [
+          Icon(LucideIcons.info, size: 14, color: colors.textMuted),
+          const SizedBox(width: AppDesignSystem.space2),
+          Expanded(
+            child: Text(
+              AppLocalizations.of(context)!.connectionTestPendingHint,
+              style: TextStyle(
+                fontSize: 11,
+                color: colors.textMuted,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFooter(BuildContext context, AppLocalizations l10n) {
     final descriptor = _sessionDescriptor;
+    final tested = _testState == _ConnectionTestState.tested;
+    final colors = context.themeColors;
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppDesignSystem.space5,
@@ -333,20 +506,43 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
             child: Text(l10n.commonCancel),
           ),
           const SizedBox(width: AppDesignSystem.space3),
-          LoadingButton(
-            label: l10n.connectionTestConnection,
-            onPressed: _testConnection,
-            isLoading: _isLoading,
-            backgroundColor: context.themeColors.bgTertiary,
-            textColor: context.themeColors.textPrimary,
-          ),
-          const SizedBox(width: AppDesignSystem.space2),
-          LoadingButton(
-            label: l10n.commonSave,
-            onPressed: _saveConnection,
-            isLoading: _isLoading,
-            backgroundColor: context.themeColors.accentBlue,
-          ),
+          if (tested) ...[
+            // UIRV-B2：tested 态——重新测试（次样式）+ Save（主样式接手）
+            LoadingButton(
+              key: const ValueKey('connection-dialog-test-button'),
+              label: l10n.connectionRetest,
+              onPressed: _testConnection,
+              isLoading: _testState == _ConnectionTestState.testing,
+              backgroundColor: colors.bgTertiary,
+              textColor: colors.textPrimary,
+            ),
+            const SizedBox(width: AppDesignSystem.space2),
+            LoadingButton(
+              key: const ValueKey('connection-dialog-save-button'),
+              label: l10n.commonSave,
+              onPressed: _saveConnection,
+              isLoading: _isLoading,
+              backgroundColor: colors.accentBlue,
+            ),
+          ] else ...[
+            // UIRV-B2：dirty 态——Save（次样式，始终可点）+ Test（主动作）
+            LoadingButton(
+              key: const ValueKey('connection-dialog-save-button'),
+              label: l10n.commonSave,
+              onPressed: _saveConnection,
+              isLoading: _isLoading,
+              backgroundColor: colors.bgTertiary,
+              textColor: colors.textPrimary,
+            ),
+            const SizedBox(width: AppDesignSystem.space2),
+            LoadingButton(
+              key: const ValueKey('connection-dialog-test-button'),
+              label: l10n.connectionTestConnection,
+              onPressed: _testConnection,
+              isLoading: _testState == _ConnectionTestState.testing,
+              backgroundColor: colors.accentBlue,
+            ),
+          ],
         ],
       ),
     );
@@ -482,45 +678,71 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
     }
   }
 
-  Future<void> _testConnection() async {
-    if (!_formKey.currentState!.validate()) return;
-    final server = _session?.collect(forSave: false);
-    if (server == null) return;
+  /// 目标标签：SQLite = 文件路径；socket 型 = host:port（port==0 不拼，
+  /// 与 UIRV-B5 副信息口径同源）。
+  String _targetLabel(DbServer server) {
+    if (server.type == DatabaseType.sqlite) return server.host;
+    if (server.port == 0) return server.host;
+    return '${server.host}:${server.port}';
+  }
 
-    setState(() => _isLoading = true);
+  /// UIRV-B2：执行一次连接测试（状态机推进 dirty→testing→tested/dirty）。
+  /// 返回 true = 通过；false = 失败（`_lastFailure` 已就位，等待展示方
+  /// 走结构化面）。testing 中重入直接拒绝（防重，请求只发一次）。
+  Future<bool> _runTest() async {
+    if (_testState == _ConnectionTestState.testing) return false;
+    if (!_formKey.currentState!.validate()) return false;
+    final server = _session?.collect(forSave: false);
+    if (server == null) return false;
+
+    setState(() => _testState = _ConnectionTestState.testing);
 
     try {
-      final provider = context.read<AppProvider>();
-      final l10n = AppLocalizations.of(context)!;
-
-      final error = await provider.testConnection(server);
-
-      if (mounted) {
-        if (error == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.connectionTestSuccess),
-              backgroundColor: context.themeColors.success,
-            ),
-          );
-        } else {
-          AppErrorHandler.showErrorSnackBar(
-            context,
-            '${l10n.connectionTestFailed}: $error',
-          );
-        }
+      final error = await context.read<AppProvider>().testConnection(server);
+      if (!mounted) return false;
+      if (error == null) {
+        setState(() {
+          _lastTestedServer = server;
+          _testState = _ConnectionTestState.tested;
+        });
+        return true;
       }
+      // provider.testConnection 返回 String?（无结构化失败，偏差清单 #9）
+      // → 映射 unknown 分型；ConnectFailureDialog 展示边界自带脱敏。
+      _lastFailure = ConnectionFailure(
+        kind: ConnectionFailureKind.unknown,
+        errorCode: '',
+        target: _targetLabel(server),
+        rawMessage: error,
+        occurredAt: DateTime.now(),
+      );
     } catch (e) {
       AppLogger.e('ConnectionDialog', 'Test connection error: $e');
-      if (mounted) {
-        AppErrorHandler.showErrorSnackBar(
-          context,
-          AppLocalizations.of(context)!.connectionTestFailed(e.toString()),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      _lastFailure = ConnectionFailure(
+        kind: ConnectionFailureKind.unknown,
+        errorCode: '',
+        target: _targetLabel(server),
+        rawMessage: e.toString(),
+        occurredAt: DateTime.now(),
+      );
+      if (!mounted) return false;
     }
+    // 失败不设独立态：回 dirty，由调用方弹结构化面（验收 6）
+    setState(() => _testState = _ConnectionTestState.dirty);
+    return false;
+  }
+
+  Future<void> _testConnection() async {
+    final ok = await _runTest();
+    if (ok || !mounted || _lastFailure == null) return;
+    final failure = _lastFailure!;
+    await ConnectFailureDialog.show(
+      context,
+      failure: failure,
+      // 重试闭包 = 同一连接调用（对话框内原地更新，不叠窗）
+      onRetry: _runTest,
+      latestFailure: () => _lastFailure,
+    );
   }
 }
 

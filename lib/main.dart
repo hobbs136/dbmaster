@@ -25,6 +25,7 @@ import 'services/error_reporter.dart';
 import 'services/server_connection.dart';
 import 'services/telemetry_service.dart';
 import 'services/workbench_usage_stats_service.dart';
+import 'screens/boot/boot_shell.dart';
 import 'theme/app_theme.dart';
 import 'providers/locale_provider.dart';
 import 'providers/layout_preferences_provider.dart';
@@ -38,6 +39,7 @@ import 'organisms/pro/pro_import_ui.dart';
 import 'organisms/pro/pro_purchase_ui.dart';
 import 'organisms/pro/pro_sync_ui.dart';
 import 'utils/app_logger.dart';
+import 'utils/secret_redactor.dart';
 
 // 添加全局 NavigatorKey，用于 _WindowCloseGuard 在 MaterialApp 之上展示 Dialog
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
@@ -53,17 +55,6 @@ Future<void> main() async {
   // Pro fork 在 seal 前追加 registerProUiPlugins（spec 045 接缝）。
   defaultPluginRegistry.seal();
 
-  // U14 日志落盘：尽早初始化，之后的启动日志（embedded/远程会话恢复等）全部
-  // 进文件。失败非致命——退化为仅 developer.log，排障入口自动置灰。
-  try {
-    final support = await getApplicationSupportDirectory();
-    await AppLogger.init(
-      Directory('${support.path}${Platform.pathSeparator}logs'),
-    );
-  } catch (e, st) {
-    AppLogger.e('main', 'Log file init failed (non-fatal)', e, st);
-  }
-
   const windowOptions = WindowOptions(
     size: Size(1280, 800),
     center: true,
@@ -75,75 +66,175 @@ Future<void> main() async {
     await windowManager.focus();
   });
 
-  final proModule = ProModuleImpl();
-  await proModule.initialize();
-
-  // Initialize anonymous telemetry. Failure is non-fatal — the app continues
-  // regardless; events are queued locally until the next successful flush.
-  try {
-    await TelemetryService.instance.init();
-  } catch (e, st) {
-    AppLogger.e('main', 'Telemetry init failed (non-fatal)', e, st);
-  }
-
-  // AI 工作台本地使用统计：启动读盘 + 滚动裁剪（design-ai-workbench §7.7）。
-  // fire-and-forget：load 内部吞错永不抛出，失败非致命，不阻塞启动序列，
-  // 不影响上方 Provider 初始化顺序纪律（Provider 在 runApp 的 build 内创建）。
-  unawaited(WorkbenchUsageStatsService.instance.load());
-
-  // U12 模式持久化：用户显式登录过远程 server（preferred_mode == 'remote'）
-  // 时，跳过 embedded 自动拉起、改为恢复远程会话——否则打包版每次启动都
-  // 无条件进 embedded，远程用户的会话永远恢复不了。无偏好（首次运行）保持
-  // embedded-first 默认。远程登出会清掉偏好，下次启动回默认。
-  //
-  // start the embedded server child process. If a
-  // server binary is found beside the app (or via DBMASTER_SERVER_BIN), the
-  // app runs in embedded/local mode and all API services route to 127.0.0.1.
-  // If the binary isn't found, start() returns binaryNotFound and the app
-  // falls back to the existing remote-server connect flow (zero regression).
-  // Failure is non-fatal: a failed spawn leaves ServerConnection disconnected,
-  // which the user can recover via the remote connect dialog.
-  try {
-    final preferRemote =
-        await ServerConnection().readPreferredMode() == 'remote';
-    if (!preferRemote) {
-      final result = await EmbeddedServerService.instance.start();
-      if (result == EmbeddedStartResult.started) {
-        EmbeddedServerService.instance.applyTo(ServerConnection());
-      }
-    } else {
-      AppLogger.i('main',
-          'Remote server preferred; skipping embedded auto-start, restoring session');
-      // Best-effort restore; failures leave the app disconnected with the
-      // connect dialog (prefilled) as the recovery path.
-      final restored = await ServerConnection().restoreSession();
-      if (!restored) {
-        AppLogger.i('main', 'Remote session restore failed; disconnected');
-      }
-    }
-  } catch (e, st) {
-    AppLogger.e('main', 'Embedded server start failed (non-fatal)', e, st);
-  }
-
+  // UIRV-B4：runApp 提前——窗口显示后的首帧即 BootShell（品牌 + 阶段状态 +
+  // 结构骨架），消除「先 show 后串行初始化」造成的纯白帧。原 runApp 前的
+  // 启动初始化序列（日志落盘 / Pro 模块 / 遥测 / embedded server / 远程会话
+  // 恢复）整体移入 [_BootRoot] 的可重跑序列，完成后无缝换壳为 DbmasterApp。
   // U16：runZonedGuarded 兜住 widget 树之外的异步错误（main 区 / 裸 Future /
   // Timer 回调）——ErrorBoundary 只覆盖 FlutterError + PlatformDispatcher。
   // report 会脱敏（FR-011）并经 AppLogger 落盘（U14）；不上 UI（zone 错误
   // 无可靠的重建上下文）。
+  final proModule = ProModuleImpl();
   runZonedGuarded(
     () {
-      runApp(
-        DbmasterApp(
-          proModule: proModule,
-          proSyncUi: const RealProSyncUi(),
-          proImportUi: const RealProImportUi(),
-        ),
-      );
+      runApp(_BootRoot(proModule: proModule));
     },
     (error, stackTrace) {
-      ErrorReporter.instance
-          .report(error, stackTrace: stackTrace, tag: 'Zone');
+      ErrorReporter.instance.report(error, stackTrace: stackTrace, tag: 'Zone');
     },
   );
+}
+
+/// 启动宿主（UIRV-B4）：先渲染 BootShell，后台跑初始化序列；序列完成换壳
+/// DbmasterApp，意外失败在同一容器内切结构化错误卡（重试 = 重跑序列），
+/// 不回到白屏。
+///
+/// 不变量保持：Provider 创建顺序在 DbmasterApp build 内不变；`globalAppProvider`
+/// 语义不变；runZonedGuarded 包裹 runApp；`_WindowCloseGuard` / ErrorBoundary
+/// 层级不动。
+class _BootRoot extends StatefulWidget {
+  const _BootRoot({required this.proModule});
+
+  final ProModule proModule;
+
+  @override
+  State<_BootRoot> createState() => _BootRootState();
+}
+
+enum _BootPhase { booting, ready, error }
+
+class _BootRootState extends State<_BootRoot> {
+  _BootPhase _phase = _BootPhase.booting;
+  BootStage _stage = BootStage.generic;
+  String? _errorDetail;
+
+  @override
+  void initState() {
+    super.initState();
+    _runBootSequence();
+  }
+
+  /// 重跑完整初始化序列（首启与错误卡「重试」共用；幂等面由各服务自身保证）。
+  Future<void> _runBootSequence() async {
+    if (!mounted) return;
+    setState(() {
+      _phase = _BootPhase.booting;
+      _errorDetail = null;
+      _stage = BootStage.generic;
+    });
+    try {
+      await _initializeApp();
+      if (!mounted) return;
+      setState(() => _phase = _BootPhase.ready);
+    } catch (e, st) {
+      // 防御性包装：序列内已各自 try/catch 的非致命失败不会走到这里；
+      // 到这里的意外异常 → BootShell 错误卡（不回白屏）。
+      AppLogger.e('boot', 'Startup initialization failed', e, st);
+      if (!mounted) return;
+      setState(() {
+        _phase = _BootPhase.error;
+        // security P3：错误卡详情先脱敏再展示（防异常文本携带凭据上 UI）。
+        _errorDetail = redactSecrets(e.toString());
+      });
+    }
+  }
+
+  void _setStage(BootStage stage) {
+    if (!mounted) return;
+    setState(() => _stage = stage);
+  }
+
+  /// 原 main() 中 runApp 前的串行初始化序列，顺序与失败语义保持不变：
+  /// 单步自带 try/catch 的失败仍记日志继续（非致命）；无内部捕获的步骤
+  /// （Pro 模块）抛出时由 [_runBootSequence] 的防御包装转错误卡。
+  Future<void> _initializeApp() async {
+    // U14 日志落盘：之后的启动日志（embedded/远程会话恢复等）全部进文件。
+    // 失败非致命——退化为仅 developer.log，排障入口自动置灰。
+    _setStage(BootStage.logger);
+    try {
+      final support = await getApplicationSupportDirectory();
+      await AppLogger.init(
+        Directory('${support.path}${Platform.pathSeparator}logs'),
+      );
+    } catch (e, st) {
+      AppLogger.e('main', 'Log file init failed (non-fatal)', e, st);
+    }
+
+    // Pro 能力模块（全免费，isPro 恒 true）。
+    _setStage(BootStage.extensions);
+    await widget.proModule.initialize();
+
+    // Initialize anonymous telemetry. Failure is non-fatal — the app continues
+    // regardless; events are queued locally until the next successful flush.
+    _setStage(BootStage.telemetry);
+    try {
+      await TelemetryService.instance.init();
+    } catch (e, st) {
+      AppLogger.e('main', 'Telemetry init failed (non-fatal)', e, st);
+    }
+
+    // AI 工作台本地使用统计：启动读盘 + 滚动裁剪（design-ai-workbench §7.7）。
+    // fire-and-forget：load 内部吞错永不抛出，失败非致命，不阻塞启动序列，
+    // 不影响 Provider 初始化顺序纪律（Provider 在 DbmasterApp 的 build 内创建）。
+    unawaited(WorkbenchUsageStatsService.instance.load());
+
+    // U12 模式持久化：用户显式登录过远程 server（preferred_mode == 'remote'）
+    // 时，跳过 embedded 自动拉起、改为恢复远程会话——否则打包版每次启动都
+    // 无条件进 embedded，远程用户的会话永远恢复不了。无偏好（首次运行）保持
+    // embedded-first 默认。远程登出会清掉偏好，下次启动回默认。
+    //
+    // Start the embedded server child process. If a server binary is found
+    // beside the app (or via DBMASTER_SERVER_BIN), the app runs in embedded
+    // local mode and all API services route to 127.0.0.1. If the binary isn't
+    // found, start() returns binaryNotFound and the app falls back to the
+    // existing remote-server connect flow (zero regression). Failure is
+    // non-fatal: a failed spawn leaves ServerConnection disconnected, which
+    // the user can recover via the remote connect dialog.
+    try {
+      final preferRemote =
+          await ServerConnection().readPreferredMode() == 'remote';
+      if (!preferRemote) {
+        _setStage(BootStage.server);
+        final result = await EmbeddedServerService.instance.start();
+        if (result == EmbeddedStartResult.started) {
+          EmbeddedServerService.instance.applyTo(ServerConnection());
+        }
+      } else {
+        AppLogger.i(
+          'main',
+          'Remote server preferred; skipping embedded auto-start, restoring session',
+        );
+        _setStage(BootStage.session);
+        // Best-effort restore; failures leave the app disconnected with the
+        // connect dialog (prefilled) as the recovery path.
+        final restored = await ServerConnection().restoreSession();
+        if (!restored) {
+          AppLogger.i('main', 'Remote session restore failed; disconnected');
+        }
+      }
+    } catch (e, st) {
+      AppLogger.e('main', 'Embedded server start failed (non-fatal)', e, st);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_phase == _BootPhase.ready) {
+      return DbmasterApp(
+        proModule: widget.proModule,
+        proSyncUi: const RealProSyncUi(),
+        proImportUi: const RealProImportUi(),
+      );
+    }
+    // UIRV-B4 返工：启动壳 MaterialApp 配置（l10n delegates/supportedLocales/
+    // 亮暗主题）收敛到 BootShellHost 单一事实源（boot_shell.dart），与本批
+    // UI-B4-107 回归锁同源——漏配 delegates 时测试与生产同红。
+    return BootShellHost(
+      stage: _stage,
+      errorDetail: _errorDetail,
+      onRetry: _runBootSequence,
+    );
+  }
 }
 
 class DbmasterApp extends StatelessWidget {
@@ -201,9 +292,7 @@ class DbmasterApp extends StatelessWidget {
           ),
         ],
         child: const _AppLifecycleProbe(
-          child: _WindowCloseGuard(
-            child: _DbmasterAppContent(),
-          ),
+          child: _WindowCloseGuard(child: _DbmasterAppContent()),
         ),
       ),
     );
@@ -285,10 +374,7 @@ class _WindowCloseGuardState extends State<_WindowCloseGuard>
     if (!mounted) return;
     final navigator = appNavigatorKey.currentState;
     if (navigator == null) {
-      AppLogger.w(
-        'WindowCloseGuard',
-        '窗口关闭时 Navigator 尚未就绪，暂不关闭窗口',
-      );
+      AppLogger.w('WindowCloseGuard', '窗口关闭时 Navigator 尚未就绪，暂不关闭窗口');
       return;
     }
 
@@ -332,7 +418,6 @@ class _WindowCloseGuardState extends State<_WindowCloseGuard>
   List<QueryTab> _collectUnsavedTabs(AppProvider provider) {
     return provider.tabs.where(TabProvider.isTabUnsaved).toList();
   }
-
 
   Future<void> _doClose() async {
     _closing = true;

@@ -33,6 +33,10 @@ typedef WorkbenchAgentContextSnapshot = ({
   bool readOnly,
 });
 
+/// dock 上下文卡的跟随来源级（UIRV-A1）：activeContextConnection 三级解析
+/// 中实际命中的一级，用于卡面来源徽章标注。provider 层枚举（foundation-only）。
+enum AiDockContextSource { sidebar, activeTab, currentServer }
+
 class AiPanelProvider extends ChangeNotifier {
   final AiSessionManager sessionManager;
   final AiContextBuilder contextBuilder;
@@ -74,6 +78,16 @@ class AiPanelProvider extends ChangeNotifier {
   String? _selectedConnectionId;
   String? _selectedDatabaseName;
   List<String> _selectedConnectionDatabases = [];
+
+  /// UIRV-A1：dock 上下文卡手动覆盖标记（会话级内存，不落盘、不新增
+  /// prefs 键）。生效优先级 = 手动覆盖 > 跟随投影（[syncFollowContext]
+  /// 在 MANUAL 态 no-op）；恢复途径 = 用户「恢复跟随」或被覆盖连接从
+  /// 已保存列表删除（widget 层降级，T25 删除降级先例）。连接级事件
+  /// （树选中/tab 激活/currentServer 变更）不冲掉手动覆盖。
+  bool _manualContextOverride = false;
+
+  /// 最近一次跟随投影命中的锚定级（来源徽章）；MANUAL 态保持旧值不消费。
+  AiDockContextSource? _followSource;
 
   /// 工作台入口 pending intent（2b.4 R7）：pending 单槽——新请求覆盖旧值；
   /// 工作台壳 post-frame 消费后调用 [consumeWorkbenchEntryIntent] 清除。
@@ -542,6 +556,57 @@ class AiPanelProvider extends ChangeNotifier {
 
   void setSelectedConnectionDatabases(List<String> databases) {
     _selectedConnectionDatabases = List.from(databases);
+    notifyListeners();
+  }
+
+  // ==================== dock 上下文卡（UIRV-A1）====================
+
+  /// dock 手动覆盖标记（会话级内存）。true = [syncFollowContext] no-op。
+  bool get manualContextOverride => _manualContextOverride;
+
+  /// 最近一次跟随投影命中的锚定级（来源徽章数据源）。
+  AiDockContextSource? get followSource => _followSource;
+
+  /// 手动改选（MANUAL）：写 selected 字段 + contextBuilder（发送路径生效值
+  /// = 卡上生效值），置覆盖标记。会话级内存，不落盘。
+  void setManualDockContext(String? connectionId, {String? databaseName}) {
+    _manualContextOverride = true;
+    setSelectedConnection(connectionId);
+    setSelectedDatabase(databaseName);
+    notifyListeners();
+  }
+
+  /// 恢复跟随：仅清除覆盖标记；selected 字段由 widget 层随后的跟随投影
+  /// （[syncFollowContext]）覆写为 activeContextConnection 锚定值。
+  void restoreFollowContext() {
+    if (!_manualContextOverride) return;
+    _manualContextOverride = false;
+    _followSource = null;
+    notifyListeners();
+  }
+
+  /// 跟随投影（widget 层接线调用）：把 activeContextConnection 锚定值同步
+  /// 进 selected 字段与 contextBuilder。MANUAL 态 no-op（手动覆盖优先）。
+  /// 全空（connectionId null）= FOLLOW 无锚定，清空 selected（EMPTY 态）。
+  void syncFollowContext({
+    required String? connectionId,
+    String? databaseName,
+    required AiDockContextSource source,
+  }) {
+    if (_manualContextOverride) return;
+    final bool changedId = _selectedConnectionId != connectionId;
+    final bool changedDb = _selectedDatabaseName != databaseName;
+    final bool changedSource = _followSource != source;
+    if (!changedId && !changedDb && !changedSource) return;
+    _followSource = source;
+    if (changedId) {
+      _selectedConnectionId = connectionId;
+      contextBuilder.setCurrentConnection(connectionId);
+    }
+    if (changedId || changedDb) {
+      _selectedDatabaseName = databaseName;
+      contextBuilder.setCurrentDatabase(databaseName);
+    }
     notifyListeners();
   }
 

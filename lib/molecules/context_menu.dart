@@ -224,12 +224,18 @@ class _ContextMenuState extends State<ContextMenu> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: validItems.asMap().entries.map((entry) {
-                  return _buildItem(context, entry.value, entry.key);
-                }).toList(),
+              // UIRV-A3 — 菜单上下 padding 各 4px（设计稿 A3 规格表 token）。
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppDesignSystem.space1,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: validItems.asMap().entries.map((entry) {
+                    return _buildItem(context, entry.value, entry.key);
+                  }).toList(),
+                ),
               ),
             ),
           ),

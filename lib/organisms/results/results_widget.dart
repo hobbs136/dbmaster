@@ -73,11 +73,17 @@ class ResultsWidget extends StatefulWidget {
   /// 是否显示 Result/History 子标签栏。spec 041 data 模式传 false → 只显数据网格。
   final bool showSubTabs;
 
+  /// UIRV-A41：工具栏 Filter 入口槽（宿主注入；query 模式不传 → 不渲染）。
+  /// 过滤弹层由宿主（editor_results_split 数据模式）承载，本组件只提供
+  /// 单一 36px 工具栏的槽位。
+  final Widget? filterEntry;
+
   const ResultsWidget({
     super.key,
     this.onHistoryDoubleTapped,
     this.onHistoryTapped,
     this.showSubTabs = true,
+    this.filterEntry,
   });
 
   @override
@@ -92,6 +98,12 @@ class ResultsWidgetState extends State<ResultsWidget> {
   /// 见 spec 051-results-row-search。
   final TextEditingController _searchController = TextEditingController();
   bool _searchVisible = false;
+
+  /// UIRV-A41：视图模式选择（per-result，键 = 结果子标签 id）。
+  /// 分段按钮上提到外层工具栏后，per-result 语义由本 map 承载——
+  /// 切子标签时读各自的选择，互不影响（原实现靠 ResultTabContent
+  /// State 复用保留，上提后显式化）。
+  final Map<String, String> _viewModeBySubTabId = <String, String>{};
 
   @override
   void dispose() {
@@ -181,8 +193,8 @@ class ResultsWidgetState extends State<ResultsWidget> {
                     ),
             )
           else ...[
-            // 工具栏行
-            _buildHeader(executionResults),
+            // 单一工具栏（UIRV-A41：视图分段 + Filter 入口 + 批次动作同栏）
+            _buildHeader(executionResults, activeSub),
             // 行级搜索框（点击搜索按钮展开，spec 051 R1）
             if (_searchVisible) _buildSearchField(),
             // 内容区
@@ -190,6 +202,7 @@ class ResultsWidgetState extends State<ResultsWidget> {
               child: _buildContent(
                 executionResults,
                 tabId: currentTabId,
+                subTabId: activeSub?.id,
                 hasError: hasError,
                 errorMessage: activeSub?.errorMessage,
               ),
@@ -209,6 +222,7 @@ class ResultsWidgetState extends State<ResultsWidget> {
   Widget _buildContent(
     List<ExecutionResult> results, {
     required String? tabId,
+    required String? subTabId,
     required bool hasError,
     required String? errorMessage,
   }) {
@@ -218,7 +232,7 @@ class ResultsWidgetState extends State<ResultsWidget> {
     if (results.isEmpty) {
       return _buildEmptyState();
     }
-    return _buildResultTab(results.first, 0, tabId: tabId);
+    return _buildResultTab(results.first, 0, tabId: tabId, subTabId: subTabId);
   }
 
   Widget _buildErrorDisplay(String message) {
@@ -261,7 +275,12 @@ class ResultsWidgetState extends State<ResultsWidget> {
   Key _resultKey(int index, String? tabId) =>
       ValueKey('result_${tabId ?? 'unknown'}_$index');
 
-  Widget _buildHeader(List<ExecutionResult> results) {
+  /// UIRV-A41：单一 36px 工具栏——左：视图切换分段（per-result 语义，
+  /// 见 [_viewModeBySubTabId]）+ 宿主注入的 Filter 入口槽；右：AI/导出/搜索。
+  Widget _buildHeader(List<ExecutionResult> results, ResultSubTab? activeSub) {
+    final subTabId = activeSub?.id;
+    final result = results.isNotEmpty ? results.first : null;
+    final renderers = _activeRenderers(result);
     return Container(
       height: 36,
       padding: const EdgeInsets.symmetric(horizontal: AppDesignSystem.space3),
@@ -273,13 +292,94 @@ class ResultsWidgetState extends State<ResultsWidget> {
       ),
       child: Row(
         children: [
-          // C22 M2 走查反馈二轮：语句 tab 层移除（并入 ResultSubTabBar 扇出），
-          // 工具栏只留动作按钮。
-          const Expanded(child: SizedBox.shrink()),
-          _buildAiAnalyzeButton(results),
-          _buildExportButton(results),
-          _buildSearchButton(),
+          // 极窄容器下分段/入口/动作各自收缩缩放（Ahem 测试字体与超窄窗
+          // 防 overflow；正常宽度按自然尺寸渲染，FittedBox 不介入）。
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: _buildViewModeSegment(renderers, subTabId),
+            ),
+          ),
+          if (widget.filterEntry != null) ...[
+            const SizedBox(width: AppDesignSystem.space2),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: widget.filterEntry!,
+              ),
+            ),
+          ],
+          const Spacer(),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildAiAnalyzeButton(results),
+                  _buildExportButton(results),
+                  _buildSearchButton(),
+                ],
+              ),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  /// C11/C12：活跃结果适用的渲染器（注册表 + 形态过滤），供工具栏分段。
+  List<ResultRendererPlugin> _activeRenderers(ExecutionResult? result) =>
+      defaultPluginRegistry.resultRenderersFor(
+        shape: result?.dataShape ?? ResultDataShape.sqlRows,
+      );
+
+  /// 生效视图 id：per-result 选择仍适用则用之，否则注册序首个。
+  String _effectiveViewModeId(
+    List<ResultRendererPlugin> renderers,
+    String? subTabId,
+  ) {
+    final selected = subTabId == null ? null : _viewModeBySubTabId[subTabId];
+    if (selected != null && renderers.any((r) => r.viewModeId == selected)) {
+      return selected;
+    }
+    return renderers.first.viewModeId;
+  }
+
+  /// UIRV-A41：视图切换分段按钮（自 ResultTabContent 上提；状态 per-result）。
+  Widget _buildViewModeSegment(
+    List<ResultRendererPlugin> renderers,
+    String? subTabId,
+  ) {
+    if (renderers.isEmpty) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    final colors = context.themeColors;
+    return SegmentedButton<String>(
+      segments: [
+        for (final renderer in renderers)
+          ButtonSegment(
+            value: renderer.viewModeId,
+            icon: Icon(renderer.descriptor.icon, size: 16),
+            label: Text(
+              l10n != null && renderer.descriptor.displayName != null
+                  ? renderer.descriptor.displayName!(l10n)
+                  : renderer.viewModeId,
+              style: const TextStyle(fontSize: 11),
+            ),
+          ),
+      ],
+      selected: {_effectiveViewModeId(renderers, subTabId)},
+      onSelectionChanged: (selection) {
+        final id = subTabId;
+        if (id == null) return;
+        setState(() => _viewModeBySubTabId[id] = selection.first);
+      },
+      style: ButtonStyle(
+        visualDensity: VisualDensity.compact,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (states) => colors.textSecondary,
+        ),
       ),
     );
   }
@@ -433,7 +533,12 @@ class ResultsWidgetState extends State<ResultsWidget> {
     );
   }
 
-  Widget _buildResultTab(ExecutionResult result, int index, {String? tabId}) {
+  Widget _buildResultTab(
+    ExecutionResult result,
+    int index, {
+    String? tabId,
+    String? subTabId,
+  }) {
     if (!result.success) {
       return _buildErrorView(result);
     }
@@ -450,6 +555,12 @@ class ResultsWidgetState extends State<ResultsWidget> {
       result: result,
       searchQuery: _searchController.text,
       searchActive: _searchVisible,
+      viewModeId: subTabId == null ? null : _viewModeBySubTabId[subTabId],
+      onViewModeChanged: (modeId) {
+        final id = subTabId;
+        if (id == null) return;
+        setState(() => _viewModeBySubTabId[id] = modeId);
+      },
       key: _resultKey(index, tabId),
     );
   }
@@ -655,11 +766,19 @@ class ResultTabContent extends StatefulWidget {
   /// 行级搜索框是否展开（仅用于决定是否显示「无匹配行」提示，不影响过滤逻辑）。
   final bool searchActive;
 
+  /// UIRV-A41：视图模式 id（宿主持有 per-result 状态后下行；null = 取注册序首个）。
+  final String? viewModeId;
+
+  /// UIRV-A41：视图切换回调（写入宿主 per-result 状态；null = 只读消费）。
+  final ValueChanged<String>? onViewModeChanged;
+
   const ResultTabContent({
     super.key,
     required this.result,
     this.searchQuery = '',
     this.searchActive = false,
+    this.viewModeId,
+    this.onViewModeChanged,
   });
 
   @override
@@ -677,12 +796,6 @@ class _ResultTabContentState extends State<ResultTabContent> {
   /// 行级搜索镜像（来自 widget.searchQuery）。放 state 里让 _applyFiltersAndSort
   /// 不依赖 widget 字段，且 _initData 时能初始化。见 spec 051 R2/R4。
   String _rowSearchQuery = '';
-
-  // R1: 视图模式 id（per-tab 持久化）。C11 起为注册渲染器的 viewModeId
-  // 字符串（默认注册 table/chart/card）。null = 未选择，取注册序首个。
-  // ResultTabContent 以稳定 key 构建，Flutter element 复用保留各 tab 的
-  // State，故切走再切回仍在。
-  String? _viewModeId;
 
   // R3: 统计摘要栏折叠状态（默认折叠）。
   bool _showStats = false;
@@ -794,7 +907,8 @@ class _ResultTabContentState extends State<ResultTabContent> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (_filterService.activeFilterCount > 0) _buildFilterStatusBar(),
-        _buildViewModeBar(),
+        // UIRV-A41：视图切换分段已上提至外层单一工具栏（per-result 状态
+        // 由 ResultsWidgetState 持有并经 widget.viewModeId 下行）。
         Expanded(child: _buildActiveView()),
         _buildStatsBar(),
       ],
@@ -945,60 +1059,14 @@ class _ResultTabContentState extends State<ResultTabContent> {
         shape: widget.result.dataShape ?? ResultDataShape.sqlRows,
       );
 
-  /// 生效的 viewModeId：已选 id 仍在适用列表内用之，否则回退注册序首个
-  /// （形态变化 / 注册表变更后的自愈，不抛错）。
+  /// 生效的 viewModeId：宿主下行的选择仍在适用列表内用之，否则回退注册序
+  /// 首个（形态变化 / 注册表变更后的自愈，不抛错）。
   String _effectiveViewModeId(List<ResultRendererPlugin> renderers) {
-    final selected = _viewModeId;
+    final selected = widget.viewModeId;
     if (selected != null && renderers.any((r) => r.viewModeId == selected)) {
       return selected;
     }
     return renderers.first.viewModeId;
-  }
-
-  /// R1: 视图模式切换条（per-result，紧贴数据上方）。
-  /// 导出/搜索等批次级操作在外层 _buildHeader；视图切换是单结果级操作，
-  /// 放这里避免跨类访问 viewMode 状态。
-  /// C11: 模式集合按注册表生成（table/chart/card 为默认注册件），
-  /// 图标/文案来自渲染器 descriptor。
-  Widget _buildViewModeBar() {
-    final l10n = AppLocalizations.of(context);
-    final colors = context.themeColors;
-    final renderers = _availableRenderers();
-    if (renderers.isEmpty) return const SizedBox.shrink();
-    return Container(
-      height: 32,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Row(
-        children: [
-          SegmentedButton<String>(
-            segments: [
-              for (final renderer in renderers)
-                ButtonSegment(
-                  value: renderer.viewModeId,
-                  icon: Icon(renderer.descriptor.icon, size: 16),
-                  label: Text(
-                    l10n != null && renderer.descriptor.displayName != null
-                        ? renderer.descriptor.displayName!(l10n)
-                        : renderer.viewModeId,
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                ),
-            ],
-            selected: {_effectiveViewModeId(renderers)},
-            onSelectionChanged: (selection) {
-              setState(() => _viewModeId = selection.first);
-            },
-            style: ButtonStyle(
-              visualDensity: VisualDensity.compact,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              foregroundColor: WidgetStateProperty.resolveWith(
-                (states) => colors.textSecondary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   /// R1: 按注册渲染器渲染当前视图。所有视图消费同一份 _filteredData，

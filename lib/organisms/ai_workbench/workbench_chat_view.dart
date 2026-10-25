@@ -1204,19 +1204,25 @@ class _WorkbenchChatViewState extends State<WorkbenchChatView> {
   }
 
   Widget _buildComposer() {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(
-        minHeight: AppDesignSystem.workbenchComposerMinHeight,
-        maxHeight: AppDesignSystem.workbenchComposerMaxHeight,
-      ),
-      child: AiInputArea(
-        isSending: _isSending,
-        onSend: _sendMessage,
-        onStop: _stopAI,
-        onShowApiSettings: _showApiSettings,
-        onSlashCommand: _executeSlashCommandAction,
-        enableTableMention: true,
-        onTableMentionQuery: _queryTableMention,
+    // UIRV-B7：chat-only 态 composer 内层与纯文本气泡同口径（640 可读宽，
+    // 同轴居中）；split 窄列下可用宽 < 640 时 ConstrainedBox 自然放行，
+    // AiInputArea 吃满可用宽。AiInputArea 组件本身零修改（与经典面板共用）。
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: AppDesignSystem.workbenchChatReadableMaxWidth,
+          minHeight: AppDesignSystem.workbenchComposerMinHeight,
+          maxHeight: AppDesignSystem.workbenchComposerMaxHeight,
+        ),
+        child: AiInputArea(
+          isSending: _isSending,
+          onSend: _sendMessage,
+          onStop: _stopAI,
+          onShowApiSettings: _showApiSettings,
+          onSlashCommand: _executeSlashCommandAction,
+          enableTableMention: true,
+          onTableMentionQuery: _queryTableMention,
+        ),
       ),
     );
   }

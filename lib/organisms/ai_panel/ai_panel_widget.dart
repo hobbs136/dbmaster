@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/app_provider.dart';
+import '../../providers/ai_panel_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../models/database_models.dart';
 import '../../models/ai_message_type.dart';
@@ -39,6 +40,7 @@ import 'ai_slash_command_menu.dart';
 import 'ai_table_mention_menu.dart';
 import 'ai_skill_catalog_panel.dart';
 import 'ai_context_panel.dart';
+import 'ai_dock_context_card.dart';
 import '../../plugins/ai_skill_plugin.dart';
 import '../../plugins/bootstrap.dart';
 import '../task_panel/export_task_create_dialog.dart';
@@ -772,7 +774,14 @@ class AiPanelWidgetState extends State<AiPanelWidget>
 
   // 可调整高度相关
   double _chatAreaRatio = 0.7; // 聊天区域占可用空间的比例（默认70%）
-  static const double _connectionSelectorHeight = 44.0;
+  // UIRV-A1：头部条改为上下文卡（跟随/手动/空三态多行），高度 44 → 84
+  //（完整上下文卡；overlay 面板矮档 <420 走 44 紧凑头，保住 overlay
+  // minHeight 300 的 composer 最小高度预算，见 _compactSelectorHeight）。
+  static const double _connectionSelectorHeight = 84.0;
+
+  /// 紧凑头高度（面板矮档：<420px，overlay 面板 minHeight 300 档）——
+  /// 双行紧凑上下文卡，44 与旧选择器条同高，composer 预算不回退。
+  static const double _compactSelectorHeight = 44.0;
   static const double _minChatRatio = 0.2;
   static const double _maxChatRatio = 0.8;
 
@@ -1086,7 +1095,14 @@ class AiPanelWidgetState extends State<AiPanelWidget>
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalHeight = constraints.maxHeight;
-        final availableHeight = totalHeight - _connectionSelectorHeight;
+        // UIRV-A1：矮面板（overlay minHeight 300 档）走 44 紧凑头 +
+        // 双行紧凑卡，完整三行卡只在 ≥420 面板渲染（composer 最小高度
+        // 预算不因头部加高而回退——ai_panel_overlay_test 拖拽回归）。
+        final bool compactHeader = totalHeight < 420;
+        final double selectorHeight = compactHeader
+            ? _compactSelectorHeight
+            : _connectionSelectorHeight;
+        final availableHeight = totalHeight - selectorHeight;
         final wide = constraints.maxWidth >= _threeColumnMinWidth;
 
         final centerColumn = Container(
@@ -1108,8 +1124,11 @@ class AiPanelWidgetState extends State<AiPanelWidget>
                         ),
                       ),
                 child: SizedBox(
-                  height: _connectionSelectorHeight,
-                  child: _buildConnectionSelector(showSideEntry: !wide),
+                  height: selectorHeight,
+                  child: _buildConnectionSelector(
+                    showSideEntry: !wide,
+                    compact: compactHeader,
+                  ),
                 ),
               ),
               Expanded(
@@ -1193,19 +1212,17 @@ class AiPanelWidgetState extends State<AiPanelWidget>
 
   Widget _buildContextPanel() {
     final provider = context.watch<AppProvider>();
-    final selectedConnId = provider.aiPanel.selectedConnectionId;
-    final connection = selectedConnId != null
-        ? provider.connection.savedConnections.cast<DbServer?>().firstWhere(
-            (s) => s!.id == selectedConnId,
-            orElse: () => null,
-          )
-        : null;
+    // UIRV-A1：右列数据源统一为「生效上下文」（手动覆盖 > 跟随投影，
+    // 与 dock 头部上下文卡同源）。
+    final connection = _resolveEffectiveConnection(provider);
 
     return AiContextPanel(
       connection: connection,
       databaseName: provider.aiPanel.selectedDatabaseName,
       schemaContextEnabled: _schemaContextEnabled,
       onSchemaContextChanged: (v) => setState(() => _schemaContextEnabled = v),
+      isManualOverride: provider.aiPanel.manualContextOverride,
+      onRestoreFollow: () => provider.aiPanel.restoreFollowContext(),
     );
   }
 
@@ -1287,7 +1304,10 @@ class AiPanelWidgetState extends State<AiPanelWidget>
     );
   }
 
-  Widget _buildConnectionSelector({bool showSideEntry = false}) {
+  Widget _buildConnectionSelector({
+    bool showSideEntry = false,
+    bool compact = false,
+  }) {
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
         final l10n = AppLocalizations.of(context)!;
@@ -1332,14 +1352,11 @@ class AiPanelWidgetState extends State<AiPanelWidget>
               : context.themeColors.bgSecondary,
           child: Row(
             children: [
-              // 连接选择下拉框
+              // UIRV-A1：上下文卡（跟随 activeContextConnection + 手动改选），
+              // 替代原连接/库两个孤立下拉（设计稿 #a1）
               Expanded(
-                flex: 2,
-                child: _buildConnectionDropdown(connections, provider),
+                child: _buildDockContextCard(provider, compact: compact),
               ),
-              const SizedBox(width: AppDesignSystem.space2),
-              // 数据库选择下拉框
-              Expanded(flex: 2, child: _buildDatabaseDropdown(provider)),
               const SizedBox(width: AppDesignSystem.space2),
               // 新建对话按钮
               SizedBox(
@@ -1443,110 +1460,126 @@ class AiPanelWidgetState extends State<AiPanelWidget>
     );
   }
 
-  Widget _buildConnectionDropdown(
-    List<DbServer> connections,
-    AppProvider provider,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-    final selectedId = provider.aiPanel.selectedConnectionId;
-    final validSelectedServer = selectedId != null
-        ? connections.cast<DbServer?>().firstWhere(
-            (s) => s!.id == selectedId,
-            orElse: () => null,
-          )
-        : null;
-    return Container(
-      height: 28,
-      padding: const EdgeInsets.symmetric(horizontal: AppDesignSystem.space2),
-      decoration: BoxDecoration(
-        color: context.themeColors.bgTertiary,
-        borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
-        border: Border.all(color: context.themeColors.borderLight),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<DbServer?>(
-          isExpanded: true,
-          value: validSelectedServer,
-          hint: Text(
-            l10n.aiPanelSelectConnection,
-            style: AppTextStyles.caption.copyWith(
-              color: context.themeColors.textMuted,
-            ),
-          ),
-          icon: Icon(
-            LucideIcons.chevronDown,
-            size: 16,
-            color: context.themeColors.textMuted,
-          ),
-          dropdownColor: context.themeColors.bgSecondary,
-          style: AppTextStyles.caption.copyWith(
-            color: context.themeColors.textPrimary,
-          ),
-          items: [
-            DropdownMenuItem<DbServer?>(
-              value: null,
-              child: Text(l10n.aiPanelNoConnection),
-            ),
-            ...connections.map((server) {
-              final isConnected = provider.connection.isConnectionConnected(
-                server.id,
-              );
-              final isActive = provider.connection.isConnectionActive(
-                server.id,
-              );
-              return DropdownMenuItem<DbServer?>(
-                value: server,
-                child: Row(
-                  children: [
-                    // emoji→矢量图标+品牌色（F-37）
-                    Icon(
-                      server.type.typeIcon,
-                      size: 14,
-                      color: context.themeColors.brandColor(server.type),
-                    ),
-                    const SizedBox(width: AppDesignSystem.space1_5),
-                    Expanded(
-                      child: Text(
-                        server.name.isNotEmpty
-                            ? server.name
-                            : '${server.host}:${server.port}',
-                        style: AppTextStyles.caption,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: AppDesignSystem.space1_5),
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: isActive
-                            ? context.themeColors.success
-                            : isConnected
-                            ? context.themeColors.accentBlue
-                            : context.themeColors.textMuted.withValues(
-                                alpha: 0.5,
-                              ),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ],
-          onChanged: (server) async {
-            provider.aiPanel.setSelectedConnection(server?.id);
-            provider.aiPanel.setSelectedDatabase(null);
-            provider.aiPanel.setSelectedConnectionDatabases([]);
+  // ==================== dock 上下文卡（UIRV-A1）====================
+  //
+  // 语义（tasks-ui-review-fixes.md §1.1）：FOLLOW 只读消费
+  // activeContextConnection（侧栏选中 → 活动 tab → currentServer），
+  // 手动覆盖为会话级内存标记（连接级事件不冲掉），被覆盖连接从已保存
+  // 列表删除时回退 FOLLOW（T25 删除降级先例）。本层零 switchToConnection。
 
-            if (server != null) {
-              // 加载该连接的数据库列表
-              await _loadDatabasesForServer(server, provider);
-            }
-          },
-        ),
-      ),
+  /// 跟随投影同步（post-frame 触发，build 内零写）：MANUAL 态仅校验
+  /// 覆盖连接仍在已保存列表（不在 → 回退 FOLLOW）；FOLLOW 态把锚定值
+  /// 同步进 AiPanelProvider（selected 字段 + contextBuilder——发送路径
+  /// 生效值 = 卡上生效值，AC7）。
+  void _scheduleDockContextSync(AppProvider app) {
+    if (_dockSyncScheduled) return;
+    _dockSyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _dockSyncScheduled = false;
+      if (!mounted) return;
+      final provider = context.read<AppProvider>();
+      final ai = provider.aiPanel;
+      if (ai.manualContextOverride) {
+        final id = ai.selectedConnectionId;
+        final bool stillExists = id == null ||
+            provider.connection.savedConnections.any((s) => s.id == id);
+        if (!stillExists) {
+          ai.restoreFollowContext();
+        }
+        return;
+      }
+      final ctx = provider.activeContextConnection;
+      if (ctx == null) {
+        ai.syncFollowContext(
+          connectionId: null,
+          databaseName: null,
+          source: AiDockContextSource.currentServer,
+        );
+        return;
+      }
+      ai.syncFollowContext(
+        connectionId: ctx.id,
+        databaseName: provider.activeDatabaseName,
+        source: _resolveFollowSource(provider),
+      );
+    });
+  }
+
+  bool _dockSyncScheduled = false;
+
+  /// 来源级只读解析（与 activeContextConnection 三级同序，app_provider
+  /// 禁改——本 helper 在 widget 层复算命中级供来源徽章标注）。
+  AiDockContextSource _resolveFollowSource(AppProvider app) {
+    final saved = app.connection.savedConnections;
+    bool resolves(String? id) =>
+        id != null && saved.any((s) => s.id == id);
+    if (resolves(app.sidebar.selectedConnectionId)) {
+      return AiDockContextSource.sidebar;
+    }
+    if (resolves(app.tab.activeTab?.connectionId)) {
+      return AiDockContextSource.activeTab;
+    }
+    return AiDockContextSource.currentServer;
+  }
+
+  /// 手动覆盖连接解析：覆盖 id 已删 → 暂回退跟随锚定（渲染层瞬时降级，
+  /// 权威解除在 post-frame 的 restoreFollowContext）。
+  DbServer? _resolveEffectiveConnection(AppProvider app) {
+    final ai = app.aiPanel;
+    final ctx = app.activeContextConnection;
+    if (!ai.manualContextOverride) return ctx;
+    final id = ai.selectedConnectionId;
+    if (id != null) {
+      for (final s in app.connection.savedConnections) {
+        if (s.id == id) return s;
+      }
+    }
+    return ctx;
+  }
+
+  /// 活动 browse tab 的表对象（仅当活动 tab 绑定生效连接，防跨连接漏表；
+  /// J1-a browseTargetFor 同族只读派生）。
+  String? _resolveFollowTableName(AppProvider app, DbServer? effective) {
+    final tabs = app.currentQueryTabs;
+    final index = app.currentQueryActiveTabIndex;
+    if (effective == null || index < 0 || index >= tabs.length) return null;
+    final activeTab = tabs[index];
+    if (activeTab.connectionId != effective.id) return null;
+    final target = app.browseTargetFor(activeTab.id);
+    return (target == null || target.isEmpty) ? null : target;
+  }
+
+  Widget _buildDockContextCard(AppProvider provider, {bool compact = false}) {
+    _scheduleDockContextSync(provider);
+    final ai = provider.aiPanel;
+    final isManual = ai.manualContextOverride;
+    final effective = _resolveEffectiveConnection(provider);
+    final tableName = isManual ? null : _resolveFollowTableName(provider, effective);
+    return AiDockContextCard(
+      compact: compact,
+      connection: effective,
+      databaseName: ai.selectedDatabaseName,
+      tableName: tableName,
+      isManual: isManual,
+      followSource: ai.followSource,
+      connections: provider.connection.savedConnections,
+      onManualSelect: (server) => _onManualContextSelected(server, provider),
+      onRestoreFollow: () => provider.aiPanel.restoreFollowContext(),
+      databaseSelector: isManual ? _buildDatabaseDropdown(provider) : null,
     );
+  }
+
+  /// 手动改选：写 AI 面板上下文（会话级覆盖），并恢复旧下拉等价的
+  /// 「选择即建连」行为（UIRV-A1 评审打回修复）——未连接时走既有
+  /// ensurePassword 提示 + connectToServer + 失败 snackbar 链路，已连接时
+  /// 顺手加载库列表；全程零 switchToConnection（红线不变）。
+  Future<void> _onManualContextSelected(
+    DbServer server,
+    AppProvider provider,
+  ) async {
+    provider.aiPanel.setManualDockContext(server.id);
+    provider.aiPanel.setSelectedConnectionDatabases([]);
+    await _loadDatabasesForServer(server, provider);
   }
 
   Widget _buildDatabaseDropdown(AppProvider provider) {

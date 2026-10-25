@@ -5134,9 +5134,6 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get connectionConnectNoPassword => 'Se connecter sans mot de passe';
-
-  @override
   String get embeddedRequiresRemoteServer => 'Serveur distant uniquement';
 
   @override
@@ -11667,4 +11664,85 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get environmentDevelopment => 'Environnement de développement';
+
+  @override
+  String get connectionTestPendingHint =>
+      'Pas encore testé · vérifiez la configuration avant d’enregistrer';
+
+  @override
+  String connectionTestPassedSummary(String target) {
+    return 'Test réussi · $target · prêt à enregistrer';
+  }
+
+  @override
+  String get connectionRetest => 'Tester à nouveau';
+
+  @override
+  String get connectionTestResultScope =>
+      'Le résultat ne vaut que pour le brouillon actuel';
+
+  @override
+  String get resultsFilterEntry => 'Filtrer';
+
+  @override
+  String get resultsFilterApplyFailed =>
+      'Échec de l\'application du filtre — voir les détails dans les résultats';
+
+  @override
+  String get uirvDockContextFollow => 'Suivi auto · contexte actuel';
+
+  @override
+  String get uirvDockContextManual => 'Sélection manuelle';
+
+  @override
+  String get uirvDockContextManualSelect => 'Choix manuel';
+
+  @override
+  String get uirvDockContextRestoreFollow => 'Reprendre le suivi';
+
+  @override
+  String get uirvDockContextNoTable => 'Aucune table spécifiée';
+
+  @override
+  String get uirvDockContextEmptyTitle => 'Aucune connexion définie';
+
+  @override
+  String get uirvDockContextChooseConnection => 'Choisir une connexion';
+
+  @override
+  String get uirvDockContextSourceSidebar => 'Barre latérale';
+
+  @override
+  String get uirvDockContextSourceActiveTab => 'Onglet actif';
+
+  @override
+  String get uirvDockContextSourceCurrentServer => 'Serveur actuel';
+
+  @override
+  String get uirvDockContextCurrentTableTag => 'Table actuelle';
+
+  @override
+  String get uirvBootPreparing => 'Préparation de l\'espace de travail…';
+
+  @override
+  String get uirvBootStageLogger => 'Initialisation de la journalisation';
+
+  @override
+  String get uirvBootStageExtensions => 'Chargement des modules d\'extension';
+
+  @override
+  String get uirvBootStageTelemetry => 'Initialisation de la télémétrie';
+
+  @override
+  String get uirvBootStageServer => 'Initialisation des services de connexion';
+
+  @override
+  String get uirvBootStageSession => 'Restauration de la session serveur';
+
+  @override
+  String get uirvBootErrorTitle => 'Problème au démarrage';
+
+  @override
+  String get connectionPasswordEmptyHint =>
+      'Laissez vide pour vous connecter sans mot de passe ; « Enregistrer le mot de passe » n\'est disponible que lorsqu\'un mot de passe est saisi.';
 }

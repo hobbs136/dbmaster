@@ -23,12 +23,20 @@ class AiContextPanel extends StatelessWidget {
 
   final ValueChanged<bool> onSchemaContextChanged;
 
+  /// UIRV-A1：宿主处于会话级手动覆盖态（显示「恢复跟随」入口）。
+  final bool isManualOverride;
+
+  /// UIRV-A1：「恢复跟随」回调（null 不显示入口）。
+  final VoidCallback? onRestoreFollow;
+
   const AiContextPanel({
     super.key,
     required this.connection,
     required this.databaseName,
     required this.schemaContextEnabled,
     required this.onSchemaContextChanged,
+    this.isManualOverride = false,
+    this.onRestoreFollow,
   });
 
   @override
@@ -48,14 +56,39 @@ class AiContextPanel extends StatelessWidget {
             AppDesignSystem.space3,
             AppDesignSystem.space2,
           ),
-          child: Text(
-            l10n.aiContextPanelTitle,
-            style: AppTextStyles.label.copyWith(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-              color: colors.textMuted,
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.aiContextPanelTitle,
+                  style: AppTextStyles.label.copyWith(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                    color: colors.textMuted,
+                  ),
+                ),
+              ),
+              // UIRV-A1：MANUAL 态「恢复跟随」入口（与 dock 卡同语义）
+              if (isManualOverride && onRestoreFollow != null)
+                InkWell(
+                  onTap: onRestoreFollow,
+                  borderRadius:
+                      BorderRadius.circular(AppDesignSystem.radiusSm),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppDesignSystem.space1,
+                    ),
+                    child: Text(
+                      l10n.uirvDockContextRestoreFollow,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: colors.accentBlue,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
         Divider(height: 1, thickness: 1, color: colors.dividerColor),

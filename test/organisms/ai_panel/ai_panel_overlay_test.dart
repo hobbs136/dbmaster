@@ -7,7 +7,6 @@ import 'package:dbmaster/providers/ai_panel_provider.dart';
 import 'package:dbmaster/providers/app_provider.dart';
 import 'package:dbmaster/providers/layout_preferences_provider.dart';
 import 'package:dbmaster/services/ai/ai_session_manager.dart';
-import 'package:dbmaster/organisms/ai_panel/ai_mini_fab.dart';
 import 'package:dbmaster/organisms/ai_panel/ai_panel_overlay.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -23,6 +22,13 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 /// Rendered rect of the overlay panel (viewport-absolute coordinates).
 Rect panelRect(WidgetTester tester) =>
     tester.getRect(find.byKey(const ValueKey('ai_overlay_panel')));
+
+/// UIRV-B1：迷你 FAB 已移除——测试直接经 provider 打开全屏 overlay
+///（与原 FAB onTap 完全同义：openAiPanel + setAiPanelFullscreen(true)）。
+void _openAiOverlay(AiPanelProvider ai) {
+  ai.openAiPanel();
+  ai.setAiPanelFullscreen(true);
+}
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -61,13 +67,13 @@ void main() {
   testWidgets('AiPanelOverlay renders without gray-screen exception', (
     tester,
   ) async {
-    await pumpHarness(tester);
+    final harness = await pumpHarness(tester);
 
-    // FAB visible at start (AI panel is closed).
-    expect(find.byType(AiMiniFab), findsOneWidget);
+    // UIRV-B1：FAB 已移除——面板关闭时不渲染任何 FAB。
+    expect(find.byTooltip('Open AI Assistant'), findsNothing);
 
-    // Tap the FAB to open the fullscreen overlay.
-    await tester.tap(find.byType(AiMiniFab));
+    // Open the fullscreen overlay directly via the provider.
+    _openAiOverlay(harness.aiPanel);
     await tester.pumpAndSettle();
 
     // Overlay should now be on screen.
@@ -77,8 +83,8 @@ void main() {
   testWidgets('first open uses medium-equivalent default geometry', (
     tester,
   ) async {
-    await pumpHarness(tester);
-    await tester.tap(find.byType(AiMiniFab));
+    final harness = await pumpHarness(tester);
+    _openAiOverlay(harness.aiPanel);
     await tester.pumpAndSettle();
 
     // 1400x900 surface with empty archive: max(400, 1400*0.65)=910 wide,
@@ -91,8 +97,8 @@ void main() {
   });
 
   testWidgets('S/M/L preset UI is gone', (tester) async {
-    await pumpHarness(tester);
-    await tester.tap(find.byType(AiMiniFab));
+    final harness = await pumpHarness(tester);
+    _openAiOverlay(harness.aiPanel);
     await tester.pumpAndSettle();
 
     expect(find.byType(AiPanelOverlay), findsOneWidget);
@@ -108,8 +114,8 @@ void main() {
   });
 
   testWidgets('drag right edge moves only right edge', (tester) async {
-    await pumpHarness(tester);
-    await tester.tap(find.byType(AiMiniFab));
+    final harness = await pumpHarness(tester);
+    _openAiOverlay(harness.aiPanel);
     await tester.pumpAndSettle();
 
     final before = panelRect(tester);
@@ -129,8 +135,8 @@ void main() {
   testWidgets('drag top edge moves only top edge, bottom stays pinned', (
     tester,
   ) async {
-    await pumpHarness(tester);
-    await tester.tap(find.byType(AiMiniFab));
+    final harness = await pumpHarness(tester);
+    _openAiOverlay(harness.aiPanel);
     await tester.pumpAndSettle();
 
     final before = panelRect(tester);
@@ -151,8 +157,8 @@ void main() {
   testWidgets('drag bottom edge moves only bottom edge, top stays pinned', (
     tester,
   ) async {
-    await pumpHarness(tester);
-    await tester.tap(find.byType(AiMiniFab));
+    final harness = await pumpHarness(tester);
+    _openAiOverlay(harness.aiPanel);
     await tester.pumpAndSettle();
 
     final before = panelRect(tester);
@@ -172,8 +178,8 @@ void main() {
   testWidgets('drag left edge moves only left edge, right stays pinned', (
     tester,
   ) async {
-    await pumpHarness(tester);
-    await tester.tap(find.byType(AiMiniFab));
+    final harness = await pumpHarness(tester);
+    _openAiOverlay(harness.aiPanel);
     await tester.pumpAndSettle();
 
     final before = panelRect(tester);
@@ -194,8 +200,8 @@ void main() {
   testWidgets('drag top-left corner keeps bottom-right corner pinned', (
     tester,
   ) async {
-    await pumpHarness(tester);
-    await tester.tap(find.byType(AiMiniFab));
+    final harness = await pumpHarness(tester);
+    _openAiOverlay(harness.aiPanel);
     await tester.pumpAndSettle();
 
     final before = panelRect(tester);
@@ -218,8 +224,8 @@ void main() {
   testWidgets('drag bottom-right corner moves only bottom and right edges', (
     tester,
   ) async {
-    await pumpHarness(tester);
-    await tester.tap(find.byType(AiMiniFab));
+    final harness = await pumpHarness(tester);
+    _openAiOverlay(harness.aiPanel);
     await tester.pumpAndSettle();
 
     final before = panelRect(tester);
@@ -240,8 +246,8 @@ void main() {
   testWidgets('drag top edge beyond min size keeps bottom edge pinned', (
     tester,
   ) async {
-    await pumpHarness(tester);
-    await tester.tap(find.byType(AiMiniFab));
+    final harness = await pumpHarness(tester);
+    _openAiOverlay(harness.aiPanel);
     await tester.pumpAndSettle();
 
     final before = panelRect(tester);
@@ -262,8 +268,8 @@ void main() {
   testWidgets('drag left edge beyond min size keeps right edge pinned', (
     tester,
   ) async {
-    await pumpHarness(tester);
-    await tester.tap(find.byType(AiMiniFab));
+    final harness = await pumpHarness(tester);
+    _openAiOverlay(harness.aiPanel);
     await tester.pumpAndSettle();
 
     final before = panelRect(tester);
@@ -282,8 +288,8 @@ void main() {
   });
 
   testWidgets('toolbar drag moves panel without resizing', (tester) async {
-    await pumpHarness(tester);
-    await tester.tap(find.byType(AiMiniFab));
+    final harness = await pumpHarness(tester);
+    _openAiOverlay(harness.aiPanel);
     await tester.pumpAndSettle();
 
     final before = panelRect(tester);
@@ -306,8 +312,8 @@ void main() {
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(const Size(1400, 900)));
 
-    await pumpHarness(tester);
-    await tester.tap(find.byType(AiMiniFab));
+    final harness = await pumpHarness(tester);
+    _openAiOverlay(harness.aiPanel);
     await tester.pumpAndSettle();
 
     final before = panelRect(tester);
@@ -334,7 +340,7 @@ void main() {
     tester,
   ) async {
     final harness = await pumpHarness(tester);
-    await tester.tap(find.byType(AiMiniFab));
+    _openAiOverlay(harness.aiPanel);
     await tester.pumpAndSettle();
 
     await tester.drag(
@@ -365,8 +371,8 @@ void main() {
   testWidgets('persisted position and size are restored on reopen', (
     tester,
   ) async {
-    await pumpHarness(tester);
-    await tester.tap(find.byType(AiMiniFab));
+    final harness = await pumpHarness(tester);
+    _openAiOverlay(harness.aiPanel);
     await tester.pumpAndSettle();
 
     await tester.drag(
@@ -385,8 +391,8 @@ void main() {
 
     // Re-pump a fresh harness over the SAME SharedPreferences mock store —
     // simulates closing and reopening the app.
-    await pumpHarness(tester);
-    await tester.tap(find.byType(AiMiniFab));
+    final harness2 = await pumpHarness(tester);
+    _openAiOverlay(harness2.aiPanel);
     await tester.pumpAndSettle();
 
     final restored = panelRect(tester);
@@ -403,8 +409,8 @@ void main() {
         'overlay_width': 800.0,
         'overlay_height': 500.0,
       });
-      await pumpHarness(tester);
-      await tester.tap(find.byType(AiMiniFab));
+      final harness = await pumpHarness(tester);
+      _openAiOverlay(harness.aiPanel);
       await tester.pumpAndSettle();
 
       final rect = panelRect(tester);
@@ -422,8 +428,8 @@ void main() {
       'overlay_left': 5000.0,
       'overlay_top': 4000.0,
     });
-    await pumpHarness(tester);
-    await tester.tap(find.byType(AiMiniFab));
+    final harness = await pumpHarness(tester);
+    _openAiOverlay(harness.aiPanel);
     await tester.pumpAndSettle();
 
     final rect = panelRect(tester);
@@ -455,8 +461,8 @@ class _Harness extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // AiMiniFab uses Positioned internally, so it must be a child of a
-    // Stack. AiPanelOverlay also must be a child of a Stack.
+    // AiPanelOverlay must be a child of a Stack.
+    // UIRV-B1：面板关闭态不再渲染迷你 FAB（AI 入口归 footer/快捷键/命令面板）。
     return Scaffold(
       body: Stack(
         children: [
@@ -467,14 +473,6 @@ class _Harness extends StatelessWidget {
                 return AiPanelOverlay(
                   onClose: () => ai.closeAiPanel(),
                   onToggleDock: () => ai.toggleAiPanelFullscreen(),
-                );
-              }
-              if (!ai.aiPanelOpen) {
-                return AiMiniFab(
-                  onTap: () {
-                    ai.openAiPanel();
-                    ai.setAiPanelFullscreen(true);
-                  },
                 );
               }
               return const SizedBox.shrink();

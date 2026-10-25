@@ -33,11 +33,13 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  group('PasswordPromptDialog', () {
+    group('PasswordPromptDialog', () {
     late DbServer server;
     final secureStorage = <String, String>{};
+    int secureStorageWriteCount = 0;
 
     setUp(() {
+      secureStorageWriteCount = 0;
       server = DbServer(
         id: 'conn_1',
         name: 'Test MySQL',
@@ -56,6 +58,7 @@ void main() {
                 case 'read':
                   return secureStorage[key];
                 case 'write':
+                  secureStorageWriteCount++;
                   secureStorage[key!] = args['value'] as String;
                   return null;
                 case 'delete':
@@ -127,6 +130,10 @@ void main() {
     testWidgets('checkbox can be checked', (tester) async {
       await pumpDialog(tester, PasswordPromptDialog(server: server));
 
+      // B3: checkbox is disabled while the password input is empty.
+      await tester.enterText(find.byType(TextField), 'pw');
+      await tester.pump();
+
       final checkbox = find.byType(Checkbox);
       await tester.tap(checkbox);
       await tester.pump();
@@ -181,10 +188,13 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Connect Without Password'));
+      // B3: empty input + Connect = no-password path.
+      await tester.tap(find.text('Connect'));
       await tester.pumpAndSettle();
 
       expect(result, '');
+      expect(secureStorageWriteCount, 0);
+      expect(secureStorage, isEmpty);
     });
 
     testWidgets(
@@ -211,7 +221,7 @@ void main() {
         await tester.tap(find.text('Open'));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Connect Without Password'));
+        await tester.tap(find.text('Connect'));
         await tester.pumpAndSettle();
 
         expect(returned, same(server));
@@ -219,6 +229,168 @@ void main() {
         expect(secureStorage, isEmpty);
       },
     );
+
+    testWidgets('shows only Cancel and Connect actions (no third button)', (
+      tester,
+    ) async {
+      await pumpDialog(tester, PasswordPromptDialog(server: server));
+
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.text('Connect'), findsOneWidget);
+      expect(find.text('Connect Without Password'), findsNothing);
+    });
+
+    testWidgets('Connect is enabled with empty input and does not save', (
+      tester,
+    ) async {
+      String? result;
+      await pumpDialog(
+        tester,
+        Builder(
+          builder: (context) {
+            return ElevatedButton(
+              onPressed: () async {
+                result = await showDialog<String>(
+                  context: context,
+                  builder: (_) => PasswordPromptDialog(server: server),
+                );
+              },
+              child: const Text('Open'),
+            );
+          },
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      final connectFinder = find.ancestor(
+        of: find.text('Connect'),
+        matching: find.byType(ElevatedButton),
+      );
+      expect(tester.widget<ElevatedButton>(connectFinder).onPressed,
+          isNotNull);
+
+      await tester.tap(find.text('Connect'));
+      await tester.pumpAndSettle();
+
+      expect(result, '');
+      expect(secureStorageWriteCount, 0);
+    });
+
+    testWidgets('shows empty-value helper hint', (tester) async {
+      await pumpDialog(tester, PasswordPromptDialog(server: server));
+
+      expect(
+        find.text(
+          'Leave empty to connect without a password; Save Password is only available when a password is entered.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('save checkbox is disabled while input is empty', (
+      tester,
+    ) async {
+      await pumpDialog(tester, PasswordPromptDialog(server: server));
+
+      final checkbox = find.byType(Checkbox);
+      expect(tester.widget<Checkbox>(checkbox).onChanged, isNull);
+
+      await tester.tap(checkbox);
+      await tester.pump();
+
+      expect(tester.widget<Checkbox>(checkbox).value, isFalse);
+      expect(secureStorageWriteCount, 0);
+    });
+
+    testWidgets('save checkbox is enabled after typing a password', (
+      tester,
+    ) async {
+      await pumpDialog(tester, PasswordPromptDialog(server: server));
+
+      await tester.enterText(find.byType(TextField), 'pw');
+      await tester.pump();
+
+      final checkbox = find.byType(Checkbox);
+      expect(tester.widget<Checkbox>(checkbox).onChanged, isNotNull);
+
+      await tester.tap(checkbox);
+      await tester.pump();
+
+      expect(tester.widget<Checkbox>(checkbox).value, isTrue);
+    });
+
+    testWidgets('Enter key submits empty input as no-password connect', (
+      tester,
+    ) async {
+      String? result;
+      await pumpDialog(
+        tester,
+        Builder(
+          builder: (context) {
+            return ElevatedButton(
+              onPressed: () async {
+                result = await showDialog<String>(
+                  context: context,
+                  builder: (_) => PasswordPromptDialog(server: server),
+                );
+              },
+              child: const Text('Open'),
+            );
+          },
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(TextField));
+      await tester.pump();
+      // Enter submits the focused field (single-line TextField → done action).
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(result, '');
+      expect(secureStorageWriteCount, 0);
+    });
+
+    testWidgets('Cancel closes without connecting and without saving', (
+      tester,
+    ) async {
+      String? result;
+      await pumpDialog(
+        tester,
+        Builder(
+          builder: (context) {
+            return ElevatedButton(
+              onPressed: () async {
+                result = await showDialog<String>(
+                  context: context,
+                  builder: (_) => PasswordPromptDialog(server: server),
+                );
+              },
+              child: const Text('Open'),
+            );
+          },
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'pw');
+      await tester.pump();
+      await tester.tap(find.byType(Checkbox));
+      await tester.pump();
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(result, isNull);
+      expect(secureStorageWriteCount, 0);
+      expect(secureStorage, isEmpty);
+    });
 
     testWidgets(
       'saving password updates the in-memory server so reconnect does not prompt',
