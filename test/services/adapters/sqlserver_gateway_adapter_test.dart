@@ -703,4 +703,69 @@ void main() {
       expect(adapter.currentConnection?.database, 'dbx');
     });
   });
+
+  // ==========================================================================
+  // 批2.6-C1 红测：getTables 库限定路由（DatabaseQualifiedTablesAdapter）。
+  // 契约：database 非空 → 同一 INFORMATION_SCHEMA SQL 经
+  // executeQuery(sql, database:) 信封路由；两参均省 = 现行为逐字节不变。
+  // ==========================================================================
+  group('getTables 库限定路由（批2.6-C1）', () {
+    Future<SqlServerAdapter> connectedAdapter(
+      http.StreamedResponse Function(http.Request) handler,
+    ) async {
+      final client = _RecordingClient((req) {
+        if (req.url.path == '/api/gw/connections') {
+          return _listResponse({'srv-1'});
+        }
+        return handler(req);
+      });
+      final adapter = SqlServerAdapter()..httpClient = client;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        'connection_server_id_map',
+        jsonEncode({'local_ss_1': 'srv-1'}),
+      );
+      await adapter.connect(_conn());
+      return adapter;
+    }
+
+    http.StreamedResponse tableEvents() => _sse([
+          'event: meta\ndata: {"kind":"sql","type":"meta","columns":["full_name"]}',
+          'event: rows\ndata: {"kind":"sql","type":"rows","rows":[["dbo.users"],["dbo.orders"]]}',
+          'event: complete\ndata: {"kind":"sql","type":"complete","rowCount":2,"truncated":false,"elapsedMs":3}',
+        ]);
+
+    test('应实现 DatabaseQualifiedTablesAdapter（服务层门拾取前置）', () async {
+      final adapter = await connectedAdapter((_) => tableEvents());
+      expect(adapter, isA<DatabaseQualifiedTablesAdapter>());
+    });
+
+    test('database 非空 → 同一 SQL 落 target_db（信封 database=target_db）', () async {
+      final bodies = <Map<String, dynamic>>[];
+      final adapter = await connectedAdapter((req) {
+        bodies.add(_sentBody(req));
+        return tableEvents();
+      });
+
+      final tables =
+          await (adapter as DatabaseQualifiedTablesAdapter).getTables(
+        database: 'target_db',
+      );
+      expect(tables, ['dbo.users', 'dbo.orders']);
+      expect(bodies.last['sql'], contains('INFORMATION_SCHEMA.TABLES'));
+      expect(bodies.last['database'], 'target_db');
+    });
+
+    test('回归锁：无参行为不变（schema 限定名 + 信封回落连接初始库 master）', () async {
+      final bodies = <Map<String, dynamic>>[];
+      final adapter = await connectedAdapter((req) {
+        bodies.add(_sentBody(req));
+        return tableEvents();
+      });
+
+      expect(await adapter.getTables(), ['dbo.users', 'dbo.orders']);
+      expect(bodies.last['sql'], contains('TABLE_SCHEMA + \'.\' + TABLE_NAME'));
+      expect(bodies.last['database'], 'master');
+    });
+  });
 }

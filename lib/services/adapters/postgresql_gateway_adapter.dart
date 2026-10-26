@@ -107,6 +107,9 @@ class PostgreSQLAdapter extends DatabaseAdapter
         SqlScriptAdapter,
         SchemaAwareAdapter,
         MultiSchemaObjectAdapter,
+        // 库限定表枚举（批2.6-C2）：getTables 多出的可选命名参数 database
+        // 与 MultiSchemaObjectAdapter 兼容（Dart 子型可加可选命名参数）。
+        DatabaseQualifiedTablesAdapter,
         ExtensionAdapter,
         JsonAdapter {
   /// serverConnId 映射表 key（与 ConnectionProvider / DbGatewayService 同源
@@ -727,8 +730,11 @@ class PostgreSQLAdapter extends DatabaseAdapter
   }
 
   // T002 — add optional schemaName param for per-schema object discovery
+  /// [database] 非空 → 同一 SQL 经 executeQuery 的 database 信封路由
+  /// （批2.6-C2，`DatabaseQualifiedTablesAdapter`：网关壳无会话态，不带上
+  /// 库名会落到连接初始库）；schema 口径不变；两参均省 = 现行为不变。
   @override
-  Future<List<String>> getTables({String? schemaName}) async {
+  Future<List<String>> getTables({String? schemaName, String? database}) async {
     if (!isConnected) throw Exception('未连接到数据库');
     final schema = (schemaName ?? _currentSchema ?? 'public').replaceAll(
       "'",
@@ -737,6 +743,7 @@ class PostgreSQLAdapter extends DatabaseAdapter
 
     final results = await executeQuery(
       "SELECT table_name FROM information_schema.tables WHERE table_schema = '$schema' AND table_type = 'BASE TABLE' ORDER BY table_name",
+      database: database,
     );
     return results.rows.map((row) => row['table_name'] as String).toList();
   }

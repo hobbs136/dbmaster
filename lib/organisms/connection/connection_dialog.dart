@@ -4,6 +4,8 @@
 // 走通用兜底表单（GenericConnectionFormPlugin）。
 // 旧的单文件 per-type 分支实现已由本壳取代；SQLite 独立对话框与 Mongo
 // 子组件的收编删除见 C09。
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -24,6 +26,7 @@ import '../../molecules/compact_popup_menu_item.dart';
 import '../../models/connection_failure.dart';
 import '../../theme/app_colors.dart';
 import 'forms/connection_form_fields.dart';
+import 'forms/mongodb_connection_form.dart';
 import 'forms/network_connection_form.dart';
 import 'forms/sqlite_connection_form.dart';
 
@@ -98,15 +101,17 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
     final s = _session?.collect(forSave: false);
     if (s == null) return null;
     final session = _session;
-    return _connectivityFingerprintOf(
-      s,
-      portRaw: session is NetworkConnectionFormSession
-          ? session.portController.text
-          : null,
-      timeoutRaw: session is NetworkConnectionFormSession
-          ? session.timeoutController.text
-          : null,
-    );
+    // UI35-232（N2）：portRaw 仅在 host/port 行实际参与表单时纳入原文比对；
+    // Mongo 集群/advanced 形态该行隐藏，portController.text 是 stale 初值，
+    // 恒不等会令任意折叠 toggle 误报「连接设置已变更」→ 门控后回落 collect
+    // 派生 port。timeout 行在 advanced 折叠区内对所有网络形态可见，不门控。
+    String? portRaw;
+    String? timeoutRaw;
+    if (session is NetworkConnectionFormSession) {
+      timeoutRaw = session.timeoutController.text;
+      if (session.showHostPort) portRaw = session.portController.text;
+    }
+    return _connectivityFingerprintOf(s, portRaw: portRaw, timeoutRaw: timeoutRaw);
   }
 
   String _connectivityFingerprintOf(
@@ -135,7 +140,22 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
       s.sshPassword,
       s.sshPrivateKey,
       s.sshPassphrase,
+      _extraFingerprint(s.extra),
     ].join('\u{241F}');
+  }
+
+  /// extra 的确定性序列化（UI35-230/231）：键排序后 jsonEncode——Dart Map
+  /// 的 `==` 是引用比较，直接判等永不等；键排序保证同内容同指纹。现有
+  /// buildExtra 值域仅 String/int/List\<String\>（JSON 安全）；Mongo 的
+  /// `mongoConnectionString` 在 collect 侧已是 credentialFree 脱敏串。指纹
+  /// 串只在内存做相等比较，禁止日志/toString 输出（凭据红线）。direct
+  /// 模式 buildExtra 返回 null，null vs null 相等不回退。
+  String? _extraFingerprint(Map<String, dynamic>? extra) {
+    if (extra == null) return null;
+    final sortedKeys = extra.keys.toList()..sort();
+    return jsonEncode({
+      for (final key in sortedKeys) key: extra[key],
+    });
   }
 
   /// 脏态失效（UIRV-B2 四态）：白名单内字段变更（表单会话控制器/开关）→
@@ -180,6 +200,13 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
     if (session is SqliteConnectionFormSession) {
       session.pathController.addListener(_invalidateTestState);
     }
+    if (session is MongodbConnectionFormSession) {
+      // UI35-230/231（N1）：hosts 列表 / replicaSet 名 / 连接串在 Mongo
+      // extra 里，不在基类 12 controller 清单——同款成对挂/摘失效监听。
+      session.hostsController.addListener(_invalidateTestState);
+      session.replicaSetController.addListener(_invalidateTestState);
+      session.connStringController.addListener(_invalidateTestState);
+    }
   }
 
   void _detachSessionListeners() {
@@ -208,6 +235,11 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
     }
     if (session is SqliteConnectionFormSession) {
       session.pathController.removeListener(_invalidateTestState);
+    }
+    if (session is MongodbConnectionFormSession) {
+      session.hostsController.removeListener(_invalidateTestState);
+      session.replicaSetController.removeListener(_invalidateTestState);
+      session.connStringController.removeListener(_invalidateTestState);
     }
   }
 

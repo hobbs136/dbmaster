@@ -88,7 +88,8 @@ class _RedisScanPage {
 
 /// Redis 适配器（网关壳实现：执行走 kind:"redis" 命令/pipeline 通道）。
 class RedisAdapter extends DatabaseAdapter
-    with AiAdapterMixin, DisconnectAware {
+    with AiAdapterMixin, DisconnectAware
+    implements DatabaseQualifiedTablesAdapter {
   /// serverConnId 映射表 key（与 ConnectionProvider / DbGatewayService 三方
   /// 共享同一 SharedPreferences key）。
   static const String _kServerIdMapKey = 'connection_server_id_map';
@@ -670,8 +671,12 @@ class RedisAdapter extends DatabaseAdapter
     }
   }
 
+  /// 库限定表枚举（批2.6-C2，`DatabaseQualifiedTablesAdapter`）：Redis
+  /// 无跨 SELECT 库扫描语义——[database] 非空 → 空清单短路（不抛异常、
+  /// 不发请求、禁止静默回落当前库扫描）；无参 = 现行为不变。
   @override
-  Future<List<String>> getTables() async {
+  Future<List<String>> getTables({String? database}) async {
+    if (database != null && database.isNotEmpty) return const [];
     if (!isConnected) throw Exception('未连接到 Redis');
 
     final keys = await scanKeys();

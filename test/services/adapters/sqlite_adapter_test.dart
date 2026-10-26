@@ -1759,6 +1759,57 @@ INSERT INTO "test_script_fail" (id, data) VALUES (2, "never");
         expect(archiveTables, isNot(contains('main_users')));
       });
 
+      // ======================================================================
+      // 批2.6-C1 红测：getTables 库限定路由（DatabaseQualifiedTablesAdapter）。
+      // 契约：库名 == ATTACH alias 1:1，database 非空 → alias = schemaName
+      // ?? database 限定 sqlite_master；两参均省 = 现行为逐字节不变。
+      // ======================================================================
+      test('应实现 DatabaseQualifiedTablesAdapter（服务层门拾取前置）', () async {
+        await connect();
+        expect(adapter, isA<DatabaseQualifiedTablesAdapter>());
+      });
+
+      test('getTables(database) 返回 alias 库的表（批2.6-C1）', () async {
+        await connect();
+        final attachedPath = await buildAttachedDb(
+          '${DateTime.now().millisecondsSinceEpoch}_tables_db.db',
+        );
+        await adapter.attachDatabase(attachedPath, 'archive');
+
+        final archiveTables =
+            await (adapter as DatabaseQualifiedTablesAdapter).getTables(
+          database: 'archive',
+        );
+        expect(archiveTables, contains('archive_orders'));
+        expect(archiveTables, isNot(contains('main_users')));
+      });
+
+      test('alias 优先级：schemaName 优先于 database（批2.6-C1）', () async {
+        await connect();
+        final attachedPath = await buildAttachedDb(
+          '${DateTime.now().millisecondsSinceEpoch}_alias_pri.db',
+        );
+        await adapter.attachDatabase(attachedPath, 'archive');
+
+        // database 指向未 ATTACH 的库——若 alias 取 database 会查询不存在
+        // 的 `other.sqlite_master` 而报错；schemaName 优先则落 archive。
+        // 动态派发：目标签名 {schemaName, database} 两参（实现落地前编译期
+        // 仅见单参接口，静态双参调用无法表达）。
+        final tables = await (adapter as dynamic).getTables(
+          schemaName: 'archive',
+          database: 'other',
+        );
+        expect(tables, contains('archive_orders'));
+        expect(tables, isNot(contains('main_users')));
+      });
+
+      test('回归锁：无参返回主库表（批2.6-C1 零行为变化）', () async {
+        await connect();
+        final mainTables =
+            await (adapter as DatabaseQualifiedTablesAdapter).getTables();
+        expect(mainTables, contains('main_users'));
+      });
+
       test('跨库查询：SELECT * FROM archive.archive_orders 返回数据', () async {
         await connect();
         final attachedPath = await buildAttachedDb(

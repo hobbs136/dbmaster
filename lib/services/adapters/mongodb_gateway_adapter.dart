@@ -111,7 +111,8 @@ class MongoGridFsUploadException implements Exception {
 
 /// MongoDB 适配器（网关壳实现：执行走 kind:"mongo" runCommand 通道）。
 class MongoDBAdapter extends DatabaseAdapter
-    with AiAdapterMixin, DisconnectAware {
+    with AiAdapterMixin, DisconnectAware
+    implements DatabaseQualifiedTablesAdapter {
   /// serverConnId 映射表 key（与 ConnectionProvider / DbGatewayService
   /// 三方共享同一 SharedPreferences key）。
   static const String _kServerIdMapKey = 'connection_server_id_map';
@@ -981,14 +982,17 @@ class MongoDBAdapter extends DatabaseAdapter
     _currentConnection = _currentConnection?.copyWith(database: dbName);
   }
 
+  /// [database] 非空 → listCollections 经 _cursorDocs 的 database 参落
+  /// 目标库（批2.6-C2，`DatabaseQualifiedTablesAdapter`）；无参 = 现行为
+  /// （信封回落连接当前库）。system.* 过滤/排序既有逻辑不变。
   @override
-  Future<List<String>> getTables() async {
+  Future<List<String>> getTables({String? database}) async {
     if (!isConnected) throw Exception('未连接到 MongoDB');
 
     try {
       final docs = await _cursorDocs({
         'listCollections': 1,
-      }, timeoutMs: _timeoutMs);
+      }, database: database, timeoutMs: _timeoutMs);
       return docs
           .map((c) => c['name']?.toString() ?? '')
           .where((name) => name.isNotEmpty && !name.startsWith('system.'))

@@ -765,6 +765,71 @@ void main() {
       expect(cmd['command'], {'listCollections': 1});
     });
 
+    // ========================================================================
+    // 批2.6-C1 红测：getTables 库限定路由（DatabaseQualifiedTablesAdapter）。
+    // 契约：database 非空 → listCollections 经 _cursorDocs(database:)
+    // 落目标库；无参 = 现行为逐字节不变。
+    // ========================================================================
+    group('getTables 库限定路由（批2.6-C1）', () {
+      test('应实现 DatabaseQualifiedTablesAdapter（服务层门拾取前置）', () async {
+        final adapter = await _connectedAdapter(_noQueryClient());
+        expect(adapter, isA<DatabaseQualifiedTablesAdapter>());
+      });
+
+      test('database 非空 → listCollections 落 target_db', () async {
+        final client = _RecordingClient((req) {
+          if (req.url.path == '/api/gw/connections' && req.method == 'GET') {
+            return _listResponse({'srv-1'});
+          }
+          if (req.url.path.endsWith('/query')) {
+            return _sse(_cursorEvents([
+              {'name': 'orders'},
+              {'name': 'users'},
+            ]));
+          }
+          return _jsonResp({
+            'error': {'code': 'X', 'message': 'x'},
+          }, 500);
+        });
+        final adapter = await _connectedAdapter(client);
+
+        final tables =
+            await (adapter as DatabaseQualifiedTablesAdapter).getTables(
+          database: 'target_db',
+        );
+        expect(tables, ['orders', 'users']);
+        final cmd = _sentBody(
+          client.requests.firstWhere((r) => r.url.path.endsWith('/query')),
+        );
+        expect(cmd['command'], {'listCollections': 1});
+        expect(cmd['database'], 'target_db');
+      });
+
+      test('回归锁：无参 → listCollections 落连接当前库 admin（排序不变）', () async {
+        final client = _RecordingClient((req) {
+          if (req.url.path == '/api/gw/connections' && req.method == 'GET') {
+            return _listResponse({'srv-1'});
+          }
+          if (req.url.path.endsWith('/query')) {
+            return _sse(_cursorEvents([
+              {'name': 'users'},
+              {'name': 'audit'},
+            ]));
+          }
+          return _jsonResp({
+            'error': {'code': 'X', 'message': 'x'},
+          }, 500);
+        });
+        final adapter = await _connectedAdapter(client);
+
+        expect(await adapter.getTables(), ['audit', 'users']);
+        final cmd = _sentBody(
+          client.requests.firstWhere((r) => r.url.path.endsWith('/query')),
+        );
+        expect(cmd['database'], 'admin');
+      });
+    });
+
     test('getTableColumns：采样 + _id 主键 + 扩展类型名', () async {
       final client = _RecordingClient((req) {
         if (req.url.path == '/api/gw/connections' && req.method == 'GET') {

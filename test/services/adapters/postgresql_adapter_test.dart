@@ -747,6 +747,64 @@ void main() {
       expect(queryReq!.body, contains("table_schema = 'public'"));
     });
 
+    // ========================================================================
+    // 批2.6-C1 红测：getTables 库限定路由（DatabaseQualifiedTablesAdapter）。
+    // 契约：database 非空 → 同一 information_schema SQL 经
+    // executeQuery(sql, database:) 信封路由；两参均省 = 现行为逐字节不变。
+    // ========================================================================
+    group('getTables 库限定路由（批2.6-C1）', () {
+      test('应实现 DatabaseQualifiedTablesAdapter（服务层门拾取前置）', () async {
+        final adapter = await connectedAdapter((_) => _sse([
+              'event: meta\ndata: {"kind":"sql","type":"meta","columns":["table_name"]}',
+              'event: rows\ndata: {"kind":"sql","type":"rows","rows":[]}',
+              'event: complete\ndata: {"kind":"sql","type":"complete","rowCount":0,"truncated":false,"elapsedMs":1}',
+            ]));
+        expect(adapter, isA<DatabaseQualifiedTablesAdapter>());
+      });
+
+      test('database 非空 → 同一 SQL 落 target_db（信封 database=target_db）', () async {
+        http.Request? queryReq;
+        final adapter = await connectedAdapter((req) {
+          queryReq = req;
+          return _sse([
+            'event: meta\ndata: {"kind":"sql","type":"meta","columns":["table_name"]}',
+            'event: rows\ndata: {"kind":"sql","type":"rows","rows":[["users"],["orders"]]}',
+            'event: complete\ndata: {"kind":"sql","type":"complete","rowCount":2,"truncated":false,"elapsedMs":3}',
+          ]);
+        });
+
+        final tables =
+            await (adapter as DatabaseQualifiedTablesAdapter).getTables(
+          database: 'target_db',
+        );
+        expect(tables, ['users', 'orders']);
+        expect(queryReq!.body, contains('information_schema.tables'));
+        expect(queryReq!.body, contains("table_schema = 'public'"));
+        expect(_sentBody(queryReq!)['database'], 'target_db');
+      });
+
+      test('回归锁：无参 / 仅 schemaName 行为不变（信封回落连接初始库）', () async {
+        final bodies = <Map<String, dynamic>>[];
+        final adapter = await connectedAdapter((req) {
+          bodies.add(_sentBody(req));
+          return _sse([
+            'event: meta\ndata: {"kind":"sql","type":"meta","columns":["table_name"]}',
+            'event: rows\ndata: {"kind":"sql","type":"rows","rows":[["users"]]}',
+            'event: complete\ndata: {"kind":"sql","type":"complete","rowCount":1,"truncated":false,"elapsedMs":2}',
+          ]);
+        });
+
+        // 无参：SQL 用 public + 信封带连接初始库 postgres。
+        expect(await adapter.getTables(), ['users']);
+        expect(bodies.last['sql'], contains("table_schema = 'public'"));
+        expect(bodies.last['database'], 'postgres');
+
+        // 仅 schemaName：MultiSchemaObjectAdapter 路径不变。
+        expect(await adapter.getTables(schemaName: 'analytics'), ['users']);
+        expect(bodies.last['sql'], contains("table_schema = 'analytics'"));
+      });
+    });
+
     test('getTableIndexes：布尔格（JSON true）→ isUnique 解析', () async {
       final adapter = await connectedAdapter(
         (req) => _sse([

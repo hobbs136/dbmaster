@@ -80,6 +80,9 @@ class SqlServerAdapter extends DatabaseAdapter
         SqlScriptAdapter,
         SchemaAwareAdapter,
         MultiSchemaObjectAdapter,
+        // 库限定表枚举（批2.6-C2）：getTables 多出的可选命名参数 database
+        // 与 MultiSchemaObjectAdapter 兼容（Dart 子型可加可选命名参数）。
+        DatabaseQualifiedTablesAdapter,
         // getCharsets/getCollations 已实现，补声明以支持 `is CharsetAdapter` 路由
         CharsetAdapter,
         // 进程列表/kill，支持服务层 `is ProcessListAdapter` 路由
@@ -592,8 +595,11 @@ class SqlServerAdapter extends DatabaseAdapter
     );
   }
 
+  /// [database] 非空 → 同一 SQL 经 executeQuery 的 database 信封路由
+  /// （批2.6-C2，`DatabaseQualifiedTablesAdapter`：网关壳无会话态，不带上
+  /// 库名会落到连接初始库）；schema 口径不变；两参均省 = 现行为不变。
   @override
-  Future<List<String>> getTables({String? schemaName}) async {
+  Future<List<String>> getTables({String? schemaName, String? database}) async {
     if (!isConnected) throw Exception('未连接到数据库');
 
     // schema-scoped overload — bare names filtered to one schema
@@ -604,7 +610,7 @@ class SqlServerAdapter extends DatabaseAdapter
         WHERE TABLE_TYPE = 'BASE TABLE'
           AND TABLE_SCHEMA = ${SqlEscapeUtils.escapeString(schemaName)}
         ORDER BY TABLE_NAME
-      ''');
+      ''', database: database);
       return scoped.rows.map((row) => row['TABLE_NAME'] as String).toList();
     }
 
@@ -613,7 +619,7 @@ class SqlServerAdapter extends DatabaseAdapter
       FROM INFORMATION_SCHEMA.TABLES
       WHERE TABLE_TYPE = 'BASE TABLE'
       ORDER BY TABLE_SCHEMA, TABLE_NAME
-    ''');
+    ''', database: database);
     return results.rows.map((row) => row['full_name'] as String).toList();
   }
 

@@ -410,6 +410,78 @@ void main() {
       expect(tables, ['session', 'user']);
     });
 
+    // ========================================================================
+    // 批2.6-C1 红测：getTables 库限定路由（DatabaseQualifiedTablesAdapter）。
+    // 契约：database 非空 → 返回空清单（Redis 不可跨 SELECT 库扫描，
+    // 空清单语义冻结，禁止静默回落当前库）；无参 = 现行为逐字节不变。
+    // ========================================================================
+    group('getTables 库限定路由（批2.6-C1）', () {
+      test('应实现 DatabaseQualifiedTablesAdapter（服务层门拾取前置）', () async {
+        final adapter = await _connectedAdapter(
+          _RecordingClient((req) {
+            if (req.url.path == '/api/gw/connections' &&
+                req.method == 'GET') {
+              return _listResponse({'srv-1'});
+            }
+            return _sse(_resultEvents('none'));
+          }),
+        );
+        expect(adapter, isA<DatabaseQualifiedTablesAdapter>());
+      });
+
+      test('database 非空 → 空清单且不发任何扫描请求（禁止静默回落）', () async {
+        final queryReqs = <http.Request>[];
+        final client = _RecordingClient((req) {
+          if (req.url.path == '/api/gw/connections' && req.method == 'GET') {
+            return _listResponse({'srv-1'});
+          }
+          if (req.url.path.endsWith('/query')) {
+            queryReqs.add(req);
+            return _sse(_resultEvents('none'));
+          }
+          return _jsonResp({
+            'error': {'code': 'X', 'message': 'x'},
+          }, 500);
+        });
+        final adapter = await _connectedAdapter(client);
+
+        final tables =
+            await (adapter as DatabaseQualifiedTablesAdapter).getTables(
+          database: 'db1',
+        );
+        expect(tables, isEmpty,
+            reason: '库限定语义 = 空清单（不可跨 SELECT 库扫描），不是回落默认库');
+        expect(queryReqs, isEmpty,
+            reason: '空清单短路：不得发 SCAN 落默认库（静默回落禁止）');
+      });
+
+      test('回归锁：无参 → 默认库命名空间扫描不变', () async {
+        final client = _RecordingClient((req) {
+          if (req.url.path == '/api/gw/connections' && req.method == 'GET') {
+            return _listResponse({'srv-1'});
+          }
+          if (req.url.path.endsWith('/query')) {
+            final cmd = (_sentBody(req)['command'] as List).cast<String>();
+            if (cmd[0] == 'SCAN') {
+              return cmd[1] == '0'
+                  ? _sse(_semanticEvents(['cursor', 'key'], [
+                      ['17', 'user:1'],
+                      ['17', 'session:a'],
+                    ]))
+                  : _sse(_resultEvents(['0', []]));
+            }
+            return _sse(_resultEvents('none'));
+          }
+          return _jsonResp({
+            'error': {'code': 'X', 'message': 'x'},
+          }, 500);
+        });
+        final adapter = await _connectedAdapter(client);
+
+        expect(await adapter.getTables(), ['session', 'user']);
+      });
+    });
+
     test('scanKeysCursor 外部 cursor 分页', () async {
       final client = _RecordingClient((req) {
         if (req.url.path == '/api/gw/connections' && req.method == 'GET') {

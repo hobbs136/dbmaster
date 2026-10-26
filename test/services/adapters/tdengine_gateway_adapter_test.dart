@@ -611,6 +611,84 @@ void main() {
       expect(sql, 'SHOW TABLES');
     });
 
+    // ========================================================================
+    // 批2.6-C1 红测：getTables 库限定路由（DatabaseQualifiedTablesAdapter）。
+    // 契约：database 非空 → 按目标库性质选 SHOW STABLES/TABLES，经
+    // executeQuery(sql, database:) 信封路由；无参 = 现行为逐字节不变。
+    // ========================================================================
+    group('getTables 库限定路由（批2.6-C1）', () {
+      test('应实现 DatabaseQualifiedTablesAdapter（服务层门拾取前置）', () async {
+        final adapter =
+            await connectedAdapter((_) => _sse(_tdQueryEvents()));
+        expect(adapter, isA<DatabaseQualifiedTablesAdapter>());
+      });
+
+      test('database=用户库 → SHOW STABLES 路由目标库', () async {
+        final bodies = <Map<String, dynamic>>[];
+        final adapter = await connectedAdapter((req) {
+          bodies.add(_sentBody(req));
+          return _sse(_tdQueryEvents(
+            meta: const [
+              ['stable_name', 'VARCHAR', '192'],
+            ],
+            data: const [
+              ['meters'],
+            ],
+          ));
+        });
+
+        final tables =
+            await (adapter as DatabaseQualifiedTablesAdapter).getTables(
+          database: 'power',
+        );
+        expect(tables, ['meters']);
+        expect(bodies.last['sql'], 'SHOW STABLES');
+        expect(bodies.last['database'], 'power');
+      });
+
+      test('database=系统库 → SHOW TABLES 路由目标库', () async {
+        final bodies = <Map<String, dynamic>>[];
+        final adapter = await connectedAdapter((req) {
+          bodies.add(_sentBody(req));
+          return _sse(_tdQueryEvents(
+            meta: const [
+              ['table_name', 'VARCHAR', '192'],
+            ],
+            data: const [
+              ['insp_tables'],
+            ],
+          ));
+        });
+
+        final tables =
+            await (adapter as DatabaseQualifiedTablesAdapter).getTables(
+          database: 'information_schema',
+        );
+        expect(tables, ['insp_tables']);
+        expect(bodies.last['sql'], 'SHOW TABLES');
+        expect(bodies.last['database'], 'information_schema');
+      });
+
+      test('回归锁：无参 → 按连接当前库选 SHOW STABLES（信封带 td_db）', () async {
+        final bodies = <Map<String, dynamic>>[];
+        final adapter = await connectedAdapter((req) {
+          bodies.add(_sentBody(req));
+          return _sse(_tdQueryEvents(
+            meta: const [
+              ['stable_name', 'VARCHAR', '192'],
+            ],
+            data: const [
+              ['meters'],
+            ],
+          ));
+        });
+
+        expect(await adapter.getTables(), ['meters']);
+        expect(bodies.last['sql'], 'SHOW STABLES');
+        expect(bodies.last['database'], 'td_db');
+      });
+    });
+
     test('useDatabase record-only：拷贝连接记录目标库', () async {
       final adapter = await connectedAdapter((_) => _sse(_tdQueryEvents()));
       await adapter.useDatabase('other_db');

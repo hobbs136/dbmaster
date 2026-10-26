@@ -336,7 +336,17 @@ class MongodbConnectionFormSession extends NetworkConnectionFormSession {
       case MongoConnectionMode.advanced:
         final raw = connStringController.text.trim();
         if (raw.isEmpty) return null;
-        final p = ParsedMongoUri.parse(raw);
+        final ParsedMongoUri p;
+        try {
+          p = ParsedMongoUri.parse(raw);
+        } catch (_) {
+          // 逐键监听下 tested 态收集会遇到非法中间态：parse 抛
+          // FormatException（非法 scheme/SRV 多 host）或 StateError（剥离
+          // userinfo 后仍含 @，如 query 裸 @）——全类型捕获与
+          // resolveHostPort/resolveCredentials 防御先例一致；extra=null 与
+          // 快照不等 → 走既有保守回退。
+          return null;
+        }
         return <String, dynamic>{
           ConnectionExtraKeys.mongoConnectionMode: 'advanced',
           ConnectionExtraKeys.mongoConnectionString: p.credentialFreeUri,

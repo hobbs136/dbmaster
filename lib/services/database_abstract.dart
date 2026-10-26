@@ -341,10 +341,16 @@ abstract interface class MultiSchemaObjectAdapter {
 /// 只认 run 快照库，不依赖连接级当前库）。与 [MultiSchemaObjectAdapter] 的
 /// schemaName（PG/SS schema / SQLite ATTACH alias）语义分立。
 ///
-/// 实现：MySQLGatewayBaseAdapter（含 Doris 覆写）、ClickhouseAdapter——
-/// 网关壳无会话态，`SHOW TABLES` 须显式带库才不落到连接初始库。
+/// 实现：MySQLGatewayBaseAdapter（含 Doris 覆写）、ClickhouseAdapter、
+/// PostgreSQLAdapter、SqlServerAdapter、TDengineAdapter、MongoDBAdapter、
+/// SQLiteAdapter、RedisAdapter（批2.6-C2 全量接入）——网关壳无会话态，
+/// `SHOW TABLES` 须显式带库才不落到连接初始库；SQLite 库名 == ATTACH
+/// alias 1:1；Redis 无跨 SELECT 库扫描语义。
 /// 调用方用 `adapter is DatabaseQualifiedTablesAdapter` 判定（与
 /// [PragmaAdapter] 模式一致）。
+///
+/// 实现者以 database 非空返回空清单表达本类型无跨库枚举语义
+/// （如 Redis），禁止静默回落当前库。
 abstract interface class DatabaseQualifiedTablesAdapter {
   Future<List<String>> getTables({String? database});
 }

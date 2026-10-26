@@ -794,4 +794,228 @@ void main() {
       expect(provider.testCalls, 1, reason: '取消不发新请求');
     });
   });
+
+  group('UI35-230~232 · Mongo 集群/advanced 软门指纹', () {
+    /// 公共前置：新建连接切到 MongoDB，填名，切 Mongo 模式并按需填模式字段，
+    /// 测试通过进入 tested。
+    Future<void> testedMongo(
+      WidgetTester tester, {
+      required String Function(AppLocalizations l10n) modeOf,
+      List<(String Function(AppLocalizations l10n), String)> fields = const [],
+    }) async {
+      await pumpDialog(tester);
+      final l10n = l10nOf(tester);
+      await tester.tap(find.text('MongoDB'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'mongo conn');
+      await tester.pump();
+
+      // 切 Mongo 模式：点当前值文本 → 菜单点目标项
+      await tester.tap(find.text(l10n.connectionMongoModeDirect));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(modeOf(l10n)).last);
+      await tester.pumpAndSettle();
+
+      // 按 labelText 定位（不同模式可见字段集不同，index 序不稳）
+      for (final (labelOf, value) in fields) {
+        final label = labelOf(l10n);
+        final field = tester
+            .widgetList<TextField>(find.byType(TextField))
+            .firstWhere((f) => f.decoration?.labelText == label);
+        await tester.ensureVisible(find.byWidget(field));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byWidget(field), value);
+        await tester.pump();
+      }
+
+      await tester
+          .tap(find.byKey(const ValueKey('connection-dialog-test-button')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('connection-test-summary')),
+          findsOneWidget,
+          reason: '前置：Mongo tested 成功');
+    }
+
+    testWidgets(
+        'UI35-230 Mongo replicaSet：tested 后改 hosts 列表 / replicaSet 名 → reverted',
+        (tester) async {
+      await testedMongo(
+        tester,
+        modeOf: (l10n) => l10n.connectionMongoModeReplicaSet,
+        fields: [
+          ((l10n) => l10n.connectionMongoSeedHosts, 'seed1:27017\nseed2:27017'),
+          ((l10n) => l10n.connectionMongoReplicaSetName, 'rs0'),
+        ],
+      );
+
+      // 改 hosts（次节点列表）→ reverted（N1：hosts 列表纳入指纹）
+      final hosts = tester
+          .widgetList<TextField>(find.byType(TextField))
+          .firstWhere((f) =>
+              f.decoration?.labelText == l10nOf(tester).connectionMongoSeedHosts);
+      await tester.enterText(find.byWidget(hosts), 'seed1:27017\nseed3:27017');
+      await tester.pump();
+      expect(find.byKey(const ValueKey('connection-test-reverted')),
+          findsOneWidget,
+          reason: '验收 N1：改 hosts 列表 → reverted');
+      expect(find.byKey(const ValueKey('connection-test-summary')),
+          findsNothing);
+
+      // 重测回 tested（hosts 变更后字段仍合法）——replicaSet 名变更必须在
+      // tested 态独立触发回退；若在 reverted 态追加断言则空洞（非 tested
+      // 早退，指纹路径不执行，reviewer 复审指出）。
+      await tester
+          .tap(find.byKey(const ValueKey('connection-dialog-test-button')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('connection-test-summary')),
+          findsOneWidget,
+          reason: '前置：重测回 tested');
+
+      // 改 replicaSet 名 → reverted（监听对称性：replicaSet 名也纳入指纹）
+      final rsName = tester
+          .widgetList<TextField>(find.byType(TextField))
+          .firstWhere((f) => f.decoration?.labelText ==
+              l10nOf(tester).connectionMongoReplicaSetName);
+      await tester.enterText(find.byWidget(rsName), 'rs1');
+      await tester.pump();
+      expect(find.byKey(const ValueKey('connection-test-reverted')),
+          findsOneWidget,
+          reason: '验收 N1：改 replicaSet 名 → reverted');
+    });
+
+    testWidgets(
+        'UI35-231 Mongo advanced：tested 后改连接串 → reverted；仅展开/收起 advanced 折叠 → 仍 tested',
+        (tester) async {
+      await testedMongo(
+        tester,
+        modeOf: (l10n) => l10n.connectionMongoModeAdvanced,
+        // 端口取非默认 27019：暴露 N2「portRaw 用隐藏行的 stale 原文」恒不等
+        fields: [
+          (
+            (l10n) => l10n.connectionMongoConnectionString,
+            'mongodb://user:pass@seed1:27019/?authSource=admin'
+          ),
+        ],
+      );
+      final l10n = l10nOf(tester);
+
+      // N2 回归锁：仅展开 advanced 折叠（不改字段）→ 仍 tested
+      await tester.ensureVisible(find.text(l10n.connectionAdvancedOptions));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.connectionAdvancedOptions));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('connection-test-summary')),
+          findsOneWidget,
+          reason: '验收 N2 回归锁：advanced 模式展开折叠不改字段 → 仍 tested');
+      expect(find.byKey(const ValueKey('connection-test-reverted')),
+          findsNothing,
+          reason: '纯 UI 折叠不触发「连接设置已变更」假警告');
+
+      // 改连接串（credentialFree 已脱敏入指纹）→ reverted
+      final conn = tester
+          .widgetList<TextField>(find.byType(TextField))
+          .firstWhere((f) =>
+              f.decoration?.labelText == l10n.connectionMongoConnectionString);
+      await tester.enterText(find.byWidget(conn),
+          'mongodb://user:pass@seed9:27019/?authSource=admin');
+      await tester.pump();
+      expect(find.byKey(const ValueKey('connection-test-reverted')),
+          findsOneWidget,
+          reason: '验收 N1：改连接串 → reverted');
+      expect(find.byKey(const ValueKey('connection-test-summary')),
+          findsNothing);
+    });
+
+    testWidgets(
+        'UI35-232 Mongo sharded：tested 后仅 toggle 高级区不改字段 → 仍 tested；随后改 hosts → reverted',
+        (tester) async {
+      await testedMongo(
+        tester,
+        modeOf: (l10n) => l10n.connectionMongoModeSharded,
+        // 非默认端口 27019：暴露 N2 集群形态 portRaw 恒不等
+        fields: [
+          ((l10n) => l10n.connectionMongoMongosHosts, 'm1:27019\nm2:27019'),
+        ],
+      );
+      final l10n = l10nOf(tester);
+
+      // 仅展开 advanced 折叠（不改字段）→ 仍 tested（N2 主断言）
+      await tester.ensureVisible(find.text(l10n.connectionAdvancedOptions));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.connectionAdvancedOptions));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('connection-test-summary')),
+          findsOneWidget,
+          reason: '验收 N2：集群形态 host/port 行隐藏，折叠 toggle 不误报');
+      expect(find.byKey(const ValueKey('connection-test-reverted')),
+          findsNothing,
+          reason: '验收 N2：不出现「连接设置已变更」假警告');
+
+      // 改 hosts → reverted（防漏字段）
+      final hosts = tester
+          .widgetList<TextField>(find.byType(TextField))
+          .firstWhere((f) =>
+              f.decoration?.labelText == l10n.connectionMongoMongosHosts);
+      await tester.enterText(find.byWidget(hosts), 'm9:27019');
+      await tester.pump();
+      expect(find.byKey(const ValueKey('connection-test-reverted')),
+          findsOneWidget,
+          reason: '防漏：改 hosts → reverted');
+      expect(find.byKey(const ValueKey('connection-test-summary')),
+          findsNothing);
+    });
+
+    testWidgets(
+        'UI35-233 Mongo advanced：tested 后连接串打非法中间态不抛未捕获异常（FormatException/StateError）→ reverted',
+        (tester) async {
+      await testedMongo(
+        tester,
+        modeOf: (l10n) => l10n.connectionMongoModeAdvanced,
+        fields: [
+          (
+            (l10n) => l10n.connectionMongoConnectionString,
+            'mongodb://user:pass@seed1:27019/?authSource=admin'
+          ),
+        ],
+      );
+      final l10n = l10nOf(tester);
+
+      // 每次按键前按 labelText 重新定位（重测/回退触发表单重建，缓存的
+      // TextField 实例在后续帧可能被替换，按实例 finder 会失效）。
+      Future<void> enterConn(String value) async {
+        final field = tester
+            .widgetList<TextField>(find.byType(TextField))
+            .firstWhere((f) =>
+                f.decoration?.labelText == l10n.connectionMongoConnectionString);
+        await tester.enterText(find.byWidget(field), value);
+        await tester.pump();
+      }
+
+      // 非法中间态（非 mongo scheme → FormatException）→ collect 逐键触发
+      // buildExtra 解析，不得抛未捕获异常，且走保守回退 reverted。
+      await enterConn('not-a-uri');
+      expect(tester.takeException(), isNull,
+          reason: 'P1：非法连接串中间态不得抛未捕获 FormatException');
+      expect(find.byKey(const ValueKey('connection-test-reverted')),
+          findsOneWidget,
+          reason: 'P1：非法中间态 extra 解析失败 → 保守回退 reverted');
+
+      // 恢复合法连接串后重测回 tested（非法串会被表单校验拦截，回不到
+      // tested），再打第二类非法中间态（query 含裸 @ → StateError，
+      // implements Error，on FormatException/Exception 均接不住）。
+      await enterConn('mongodb://user:pass@seed1:27019/?authSource=admin');
+      await tester
+          .tap(find.byKey(const ValueKey('connection-dialog-test-button')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('connection-test-summary')),
+          findsOneWidget,
+          reason: '前置：重测回 tested');
+      await enterConn('mongodb://user:pass@seed1:27019/?x=@');
+      expect(tester.takeException(), isNull,
+          reason: 'P1 残余：query 裸 @ 触发 StateError 不得未捕获');
+      expect(find.byKey(const ValueKey('connection-test-reverted')),
+          findsOneWidget,
+          reason: 'P1 残余：StateError 中间态 → 保守回退 reverted');
+    });
+  });
 }

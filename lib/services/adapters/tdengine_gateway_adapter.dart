@@ -74,7 +74,13 @@ class TdengineGatewayException implements Exception {
 /// fail-loud 对齐 CH/B 批次——UI 经 `is TransactionalAdapter` 门控自动隐藏）。
 class TDengineAdapter extends DatabaseAdapter
     with AiAdapterMixin, DisconnectAware
-    implements SqlSchemaAdapter, DdlAdapter, SqlScriptAdapter {
+    implements
+        SqlSchemaAdapter,
+        DdlAdapter,
+        SqlScriptAdapter,
+        // 库限定表枚举（批2.6-C2）：REST 无会话态，库经 executeQuery 的
+        // database 信封路由。
+        DatabaseQualifiedTablesAdapter {
   /// serverConnId 映射表 key（与 ConnectionProvider / 其它网关壳同源的
   /// 本地 id → 网关注册 id 映射；共享同一 SharedPreferences key）。
   static const String _kServerIdMapKey = 'connection_server_id_map';
@@ -514,16 +520,20 @@ class TDengineAdapter extends DatabaseAdapter
     _currentConnection = _currentConnection?.copyWith(database: dbName);
   }
 
+  /// [database] 非空 → 按目标库性质选 SHOW STABLES/TABLES 并经
+  /// executeQuery 的 database 信封路由目标库（批2.6-C2，
+  /// `DatabaseQualifiedTablesAdapter`）；无参 = 按连接当前库选语句、
+  /// 信封回落连接初始库（现行为不变）。空串/null 不路由（:502 先例）。
   @override
-  Future<List<String>> getTables() async {
-    final dbName = _currentConnection?.database;
+  Future<List<String>> getTables({String? database}) async {
+    final dbName = database ?? _currentConnection?.database;
     // 系统库是系统视图（SHOW TABLES）；用户库上树的是超级表（SHOW STABLES）
     // ——与旧适配器双路径同口径，server metadata 臂同源。
     final lower = dbName?.toLowerCase();
     final sql = (lower == 'information_schema' || lower == 'performance_schema')
         ? 'SHOW TABLES'
         : 'SHOW STABLES';
-    final r = await executeQuery(sql);
+    final r = await executeQuery(sql, database: database);
     return r.rows
         .map((row) => row.values.firstOrNull?.toString() ?? '')
         .where((n) => n.isNotEmpty)

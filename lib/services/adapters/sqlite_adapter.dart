@@ -28,7 +28,11 @@ class SQLiteAdapter extends DatabaseAdapter
         JsonAdapter,
         PragmaAdapter,
         AttachAwareAdapter,
-        MultiSchemaObjectAdapter {
+        MultiSchemaObjectAdapter,
+        // 库限定表枚举（批2.6-C2）：库名 == ATTACH alias 1:1，database 走
+        // 同一 alias 限定路径（与 MultiSchemaObjectAdapter 兼容——Dart 子型
+        // 可加可选命名参数）。
+        DatabaseQualifiedTablesAdapter {
   // Phase E — ^ JsonAdapter
   sqflite.Database? _db;
   DatabaseConnection? _currentConnection;
@@ -235,11 +239,15 @@ class SQLiteAdapter extends DatabaseAdapter
     return '$schemaName.sqlite_master';
   }
 
+  /// [database] 非空 → alias = schemaName ?? database 限定 `sqlite_master`
+  /// （批2.6-C2，`DatabaseQualifiedTablesAdapter`：SQLite 库名 == ATTACH
+  /// alias 1:1；schemaName 显式优先）；两参均省 = 现行为不变。
   @override
-  Future<List<String>> getTables({String? schemaName}) async {
+  Future<List<String>> getTables({String? schemaName, String? database}) async {
     if (!isConnected) throw Exception('未连接到数据库');
 
-    final master = _qualifiedMaster(schemaName);
+    final alias = schemaName ?? database;
+    final master = _qualifiedMaster(alias);
     final results = await _db!.rawQuery(
       "SELECT name FROM $master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
     );
