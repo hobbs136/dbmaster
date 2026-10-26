@@ -4730,4 +4730,15 @@
   "@aiDockToggleTooltip": {"description": "AI 坞站开合按钮提示，含快捷键"},
   "filterDraftDotTooltip": "有未应用的筛选修改",
   "@filterDraftDotTooltip": {"description": "标记存在未应用筛选修改的圆点提示"}
+,
+  "uirvDockContextPickerHint": "点击表以手动指定上下文",
+  "@uirvDockContextPickerHint": {"description":"Hint shown in the AI dock context picker when no manual table is selected yet"},
+  "uirvDockContextChangeScopeTooltip": "切换 AI 上下文的库 / 表",
+  "@uirvDockContextChangeScopeTooltip": {"description":"Tooltip for the control that switches the database or table used as AI context"},
+  "connectionTestInProgress": "测试中…",
+  "@connectionTestInProgress": {"description":"Progress label shown while a connection test is running"},
+  "connectionTestCancel": "取消测试",
+  "@connectionTestCancel": {"description":"Button to cancel a running connection test"},
+  "connectionTestSettingsChanged": "连接设置已变更 · 之前的测试结果已失效",
+  "@connectionTestSettingsChanged": {"description":"Notice shown when connection settings change after a test, invalidating its result"}
 }

@@ -11715,4 +11715,22 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get filterDraftDotTooltip => 'Есть неприменённые изменения фильтра';
+
+  @override
+  String get uirvDockContextPickerHint =>
+      'Нажмите на таблицу, чтобы задать контекст ИИ вручную';
+
+  @override
+  String get uirvDockContextChangeScopeTooltip =>
+      'Сменить базу данных или таблицу для контекста ИИ';
+
+  @override
+  String get connectionTestInProgress => 'Проверка…';
+
+  @override
+  String get connectionTestCancel => 'Отменить проверку';
+
+  @override
+  String get connectionTestSettingsChanged =>
+      'Настройки подключения изменены · предыдущий результат проверки больше не актуален';
 }

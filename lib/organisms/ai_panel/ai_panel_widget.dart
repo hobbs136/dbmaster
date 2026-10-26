@@ -1554,7 +1554,10 @@ class AiPanelWidgetState extends State<AiPanelWidget>
     final ai = provider.aiPanel;
     final isManual = ai.manualContextOverride;
     final effective = _resolveEffectiveConnection(provider);
-    final tableName = isManual ? null : _resolveFollowTableName(provider, effective);
+    // MANUAL 表名读手动三元组（B-03）；FOLLOW 表名由 browse tab 派生。
+    final tableName = isManual
+        ? ai.selectedManualTable
+        : _resolveFollowTableName(provider, effective);
     return AiDockContextCard(
       compact: compact,
       connection: effective,
@@ -1577,7 +1580,8 @@ class AiPanelWidgetState extends State<AiPanelWidget>
     DbServer server,
     AppProvider provider,
   ) async {
-    provider.aiPanel.setManualDockContext(server.id);
+    // B-03 ③：只换连接时显式清表（provider 不继承旧表）。
+    provider.aiPanel.setManualDockContext(server.id, tableName: null);
     provider.aiPanel.setSelectedConnectionDatabases([]);
     await _loadDatabasesForServer(server, provider);
   }
@@ -1645,7 +1649,12 @@ class AiPanelWidgetState extends State<AiPanelWidget>
             }),
           ],
           onChanged: (database) {
-            provider.aiPanel.setSelectedDatabase(database);
+            // B-03 ③：只换库时显式清表（与连接/库同批原子写入）。
+            provider.aiPanel.setManualDockContext(
+              provider.aiPanel.selectedConnectionId,
+              databaseName: database,
+              tableName: null,
+            );
           },
         ),
       ),

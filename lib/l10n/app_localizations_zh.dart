@@ -11385,6 +11385,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get filterDraftDotTooltip => '有未应用的筛选修改';
+
+  @override
+  String get uirvDockContextPickerHint => '点击表以手动指定上下文';
+
+  @override
+  String get uirvDockContextChangeScopeTooltip => '切换 AI 上下文的库 / 表';
+
+  @override
+  String get connectionTestInProgress => '测试中…';
+
+  @override
+  String get connectionTestCancel => '取消测试';
+
+  @override
+  String get connectionTestSettingsChanged => '连接设置已变更 · 之前的测试结果已失效';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -20217,4 +20232,19 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get filterDraftDotTooltip => '有未套用的篩選變更';
+
+  @override
+  String get uirvDockContextPickerHint => '點擊資料表以手動指定上下文';
+
+  @override
+  String get uirvDockContextChangeScopeTooltip => '切換 AI 上下文的資料庫 / 資料表';
+
+  @override
+  String get connectionTestInProgress => '測試中…';
+
+  @override
+  String get connectionTestCancel => '取消測試';
+
+  @override
+  String get connectionTestSettingsChanged => '連線設定已變更 · 先前的測試結果已失效';
 }

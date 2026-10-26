@@ -7799,4 +7799,15 @@
   "@aiDockToggleTooltip": {"description": "AI dock toggle button tooltip with the keyboard shortcut"},
   "filterDraftDotTooltip": "Unapplied filter changes",
   "@filterDraftDotTooltip": {"description": "Tooltip for the dot marker indicating unapplied filter changes"}
+,
+  "uirvDockContextPickerHint": "Click a table to set manual context",
+  "@uirvDockContextPickerHint": {"description":"Hint shown in the AI dock context picker when no manual table is selected yet"},
+  "uirvDockContextChangeScopeTooltip": "Change database or table for AI context",
+  "@uirvDockContextChangeScopeTooltip": {"description":"Tooltip for the control that switches the database or table used as AI context"},
+  "connectionTestInProgress": "Testing…",
+  "@connectionTestInProgress": {"description":"Progress label shown while a connection test is running"},
+  "connectionTestCancel": "Cancel test",
+  "@connectionTestCancel": {"description":"Button to cancel a running connection test"},
+  "connectionTestSettingsChanged": "Connection settings changed · the previous test no longer applies",
+  "@connectionTestSettingsChanged": {"description":"Notice shown when connection settings change after a test, invalidating its result"}
 }

@@ -11665,4 +11665,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get filterDraftDotTooltip => 'Unapplied filter changes';
+
+  @override
+  String get uirvDockContextPickerHint => 'Click a table to set manual context';
+
+  @override
+  String get uirvDockContextChangeScopeTooltip =>
+      'Change database or table for AI context';
+
+  @override
+  String get connectionTestInProgress => 'Testing…';
+
+  @override
+  String get connectionTestCancel => 'Cancel test';
+
+  @override
+  String get connectionTestSettingsChanged =>
+      'Connection settings changed · the previous test no longer applies';
 }

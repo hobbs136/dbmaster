@@ -4007,4 +4007,15 @@
   "@aiDockToggleTooltip": {},
   "filterDraftDotTooltip": "Modifications de filtre non appliquées",
   "@filterDraftDotTooltip": {}
+,
+  "uirvDockContextPickerHint": "Cliquez sur une table pour définir le contexte manuellement",
+  "@uirvDockContextPickerHint": {"description":"Hint shown in the AI dock context picker when no manual table is selected yet"},
+  "uirvDockContextChangeScopeTooltip": "Changer la base de données ou la table du contexte IA",
+  "@uirvDockContextChangeScopeTooltip": {"description":"Tooltip for the control that switches the database or table used as AI context"},
+  "connectionTestInProgress": "Test en cours…",
+  "@connectionTestInProgress": {"description":"Progress label shown while a connection test is running"},
+  "connectionTestCancel": "Annuler le test",
+  "@connectionTestCancel": {"description":"Button to cancel a running connection test"},
+  "connectionTestSettingsChanged": "Paramètres de connexion modifiés · le test précédent n’est plus valable",
+  "@connectionTestSettingsChanged": {"description":"Notice shown when connection settings change after a test, invalidating its result"}
 }

@@ -13,6 +13,8 @@
 // （● Auto-follow / ▲ Manual）+ MANUAL 恢复链接；行 2 = [库图标] 连接名 /
 // 库名 / 表名 ▾ 整行触发器，复用 WorkbenchContextPicker 级联选择器
 // （连接名中间省略，截断优先级 表名 > 库名 > 连接名）。完整态三行卡不动。
+// 批2 T5（B-04）：完整卡第 3 行升为表模式入口（FOLLOW 整行命中区 /
+// MANUAL 表名段换表）；紧凑行 2 同步升为表模式（选表才提交三元组）。
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
@@ -33,6 +35,9 @@ const Key kAiDockContextConnectionTrigger = Key(
 /// 紧凑态行 2 触发器稳定 Key（整行打开 WorkbenchContextPicker）。
 const Key kAiDockCompactContextTrigger = Key('aiDockCompactContextTrigger');
 
+/// 完整卡第 3 行（库/表范围）触发器稳定 Key（表模式 picker 入口）。
+const Key kAiDockContextScopeTrigger = Key('aiDockContextScopeTrigger');
+
 /// dock 头部上下文卡。
 ///
 /// 三态由入参派生（宿主 ai_panel_widget 计算，本卡纯呈现）：
@@ -48,7 +53,9 @@ class AiDockContextCard extends StatelessWidget {
   /// 生效库名（null = 未指定/全部库）。
   final String? databaseName;
 
-  /// 活动 browse tab 的表对象（null = 未指定，隐藏表段，不阻塞输入）。
+  /// 生效表名：FOLLOW = 活动 browse tab 的表对象（宿主派生）；MANUAL =
+  /// `AiPanelProvider.selectedManualTable`（宿主传入）。null = 无表，表段
+  /// 整段隐藏（不显示占位）。
   final String? tableName;
 
   /// 会话级手动覆盖标记（MANUAL 态）。
@@ -201,74 +208,170 @@ class AiDockContextCard extends StatelessWidget {
             showTypeBadge: conn != null,
           ),
           const SizedBox(height: AppDesignSystem.space0_5),
-          // 第 3 行：库 / 表（表对象来自活动 browse tab）。MANUAL 态库段
-          // 换成宿主注入的内联库选择器（沿用既有库下拉）；未指定表时
-          // 整个表段（含分隔符）隐藏，避免暗示可点选。
-          Row(
-            children: [
-              if (isManual && databaseSelector != null)
-                Expanded(child: databaseSelector!)
-              else ...[
-                Icon(LucideIcons.database, size: 12, color: colors.textMuted),
-                const SizedBox(width: AppDesignSystem.space1_5),
-                Expanded(
-                  child: Text(
-                    databaseName ?? l10n.aiPanelAllDatabases,
-                    maxLines: 1,
-                    style: TextStyle(
-                      fontSize: AppDesignSystem.fontSizeXs,
-                      color: colors.textSecondary,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-              if (tableName != null) ...[
-                Text(
-                  '/',
-                  style: TextStyle(
-                    fontSize: AppDesignSystem.fontSizeXs,
-                    color: colors.textMuted,
-                  ),
-                ),
-                const SizedBox(width: AppDesignSystem.space1_5),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    tableName!,
-                    maxLines: 1,
-                    style: TextStyle(
-                      fontSize: AppDesignSystem.fontSizeXs,
-                      color: colors.textPrimary,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: AppDesignSystem.space1),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppDesignSystem.space1_5,
-                    vertical: 1,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colors.accentSubtle,
-                    borderRadius: BorderRadius.circular(
-                      AppDesignSystem.radiusSm,
-                    ),
-                  ),
-                  child: Text(
-                    l10n.uirvDockContextCurrentTableTag,
-                    maxLines: 1,
-                    style: TextStyle(
-                      fontSize: AppDesignSystem.fontSizeXs,
-                      color: colors.accentBlue,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
+          // 第 3 行（B-04）：FOLLOW = 整行命中区（库/表 + 尾部 ▾，悬停底色 +
+          // tooltip），一次点击沿用当前生效连接/库直接呈表清单只选表；
+          // MANUAL = 宿主注入库下拉 + 有表时的表名段（点段换表）。无表时
+          // 表段与 `/` 分隔符整段隐藏（不显示占位）。
+          _buildPathLine(context, l10n, colors),
         ],
+      ),
+    );
+  }
+
+  /// 第 3 行（B-04 表模式入口）：FOLLOW 整行 / MANUAL 表名段。
+  Widget _buildPathLine(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeColors colors,
+  ) {
+    if (isManual) {
+      return Row(
+        children: [
+          if (databaseSelector != null)
+            Expanded(child: databaseSelector!)
+          else
+            Expanded(child: _databasePathText(l10n, colors)),
+          if (tableName != null)
+            Flexible(
+              flex: 2,
+              child: _scopeTrigger(
+                context,
+                l10n,
+                colors,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _pathSeparator(colors),
+                    const SizedBox(width: AppDesignSystem.space1_5),
+                    Flexible(child: _tablePathText(colors)),
+                    const SizedBox(width: AppDesignSystem.space1),
+                    Icon(
+                      LucideIcons.chevronDown,
+                      size: 12,
+                      color: colors.textMuted,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      );
+    }
+    return _scopeTrigger(
+      context,
+      l10n,
+      colors,
+      child: Row(
+        children: [
+          Icon(LucideIcons.database, size: 12, color: colors.textMuted),
+          const SizedBox(width: AppDesignSystem.space1_5),
+          Expanded(child: _databasePathText(l10n, colors)),
+          if (tableName != null) ...[
+            _pathSeparator(colors),
+            const SizedBox(width: AppDesignSystem.space1_5),
+            Expanded(flex: 2, child: _tablePathText(colors)),
+            const SizedBox(width: AppDesignSystem.space1),
+            _currentTableBadge(l10n, colors),
+          ],
+          const SizedBox(width: AppDesignSystem.space1),
+          Icon(LucideIcons.chevronDown, size: 12, color: colors.textMuted),
+        ],
+      ),
+    );
+  }
+
+  /// 第 3 行命中区（Tooltip + InkWell；hover 底色走 bgTertiary token）。
+  Widget _scopeTrigger(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeColors colors, {
+    required Widget child,
+  }) {
+    return Tooltip(
+      message: l10n.uirvDockContextChangeScopeTooltip,
+      child: InkWell(
+        key: kAiDockContextScopeTrigger,
+        onTap: () => _openTablePicker(context),
+        hoverColor: colors.bgTertiary,
+        borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDesignSystem.space1,
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  /// 表模式选择器入口：初始 = 卡片当前生效连接/库；选中表写手动上下文
+  /// 三元组（B-03 原子写入），不落工作台锁定。
+  Future<void> _openTablePicker(BuildContext context) {
+    final aiPanel = context.read<AppProvider>().aiPanel;
+    return WorkbenchContextPicker.show(
+      context,
+      onTableSelected: (connectionId, databaseName, tableName) =>
+          aiPanel.setManualDockContext(
+            connectionId,
+            databaseName: databaseName,
+            tableName: tableName,
+          ),
+      initialConnectionId: connection?.id,
+      initialDatabaseName: databaseName,
+    );
+  }
+
+  Widget _databasePathText(AppLocalizations l10n, ThemeColors colors) {
+    return Text(
+      databaseName ?? l10n.aiPanelAllDatabases,
+      maxLines: 1,
+      style: TextStyle(
+        fontSize: AppDesignSystem.fontSizeXs,
+        color: colors.textSecondary,
+      ),
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Widget _pathSeparator(ThemeColors colors) {
+    return Text(
+      '/',
+      style: TextStyle(
+        fontSize: AppDesignSystem.fontSizeXs,
+        color: colors.textMuted,
+      ),
+    );
+  }
+
+  Widget _tablePathText(ThemeColors colors) {
+    return Text(
+      tableName ?? '',
+      maxLines: 1,
+      style: TextStyle(
+        fontSize: AppDesignSystem.fontSizeXs,
+        color: colors.textPrimary,
+      ),
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Widget _currentTableBadge(AppLocalizations l10n, ThemeColors colors) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDesignSystem.space1_5,
+        vertical: 1,
+      ),
+      decoration: BoxDecoration(
+        color: colors.accentSubtle,
+        borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
+      ),
+      child: Text(
+        l10n.uirvDockContextCurrentTableTag,
+        maxLines: 1,
+        style: TextStyle(
+          fontSize: AppDesignSystem.fontSizeXs,
+          color: colors.accentBlue,
+        ),
       ),
     );
   }
@@ -289,8 +392,9 @@ class AiDockContextCard extends StatelessWidget {
   /// 紧凑两行卡（44px 头预算，UI35-121~128）：行 1（18px）= 状态标识
   /// （● Auto-follow / ▲ Manual / ● 空态）+ MANUAL 右端恢复链接；行 2
   /// （24px）= [库图标] 连接名 / 库名 / 表名 ▾ 整行触发器，点击复用
-  /// WorkbenchContextPicker 级联选择器（连接/库双栏）。连接名中间省略
-  /// （~100px 预算），截断优先级 表名 > 库名 > 连接名；表段仅指定表时显示。
+  /// WorkbenchContextPicker 表模式（连接 → 库 → 表，点表才提交）。连接名
+  /// 中间省略（~100px 预算），截断优先级 表名 > 库名 > 连接名；表段仅
+  /// 指定表时显示。
   Widget _buildCompact(
     BuildContext context,
     AppLocalizations l10n,
@@ -385,7 +489,8 @@ class AiDockContextCard extends StatelessWidget {
 
   /// 紧凑行 2 触发器：连接名中间省略（固定 ~100px 预算，连接名截断最狠）；
   /// 库名 / 表名走 Flexible（表名 flex 更大优先保完整，库名其次）；整行
-  /// 点击复用 WorkbenchContextPicker.show（连接/库级联；表选择入口批 2）。
+  /// 点击复用 WorkbenchContextPicker（B-04 升为表模式：连接 → 库 → 表，
+  /// 点表才提交三元组）。
   Widget _compactPathTrigger(
     BuildContext context,
     AppLocalizations l10n,
@@ -398,15 +503,9 @@ class AiDockContextCard extends StatelessWidget {
         : _connectionLabel(conn);
     return InkWell(
       key: kAiDockCompactContextTrigger,
-      // 批1 返工 T2b：经典 dock 入口传 onSelected——确认写 dock 手动上下文
-      // （setManualDockContext），不落工作台锁定；不传则 picker 走 R2 锁定。
-      onTap: () => WorkbenchContextPicker.show(
-        context,
-        onSelected: (connectionId, databaseName) => context
-            .read<AppProvider>()
-            .aiPanel
-            .setManualDockContext(connectionId, databaseName: databaseName),
-      ),
+      // B-04：表模式（onTableSelected）——选表后写 dock 手动上下文三元组，
+      // 不落工作台锁定；初始 = 卡片当前生效连接/库。
+      onTap: () => _openTablePicker(context),
       borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppDesignSystem.space1),

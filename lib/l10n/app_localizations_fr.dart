@@ -11760,4 +11760,22 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get filterDraftDotTooltip => 'Modifications de filtre non appliquées';
+
+  @override
+  String get uirvDockContextPickerHint =>
+      'Cliquez sur une table pour définir le contexte manuellement';
+
+  @override
+  String get uirvDockContextChangeScopeTooltip =>
+      'Changer la base de données ou la table du contexte IA';
+
+  @override
+  String get connectionTestInProgress => 'Test en cours…';
+
+  @override
+  String get connectionTestCancel => 'Annuler le test';
+
+  @override
+  String get connectionTestSettingsChanged =>
+      'Paramètres de connexion modifiés · le test précédent n’est plus valable';
 }

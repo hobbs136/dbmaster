@@ -23,6 +23,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:dbmaster/l10n/app_localizations.dart';
+import 'package:dbmaster/l10n/app_localizations_en.dart';
 import 'package:dbmaster/models/database_models.dart';
 import 'package:dbmaster/organisms/ai_panel/ai_dock_context_card.dart';
 import 'package:dbmaster/organisms/ai_panel/ai_panel_widget.dart';
@@ -34,17 +35,28 @@ import 'package:dbmaster/providers/connection_provider.dart';
 import 'package:dbmaster/providers/layout_preferences_provider.dart';
 import 'package:dbmaster/services/database_abstract.dart';
 
-/// getDatabases 假适配器（workbench_context_picker_test 同款最小桩）。
-class _FakeDbAdapter implements DatabaseAdapter {
-  _FakeDbAdapter(this.dbs);
+/// getDatabases / 库限定 getTables 假适配器（workbench_context_picker_test
+/// 同款最小桩；表模式用例需要表清单）。
+class _FakeDbAdapter
+    implements DatabaseAdapter, DatabaseQualifiedTablesAdapter {
+  _FakeDbAdapter(
+    this.dbs, {
+    this.tablesByDb = const <String, List<String>>{},
+  });
 
   final List<String> dbs;
+  final Map<String, List<String>> tablesByDb;
 
   @override
   bool get isConnected => true;
 
   @override
   Future<List<String>> getDatabases() async => dbs;
+
+  @override
+  Future<List<String>> getTables({String? database, String? schemaName}) async {
+    return tablesByDb[database] ?? const <String>[];
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -108,6 +120,22 @@ Future<void> _seedConnections(AppProvider app, {required bool connected}) {
     );
   }
   return Future.value();
+}
+
+/// 标记连接已连接并注入库/表清单（表模式 picker 直接载入的数据源）。
+void _registerTableSource(
+  AppProvider app,
+  DbServer server, {
+  List<String> dbs = const <String>['main'],
+  Map<String, List<String>> tablesByDb = const <String, List<String>>{
+    'main': <String>['Album'],
+  },
+}) {
+  app.connection.dbService.registerConnectedServerForTest(server);
+  app.connection.dbService.registerConnectedAdapterForTest(
+    server.id,
+    _FakeDbAdapter(dbs, tablesByDb: tablesByDb),
+  );
 }
 
 Widget _host(AppProvider app) {
@@ -389,7 +417,8 @@ void main() {
     await tester.pumpWidget(_host(app));
     await tester.pumpAndSettle();
 
-    // 手动改选（改选不再触发 connectToServer——UIRV-A1 自决）
+    // 手动改选（选择即建连：未连接连接经 ensurePassword + connectToServer；
+    // 红线仍只锁 switchToConnection——UIRV-A1 评审打回修复口径）。
     await _selectConnection(tester, 'Chinook Beta');
 
     // 树选中（连接级事件）
@@ -400,7 +429,7 @@ void main() {
       app.switchCalls,
       0,
       reason:
-          '浏览/改选手势零 switchToConnection（红线只锁 switch，conn_b 无密码弹窗待输入时 connectCalls 恒 0）',
+          '浏览/改选手势零 switchToConnection（建连走既有 connectToServer 链路，不计入 switch）',
     );
   });
 
@@ -750,18 +779,23 @@ void main() {
   // （setManualDockContext），不是工作台锁定（lockWorkbenchContext）。
   // ══════════════════════════════════════════════════════════════════════════
 
-  testWidgets('T2b 紧凑卡行2 picker 选库确认 → 写 dock 手动上下文，工作台零锁定', (
+  testWidgets('T2b 紧凑卡行2 picker 表模式选表 → 写 dock 手动上下文三元组，工作台零锁定', (
     tester,
   ) async {
     final app = AppProvider();
     await _seedConnections(app, connected: false);
-    // conn_b 标记已连接 + 注入库列表：picker 免建连直装库。
+    // conn_b 标记已连接 + 注入库/表清单：picker 免建连直装库与表。
     app.connection.dbService.registerConnectedServerForTest(
       _server('conn_b', 'Chinook Beta'),
     );
     app.connection.dbService.registerConnectedAdapterForTest(
       'conn_b',
-      _FakeDbAdapter(['main']),
+      _FakeDbAdapter(
+        ['main'],
+        tablesByDb: const <String, List<String>>{
+          'main': <String>['Album'],
+        },
+      ),
     );
     app.sidebar.selectConnection('conn_a');
 
@@ -778,7 +812,8 @@ void main() {
     await tester.tap(find.byKey(const Key('aiDockCompactContextTrigger')));
     await tester.pumpAndSettle();
 
-    // 选连接 → 装库 → 点库确认（均 scope 到 picker Dialog，避开侧栏树同名）。
+    // 选连接 → 装库 → 点库钻取表清单 → 点表确认（scope 到 picker Dialog，
+    // 避开侧栏树同名）。
     await tester.tap(
       find.descendant(
         of: find.byType(Dialog),
@@ -790,6 +825,10 @@ void main() {
       find.descendant(of: find.byType(Dialog), matching: find.text('main')),
     );
     await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(Dialog), matching: find.text('Album')),
+    );
+    await tester.pumpAndSettle();
 
     // picker 关闭。
     expect(
@@ -797,10 +836,12 @@ void main() {
       findsNothing,
     );
 
-    // dock 手动上下文已写（setManualDockContext 语义）。
+    // dock 手动上下文三元组已写（B-03 原子写入）。
     expect(app.aiPanel.manualContextOverride, isTrue);
     expect(app.aiPanel.selectedConnectionId, 'conn_b');
     expect(app.aiPanel.selectedDatabaseName, 'main');
+    expect(app.aiPanel.selectedManualTable, 'Album');
+    expect(app.aiPanel.contextBuilder.currentTable, 'Album');
 
     // 工作台零锁定（承载字段 = 会话 metadata workbench.contextLock →
     // workbenchContextLock getter 必须为 null）。
@@ -811,7 +852,7 @@ void main() {
     );
   });
 
-  testWidgets('T2b 紧凑卡行2 picker「仅锁定连接」确认 → dock 连接级手动覆盖，工作台零锁定', (
+  testWidgets('T2b 紧凑卡行2 picker 空表清单 → 表模式引导空态 + 零写入（无仅连接出口）', (
     tester,
   ) async {
     final app = AppProvider();
@@ -821,7 +862,7 @@ void main() {
     );
     app.connection.dbService.registerConnectedAdapterForTest(
       'conn_b',
-      _FakeDbAdapter([]),
+      _FakeDbAdapter(['main']),
     );
     app.sidebar.selectConnection('conn_a');
 
@@ -839,23 +880,235 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-
-    // 空库列表 → 「仅锁定连接」出口。
     await tester.tap(
-      find.descendant(
-        of: find.byType(Dialog),
-        matching: find.text('Use connection only'),
-      ),
+      find.descendant(of: find.byType(Dialog), matching: find.text('main')),
     );
     await tester.pumpAndSettle();
 
+    // 表模式空表清单 = 引导空态行；无「仅连接」出口（B-04）。
+    expect(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.text(AppLocalizationsEn().uirvDockContextPickerHint),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Use connection only'), findsNothing);
+
+    // 未提交 → 逐项零写入；picker 保持打开。
+    expect(app.aiPanel.manualContextOverride, isFalse);
+    expect(app.aiPanel.selectedManualTable, isNull);
+    expect(app.aiPanel.workbenchContextLock, isNull);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('workbench_context_picker_content')),
       findsNothing,
     );
-    expect(app.aiPanel.manualContextOverride, isTrue);
-    expect(app.aiPanel.selectedConnectionId, 'conn_b');
-    expect(app.aiPanel.selectedDatabaseName, isNull);
-    expect(app.aiPanel.workbenchContextLock, isNull);
+  });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // v0.3.5 批2 T5 · B-04 上下文卡第 3 行拉通 + 手动表契约（UI35-201~206）
+  // FOLLOW 完整卡第 3 行 = 整行命中区（hover 底色 + 尾部 ▾ + tooltip），
+  // 点击打开表模式 picker（初始 = 当前生效连接/库）；选表后转 MANUAL 且
+  // 表名渲染自 selectedManualTable；手动态无表整段隐藏。
+  // ══════════════════════════════════════════════════════════════════════════
+  group('T5 上下文卡第 3 行 + 手动表契约', () {
+    testWidgets('UI35-201 FOLLOW 第 3 行整行命中区：tooltip + 尾部 ▾ + 点击开表模式 picker',
+        (tester) async {
+      final app = _SwitchSpyProvider();
+      await _seedConnections(app, connected: false);
+      _registerTableSource(app, _server('conn_a', 'Chinook Alpha'));
+      await app.tab.openQueryTab(
+        connectionId: 'conn_a',
+        databaseName: 'main',
+      );
+      app.sidebar.selectConnection('conn_a');
+
+      await tester.binding.setSurfaceSize(const Size(1400, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(_host(app));
+      await tester.pumpAndSettle();
+
+      final trigger = find.byKey(kAiDockContextScopeTrigger);
+      expect(trigger, findsOneWidget, reason: '完整卡第 3 行是整行命中区');
+      expect(
+        find.byTooltip(AppLocalizationsEn().uirvDockContextChangeScopeTooltip),
+        findsOneWidget,
+        reason: 'tooltip = uirvDockContextChangeScopeTooltip',
+      );
+      expect(
+        find.descendant(
+          of: trigger,
+          matching: find.byIcon(LucideIcons.chevronDown),
+        ),
+        findsOneWidget,
+        reason: '尾部 ▾',
+      );
+
+      await tester.tap(trigger);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(WorkbenchContextPicker),
+        findsOneWidget,
+        reason: '点击打开表模式 picker',
+      );
+      expect(
+        find.text('Album'),
+        findsOneWidget,
+        reason: '初始库已定 → 直接呈表清单（只选表）',
+      );
+      expect(app.switchCalls, 0, reason: '卡片全程零 switchToConnection');
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('UI35-202/203 选表 → 宿主三元组落 provider → 卡片转 MANUAL 且表名来自 selectedManualTable',
+        (tester) async {
+      final app = _SwitchSpyProvider();
+      await _seedConnections(app, connected: false);
+      _registerTableSource(app, _server('conn_a', 'Chinook Alpha'));
+      await app.tab.openQueryTab(
+        connectionId: 'conn_a',
+        databaseName: 'main',
+      );
+      app.sidebar.selectConnection('conn_a');
+
+      await tester.binding.setSurfaceSize(const Size(1400, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(_host(app));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(kAiDockContextScopeTrigger));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: find.byType(Dialog), matching: find.text('Album')),
+      );
+      await tester.pumpAndSettle();
+
+      // provider 三元组（B-03 原子写入）。
+      expect(app.aiPanel.manualContextOverride, isTrue);
+      expect(app.aiPanel.selectedConnectionId, 'conn_a');
+      expect(app.aiPanel.selectedDatabaseName, 'main');
+      expect(app.aiPanel.selectedManualTable, 'Album');
+
+      // 卡片转 MANUAL（warning 语义 + 恢复入口可见），表名来自手动表。
+      expect(find.text('Manually set AI context'), findsOneWidget);
+      expect(find.text('Restore follow'), findsWidgets);
+      expect(find.text('Album'), findsOneWidget);
+      expect(
+        find.text('Current table'),
+        findsNothing,
+        reason: 'MANUAL 表段不渲染当前表徽标（批1 手动态本就不渲染表段，零视觉回归）',
+      );
+      expect(app.switchCalls, 0, reason: '选表/卡片手势零 switchToConnection');
+    });
+
+    testWidgets('UI35-205 手动态无表：表段与「/」分隔符整段隐藏（完整卡）',
+        (tester) async {
+      final app = AppProvider();
+      await _seedConnections(app, connected: true);
+      app.aiPanel.setManualDockContext('conn_b', databaseName: 'main');
+
+      await tester.binding.setSurfaceSize(const Size(1400, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(_host(app));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Manually set AI context'), findsOneWidget);
+      expect(find.text('/'), findsNothing, reason: '无表时不渲染 / 分隔符');
+      expect(find.text('Current table'), findsNothing);
+      expect(find.text('main'), findsWidgets, reason: '库段仍在（宿主注入下拉）');
+    });
+
+    testWidgets('UI35-205b 手动态无表：紧凑卡同样隐藏表段（仅连接/库分隔符）',
+        (tester) async {
+      await tester.pumpWidget(
+        _cardHost(
+          tester: tester,
+          connection: _server('conn_a', 'Chinook Alpha'),
+          databaseName: 'main',
+          tableName: null,
+          isManual: true,
+          compact: true,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('/'), findsOneWidget, reason: '仅连接/库分隔符');
+      expect(find.text('No table specified'), findsNothing);
+      expect(find.text('Current table'), findsNothing);
+    });
+
+    testWidgets('UI35-207 MANUAL 有表 + 280px 宽：表名段不 overflow',
+        (tester) async {
+      await tester.pumpWidget(
+        _cardHost(
+          tester: tester,
+          connection: _server(
+            'conn_b',
+            'A Very Long Connection Name For Overflow',
+          ),
+          databaseName: 'a_long_database_name_here',
+          tableName: 'a_very_long_table_name_here',
+          isManual: true,
+          width: 280,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final Object? overflow = tester.takeException();
+      expect(
+        overflow,
+        isNull,
+        reason:
+            '窄卡 MANUAL 表名段 + Current table 徽标不产生 RenderFlex overflow'
+            '${overflow is FlutterError ? '\n${overflow.toStringDeep()}' : ''}',
+      );
+      expect(find.byKey(kAiDockContextScopeTrigger), findsOneWidget);
+      expect(find.text('a_very_long_table_name_here'), findsOneWidget);
+    });
+
+    testWidgets('UI35-206 紧凑行2 表模式选表 → 同一 setManualDockContext 三元组',
+        (tester) async {
+      final app = _SwitchSpyProvider();
+      await _seedConnections(app, connected: false);
+      _registerTableSource(app, _server('conn_b', 'Chinook Beta'));
+      await app.tab.openQueryTab(
+        connectionId: 'conn_b',
+        databaseName: 'main',
+      );
+      app.sidebar.selectConnection('conn_b');
+
+      await tester.binding.setSurfaceSize(const Size(1400, 400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(_host(app));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(kAiDockCompactContextTrigger),
+        findsOneWidget,
+        reason: '矮面板走紧凑上下文卡',
+      );
+      await tester.tap(find.byKey(kAiDockCompactContextTrigger));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.descendant(of: find.byType(Dialog), matching: find.text('Album')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(app.aiPanel.selectedConnectionId, 'conn_b');
+      expect(app.aiPanel.selectedDatabaseName, 'main');
+      expect(app.aiPanel.selectedManualTable, 'Album');
+      expect(app.aiPanel.workbenchContextLock, isNull);
+      expect(app.switchCalls, 0, reason: '紧凑入口零 switchToConnection');
+
+      // 紧凑行 2 显示表名（MANUAL 表名渲染源）。
+      expect(find.text('Album'), findsOneWidget);
+    });
   });
 }

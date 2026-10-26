@@ -86,6 +86,11 @@ class AiPanelProvider extends ChangeNotifier {
   /// （树选中/tab 激活/currentServer 变更）不冲掉手动覆盖。
   bool _manualContextOverride = false;
 
+  /// B-03：手动上下文表名（会话级内存，与 [_manualContextOverride] 同级）。
+  /// 仅 MANUAL 态卡片渲染读；FOLLOW 态表名由 widget 层
+  /// `_resolveFollowTableName` 派生，不读本字段。
+  String? _selectedManualTable;
+
   /// 最近一次跟随投影命中的锚定级（来源徽章）；MANUAL 态保持旧值不消费。
   AiDockContextSource? _followSource;
 
@@ -564,24 +569,52 @@ class AiPanelProvider extends ChangeNotifier {
   /// dock 手动覆盖标记（会话级内存）。true = [syncFollowContext] no-op。
   bool get manualContextOverride => _manualContextOverride;
 
+  /// B-03：手动上下文表名（MANUAL 态卡片表名渲染源）；null = 未指定/已清空。
+  String? get selectedManualTable => _selectedManualTable;
+
   /// 最近一次跟随投影命中的锚定级（来源徽章数据源）。
   AiDockContextSource? get followSource => _followSource;
 
-  /// 手动改选（MANUAL）：写 selected 字段 + contextBuilder（发送路径生效值
-  /// = 卡上生效值），置覆盖标记。会话级内存，不落盘。
-  void setManualDockContext(String? connectionId, {String? databaseName}) {
+  /// 手动改选（MANUAL）：三元组（连接/库/表）同批原子写入 provider 与
+  /// contextBuilder（发送路径生效值 = 卡上生效值），置覆盖标记。会话级
+  /// 内存，不落盘。
+  ///
+  /// B-03 不变量：`tableName == null` = 清空手动表（不继承旧值——调用方
+  /// 只换连接/只换库时必须显式传 null）；一次 notify 承载三元组全量就位，
+  /// 不产生「库已换、表未换」的中间态。
+  void setManualDockContext(
+    String? connectionId, {
+    String? databaseName,
+    String? tableName,
+  }) {
+    final bool changed =
+        !_manualContextOverride ||
+        _selectedConnectionId != connectionId ||
+        _selectedDatabaseName != databaseName ||
+        _selectedManualTable != tableName;
     _manualContextOverride = true;
-    setSelectedConnection(connectionId);
-    setSelectedDatabase(databaseName);
-    notifyListeners();
+    _selectedConnectionId = connectionId;
+    _selectedDatabaseName = databaseName;
+    _selectedManualTable = tableName;
+    // 三元组直接写穿 contextBuilder（不经各 setter，避免三次 notify）；
+    // 每次全量写覆盖 setSelectedTable 等其它入口留下的旧值。
+    contextBuilder.setCurrentConnection(connectionId);
+    contextBuilder.setCurrentDatabase(databaseName);
+    contextBuilder.setCurrentTable(tableName);
+    if (changed) notifyListeners();
   }
 
-  /// 恢复跟随：仅清除覆盖标记；selected 字段由 widget 层随后的跟随投影
-  /// （[syncFollowContext]）覆写为 activeContextConnection 锚定值。
+  /// 恢复跟随：清除覆盖标记与手动表；selected 字段由 widget 层随后的
+  /// 跟随投影（[syncFollowContext]）覆写为 activeContextConnection 锚定值。
+  /// FOLLOW 态表名由 widget 层派生，不读 [selectedManualTable]（B-03 ④）。
   void restoreFollowContext() {
     if (!_manualContextOverride) return;
     _manualContextOverride = false;
     _followSource = null;
+    if (_selectedManualTable != null) {
+      _selectedManualTable = null;
+      contextBuilder.setCurrentTable(null);
+    }
     notifyListeners();
   }
 

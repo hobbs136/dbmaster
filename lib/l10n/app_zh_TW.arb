@@ -4018,4 +4018,15 @@
   "@aiDockToggleTooltip": {},
   "filterDraftDotTooltip": "有未套用的篩選變更",
   "@filterDraftDotTooltip": {}
+,
+  "uirvDockContextPickerHint": "點擊資料表以手動指定上下文",
+  "@uirvDockContextPickerHint": {"description":"Hint shown in the AI dock context picker when no manual table is selected yet"},
+  "uirvDockContextChangeScopeTooltip": "切換 AI 上下文的資料庫 / 資料表",
+  "@uirvDockContextChangeScopeTooltip": {"description":"Tooltip for the control that switches the database or table used as AI context"},
+  "connectionTestInProgress": "測試中…",
+  "@connectionTestInProgress": {"description":"Progress label shown while a connection test is running"},
+  "connectionTestCancel": "取消測試",
+  "@connectionTestCancel": {"description":"Button to cancel a running connection test"},
+  "connectionTestSettingsChanged": "連線設定已變更 · 先前的測試結果已失效",
+  "@connectionTestSettingsChanged": {"description":"Notice shown when connection settings change after a test, invalidating its result"}
 }

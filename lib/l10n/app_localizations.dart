@@ -20518,6 +20518,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unapplied filter changes'**
   String get filterDraftDotTooltip;
+
+  /// Hint shown in the AI dock context picker when no manual table is selected yet
+  ///
+  /// In en, this message translates to:
+  /// **'Click a table to set manual context'**
+  String get uirvDockContextPickerHint;
+
+  /// Tooltip for the control that switches the database or table used as AI context
+  ///
+  /// In en, this message translates to:
+  /// **'Change database or table for AI context'**
+  String get uirvDockContextChangeScopeTooltip;
+
+  /// Progress label shown while a connection test is running
+  ///
+  /// In en, this message translates to:
+  /// **'Testing…'**
+  String get connectionTestInProgress;
+
+  /// Button to cancel a running connection test
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel test'**
+  String get connectionTestCancel;
+
+  /// Notice shown when connection settings change after a test, invalidating its result
+  ///
+  /// In en, this message translates to:
+  /// **'Connection settings changed · the previous test no longer applies'**
+  String get connectionTestSettingsChanged;
 }
 
 class _AppLocalizationsDelegate

@@ -27,12 +27,13 @@ import 'forms/connection_form_fields.dart';
 import 'forms/network_connection_form.dart';
 import 'forms/sqlite_connection_form.dart';
 
-/// UIRV-B2（软门）· 表单测试状态：
-/// dirty = 未测试/草稿已变更（Test 主动作，Save 次样式但始终可点）；
-/// testing = 测试进行中（主动作 loading 禁点防重）；
-/// tested = 测试通过（摘要条 + Save 接手主动作 + Test 变「重新测试」）。
+/// UIRV-B2（软门）· 表单测试状态（设计规格 §2.4 四态矩阵）：
+/// dirty = 未测试/草稿已变更（Test 主动作，Save 次样式但可点）；
+/// testing = 测试进行中（字段只读；主槽 = Testing… × 取消；Save 禁用）；
+/// tested = 测试通过（success 摘要条 + Save 接手主动作 + Test 变「重新测试」）；
+/// reverted = tested 后白名单字段变更（warning 条：旧结果失效，Test 回主样式）。
 /// 测试失败不走独立态——结构化面（ConnectFailureDialog）呈现后回 dirty。
-enum _ConnectionTestState { dirty, testing, tested }
+enum _ConnectionTestState { dirty, testing, tested, reverted }
 
 class ConnectionDialog extends StatefulWidget {
   final DbServer? existingServer;
@@ -56,6 +57,9 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
   _ConnectionTestState _testState = _ConnectionTestState.dirty;
   DbServer? _lastTestedServer;
   ConnectionFailure? _lastFailure;
+  // 测试代际守卫：取消（或新测试开启）即递增；迟到的 provider 结果按代际
+  // 丢弃（provider.testConnection 不可取消，取消只在 UI 层生效）。
+  int _testEpoch = 0;
 
   @override
   void initState() {
@@ -74,20 +78,79 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
           ),
     );
     _nameController = TextEditingController(text: server?.name ?? '');
-    _draft.addListener(_invalidateTestState);
+    // UIRV-B2 四态：头部字段（Name/Environment）不在回退白名单——tested 后
+    // 修改不失效旧结果，故 `_draft` 不再整体挂失效监听；类型切换（白名单内）
+    // 在 `_switchType` 中显式回退。表单会话（host/port/凭据/路径/开关）仍逐
+    // 控制器挂 `_invalidateTestState`。
     _createSession();
   }
 
-  /// 脏态失效（UIRV-B2）：任意影响连接的草稿/表单字段变更 → 回 dirty，
-  /// 旧测试态失效、成功摘要条清除。按字段来源分两条监听：
-  /// ① `_draft`（名称/环境/类型切换）；② 表单会话（host/port/凭据/
-  /// 文件路径等 per-type 控制器与开关）——会话接口只读消费，不改其契约。
+  /// 连通性指纹（UIRV-B2 §2.4 白名单）：仅决定「连到哪台/怎么连」的字段
+  /// 参与回退判定——纯 UI 折叠态（如 showAdvanced 的 session 通知）不构成
+  /// 变更。用字符串拼指纹而非 `==`：DbServer 相等按 id 判定，不可用。
+  /// 含 host（SQLite path 落 host，同口径覆盖）、SSL/TLS 全部开关、SSH
+  /// 全部字段与认证模式；autoReconnect/readOnly 一并纳入（开关变更即测试
+  /// 语义变更，保守同向——多报回退只多提示一次，漏报才危险）。
+  ///
+  /// port/timeout 额外比对控制器原文（UI35-226a 口径）：collect 里非法
+  /// 文本经 tryParse 回落默认值，仅比对解析结果会漏报「原文已变」。
+  String? _connectivityFingerprint() {
+    final s = _session?.collect(forSave: false);
+    if (s == null) return null;
+    final session = _session;
+    return _connectivityFingerprintOf(
+      s,
+      portRaw: session is NetworkConnectionFormSession
+          ? session.portController.text
+          : null,
+      timeoutRaw: session is NetworkConnectionFormSession
+          ? session.timeoutController.text
+          : null,
+    );
+  }
+
+  String _connectivityFingerprintOf(
+    DbServer s, {
+    String? portRaw,
+    String? timeoutRaw,
+  }) {
+    return [
+      s.type.name,
+      s.host,
+      portRaw ?? '${s.port}',
+      s.username,
+      s.password,
+      s.database,
+      timeoutRaw ?? '${s.timeoutSeconds}',
+      s.useSSL,
+      s.useTls,
+      s.tlsInsecure,
+      s.autoReconnect,
+      s.readOnly,
+      s.useSshTunnel,
+      s.sshHost,
+      s.sshPort,
+      s.sshUsername,
+      s.sshAuthMode?.name,
+      s.sshPassword,
+      s.sshPrivateKey,
+      s.sshPassphrase,
+    ].join('\u{241F}');
+  }
+
+  /// 脏态失效（UIRV-B2 四态）：白名单内字段变更（表单会话控制器/开关）→
+  /// tested 回退为 reverted（warning 条：旧结果失效）；dirty/testing 不动
+  /// （testing 字段只读，理论不触发）。session 整体通知（含 showAdvanced
+  /// 等纯 UI 折叠态）先做连通性指纹比对，指纹未变不回退（UI35-229）；
+  /// collect 返回 null（校验失败）按「有变化」保守回退。会话接口只读
+  /// 消费，不改其契约。
   void _invalidateTestState() {
-    if (_testState == _ConnectionTestState.dirty) return;
-    setState(() {
-      _testState = _ConnectionTestState.dirty;
-      _lastTestedServer = null;
-    });
+    if (_testState != _ConnectionTestState.tested) return;
+    final snapshot = _lastTestedServer;
+    final changed = snapshot == null ||
+        _connectivityFingerprint() != _connectivityFingerprintOf(snapshot);
+    if (!changed) return;
+    setState(() => _testState = _ConnectionTestState.reverted);
   }
 
   void _attachSessionListeners() {
@@ -202,13 +265,17 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
         ),
       );
       _createSession();
+      // UIRV-B2 四态：Database Type 在回退白名单内——类型切换使旧测试结果
+      // 失效（目标已换库，warning 条比 dirty 提示更准确）。
+      if (_testState == _ConnectionTestState.tested) {
+        _testState = _ConnectionTestState.reverted;
+      }
     });
   }
 
   @override
   void dispose() {
     _detachSessionListeners();
-    _draft.removeListener(_invalidateTestState);
     _session?.dispose();
     _nameController.dispose();
     super.dispose();
@@ -257,7 +324,10 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
     final selected = type == _selectedType;
     // 编辑态：类型不可改（见 _switchType 注释）——整栏禁点，非当前项
     // 按禁用色渲染；当前项保持高亮标识连接类型。
-    final bool navEnabled = widget.existingServer == null;
+    // UI35-228：testing 中同锁——表单字段只读期切类型会让表单与测试目标
+    // 脱节（迟到结果按代际落在新类型上，产出跨类型 stale tested）。
+    final bool navEnabled = widget.existingServer == null &&
+        _testState != _ConnectionTestState.testing;
     final brandColor = selected || navEnabled
         ? context.themeColors.brandColor(type)
         : context.themeColors.textDisabled;
@@ -368,24 +438,40 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ConnectionTextField(
-                    controller: _nameController,
-                    label: l10n.connectionConnectionName,
-                    hint: '${_selectedType.displayName} Server',
-                    icon: LucideIcons.tag,
-                    validator: (v) =>
-                        v?.isEmpty ?? true ? l10n.connNameRequired : null,
-                    onChanged: (v) =>
-                        _draft.update(_draft.value.copyWith(name: v)),
+                // UIRV-B2 四态：testing 中字段只读（设计 §2.4）——整段
+                // IgnorePointer 锁定，取消后自动恢复。
+                IgnorePointer(
+                  ignoring: _testState == _ConnectionTestState.testing,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ConnectionTextField(
+                        controller: _nameController,
+                        label: l10n.connectionConnectionName,
+                        hint: '${_selectedType.displayName} Server',
+                        icon: LucideIcons.tag,
+                        validator: (v) =>
+                            v?.isEmpty ?? true ? l10n.connNameRequired : null,
+                        onChanged: (v) =>
+                            _draft.update(_draft.value.copyWith(name: v)),
+                      ),
+                      const SizedBox(height: AppDesignSystem.space4),
+                      _buildEnvironmentSelector(),
+                      const SizedBox(height: AppDesignSystem.space5),
+                      if (_session != null) _session!.build(context),
+                    ],
                   ),
-                  const SizedBox(height: AppDesignSystem.space4),
-                  _buildEnvironmentSelector(),
-                  const SizedBox(height: AppDesignSystem.space5),
-                  if (_session != null) _session!.build(context),
-                  if (_testState == _ConnectionTestState.tested)
-                    _buildTestSummary(context)
-                  else
-                    _buildTestPendingHint(context),
+                ),
+                // UIRV-B2 四态提示区：tested=success 摘要；testing=accent
+                // 进度条（含取消）；reverted=warning 变更条；dirty=弱提示。
+                if (_testState == _ConnectionTestState.tested)
+                  _buildTestSummary(context)
+                else if (_testState == _ConnectionTestState.testing)
+                  _buildTestInProgressBar(context)
+                else if (_testState == _ConnectionTestState.reverted)
+                  _buildTestRevertedBar(context)
+                else
+                  _buildTestPendingHint(context),
                 ],
               ),
             ),
@@ -473,10 +559,165 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
     );
   }
 
+  /// UIRV-B2 四态：testing 进度条（accent tint + 「Testing…」+ 取消入口）。
+  /// 取消只在 UI 层生效（provider.testConnection 无 cancel API），迟到结果
+  /// 由 `_testEpoch` 代际守卫丢弃。
+  Widget _buildTestInProgressBar(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = context.themeColors;
+    return Container(
+      key: const ValueKey('connection-test-inprogress'),
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: AppDesignSystem.space4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDesignSystem.space3,
+        vertical: AppDesignSystem.space1_5,
+      ),
+      decoration: BoxDecoration(
+        color: colors.accentSubtle,
+        borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
+        border: Border.all(color: colors.accentBlue.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 14,
+            height: 14,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(colors.accentBlue),
+            ),
+          ),
+          const SizedBox(width: AppDesignSystem.space2),
+          Expanded(
+            child: Text(
+              l10n.connectionTestInProgress,
+              style: TextStyle(
+                fontSize: AppDesignSystem.fontSizeSm,
+                color: colors.textPrimary,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: _cancelTest,
+            style: TextButton.styleFrom(
+              foregroundColor: colors.textSecondary,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDesignSystem.space2,
+              ),
+              minimumSize: const Size(0, 32),
+            ),
+            child: Text(
+              l10n.connectionTestCancel,
+              style: const TextStyle(fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// UIRV-B2 四态：reverted 变更条（warning tint——tested 后白名单字段变更，
+  /// 旧测试结果失效）。
+  Widget _buildTestRevertedBar(BuildContext context) {
+    final colors = context.themeColors;
+    return Container(
+      key: const ValueKey('connection-test-reverted'),
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: AppDesignSystem.space4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDesignSystem.space3,
+        vertical: AppDesignSystem.space2_5,
+      ),
+      decoration: BoxDecoration(
+        color: colors.warningContainer,
+        borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
+        border: Border.all(color: colors.warning.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(LucideIcons.triangleAlert, size: 14, color: colors.warning),
+          const SizedBox(width: AppDesignSystem.space2),
+          Expanded(
+            child: Text(
+              AppLocalizations.of(context)!.connectionTestSettingsChanged,
+              style: TextStyle(
+                fontSize: AppDesignSystem.fontSizeSm,
+                color: colors.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFooter(BuildContext context, AppLocalizations l10n) {
     final descriptor = _sessionDescriptor;
-    final tested = _testState == _ConnectionTestState.tested;
     final colors = context.themeColors;
+    // UIRV-B2 四态：按钮槽位固定为 [Cancel] [次槽] [主槽]，仅权重在态间
+    // 交接（UI35-222），不发生位移。
+    final testing = _testState == _ConnectionTestState.testing;
+    final tested = _testState == _ConnectionTestState.tested;
+    final Widget secondarySlot;
+    final Widget primarySlot;
+    if (testing) {
+      // testing：Save 次槽禁用；主槽 = Testing… ×（可点 = 取消测试）
+      secondarySlot = LoadingButton(
+        key: const ValueKey('connection-dialog-save-button'),
+        label: l10n.commonSave,
+        onPressed: null,
+        backgroundColor: colors.bgTertiary,
+        textColor: colors.textPrimary,
+      );
+      primarySlot = OutlinedButton.icon(
+        key: const ValueKey('connection-dialog-test-button'),
+        onPressed: _cancelTest,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: colors.accentBlue,
+          side: BorderSide(color: colors.accentBlue),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDesignSystem.space4,
+            vertical: AppDesignSystem.space2,
+          ),
+        ),
+        icon: const Icon(LucideIcons.x, size: 14),
+        label: Text(l10n.connectionTestInProgress),
+      );
+    } else if (tested) {
+      // tested：Test Again 次槽 + Save 主槽（接手主动作）
+      secondarySlot = LoadingButton(
+        key: const ValueKey('connection-dialog-test-button'),
+        label: l10n.connectionRetest,
+        onPressed: _testConnection,
+        backgroundColor: colors.bgTertiary,
+        textColor: colors.textPrimary,
+      );
+      primarySlot = LoadingButton(
+        key: const ValueKey('connection-dialog-save-button'),
+        label: l10n.commonSave,
+        onPressed: _saveConnection,
+        isLoading: _isLoading,
+        backgroundColor: colors.accentBlue,
+      );
+    } else {
+      // dirty / reverted：Save 次槽（可点）+ Test 主槽
+      secondarySlot = LoadingButton(
+        key: const ValueKey('connection-dialog-save-button'),
+        label: l10n.commonSave,
+        onPressed: _saveConnection,
+        isLoading: _isLoading,
+        backgroundColor: colors.bgTertiary,
+        textColor: colors.textPrimary,
+      );
+      primarySlot = LoadingButton(
+        key: const ValueKey('connection-dialog-test-button'),
+        label: l10n.connectionTestConnection,
+        onPressed: _testConnection,
+        backgroundColor: colors.accentBlue,
+      );
+    }
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppDesignSystem.space5,
@@ -506,43 +747,9 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
             child: Text(l10n.commonCancel),
           ),
           const SizedBox(width: AppDesignSystem.space3),
-          if (tested) ...[
-            // UIRV-B2：tested 态——重新测试（次样式）+ Save（主样式接手）
-            LoadingButton(
-              key: const ValueKey('connection-dialog-test-button'),
-              label: l10n.connectionRetest,
-              onPressed: _testConnection,
-              isLoading: _testState == _ConnectionTestState.testing,
-              backgroundColor: colors.bgTertiary,
-              textColor: colors.textPrimary,
-            ),
-            const SizedBox(width: AppDesignSystem.space2),
-            LoadingButton(
-              key: const ValueKey('connection-dialog-save-button'),
-              label: l10n.commonSave,
-              onPressed: _saveConnection,
-              isLoading: _isLoading,
-              backgroundColor: colors.accentBlue,
-            ),
-          ] else ...[
-            // UIRV-B2：dirty 态——Save（次样式，始终可点）+ Test（主动作）
-            LoadingButton(
-              key: const ValueKey('connection-dialog-save-button'),
-              label: l10n.commonSave,
-              onPressed: _saveConnection,
-              isLoading: _isLoading,
-              backgroundColor: colors.bgTertiary,
-              textColor: colors.textPrimary,
-            ),
-            const SizedBox(width: AppDesignSystem.space2),
-            LoadingButton(
-              key: const ValueKey('connection-dialog-test-button'),
-              label: l10n.connectionTestConnection,
-              onPressed: _testConnection,
-              isLoading: _testState == _ConnectionTestState.testing,
-              backgroundColor: colors.accentBlue,
-            ),
-          ],
+          secondarySlot,
+          const SizedBox(width: AppDesignSystem.space2),
+          primarySlot,
         ],
       ),
     );
@@ -686,20 +893,32 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
     return '${server.host}:${server.port}';
   }
 
-  /// UIRV-B2：执行一次连接测试（状态机推进 dirty→testing→tested/dirty）。
-  /// 返回 true = 通过；false = 失败（`_lastFailure` 已就位，等待展示方
-  /// 走结构化面）。testing 中重入直接拒绝（防重，请求只发一次）。
+  /// UIRV-B2 四态：取消进行中的测试——UI 立即回 dirty、字段解锁；provider
+  /// 侧请求不可取消，迟到的结果由代际守卫（`_testEpoch`）在 `_runTest` 中
+  /// 丢弃，不产生二次副作用。
+  void _cancelTest() {
+    if (_testState != _ConnectionTestState.testing) return;
+    _testEpoch++;
+    setState(() => _testState = _ConnectionTestState.dirty);
+  }
+
+  /// UIRV-B2 四态：执行一次连接测试（dirty/reverted→testing→tested/dirty）。
+  /// 返回 true = 通过；false = 失败（`_lastFailure` 已就位，等待展示方走
+  /// 结构化面）或取消/迟到丢弃。代际守卫：取消或状态机并发变更后，迟到的
+  /// provider 结果整体丢弃（不改状态、不设失败、不弹窗）。
   Future<bool> _runTest() async {
     if (_testState == _ConnectionTestState.testing) return false;
     if (!_formKey.currentState!.validate()) return false;
     final server = _session?.collect(forSave: false);
     if (server == null) return false;
 
+    _lastFailure = null;
+    final epoch = ++_testEpoch;
     setState(() => _testState = _ConnectionTestState.testing);
 
     try {
       final error = await context.read<AppProvider>().testConnection(server);
-      if (!mounted) return false;
+      if (!mounted || epoch != _testEpoch) return false;
       if (error == null) {
         setState(() {
           _lastTestedServer = server;
@@ -718,6 +937,7 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
       );
     } catch (e) {
       AppLogger.e('ConnectionDialog', 'Test connection error: $e');
+      if (!mounted || epoch != _testEpoch) return false;
       _lastFailure = ConnectionFailure(
         kind: ConnectionFailureKind.unknown,
         errorCode: '',
@@ -725,7 +945,6 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
         rawMessage: e.toString(),
         occurredAt: DateTime.now(),
       );
-      if (!mounted) return false;
     }
     // 失败不设独立态：回 dirty，由调用方弹结构化面（验收 6）
     setState(() => _testState = _ConnectionTestState.dirty);

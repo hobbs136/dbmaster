@@ -128,6 +128,33 @@ class _FlakyAdapter implements DatabaseAdapter {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+/// 表模式假适配器（T5/B-04）：getDatabases + 库限定 getTables（记录库参数）。
+class _FakeTableAdapter
+    implements DatabaseAdapter, DatabaseQualifiedTablesAdapter {
+  _FakeTableAdapter(this.dbs, this.tablesByDb);
+
+  final List<String> dbs;
+  final Map<String, List<String>> tablesByDb;
+
+  /// 每次 getTables 收到的 database 参数（断言「打开即带初始库发起」）。
+  final List<String?> tableLoadDatabases = <String?>[];
+
+  @override
+  bool get isConnected => true;
+
+  @override
+  Future<List<String>> getDatabases() async => dbs;
+
+  @override
+  Future<List<String>> getTables({String? database, String? schemaName}) async {
+    tableLoadDatabases.add(database);
+    return tablesByDb[database] ?? const <String>[];
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void registerConnected(AppProvider app, DbServer server, List<String> dbs) {
   app.connection.dbService.registerConnectedServerForTest(server);
   app.connection.dbService.registerConnectedAdapterForTest(
@@ -179,6 +206,11 @@ void main() {
     WidgetTester tester, {
     AppProvider Function(FakeProModule proModule)? appBuilder,
     Future<void> Function(AppProvider app)? seed,
+    void Function(String connectionId, String? databaseName)? onSelected,
+    void Function(String connectionId, String databaseName, String tableName)?
+    onTableSelected,
+    String? initialConnectionId,
+    String? initialDatabaseName,
   }) async {
     fakePro = FakeProModule(isPro: true);
     final pro = fakePro!;
@@ -204,8 +236,13 @@ void main() {
                 Builder(
                   builder: (launcherContext) => TextButton(
                     key: _launcherKey,
-                    onPressed: () =>
-                        WorkbenchContextPicker.show(launcherContext),
+                    onPressed: () => WorkbenchContextPicker.show(
+                      launcherContext,
+                      onSelected: onSelected,
+                      onTableSelected: onTableSelected,
+                      initialConnectionId: initialConnectionId,
+                      initialDatabaseName: initialDatabaseName,
+                    ),
                     child: const Text('open picker'),
                   ),
                 ),
@@ -924,6 +961,186 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
       await tester.pumpAndSettle();
       await drainPersistDebounce(tester);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // v0.3.5 批2 T5 · B-04 表模式（onTableSelected 非 null）：
+  // 库行 = 钻取表清单不提交；表行 = 回调三元组后关闭；无锁定/仅连接出口；
+  // initialConnectionId/initialDatabaseName 打开即定位并呈表清单。
+  // ══════════════════════════════════════════════════════════════════════════
+  group('表模式（B-04）', () {
+    Future<_FakeTableAdapter> seedTableConnection(
+      AppProvider app, {
+      List<String> dbs = const <String>['main', 'shop'],
+      Map<String, List<String>> tablesByDb = const <String, List<String>>{
+        'main': <String>['Album', 'Track'],
+        'shop': <String>['Orders'],
+      },
+      String name = '连接 A',
+    }) async {
+      final server = serverOf('conn_a', name);
+      await app.connection.saveConnection(server);
+      final adapter = _FakeTableAdapter(dbs, tablesByDb);
+      app.connection.dbService.registerConnectedServerForTest(server);
+      app.connection.dbService.registerConnectedAdapterForTest(
+        'conn_a',
+        adapter,
+      );
+      app.aiPanel.ensureSession();
+      return adapter;
+    }
+
+    testWidgets('UI35-208 库行钻取表清单不提交；表行回调后关闭', (tester) async {
+      final commits = <(String, String, String)>[];
+      final selected = <(String, String?)>[];
+      late _FakeTableAdapter adapter;
+      final app = await pumpHost(
+        tester,
+        onSelected: (id, db) => selected.add((id, db)),
+        onTableSelected: (id, db, table) => commits.add((id, db, table)),
+        seed: (app) async {
+          adapter = await seedTableConnection(app);
+        },
+      );
+      await openPicker(tester);
+
+      await tester.tap(find.text('连接 A'));
+      await tester.pumpAndSettle();
+      expect(find.text('main'), findsOneWidget);
+      expect(find.text('shop'), findsOneWidget);
+
+      // 库行 = 钻取，不提交。
+      await tester.tap(find.text('main'));
+      await tester.pumpAndSettle();
+      expect(find.text('Album'), findsOneWidget);
+      expect(find.text('Track'), findsOneWidget);
+      expect(commits, isEmpty, reason: '库行钻取不提交');
+      expect(selected, isEmpty, reason: '表模式无 onSelected 出口');
+      expect(app.aiPanel.workbenchContextLock, isNull);
+      expect(adapter.tableLoadDatabases, contains('main'));
+
+      // 表行 = 提交三元组后关闭。
+      await tester.tap(find.text('Album'));
+      await tester.pumpAndSettle();
+      expect(find.byType(WorkbenchContextPicker), findsNothing);
+      expect(commits, <(String, String, String)>[('conn_a', 'main', 'Album')]);
+      expect(selected, isEmpty);
+      expect(app.aiPanel.workbenchContextLock, isNull, reason: '表模式无锁定出口');
+    });
+
+    testWidgets('UI35-209 空表清单 → uirvDockContextPickerHint 空态行', (tester) async {
+      final commits = <(String, String, String)>[];
+      await pumpHost(
+        tester,
+        onTableSelected: (id, db, table) => commits.add((id, db, table)),
+        seed: (app) async {
+          await seedTableConnection(
+            app,
+            tablesByDb: const <String, List<String>>{'main': <String>[]},
+          );
+        },
+      );
+      await openPicker(tester);
+      await tester.tap(find.text('连接 A'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('main'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(AppLocalizationsEn().uirvDockContextPickerHint),
+        findsOneWidget,
+        reason: '空表清单显示表模式引导空态行',
+      );
+      expect(commits, isEmpty);
+    });
+
+    testWidgets('UI35-210 表模式打开即对 (initialConnectionId, initialDatabaseName) 发起 getTables 且表清单可见',
+        (tester) async {
+      late _FakeTableAdapter adapter;
+      await pumpHost(
+        tester,
+        onTableSelected: (_, __, ___) {},
+        initialConnectionId: 'conn_a',
+        initialDatabaseName: 'main',
+        seed: (app) async {
+          adapter = await seedTableConnection(app);
+        },
+      );
+      await openPicker(tester);
+
+      expect(
+        adapter.tableLoadDatabases,
+        contains('main'),
+        reason: '打开即按初始库发起 getTables',
+      );
+      expect(find.text('Album'), findsOneWidget, reason: '表清单直接可见');
+      expect(find.text('Track'), findsOneWidget);
+    });
+
+    testWidgets('UI35-210b 表模式无「仅连接」与锁定出口（空库列表）', (tester) async {
+      final app = await pumpHost(
+        tester,
+        onTableSelected: (_, __, ___) {},
+        seed: (app) async {
+          await seedTableConnection(
+            app,
+            dbs: const <String>[],
+            tablesByDb: const <String, List<String>>{},
+          );
+        },
+      );
+      await openPicker(tester);
+      await tester.tap(find.text('连接 A'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Use connection only'), findsNothing,
+          reason: '表模式无仅连接出口');
+      expect(app.aiPanel.workbenchContextLock, isNull);
+      expect(app.aiPanel.selectedConnectionId, isNull);
+    });
+
+    testWidgets('UI35-210c 零回归：onSelected/onTableSelected 均 null 时点库行仍落锁',
+        (tester) async {
+      final app = await pumpHost(
+        tester,
+        seed: (app) async {
+          await seedTableConnection(app);
+        },
+      );
+      await openPicker(tester);
+      await tester.tap(find.text('连接 A'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('shop'));
+      await tester.pumpAndSettle();
+
+      final lock = app.aiPanel.workbenchContextLock;
+      expect(lock?.connectionId, 'conn_a');
+      expect(lock?.databaseName, 'shop', reason: '工作台 R2 选择即锁定语义逐字节不变');
+      await drainPersistDebounce(tester);
+    });
+
+    testWidgets('UI35-210d 表模式键盘：Tab 到右栏 → Enter 提交表', (tester) async {
+      final commits = <(String, String, String)>[];
+      await pumpHost(
+        tester,
+        onTableSelected: (id, db, table) => commits.add((id, db, table)),
+        initialConnectionId: 'conn_a',
+        initialDatabaseName: 'main',
+        seed: (app) async {
+          await seedTableConnection(app);
+        },
+      );
+      await openPicker(tester);
+      expect(find.text('Album'), findsOneWidget);
+
+      // 初始焦点在连接栏（不变）；Tab 到右栏 → Enter 提交选中表。
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+
+      expect(commits, <(String, String, String)>[('conn_a', 'main', 'Album')]);
     });
   });
 }
