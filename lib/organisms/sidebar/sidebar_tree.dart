@@ -161,9 +161,9 @@ class SidebarTree extends StatelessWidget {
         // 作为根节点常驻同一棵树，全部同时可见、随时展开——不再在连接间
         // 「切换」（顶部选择器退役归 T27）；未分组连接（含孤儿组员）在前、
         // 各分组以不可点组头分节（选择器下拉分区语义平移，plan §10.1②）。
-        // 收藏/最近表区保持树顶常驻（连接名前缀既有，多连接下价值更高）。
+        // 收藏区保持树顶常驻（最近表区 2026-10-26 按用户反馈移除；
+        // RecentTablesProvider 记录保留、当前无 UI 消费）。
         final sq = searchQuery.toLowerCase();
-        final recentSection = _buildRecentSection(context, provider);
         final favoriteEntries = provider.sidebar.favoriteTables.toList();
 
         return ListView(
@@ -172,7 +172,6 @@ class SidebarTree extends StatelessWidget {
           children: [
             if (favoriteEntries.isNotEmpty)
               _buildFavoritesSection(context, provider, favoriteEntries),
-            ?recentSection,
             ..._buildGroupedConnectionRoots(
               context,
               provider,
@@ -380,99 +379,9 @@ class SidebarTree extends StatelessWidget {
     );
   }
 
-  Widget? _buildRecentSection(BuildContext context, AppProvider provider) {
-    final entries = provider.recentTables.entries;
-    if (entries.isEmpty) return null;
-
-    final displayEntries = entries.take(5).toList();
-    final colors = context.themeColors;
-    final l10n = AppLocalizations.of(context)!;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppDesignSystem.space1),
-      child: SidebarSection(
-        icon: LucideIcons.clock,
-        iconColor: AppDesignSystem.accentPrimary,
-        label: l10n.recentTables,
-        count: displayEntries.length,
-        trailing: InkWell(
-          onTap: () => provider.recentTables.clear(),
-          borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
-          child: Padding(
-            padding: const EdgeInsets.all(AppDesignSystem.space0_5),
-            child: Icon(
-              LucideIcons.eraser,
-              size: 13,
-              color: context.themeColors.textMuted,
-            ),
-          ),
-        ),
-        children: displayEntries.map((entry) {
-          final server = provider.connection.savedConnections.firstWhere(
-            (s) => s.id == entry.connectionId,
-            orElse: () => DbServer(id: '', name: '', host: '', port: 0),
-          );
-          final connLabel = server.name.isNotEmpty
-              ? server.name
-              : entry.connectionId;
-          return InkWell(
-            onTap: () {
-              provider.sidebar.selectConnection(entry.connectionId);
-              provider.sidebar.selectDatabase(entry.databaseName);
-              _switchAndOpenTableQuery(
-                context,
-                provider,
-                entry.connectionId,
-                entry.databaseName,
-                entry.tableName,
-              );
-            },
-            child: Container(
-              height: 28,
-              padding: const EdgeInsets.only(
-                left: AppDesignSystem.space3 * 2 + 16 + AppDesignSystem.space2,
-                right: AppDesignSystem.space2,
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    LucideIcons.table2,
-                    size: 12,
-                    color: AppDesignSystem.accentPrimary,
-                  ),
-                  const SizedBox(width: AppDesignSystem.space1_5),
-                  Expanded(
-                    child: RichText(
-                      text: TextSpan(
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: colors.textSecondary,
-                          height: 1.3,
-                        ),
-                        children: [
-                          TextSpan(
-                            text: connLabel,
-                            style: TextStyle(color: colors.textMuted),
-                          ),
-                          TextSpan(
-                            text: ' · ${entry.tableName}',
-                            style: TextStyle(color: colors.textPrimary),
-                          ),
-                        ],
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
+  // _buildRecentSection 已按用户反馈移除（2026-10-26）：最近表区使用频率低、
+  // 信息密度少，侧栏不再展示；RecentTablesProvider / RecentTablesService /
+  // recordTableAccess 调用点全部保留（数据留存，后续如需可复用）。
 
   /// Display server-side search results as tree nodes under a connection.
   List<Widget> _buildSearchResults(

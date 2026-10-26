@@ -69,6 +69,10 @@ class TreeItem extends StatefulWidget {
 }
 
 class _TreeItemState extends State<TreeItem> {
+  /// 箭头槽位宽度（展开箭头 / 加载圈 / 无箭头占位三态共用同一宽度）。
+  /// 主行装配与副行 `labelLeadingInset` 单源引用。
+  static const double _arrowSlotWidth = 14;
+
   bool _isHovered = false;
 
   /// v0.3.5 T1：副行淡出过渡期间保留的上一帧副行文本（subtitle 置 null
@@ -243,14 +247,23 @@ class _TreeItemState extends State<TreeItem> {
   /// 整卡（含副行）——副行与主行共享同一手势，不是独立交互入口。
   Widget _buildContent(BuildContext context) {
     final colors = context.themeColors;
+    // 主行标签固定前导宽度（箭头位 + 间隔 + 图标 + 图标间隔）——单源计算，
+    // 主行 Row 装配与副行缩进共用，避免魔法数字散落（2026-10-26 用户反馈：
+    // 副行地址曾从卡片内容左缘起排，左突该前导 ~42px）。
+    final labelLeadingInset =
+        _arrowSlotWidth +
+        AppDesignSystem.space1 +
+        (widget.icon != null
+            ? (widget.iconSize ?? _iconSize) + AppDesignSystem.space2
+            : 0);
     final row = Row(
       children: [
         ..._buildTreeConnectors(context),
         if (widget.showArrow) ...[
           if (widget.isLoading)
             SizedBox(
-              width: 14,
-              height: 14,
+              width: _arrowSlotWidth,
+              height: _arrowSlotWidth,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
                 color: context.themeColors.accentBlue,
@@ -269,7 +282,7 @@ class _TreeItemState extends State<TreeItem> {
             ),
           const SizedBox(width: AppDesignSystem.space1),
         ] else ...[
-          SizedBox(width: 14 + AppDesignSystem.space1),
+          SizedBox(width: _arrowSlotWidth + AppDesignSystem.space1),
         ],
         // emoji 图标分支已移除，统一用 Material 矢量图标
         if (widget.icon != null)
@@ -339,19 +352,23 @@ class _TreeItemState extends State<TreeItem> {
                 setState(() => _fadingSubtitle = null);
               }
             },
-            child: Tooltip(
-              message: tooltipMessage,
-              child: Text(
-                subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w400,
-                  fontFamily: AppDesignSystem.monoFontFamily,
-                  fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
-                  height: 1.25,
-                  color: colors.textSecondary,
+            child: Padding(
+              // 副行左缘与主行名称文本左缘严格对齐（缩进 = 主行固定前导）。
+              padding: EdgeInsets.only(left: labelLeadingInset),
+              child: Tooltip(
+                message: tooltipMessage,
+                child: Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w400,
+                    fontFamily: AppDesignSystem.monoFontFamily,
+                    fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
+                    height: 1.25,
+                    color: colors.textSecondary,
+                  ),
                 ),
               ),
             ),

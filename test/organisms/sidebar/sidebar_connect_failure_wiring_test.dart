@@ -1,7 +1,7 @@
 // UIRV-A2（UI 审查修复批）：侧栏树连接入口失败面统一接线测试。
 //
 // 任务书验收条款直译（.specs/tasks-ui-review-fixes.md §UIRV-A2）：
-//   1. 树上连接入口（根行单击/双击/右键 Connect/收藏·最近重连）失败只弹
+//   1. 树上连接入口（根行单击/双击/右键 Connect/收藏重连）失败只弹
 //      一个 ConnectFailureDialog：人话原因 + 目标 + 恢复动作；无 SnackBar、
 //      无通用 Error 模态叠开。
 //   2. connectToServer / openSqliteFile / 打开前置校验的 typed 失败不再写
@@ -239,25 +239,24 @@ void main() {
       expect(find.text(l10n.connectFailureNotADatabase), findsOneWidget);
     });
 
-    testWidgets('最近表重连失败（收藏/最近护栏入口）→ 结构化对话框', (tester) async {
-      final garbage = writeGarbage('recent');
+    testWidgets('收藏表重连失败（收藏护栏入口）→ 结构化对话框', (tester) async {
+      final garbage = writeGarbage('favorite');
       final app = AppProvider();
-      final server = _failingSqliteServer('a2_recent', garbage.path);
+      final server = _failingSqliteServer('a2_fav', garbage.path);
       app.connection.addSavedServerForTest(server);
-      // 最近表条目指向未连接连接 → 点击走 _switchAndOpenTableQuery 重连护栏。
-      await app.recentTables.recordTableAccess(
-        connectionId: server.id,
-        databaseName: 'main',
-        tableName: 'Album',
-      );
+      // 收藏条目指向未连接连接 → 点击走 _switchAndOpenTableQuery 重连护栏
+      // （收藏与最近共用同一护栏；最近表区 2026-10-26 已移除展示，护栏
+      // 改由收藏入口承载）。
+      app.sidebar.toggleFavoriteTable('${server.id}:main:Album');
 
       await tester.pumpWidget(_buildTestApp(app));
       await tester.pumpAndSettle();
       final l10n = _l10nOf(tester);
 
-      // 顶区最近表行（'连接名 · 表名' 前缀既有）。
-      final recentLabel = find.textContaining(server.name).first;
-      await tester.tap(recentLabel);
+      // 顶区收藏行（'连接名 · 表名' 前缀既有）。
+      final favoriteLabel = find.text('${server.name} · Album');
+      expect(favoriteLabel, findsOneWidget);
+      await tester.tap(favoriteLabel);
       await waitUntilSettled(
         tester,
         () => find.byType(ConnectFailureDialog).evaluate().isNotEmpty,

@@ -161,6 +161,57 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('验收1b：副行左缘与名称左缘对齐', (tester) async {
+      // 2026-10-26 用户反馈：根行副行（地址）比名称更靠左。用户可见症状
+      // = 副行文本左缘在名称文本左缘左侧（差值为主行固定前导：箭头位 14 +
+      // space1 + icon + space2）。断言直译：两者 dx 相等。
+      final provider = _SwitchSpyProvider();
+      provider.connection.addSavedServerForTest(
+        _server('conn-a', 'mysql-8.0', host: '127.0.0.1', port: 3306),
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(provider, child: _tree(provider)),
+      );
+      await tester.pumpAndSettle();
+
+      final nameTopLeft = tester.getTopLeft(find.text('mysql-8.0'));
+      final subtitleTopLeft = tester.getTopLeft(find.text('127.0.0.1:3306'));
+
+      expect(
+        subtitleTopLeft.dx,
+        moreOrLessEquals(nameTopLeft.dx, epsilon: 0.5),
+        reason: '副行左缘须与名称文本左缘严格对齐（不得左突主行前导缩进）',
+      );
+      expect(
+        subtitleTopLeft.dy,
+        greaterThan(nameTopLeft.dy),
+        reason: '副行为双行根行的第二行',
+      );
+      expect(tester.takeException(), isNull);
+
+      // 窄宽（280px 侧栏）守卫：副行仍单行 ellipsis，无 RenderFlex overflow，
+      // 且对齐关系不随宽度变化。
+      await tester.pumpWidget(
+        _buildTestApp(
+          provider,
+          child: Center(
+            child: SizedBox(width: 280, child: _tree(provider)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(
+        tester.getTopLeft(find.text('127.0.0.1:3306')).dx,
+        moreOrLessEquals(
+          tester.getTopLeft(find.text('mysql-8.0')).dx,
+          epsilon: 0.5,
+        ),
+        reason: '窄宽下副行左缘仍与名称左缘对齐',
+      );
+    });
+
     testWidgets('验收2a：SQLite 根行副行 = 文件路径，tooltip 给完整路径', (tester) async {
       final provider = _SwitchSpyProvider();
       provider.connection.addSavedServerForTest(

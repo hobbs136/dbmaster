@@ -2205,35 +2205,8 @@ void main() {
     });
 
     // ----------------------------------------------------------------------
-    // Recent / Favorite tables
+    // Favorite tables
     // ----------------------------------------------------------------------
-    testWidgets('Recent Tables section appears and Clear All clears', (
-      tester,
-    ) async {
-      if (!mysqlE2EGatewayReady) {
-        return;
-      }
-      await pumpHarness(tester);
-      await expandConnection(tester);
-
-      await appProvider.recentTables.recordTableAccess(
-        connectionId: server.id,
-        databaseName: testDbName,
-        tableName: 'seed_table',
-      );
-      await tester.pumpAndSettle(const Duration(seconds: 2));
-
-      expect(find.text('Recent'), findsOneWidget);
-      // The recent row is rendered with RichText, so just verify the header.
-
-      final clearAllFinder = find.byIcon(LucideIcons.eraser);
-      expect(clearAllFinder, findsOneWidget);
-      await tester.tap(clearAllFinder);
-      await tester.pumpAndSettle(const Duration(seconds: 2));
-
-      expect(find.text('Recent'), findsNothing);
-    });
-
     testWidgets('Favorite table section appears and can be unfavorited', (
       tester,
     ) async {
@@ -2269,43 +2242,6 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 2));
 
       expect(find.text('Favorites'), findsNothing);
-    });
-
-    testWidgets('Recent table row click opens query editor tab', (
-      tester,
-    ) async {
-      if (!mysqlE2EGatewayReady) {
-        return;
-      }
-      await pumpHarness(tester);
-      await expandConnection(tester);
-
-      await appProvider.recentTables.recordTableAccess(
-        connectionId: server.id,
-        databaseName: testDbName,
-        tableName: 'seed_table',
-      );
-      await tester.pumpAndSettle(const Duration(seconds: 3));
-
-      // Recent rows are InkWell children with a RichText label, not TreeItems.
-      final recentRowFinder = find.byWidgetPredicate(
-        (widget) =>
-            widget is RichText &&
-            widget.text.toPlainText().contains(' · seed_table'),
-      );
-      expect(recentRowFinder, findsOneWidget);
-      await tester.tap(recentRowFinder);
-      await tester.pumpAndSettle(const Duration(seconds: 3));
-
-      expect(appProvider.tab.tabs, isNotEmpty);
-      expect(appProvider.tab.tabs.last.sql.toLowerCase(), contains('select'));
-      expect(
-        appProvider.tab
-            .panelLayoutFor(appProvider.tab.tabs.last.id)
-            .editorVisible,
-        isTrue,
-        reason: '最近表行点击应进 query 模式（editor 可见）',
-      );
     });
 
     testWidgets('Favorite table row click opens query editor tab', (

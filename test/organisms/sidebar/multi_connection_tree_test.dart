@@ -3,8 +3,8 @@
 // 覆盖（任务书 T26 验收标准 ①~⑤⑧）：
 // - N 连接 N 根节点全可见（已连接/连接中/断开三态）+ 分组分节（未分组
 //   在前 + 组头不可点 + 空组隐藏 + 孤儿组员归未分组）；
-// - 断开连接根节点灰化保留（节点不消失）+ 收藏/最近表区树顶常驻 +
-//   树底两入口行渲染；
+// - 断开连接根节点灰化保留（节点不消失）+ 收藏区树顶常驻（最近表区
+//   2026-10-26 按用户反馈移除，数据保留不渲染）+ 树底两入口行渲染；
 // - S9 环境色条三色渲染 + 无 environment 连接不渲染；
 // - 活动根高亮（activeContextConnection——高亮未连接连接亦成立）；
 // - 导航与动作分离：导航路径零 switchToConnection + 未连接重连护栏
@@ -241,11 +241,14 @@ void main() {
       );
     });
 
-    testWidgets('收藏/最近表区树顶常驻 + 树底两入口行渲染', (tester) async {
+    testWidgets('收藏区树顶常驻（最近区已移除）+ 树底两入口行渲染', (tester) async {
       final provider = _SwitchSpyProvider();
       final a = _server('conn-a', 'MySQL One');
       provider.connection.addSavedServerForTest(a);
       provider.sidebar.toggleFavoriteTable('conn-a:db_a:users');
+      // 2026-10-26 用户反馈：最近区从侧栏展示移除（使用频率低、信息密度
+      // 少）。本用例仍 seed 一条最近记录——有数据也不渲染，证明移除发生在
+      // 装配层而非数据为空；RecentTablesProvider 记录本身保留（后续可复用）。
       provider.recentTables.recordTableAccess(
         connectionId: 'conn-a',
         databaseName: 'db_a',
@@ -258,12 +261,19 @@ void main() {
       await tester.pumpAndSettle();
 
       final l10n = AppLocalizationsEn();
-      // 收藏区（连接名前缀）+ 最近表区在树顶（纵坐标小于连接根）。
+      // 收藏区（连接名前缀）仍在树顶（纵坐标小于连接根）。
       expect(find.text('MySQL One · users'), findsOneWidget);
-      expect(find.text(l10n.recentTables), findsOneWidget);
       expect(
         tester.getTopLeft(find.text('MySQL One · users')).dy,
         lessThan(tester.getTopLeft(find.text('MySQL One')).dy),
+      );
+      // 最近表区已移除：有数据也不渲染区头与条目。
+      expect(find.text(l10n.recentTables), findsNothing);
+      expect(find.text('MySQL One · orders'), findsNothing);
+      expect(
+        provider.recentTables.entries,
+        isNotEmpty,
+        reason: '数据保留：移除的是展示，不是记录',
       );
 
       // 树底两入口行。
