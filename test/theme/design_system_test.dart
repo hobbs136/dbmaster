@@ -269,7 +269,7 @@ void main() {
     test('六项布局 token 应有 ui 规格 §7 锁定值', () {
       expect(AppDesignSystem.workbenchDenseRowHeight, 24.0); // §7-1
       expect(AppDesignSystem.workbenchStageMinWidth, 480.0); // §7-2
-      expect(AppDesignSystem.artifactStripHeight, 32.0); // §7-3
+      expect(AppDesignSystem.artifactStripHeight, 36.0); // §7-3（v0.3.5 批3 B-02：32→36，产物槽联动改版）
       expect(AppDesignSystem.workbenchStageTabMaxWidth, 200.0); // §7-4
       expect(AppDesignSystem.artifactStripItemMaxWidth, 160.0); // §7-5
       expect(AppDesignSystem.agentImpactLabelWidth, 104.0); // §7-6

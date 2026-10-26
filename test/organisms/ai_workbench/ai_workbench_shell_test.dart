@@ -8,7 +8,6 @@
 import 'dart:async' show unawaited;
 import 'dart:io';
 
-import 'package:flutter/gestures.dart' show kSecondaryButton;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter_test/flutter_test.dart';
@@ -35,8 +34,12 @@ import 'package:dbmaster/organisms/ai_workbench/cards/sql_tool_card.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_artifact_strip.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_card_payload.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_chat_view.dart';
+import 'package:dbmaster/organisms/ai_workbench/workbench_query_history_view.dart';
+import 'package:dbmaster/organisms/ai_workbench/workbench_saved_query_list_view.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_session_list_view.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_stage.dart';
+import 'package:dbmaster/services/ai/agent/agent_ui_port.dart'
+    show AgentResultRef;
 import 'package:dbmaster/organisms/sidebar/sidebar_footer.dart';
 import 'package:dbmaster/providers/app_provider.dart';
 import 'package:dbmaster/providers/connection_provider.dart';
@@ -694,7 +697,11 @@ void main() {
       final stripBefore = tester.getSize(
         find.byKey(WorkbenchArtifactStrip.stripKey),
       );
-      expect(stripBefore.height, 32.0, reason: '产物条高 32 常驻');
+      expect(
+        stripBefore.height,
+        AppDesignSystem.artifactStripHeight,
+        reason: '产物条高 token 常驻（批3 E3.2：32 → 36）',
+      );
       expect(stripBefore.width, 1024.0, reason: '产物条 shell 全宽');
 
       await openStage(tester);
@@ -981,23 +988,23 @@ void main() {
       );
       // 产物条同步呈现该 tab 未钉住（空态常驻一行）。
       expect(
+        // 批3 E3.2（B-02 三态）：零 pin 且舞台可见 → 条 0px 不参与布局
+        //（空态文案随条隐藏）。
         find.byKey(WorkbenchArtifactStrip.emptyKey),
-        findsOneWidget,
-        reason: 'openGrid 不钉住（§6.3）',
+        findsNothing,
+        reason: 'openGrid 不钉住（§6.3）且零 pin 舞台可见 → 条 0px',
       );
     });
   });
 
   // ──────────────────────────────────────────────────────────────────────────
-  // v2 A2：收窄态会话路由（R6 接缝）——shell 把 _stageController 传入 rail，
-  // 收窄态活动条点会话图标 → rail 直调 controller.openSessions()（舞台
-  // sessionList 单例 tab）。1024 下收窄态前置 = 舞台可见（1024 ≤ 1080 三列
-  // 断点，§5.4-1 探针）；舞台不可见 → 自动可见的转换断言由
-  // workbench_session_rail_test.dart / workbench_stage_test.dart 的
-  // openSessions 用例以新 controller 承载。
+  // 批3 UI35-310：收窄态活动条点击 → 展开 rail 抽屉（原 v2 A2「开舞台
+  // sessionList 单例 tab」路由随舞台枚举退役删除）。组件面细粒度断言在
+  // workbench_session_rail_test.dart 的 UI35-310 组；本组承载 shell 装配面
+  //（手势展开覆写经 shell State，跨模式存活）。
   // ──────────────────────────────────────────────────────────────────────────
 
-  group('v2 A2 收窄态会话路由（R6 接缝）', () {
+  group('批3 UI35-310 收窄态活动条点击 = 展开 rail 抽屉（shell 面）', () {
     /// 开舞台（产物条左端展开钮 = 收起态用户可达入口；走查修复批件①后
     /// 展开态收起改走舞台 tab 条右端收起钮）。
     Future<void> openStage(WidgetTester tester) async {
@@ -1005,7 +1012,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('1024 收窄态点会话图标 → 舞台自动可见 + sessionList tab 激活；重复点击 tab 恒 1', (
+    testWidgets('1024 收窄态点会话图标 → rail 展开 240 + 会话抽屉 + 不开舞台 tab', (
       tester,
     ) async {
       await pumpShell(tester, surface: const Size(1024, 768));
@@ -1020,36 +1027,31 @@ void main() {
         reason: '1024 舞台可见 → 会话栏收窄态（活动条 44）',
       );
 
-      // 收窄态点会话图标 → R6 接缝：rail 直调 stageController.openSessions()。
+      // 批3：点击 = 展开 rail 至 240 + 切会话抽屉；不开舞台单例 tab。
       await tester.tap(
         find.byKey(const ValueKey('workbench_activity_sessions')),
       );
       await tester.pumpAndSettle();
 
       final stage = tester.widget<WorkbenchStage>(find.byType(WorkbenchStage));
-      expect(stage.controller.stageVisible, isTrue, reason: '舞台自动可见');
-      expect(stage.controller.tabs.map((t) => t.kind), [
-        WorkbenchStageTabKind.sessionList,
-      ], reason: 'sessionList 单例 tab 落地');
+      expect(stage.controller.tabs, isEmpty, reason: '零舞台 tab（枚举退役）');
       expect(
-        stage.controller.activeTab?.kind,
-        WorkbenchStageTabKind.sessionList,
-        reason: 'sessionList tab 激活',
+        tester
+            .getSize(find.byKey(const ValueKey('workbench_session_rail_slot')))
+            .width,
+        AppDesignSystem.workbenchSessionListWidth,
+        reason: 'rail 展开至 240（44 + 196）',
       );
-      // v2 §8-5：舞台 tab 全宽形态渲染同一共享组件。
       expect(find.byType(SessionListView), findsOneWidget);
       expect(tester.takeException(), isNull);
 
-      // 重复点击 → 复用激活，tab 恒 1（§8-2）。
+      // 再点历史图标 = 切抽屉页（rail 保持展开，仍不开舞台）。
       await tester.tap(
-        find.byKey(const ValueKey('workbench_activity_sessions')),
+        find.byKey(const ValueKey('workbench_activity_history')),
       );
       await tester.pumpAndSettle();
-      expect(stage.controller.tabs, hasLength(1));
-      expect(
-        stage.controller.activeTab?.kind,
-        WorkbenchStageTabKind.sessionList,
-      );
+      expect(find.byType(QueryHistoryListView), findsOneWidget);
+      expect(stage.controller.tabs, isEmpty);
       expect(tester.takeException(), isNull);
     });
   });
@@ -1065,7 +1067,6 @@ void main() {
   // ──────────────────────────────────────────────────────────────────────────
 
   group('A5 F6 六区轮转（v2 §8-6）', () {
-    final l10n = AppLocalizationsEn();
 
     /// 成对发送按下/抬起（AGENTS.md §8-10：缺抬起触发 HardwareKeyboard 断言）。
     Future<void> pressF6(WidgetTester tester) async {
@@ -1135,35 +1136,36 @@ void main() {
       await tester.pump();
     }
 
-    /// 六区齐备前置：880 收窄态点会话图标开 sessionList tab（A2 动线）→
-    /// 1920 rail 展开（>1080，内容页区入列）→ 右键钉住 tab（产物条条目
-    /// 可聚焦）。返回舞台控制器（skip 用例收起后读 pinned 断言）。
+    /// 六区齐备前置（批3 改造）：880 下经共享 controller 直开 pinned
+    /// dataViz tab（活动条点击已改 rail 抽屉路由，不再开舞台 tab——
+    /// UI35-310）→ 1920 rail 展开（>900，内容页区入列）。返回舞台控制器
+    /// （skip 用例收起后读 pinned 断言）。
     Future<WorkbenchStageController> pumpSixZonesReady(
       WidgetTester tester,
     ) async {
       await pumpShell(tester, surface: const Size(880, 700));
-      await tester.tap(
-        find.byKey(const ValueKey('workbench_activity_sessions')),
-      );
-      await tester.pumpAndSettle();
       final controller = tester
-          .widget<WorkbenchStage>(find.byType(WorkbenchStage))
+          .widget<WorkbenchArtifactStrip>(find.byType(WorkbenchArtifactStrip))
           .controller;
-      expect(controller.stageVisible, isTrue, reason: '前置：舞台自动可见');
+      controller.pinArtifact(
+        AgentResultRef(
+          refId: 'res_six_zone',
+          sql: 'SELECT 1',
+          rowCount: 1,
+          columns: const ['id'],
+          rows: const [
+            {'id': 1},
+          ],
+        ),
+        'P1',
+      );
+      controller.setStageVisible(true);
+      await tester.pumpAndSettle();
+      expect(controller.pinnedTabs, hasLength(1), reason: '前置：产物条条目在位');
+      expect(controller.stageVisible, isTrue, reason: '前置：舞台可见（两区在树）');
 
       await tester.binding.setSurfaceSize(const Size(1920, 1080));
       await tester.pumpAndSettle();
-
-      final String? activeTabId = controller.activeTab?.id;
-      expect(activeTabId, isNotNull, reason: '前置：sessionList tab 激活');
-      await tester.tap(
-        find.byKey(WorkbenchStage.tabItemKey(activeTabId!)),
-        buttons: kSecondaryButton,
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(l10n.agentStageTabPin));
-      await tester.pumpAndSettle();
-      expect(controller.pinnedTabs, hasLength(1), reason: '前置：产物条条目在位');
 
       await refocusChatInput(tester);
       return controller;
@@ -1241,100 +1243,10 @@ void main() {
   });
 
   // ──────────────────────────────────────────────────────────────────────────
-  // A5（v2 §8-2）：收窄态路由组合矩阵——三图标 × 首点建 tab / 复点激活 /
-  // 各 kind 单例 tab 恒 1，1024（收窄态前置 = 舞台可见 ≤1080，A2 模式）与
-  // <900（rail 初始即收窄）两档。A2/A3/A4 逐图标已立，本组补全组合级。
-  // ──────────────────────────────────────────────────────────────────────────
-
-  group('A5 收窄态路由组合矩阵（三图标 × 两档宽度）', () {
-    /// 开舞台（产物条左端展开钮 = 收起态用户可达入口；走查修复批件①后
-    /// 展开态收起改走舞台 tab 条右端收起钮）。
-    Future<void> openStage(WidgetTester tester) async {
-      await tester.tap(find.byKey(WorkbenchArtifactStrip.toggleKey));
-      await tester.pumpAndSettle();
-    }
-
-    const iconKeys = <WorkbenchStageTabKind, ValueKey<String>>{
-      WorkbenchStageTabKind.sessionList: ValueKey(
-        'workbench_activity_sessions',
-      ),
-      WorkbenchStageTabKind.savedQueries: ValueKey(
-        'workbench_activity_savedQueries',
-      ),
-      WorkbenchStageTabKind.history: ValueKey('workbench_activity_history'),
-    };
-
-    for (final (width, label) in const [
-      (1024.0, '1024（收窄态前置 = 开舞台 ≤1080 收 44）'),
-      (880.0, '<900（rail 初始即收窄，首点自动开舞台）'),
-    ]) {
-      testWidgets('$label：三图标首点各建单例 tab、复点激活不重建、tab 数恒 1', (tester) async {
-        await pumpShell(tester, surface: Size(width, 768));
-        if (width >= 900) {
-          await openStage(tester);
-        }
-
-        // 首点（会话）：建 sessionList 单例 tab（<900 档含舞台自动可见）。
-        await tester.tap(
-          find.byKey(
-            iconKeys[WorkbenchStageTabKind.sessionList] ??
-                const ValueKey('workbench_activity_sessions'),
-          ),
-        );
-        await tester.pumpAndSettle();
-        final controller = tester
-            .widget<WorkbenchStage>(find.byType(WorkbenchStage))
-            .controller;
-        expect(controller.stageVisible, isTrue);
-        expect(controller.tabs.map((t) => t.kind), [
-          WorkbenchStageTabKind.sessionList,
-        ]);
-
-        // 首点（保存的查询 / 历史）：各建各的单例 tab。
-        await tester.tap(
-          find.byKey(
-            iconKeys[WorkbenchStageTabKind.savedQueries] ??
-                const ValueKey('workbench_activity_savedQueries'),
-          ),
-        );
-        await tester.pumpAndSettle();
-        await tester.tap(
-          find.byKey(
-            iconKeys[WorkbenchStageTabKind.history] ??
-                const ValueKey('workbench_activity_history'),
-          ),
-        );
-        await tester.pumpAndSettle();
-        expect(
-          controller.tabs.map((t) => t.kind),
-          containsAll(const [
-            WorkbenchStageTabKind.savedQueries,
-            WorkbenchStageTabKind.history,
-          ]),
-        );
-        expect(controller.activeTab?.kind, WorkbenchStageTabKind.history);
-
-        // 复点：激活切回、不再新建；各 kind tab 数恒 1、总数恒 3。
-        for (final entry in iconKeys.entries) {
-          await tester.tap(find.byKey(entry.value));
-          await tester.pumpAndSettle();
-          expect(
-            controller.activeTab?.kind,
-            entry.key,
-            reason: '复点激活 ${entry.key}',
-          );
-          expect(
-            controller.tabs.where((t) => t.kind == entry.key),
-            hasLength(1),
-            reason: '${entry.key} 单例 tab 恒 1',
-          );
-        }
-        expect(controller.tabs, hasLength(3));
-        expect(tester.takeException(), isNull);
-      });
-    }
-  });
-
+  // 批3 B-01：A5 收窄态路由组合矩阵组随「开舞台单例 tab」旧行为退役删除
+  //（三图标收窄态点击改 rail 抽屉路由，组件面矩阵由
+  // workbench_session_rail_test.dart 的 UI35-310 组与上方 shell 面组承载）。
+  //
   // ──────────────────────────────────────────────────────────────────────────
   // v2 B2：结果卡「在舞台打开」改路由——shell `_cardActions.onOpenResultInGrid`
   // 经 `_openCardResultInStage(payload, cardId)` 组装 AgentResultRef
@@ -1391,11 +1303,14 @@ void main() {
         );
         expect(stage.controller.stageVisible, isTrue, reason: '舞台自动可见');
         expect(
-          stage.controller.tabs.map((t) => t.kind),
-          [WorkbenchStageTabKind.grid],
-          reason: '卡入口落 grid tab（openGrid）',
+          stage.controller.tabs.map((t) => t.container),
+          [WorkbenchStageContainerKind.dataViz],
+          reason: '卡入口落 dataViz 容器 tab（openGrid，grid 子态）',
         );
-        expect(stage.controller.activeTab?.kind, WorkbenchStageTabKind.grid);
+        expect(
+          stage.controller.activeTab?.subKind,
+          DataVizSubKind.grid,
+        );
         expect(
           stage.controller.activeTab?.resultRef?.refId,
           'card_card_msg_b2',
@@ -1533,9 +1448,9 @@ void main() {
         // tab」且舞台自动可见（pinArtifact 会钉住且不改可见性，openChart
         // 是 chart kind——均非本指纹）。
         expect(
-          stage.controller.tabs.map((t) => t.kind),
-          everyElement(WorkbenchStageTabKind.grid),
-          reason: '两入口同落 grid tab（openGrid）',
+          stage.controller.tabs.map((t) => t.container),
+          everyElement(WorkbenchStageContainerKind.dataViz),
+          reason: '两入口同落 dataViz 容器 tab（openGrid）',
         );
         expect(
           stage.controller.tabs.map((t) => t.resultRef?.refId),
@@ -2616,7 +2531,7 @@ void main() {
       final controller = stageControllerOf(tester);
       expect(controller.stageVisible, isTrue, reason: '推送自动开舞台');
       final execTabs1 = controller.tabs
-          .where((t) => t.kind == WorkbenchStageTabKind.execution)
+          .where((t) => t.execution != null)
           .toList();
       expect(execTabs1, hasLength(1), reason: '写批执行 → execution tab 落地');
       expect(
@@ -2646,7 +2561,7 @@ void main() {
       expect(app.executeCalls, 3, reason: 'UPDATE + SELECT 两句各执行一次');
 
       final execTabs2 = controller.tabs
-          .where((t) => t.kind == WorkbenchStageTabKind.execution)
+          .where((t) => t.execution != null)
           .toList();
       expect(execTabs2, hasLength(1), reason: '同 tabKey 复用不累积新 tab');
       expect(execTabs2.single.id, execTabs1.single.id);
@@ -2681,7 +2596,7 @@ void main() {
       expect(app.executeCalls, 2, reason: '两步逐语句执行');
       final controller = stageControllerOf(tester);
       final execTabs = controller.tabs
-          .where((t) => t.kind == WorkbenchStageTabKind.execution)
+          .where((t) => t.execution != null)
           .toList();
       expect(execTabs, hasLength(1), reason: '计划执行完成 → execution tab 落地');
       final data = execTabs.single.execution;
@@ -2719,7 +2634,7 @@ void main() {
       expect(app.executed, hasLength(1), reason: '失败即停：步 2 未执行');
       final controller = stageControllerOf(tester);
       final data = controller.tabs
-          .where((t) => t.kind == WorkbenchStageTabKind.execution)
+          .where((t) => t.execution != null)
           .single
           .execution;
       expect(data, isNotNull);
@@ -2763,7 +2678,7 @@ void main() {
 
       final controller = stageControllerOf(tester);
       final execTabs = controller.tabs
-          .where((t) => t.kind == WorkbenchStageTabKind.execution)
+          .where((t) => t.execution != null)
           .toList();
       expect(execTabs, hasLength(2), reason: '异 planId 各自落地共存');
       expect(
@@ -2802,38 +2717,34 @@ void main() {
 
       final controller = stageControllerOf(tester);
       expect(
-        controller.tabs.any((t) => t.kind == WorkbenchStageTabKind.observe),
+        controller.tabs.any(
+          (t) =>
+              t.container == WorkbenchStageContainerKind.diagnostics &&
+              t.subKind == DiagnosticsSubKind.liveMonitor,
+        ),
         isTrue,
-        reason: 'post-frame openObserve 被调',
+        reason: 'post-frame openObserve 被调（diagnostics/liveMonitor）',
       );
       expect(inputTextOf(tester), equals('prefill prompt'));
       expect(app.aiPanel.workbenchEntryIntent, isNull, reason: '消费后清除 intent');
     });
 
-    testWidgets('savedQueries / history 目标各推各的单例 tab', (tester) async {
+    testWidgets('savedQueries / history 目标切 rail 抽屉页（批3 UI35-310，不开舞台）', (tester) async {
       final app = await pumpShell(tester);
 
       app.aiPanel.requestWorkbenchEntry(
         tabTarget: WorkbenchEntryTabTarget.savedQueries,
       );
       await tester.pumpAndSettle();
-      var controller = stageControllerOf(tester);
-      expect(
-        controller.tabs.any(
-          (t) => t.kind == WorkbenchStageTabKind.savedQueries,
-        ),
-        isTrue,
-      );
+      expect(find.byType(SavedQueryListView), findsOneWidget);
+      expect(find.byType(WorkbenchStage), findsNothing, reason: '不开舞台');
 
       app.aiPanel.requestWorkbenchEntry(
         tabTarget: WorkbenchEntryTabTarget.history,
       );
       await tester.pumpAndSettle();
-      controller = stageControllerOf(tester);
-      expect(
-        controller.tabs.any((t) => t.kind == WorkbenchStageTabKind.history),
-        isTrue,
-      );
+      expect(find.byType(QueryHistoryListView), findsOneWidget);
+      expect(find.byType(WorkbenchStage), findsNothing);
       expect(app.aiPanel.workbenchEntryIntent, isNull);
     });
 

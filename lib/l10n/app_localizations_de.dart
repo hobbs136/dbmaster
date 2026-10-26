@@ -11748,4 +11748,62 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get connectionTestSettingsChanged =>
       'Verbindungseinstellungen geändert · das vorherige Testergebnis ist nicht mehr gültig';
+
+  @override
+  String get agentStageContainerSqlStudio => 'SQL-Studio';
+
+  @override
+  String get agentStageContainerDataViz => 'Daten & Diagramme';
+
+  @override
+  String get agentStageContainerSchema => 'Schema';
+
+  @override
+  String get agentStageContainerDiagnostics => 'Diagnose';
+
+  @override
+  String get agentStageSegDiff => 'Diff';
+
+  @override
+  String get agentStageExplainPlan => 'Explain Plan';
+
+  @override
+  String get agentStageLiveMonitor => 'Live-Monitor';
+
+  @override
+  String get agentStageOptimizationSummary => 'Optimierungszusammenfassung';
+
+  @override
+  String get agentStageRecommendedIndex => 'Empfohlener Index';
+
+  @override
+  String get agentStageAxisConfig => 'Achse';
+
+  @override
+  String get agentStageSchemaColumns => 'Spalten';
+
+  @override
+  String get agentStageSchemaIndexes => 'Indizes';
+
+  @override
+  String get agentStageSchemaDdl => 'DDL';
+
+  @override
+  String get workbenchCollapseStage => 'Bühne einklappen';
+
+  @override
+  String get workbenchPinnedArtifacts => 'Angeheftete Artefakte';
+
+  @override
+  String get workbenchReopenArtifact => 'Im Workbench erneut öffnen';
+
+  @override
+  String agentStageRowsScanned(int before, int after) {
+    return 'Gescannte Zeilen: $before → $after';
+  }
+
+  @override
+  String agentStageAiInferred(String note) {
+    return 'KI-Schlussfolgerung: $note';
+  }
 }

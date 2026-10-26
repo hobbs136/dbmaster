@@ -126,6 +126,7 @@ import 'agents/agent_trajectory_card.dart'
     show agentKindOf, agentPayloadOf, agentTrajectoryCompactTokens;
 import 'agent_ui_port_impl.dart';
 import 'save_query_naming_dialog.dart';
+import 'workbench_activity_bar.dart' show WorkbenchRailPage;
 import 'workbench_artifact_strip.dart';
 import 'workbench_card_host.dart';
 import 'workbench_card_payload.dart' show WorkbenchResultCardPayload;
@@ -230,6 +231,24 @@ class _AiWorkbenchShellState extends State<AiWorkbenchShell> {
   /// 对话列区聚焦入口（身份稳定闭包：注册/注销成对使用同一实例）。
   late final WorkbenchZoneFocusEntry _chatZoneEntry = _focusChatColumn;
 
+  /// 当前 rail 抽屉页（批3 UI35-310 上提：三抽屉只由 rail 内容页承载，
+  /// 页态归壳——收窄态活动条点击经 [_onRailPageSelected] 切页 + 展开）。
+  WorkbenchRailPage _railPage = WorkbenchRailPage.sessions;
+
+  /// rail 手势展开覆写（批3 UI35-310）：断点判定收窄但用户点活动条
+  /// → 覆写为展开（44 → 240）；窗口再放宽不回收（会话级手势态，随壳
+  /// Offstage 保活，不持久化）。
+  bool _railForceExpanded = false;
+
+  /// rail 页选择（两态统一）：收窄态点击 = 展开覆写 + 切抽屉；已展开 =
+  /// 纯切抽屉页。**不开舞台 tab**（sessionList 等单例 API 已随枚举退役）。
+  void _onRailPageSelected(WorkbenchRailPage page) {
+    setState(() {
+      _railForceExpanded = true;
+      _railPage = page;
+    });
+  }
+
   /// 界面派发端口实现（T27，D8）：经 chat view 下沉注入
   /// `runner.start(uiPort:)`（T28 转必填）。依赖闭包均晚绑定
   /// [_observedProvider]，provider 实例变更（测试重建）无需重建本对象。
@@ -266,6 +285,12 @@ class _AiWorkbenchShellState extends State<AiWorkbenchShell> {
     // 对话列区（A5）：本壳自登记（对话列两态恒在）；其余五区由 rail/活动条/
     // 舞台/产物条随各自子树生命周期登记。
     _focusZoneRegistry.register(WorkbenchFocusZone.chatColumn, _chatZoneEntry);
+    // 批3 E3.2 / B-02：Exit 保留接线——挂载时还原 pinned 产物（含 dock 芯片
+    // 的挂起重进请求消费）+ 持续同步内存槽（z2 层常驻挂载，壳 Offstage
+    // 保活不卸载——经典 dock 行经内存槽读**活体**状态而非卸载写回）。
+    _restorePinnedFromMemory();
+    _stageController.addListener(_syncPinnedMemory);
+    workbenchPinnedArtifactMemory.addListener(_onPinnedMemoryChanged);
   }
 
   @override
@@ -300,8 +325,45 @@ class _AiWorkbenchShellState extends State<AiWorkbenchShell> {
       WorkbenchFocusZone.chatColumn,
       _chatZoneEntry,
     );
+    // B-02：内存槽同步解绑 + 清空。生产语义：z2 层常驻挂载（Offstage 保活
+    // 不卸载），dispose 仅发生在应用关闭——清空等价丢弃进程态；持续同步
+    // （[_syncPinnedMemory]）才是 Exit 保留的载体。测试隔离：widget 测试间
+    // 全局单例若残留上一用例的 pinned，会污染后续用例（跨用例状态泄漏）。
+    _stageController.removeListener(_syncPinnedMemory);
+    workbenchPinnedArtifactMemory.removeListener(_onPinnedMemoryChanged);
+    workbenchPinnedArtifactMemory.clear();
     _stageController.dispose();
     super.dispose();
+  }
+
+  /// B-02：controller → 内存槽持续同步（pinned 投影变更才通知——经典
+  /// dock「Pinned artifacts」行的活体数据源；Exit 后行立即呈现）。
+  void _syncPinnedMemory() {
+    if (!mounted) return;
+    workbenchPinnedArtifactMemory.replaceWith(_stageController.pinnedTabs);
+  }
+
+  /// B-02：还原 pinned 产物（[WorkbenchPinnedArtifactMemory] → 本壳
+  /// controller）+ 消费挂起的重进请求（dock 芯片点击发生在壳未挂载期间）。
+  void _restorePinnedFromMemory() {
+    final memory = workbenchPinnedArtifactMemory;
+    for (final entry in memory.entries) {
+      _stageController.restorePinnedTab(entry);
+    }
+    final String? requestId = memory.consumeReopenRequest();
+    if (requestId != null) {
+      _stageController.activateTabById(requestId);
+    }
+  }
+
+  /// B-02：在挂重进请求消费（dock 芯片点击时壳仍挂载——Offstage 保活或
+  /// overlay 形态并存）：激活对应 tab + 置舞台可见（容器 + subKind 随
+  /// tab 对象恢复）。
+  void _onPinnedMemoryChanged() {
+    if (!mounted) return;
+    final String? requestId = workbenchPinnedArtifactMemory.consumeReopenRequest();
+    if (requestId == null) return;
+    _stageController.activateTabById(requestId);
   }
 
   void _onAppProviderChanged() {
@@ -1155,13 +1217,16 @@ class _AiWorkbenchShellState extends State<AiWorkbenchShell> {
 
     switch (intent.tabTarget) {
       case WorkbenchEntryTabTarget.observe:
+        // observe → Diagnostics 容器 liveMonitor 子态（舞台面）。
         _stageController.openObserve();
         break;
       case WorkbenchEntryTabTarget.savedQueries:
-        _stageController.openSavedQueries();
+        // 批3 UI35-310：savedQueries → rail 抽屉（不再开舞台 tab）。
+        _onRailPageSelected(WorkbenchRailPage.savedQueries);
         break;
       case WorkbenchEntryTabTarget.history:
-        _stageController.openHistory();
+        // 批3 UI35-310：history → rail 抽屉（不再开舞台 tab）。
+        _onRailPageSelected(WorkbenchRailPage.history);
         break;
       case WorkbenchEntryTabTarget.none:
         break;
@@ -1333,11 +1398,15 @@ class _AiWorkbenchShellState extends State<AiWorkbenchShell> {
                 builder: (context, constraints) {
                   final stageVisible = _stageController.stageVisible;
                   // 会话栏断点：舞台可见 ≤1080 收 44（三列和），收起时保持 M1
-                  // <900 断点（既有会话栏行为零回退）。
-                  final railCollapsed = stageVisible
-                      ? constraints.maxWidth <= _stageRailCollapseBreakpoint
-                      : constraints.maxWidth <
-                            WorkbenchSessionRail.collapseBreakpoint;
+                  // <900 断点（既有会话栏行为零回退）。批3 UI35-310：手势
+                  // 展开覆写（收窄态点活动条展开 rail）优先于断点判定。
+                  final railCollapsed =
+                      (_railForceExpanded
+                          ? false
+                          : stageVisible
+                          ? constraints.maxWidth <= _stageRailCollapseBreakpoint
+                          : constraints.maxWidth <
+                                WorkbenchSessionRail.collapseBreakpoint);
                   return Row(
                     children: [
                       _buildSessionRailSlot(collapsed: railCollapsed),
@@ -1366,13 +1435,14 @@ class _AiWorkbenchShellState extends State<AiWorkbenchShell> {
   /// 会话栏（T11 接入：`WorkbenchSessionRail`，展开宽
   /// `workbenchSessionListWidth` 240 token，<900 断点收 44 图标 rail）。
   /// 挂点 key 沿 T10 结构位契约（`workbench_session_rail_slot`）。
-  /// R6 接缝（v2 A2）：舞台控制器传入 rail——收窄态活动条点击由 rail 直调
-  /// `openSessions()` 开舞台会话列表单例 tab；此后 A3/A4 新增 kind 只改
-  /// rail + stage，shell 不再为此改签名。
+  /// 批3 UI35-310：抽屉页态与收窄态展开决策上提本壳（三抽屉只由 rail
+  /// 承载；收窄态点击 = 展开覆写 + 切抽屉，不开舞台 tab）。
   Widget _buildSessionRailSlot({required bool collapsed}) {
     return WorkbenchSessionRail(
       key: const ValueKey('workbench_session_rail_slot'),
       collapsed: collapsed,
+      currentPage: _railPage,
+      onPageSelected: _onRailPageSelected,
       stageController: _stageController,
       zoneRegistry: _focusZoneRegistry,
     );

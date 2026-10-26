@@ -193,10 +193,23 @@ void main() {
       expect(controller.stageVisible, isFalse);
     });
 
-    testWidgets('未 pinned 的舞台 tab 不进条', (tester) async {
-      final tab = controller.openGrid(_ref('res_1'), 'R1'); // 不 pinned
+    testWidgets('未 pinned 的舞台 tab 不进条（批3 B-02：零 pin + 舞台可见'
+        ' → 条 0px）', (tester) async {
+      final tab = controller.openGrid(_ref('res_1'), 'R1'); // 不 pinned（舞台自动可见）
       await _pump(tester, controller);
       expect(find.byKey(WorkbenchArtifactStrip.itemKey(tab.id)), findsNothing);
+      // 批3 E3.2 三态：零 pin 且舞台可见 → 条 0px 不参与布局（空态文案
+      // 随条隐藏；收起态入口条归 §6.4-1 与开合开关组覆盖）。
+      final strip = find.byKey(WorkbenchArtifactStrip.stripKey);
+      final height = strip.evaluate().isEmpty
+          ? 0.0
+          : tester.getRect(strip).height;
+      expect(height, 0.0, reason: 'B-02：零 pin 且舞台可见 → 0px');
+
+      // 舞台收起 → 收起态入口条回归（空态文案可见，UI35-313 同源）。
+      controller.setStageVisible(false);
+      await tester.pumpAndSettle();
+      expect(find.byKey(WorkbenchArtifactStrip.stripKey), findsOneWidget);
       expect(find.byKey(WorkbenchArtifactStrip.emptyKey), findsOneWidget);
     });
   });

@@ -24,11 +24,44 @@ import 'package:dbmaster/organisms/ai_workbench/ai_workbench_shell.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_query_history_view.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_saved_query_list_view.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_session_list_view.dart';
+import 'package:dbmaster/organisms/ai_workbench/workbench_activity_bar.dart'
+    show WorkbenchRailPage;
 import 'package:dbmaster/organisms/ai_workbench/workbench_session_rail.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_stage.dart';
 import 'package:dbmaster/providers/app_provider.dart';
+import 'package:dbmaster/providers/layout_preferences_provider.dart';
 import 'package:dbmaster/services/workbench_usage_stats_service.dart';
 import 'package:dbmaster/theme/design_system.dart';
+
+/// 批3 UI35-310 harness：模拟 shell 侧页态持有（currentPage + 展开覆写
+/// ——收窄态点活动条 = 展开覆写 + 切页，生产逻辑在 shell，此处只复刻装配）。
+class _RailHost extends StatefulWidget {
+  const _RailHost({required this.collapsed, required this.stageController});
+
+  final bool collapsed;
+  final WorkbenchStageController stageController;
+
+  @override
+  State<_RailHost> createState() => _RailHostState();
+}
+
+class _RailHostState extends State<_RailHost> {
+  WorkbenchRailPage _page = WorkbenchRailPage.sessions;
+  bool _forceExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return WorkbenchSessionRail(
+      collapsed: widget.collapsed && !_forceExpanded,
+      currentPage: _page,
+      onPageSelected: (page) => setState(() {
+        _forceExpanded = true;
+        _page = page;
+      }),
+      stageController: widget.stageController,
+    );
+  }
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -81,8 +114,8 @@ void main() {
 
   /// 泵独立会话栏（组件面）。restoreSession 逐条 insert(0)：
   /// 按 (更早, 昨天, 今天) 顺序恢复后列表头为今天组。
-  /// [stageController] 供收窄态路由断言注入（v2 A2 R6 接缝；缺省给一次性
-  /// 实例满足构造签名）。
+  /// 批3 UI35-310：页态上提调用方（[currentPage] / [onPageSelected]——
+  /// 生产由 shell 持有；本 harness 以本地 State 模拟）。
   Future<AppProvider> pumpRail(
     WidgetTester tester, {
     bool collapsed = false,
@@ -102,7 +135,7 @@ void main() {
           supportedLocales: AppLocalizations.supportedLocales,
           locale: const Locale('en'),
           home: Scaffold(
-            body: WorkbenchSessionRail(
+            body: _RailHost(
               collapsed: collapsed,
               stageController: stageController ?? WorkbenchStageController(),
             ),
@@ -357,7 +390,7 @@ void main() {
     });
 
     testWidgets(
-      '收窄态点会话图标 → stageController.openSessions 被调（v2 A2 R6 接缝，§8-2）',
+      '收窄态点会话图标 → 展开 rail 至 196 会话抽屉（批3 UI35-310，不开舞台）',
       (tester) async {
         final stageController = WorkbenchStageController();
         await pumpRail(
@@ -374,24 +407,15 @@ void main() {
         );
         await tester.pumpAndSettle();
 
+        // 批3：点击 = 展开 rail 抽屉（会话页），不开舞台 tab。
+        expect(find.byType(SessionListView), findsOneWidget);
         expect(
-          stageController.stageVisible,
-          isTrue,
-          reason: '舞台不可见时点击 → 自动可见（沿 _openTab 既有语义）',
+          find.byKey(const ValueKey('workbench_new_session_button')),
+          findsOneWidget,
+          reason: '展开后新建入口随会话页头栏出现',
         );
-        expect(
-          stageController.tabs.map((t) => t.kind),
-          [WorkbenchStageTabKind.sessionList],
-          reason: 'sessionList 单例 tab 落地并激活',
-        );
-        expect(stageController.activeTabIndex, 0);
-
-        // 重复点击 → 复用激活既有 tab，不重复建（tab 恒 1，§8-2）。
-        await tester.tap(
-          find.byKey(const ValueKey('workbench_activity_sessions')),
-        );
-        await tester.pumpAndSettle();
-        expect(stageController.tabs, hasLength(1));
+        expect(stageController.stageVisible, isFalse, reason: '不开舞台');
+        expect(stageController.tabs, isEmpty, reason: '零舞台 tab');
 
         await drainPersistDebounce(tester);
       },
@@ -483,7 +507,7 @@ void main() {
       await drainPersistDebounce(tester);
     });
 
-    testWidgets('收窄态点历史图标 → stageController.openHistory 被调（R6 接缝，§8-2）', (
+    testWidgets('收窄态点历史图标 → 展开 rail 历史抽屉（批3 UI35-310，不开舞台）', (
       tester,
     ) async {
       final stageController = WorkbenchStageController();
@@ -496,21 +520,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // 批3：点击 = 展开 rail 抽屉（历史页），不开舞台 tab。
+      expect(find.byType(QueryHistoryListView), findsOneWidget);
       expect(
-        stageController.stageVisible,
-        isTrue,
-        reason: '舞台不可见时点击 → 自动可见（沿 _openTab 既有语义）',
+        find.byKey(const ValueKey('workbench_history_search')),
+        findsOneWidget,
+        reason: '历史页搜索框随抽屉渲染',
       );
-      expect(stageController.tabs.map((t) => t.kind), [
-        WorkbenchStageTabKind.history,
-      ], reason: 'history 单例 tab 落地并激活');
-
-      // 重复点击 → 复用激活既有 tab，不重复建（tab 恒 1，§8-2）。
-      await tester.tap(
-        find.byKey(const ValueKey('workbench_activity_history')),
-      );
-      await tester.pumpAndSettle();
-      expect(stageController.tabs, hasLength(1));
+      expect(stageController.stageVisible, isFalse);
+      expect(stageController.tabs, isEmpty);
 
       await drainPersistDebounce(tester);
     });
@@ -544,7 +562,7 @@ void main() {
     });
 
     testWidgets(
-      '收窄态点保存的查询图标 → stageController.openSavedQueries 被调（R6 接缝，§8-2）',
+      '收窄态点保存的查询图标 → 展开 rail 保存查询抽屉（批3 UI35-310，不开舞台）',
       (tester) async {
         final stageController = WorkbenchStageController();
         await pumpRail(
@@ -560,27 +578,76 @@ void main() {
         );
         await tester.pumpAndSettle();
 
+        // 批3：点击 = 展开 rail 抽屉（保存的查询页），不开舞台 tab。
+        expect(find.byType(SavedQueryListView), findsOneWidget);
         expect(
-          stageController.stageVisible,
-          isTrue,
-          reason: '舞台不可见时点击 → 自动可见（沿 _openTab 既有语义）',
+          find.byKey(const ValueKey('workbench_saved_queries_empty')),
+          findsOneWidget,
+          reason: '本地空态随抽屉渲染',
         );
-        expect(
-          stageController.tabs.map((t) => t.kind),
-          [WorkbenchStageTabKind.savedQueries],
-          reason: 'savedQueries 单例 tab 落地并激活',
-        );
-
-        // 重复点击 → 复用激活既有 tab，不重复建（tab 恒 1，§8-2）。
-        await tester.tap(
-          find.byKey(const ValueKey('workbench_activity_savedQueries')),
-        );
-        await tester.pumpAndSettle();
-        expect(stageController.tabs, hasLength(1));
+        expect(stageController.stageVisible, isFalse);
+        expect(stageController.tabs, isEmpty);
 
         await drainPersistDebounce(tester);
       },
     );
+  });
+
+  // 批3 评审 P1#2 补覆盖：抽屉「载入编辑器槽」动线端到端（rail 页
+  // onLoadIntoEditor 绑 stageController.openEditorSlot——
+  // workbench_session_rail.dart 内容页三抽屉装配）。旧 stage_test A3/A4
+  // 载入用例随舞台抽屉退役删除，本组接住该动线回归网。
+  group('抽屉载入编辑器槽动线（onLoadIntoEditor → openEditorSlot）', () {
+    testWidgets('历史抽屉条目 Enter → 舞台 sqlStudio 容器 tab（edit 子态）'
+        '装载该条 SQL', (tester) async {
+      final stageController = WorkbenchStageController();
+      final app = await pumpRail(tester, stageController: stageController);
+      expect(stageController.tabs, isEmpty, reason: '前置：舞台无 tab');
+
+      // 播种一条历史（沿被删 A3 用例：provider 公有 API）。
+      await app.queryHistory.addQueryHistory(
+        sql: 'SELECT 7 AS seven',
+        connectionId: 'conn_history',
+        connectionName: 'Local MySQL',
+      );
+      await tester.pumpAndSettle();
+
+      // 切到「查询历史」抽屉。
+      await tester.tap(
+        find.byKey(const ValueKey('workbench_activity_history')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(QueryHistoryListView), findsOneWidget);
+
+      // 载入动线（沿 openEditorSlot AC5.5 既有断言先例）：单击行（聚焦，
+      // 双击判别窗 ≈300ms，pump 越窗）→ Enter（历史条目主动作）。
+      await tester.tap(find.text('SELECT 7 AS seven'));
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.enter);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+
+      final tab = stageController.activeTab;
+      expect(
+        tab?.container,
+        WorkbenchStageContainerKind.sqlStudio,
+        reason: '载入 = 舞台 sqlStudio 容器 tab（接线断则此处静默空）',
+      );
+      expect(tab?.subKind, SqlStudioSubKind.edit, reason: 'edit 子态（编辑器槽）');
+      expect(
+        tab?.initialSql,
+        'SELECT 7 AS seven',
+        reason: '编辑器槽装载该条目 SQL（AC5.2 载入不执行）',
+      );
+      expect(stageController.stageVisible, isTrue);
+      expect(stageController.tabs, hasLength(1));
+
+      await drainPersistDebounce(tester);
+    });
+    // 保存的查询抽屉同构：SavedQueryListView.onLoadIntoEditor 与历史抽屉
+    // 绑同一 openEditorSlot（rail 装配处相邻三行），交互面一致（单击聚焦 +
+    // Enter/双击载入），不重复覆盖。
   });
 
   group('Scrollbar controller 回归（Windows 桌面断言）', () {
@@ -629,5 +696,127 @@ void main() {
       },
       variant: TargetPlatformVariant.only(TargetPlatform.windows),
     );
+  });
+
+  // 批3 T7-R 红测先行（UI35-310，.specs/tasks-v3.5-ui.md §3-B01 + §4-P3）：
+  // sessionList/history/savedQueries 退出舞台枚举——收窄态活动条点击从
+  // 「开舞台单例 tab」（R6 接缝，上方既有用例断言的现行为）改为
+  // 「rail 收窄 44 → 展开 rail 至 196 内容页切对应抽屉」；rail 已展开时
+  // 点另一图标 = 切抽屉页。全程文本/几何断言，不引用新枚举类型名。
+  // 上方「收窄态点 xx 图标 → stageController.openXxx 被调」三用例断言的
+  // 是被替换的旧行为，实现批落地时随之适配（本组为其红态对偶）。
+  group('UI35-310 收窄态活动条点击 = 展开 rail 抽屉（不开舞台 tab）', () {
+    /// 泵整壳（带 LayoutPreferencesProvider：本组路径会开舞台，
+    /// shell 舞台布局段消费对话列持久化宽度；手法沿
+    /// ai_workbench_shell_test.dart pumpShell 装配）。
+    Future<AppProvider> pumpShellWithLayoutAt(
+      WidgetTester tester,
+      Size surface,
+    ) async {
+      final app = AppProvider();
+      app.setAiPanelOpen(true);
+      app.setAiPanelFullscreen(true);
+      await tester.binding.setSurfaceSize(surface);
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<AppProvider>.value(value: app),
+            ChangeNotifierProvider<LayoutPreferencesProvider>(
+              create: (_) => LayoutPreferencesProvider()..load(),
+            ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('en'),
+            home: const Scaffold(body: AiWorkbenchShell()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return app;
+    }
+
+    testWidgets('收窄态点「会话」→ rail 展开至 240（活动条 44 + 内容 196）+ '
+        '抽屉出现 + 不开舞台', (tester) async {
+      await pumpShellWithLayoutAt(tester, const Size(800, 600));
+      // 800 < 900（stage 不可见分支断点）→ rail 收窄 44。
+      expect(
+        tester.getSize(find.byKey(const ValueKey('workbench_session_rail_slot'))).width,
+        AppDesignSystem.workbenchRailActivityBarWidth,
+        reason: '前置：收窄态',
+      );
+      expect(find.byType(WorkbenchStage), findsNothing, reason: '前置：舞台隐藏');
+
+      await tester.tap(
+        find.byKey(const ValueKey('workbench_activity_sessions')),
+      );
+      await tester.pumpAndSettle();
+
+      // 展开至 196 内容页（总宽 = workbenchSessionListWidth 240）。
+      expect(
+        tester.getSize(find.byKey(const ValueKey('workbench_session_rail_slot'))).width,
+        AppDesignSystem.workbenchSessionListWidth,
+        reason: 'UI35-310：点击 → rail 展开至 240（44 + 196），不再保持 44',
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('workbench_session_rail_slot')),
+          matching: find.byType(SessionListView),
+        ),
+        findsOneWidget,
+        reason: '会话抽屉在 rail 内容页出现',
+      );
+      // 不开舞台：舞台仍隐藏（旧行为 = sessionList 单例 tab 开舞台，红）。
+      expect(
+        find.byType(WorkbenchStage),
+        findsNothing,
+        reason: 'UI35-310：点击不开舞台 tab（sessionList 退出舞台枚举）',
+      );
+      expect(find.byType(SessionListView), findsOneWidget);
+
+      await drainPersistDebounce(tester);
+    });
+
+    testWidgets('rail 已展开时点另一图标 = 切抽屉页（不开舞台）', (tester) async {
+      await pumpShellWithLayoutAt(tester, const Size(800, 600));
+      await tester.tap(
+        find.byKey(const ValueKey('workbench_activity_sessions')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('workbench_activity_history')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('workbench_session_rail_slot')),
+          matching: find.byType(QueryHistoryListView),
+        ),
+        findsOneWidget,
+        reason: '切到历史抽屉页',
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('workbench_session_rail_slot')),
+          matching: find.byType(SessionListView),
+        ),
+        findsNothing,
+      );
+      expect(
+        tester.getSize(find.byKey(const ValueKey('workbench_session_rail_slot'))).width,
+        AppDesignSystem.workbenchSessionListWidth,
+        reason: '切抽屉不改变 rail 展开宽度',
+      );
+      expect(
+        find.byType(WorkbenchStage),
+        findsNothing,
+        reason: '切抽屉不开舞台（history 退出舞台枚举）',
+      );
+
+      await drainPersistDebounce(tester);
+    });
   });
 }

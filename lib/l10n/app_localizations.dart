@@ -20548,6 +20548,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Connection settings changed · the previous test no longer applies'**
   String get connectionTestSettingsChanged;
+
+  /// Container tab label: SQL Studio
+  ///
+  /// In en, this message translates to:
+  /// **'SQL Studio'**
+  String get agentStageContainerSqlStudio;
+
+  /// Container tab label: Data & Viz
+  ///
+  /// In en, this message translates to:
+  /// **'Data & Viz'**
+  String get agentStageContainerDataViz;
+
+  /// Container tab label: Schema
+  ///
+  /// In en, this message translates to:
+  /// **'Schema'**
+  String get agentStageContainerSchema;
+
+  /// Container tab label: Diagnostics
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics'**
+  String get agentStageContainerDiagnostics;
+
+  /// Segment tab label: diff view
+  ///
+  /// In en, this message translates to:
+  /// **'Diff'**
+  String get agentStageSegDiff;
+
+  /// Segment tab label: query explain plan
+  ///
+  /// In en, this message translates to:
+  /// **'Explain Plan'**
+  String get agentStageExplainPlan;
+
+  /// Segment tab label: live monitor
+  ///
+  /// In en, this message translates to:
+  /// **'Live Monitor'**
+  String get agentStageLiveMonitor;
+
+  /// Card title: optimization summary
+  ///
+  /// In en, this message translates to:
+  /// **'Optimization Summary'**
+  String get agentStageOptimizationSummary;
+
+  /// Card title: recommended index suggestion
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended index'**
+  String get agentStageRecommendedIndex;
+
+  /// Chart section label: axis configuration
+  ///
+  /// In en, this message translates to:
+  /// **'Axis'**
+  String get agentStageAxisConfig;
+
+  /// Schema card section title: columns list
+  ///
+  /// In en, this message translates to:
+  /// **'Columns'**
+  String get agentStageSchemaColumns;
+
+  /// Schema card section title: indexes list
+  ///
+  /// In en, this message translates to:
+  /// **'Indexes'**
+  String get agentStageSchemaIndexes;
+
+  /// Schema card section title: DDL statement
+  ///
+  /// In en, this message translates to:
+  /// **'DDL'**
+  String get agentStageSchemaDdl;
+
+  /// Action to collapse the workbench stage
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse stage'**
+  String get workbenchCollapseStage;
+
+  /// Section title: pinned artifacts in the workbench
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned artifacts'**
+  String get workbenchPinnedArtifacts;
+
+  /// Action to reopen a closed artifact tab in the workbench
+  ///
+  /// In en, this message translates to:
+  /// **'Reopen in workbench'**
+  String get workbenchReopenArtifact;
+
+  /// Row-scan comparison line for the optimization summary card
+  ///
+  /// In en, this message translates to:
+  /// **'Rows scanned: {before} → {after}'**
+  String agentStageRowsScanned(int before, int after);
+
+  /// AI-inferred note line with the inference rationale
+  ///
+  /// In en, this message translates to:
+  /// **'AI inferred: {note}'**
+  String agentStageAiInferred(String note);
 }
 
 class _AppLocalizationsDelegate

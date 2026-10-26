@@ -22,10 +22,10 @@ import 'package:dbmaster/l10n/app_localizations_zh.dart';
 /// 4. 带参 key 的占位符名称与类型和 en 模板一致；
 /// 5. 抽查 10 个代表 key（标题/动作/状态/tab）五语非空且不等于英文原文；
 /// 6. 生成类六语均可取到 agent 文案、占位符真实参与拼串（ARB → gen-l10n 链路健全）；
-/// 7. 守卫：en 的 workbench* key 计数保持 80（agent 族补齐不得串扰 workbench 族；
+/// 7. 守卫：en 的 workbench* key 计数保持 83（agent 族补齐不得串扰 workbench 族；
 ///    v2 先行批 A1 预登记 + B2 删除 workbenchOpenInGrid 后基线 53，
 ///    v2 第二批 2b.0 预登记 +19 后基线 72，上下文批 +2 后基线 74，
-///    会话导出批 +6 后基线 80）。
+///    会话导出批 +6 后基线 80，workbench 舞台批 +3 后基线 83）。
 void main() {
   const languages = ['zh', 'zh_TW', 'de', 'fr', 'ru'];
 
@@ -48,7 +48,7 @@ void main() {
   final enKeys = agentKeys(enArb);
 
   group('agent l10n 六语完整性', () {
-    test('en 模板包含全部 agent key（124，含 agentPlanDmlHigh* 两 key）', () {
+    test('en 模板包含全部 agent key（139，含 agentPlanDmlHigh* 两 key）', () {
       // v2 先行批 A1（2026-09-26）：+4 舞台 tab 类型 key（agentStageTab*
       // sessions/history/savedQueries/execution，R8 ARB 集中制预登记），
       // 基线 116 → 120。
@@ -57,7 +57,11 @@ void main() {
       // 上下文停止批（2026-09-28）：+1 agentStoppedByContext，基线 122 → 123。
       // 走查修复批（2026-09-29）：+1 agentStageReopenClosedTab（舞台 tab 条
       // 重开钮 tooltip，件②唯一新增 key），基线 123 → 124。
-      expect(enKeys.length, 124);
+      // workbench 舞台批（2026-10-26）：+15 agent 舞台 key（agentStageContainer*
+      // 4 + agentStageSegDiff/ExplainPlan/LiveMonitor/OptimizationSummary/
+      // RecommendedIndex/AxisConfig/Schema* 3 + RowsScanned/AiInferred 占位符
+      // 2；本批另 +3 workbench* 键不计入 agent 族），基线 124 → 139。
+      expect(enKeys.length, 139);
       expect(enKeys, contains('agentTrajectoryTitle'));
       expect(enKeys, contains('agentStageTabGrid'));
       expect(enKeys, contains('agentStageTabSessions'));
@@ -215,13 +219,15 @@ void main() {
     // workbenchContextChangeWhileRunning，基线 72 → 74。
     // 会话导出批（2026-09-28）：+6 会话导出 key（workbenchSessionExport*），
     // 基线 74 → 80。
-    test('守卫：en 的 workbench key 计数保持 80（agent 族补齐不串扰）', () {
+    // workbench 舞台批（2026-10-26）：+3 workbenchCollapseStage +
+    // workbenchPinnedArtifacts + workbenchReopenArtifact，基线 80 → 83。
+    test('守卫：en 的 workbench key 计数保持 83（agent 族补齐不串扰）', () {
       final wbKeys =
           enArb.keys
               .where((k) => k.startsWith('workbench') && !k.startsWith('@'))
               .toList()
             ..sort();
-      expect(wbKeys.length, 80);
+      expect(wbKeys.length, 83);
       // 两个词根集合互不重叠。
       expect(
         wbKeys.where((k) => k.startsWith('agent')),

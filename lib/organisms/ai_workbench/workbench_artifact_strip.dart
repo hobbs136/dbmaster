@@ -7,7 +7,8 @@
 //! 件①：开合开关收窄——展开态本钮与分隔线一并消失，收起动作移至舞台
 //! tab 条右端收起钮；收起态下条是舞台唯一入口）。
 //!
-//! 数值逐字 ui 规格 §6.1：条高 32（`artifactStripHeight`，bgSecondary +
+//! 数值逐字 ui 规格 §6.1（批3 E3.2 覆盖：条高 `artifactStripHeight` 36，
+//! B-02 空态三态矩阵——零 pin + 舞台可见 = 0px 不参与布局；bgSecondary +
 //! 顶部 1px divider，shell 全宽常驻）；展开钮 [panelRight 14 + 11px
 //! textSecondary 标签，tooltip 同步，仅收起态渲染]；1px 竖线分隔（高 16
 //! 居中 + space2，随展开钮同隐现）；
@@ -20,7 +21,7 @@
 //! 动效（§6.2 明示）：结构增删零动效（不引入 AnimatedList），仅激活底色
 //! 200ms 过渡。不持久化（shell 级内存态）。类型图标/默认标签映射与舞台 tab
 //! 同源（§6.1）：单一注册表 = workbench_stage_tab_visuals.dart 的
-//! [WorkbenchStageTabKindVisuals]，本文件为纯消费方，不含映射副本
+//! [WorkbenchStageContainerKindVisuals]，本文件为纯消费方，不含映射副本
 //! （C1 注册化后舞台侧原「文件私有 + 此处按同一映射表落」双份结构已撤销）。
 
 import 'package:flutter/material.dart';
@@ -242,6 +243,17 @@ class _WorkbenchArtifactStripState extends State<WorkbenchArtifactStrip> {
   @override
   Widget build(BuildContext context) {
     final colors = context.themeColors;
+    // 批3 E3.2 / B-02 空态三态矩阵：
+    // ① 零 pin 且舞台可见 → 条 0px 不参与布局（舞台内容到底；展开钮已迁
+    //    容器 tab 条右端 24×24——收起动作不再依赖产物条）；F6 区仍注册但
+    //    入口返回 false（轮转跳过，[_focusFirstItem] 既有语义）。
+    // ② 舞台收起态 → 收起态展开入口条（agentStageToggle 既有键，不 0px
+    //    ——入口不丢是裁定 B 验收硬条款）。
+    // ③ 有 pin → 条高 artifactStripHeight（36，批3 覆盖式改值）。
+    if (widget.controller.pinnedTabs.isEmpty &&
+        widget.controller.stageVisible) {
+      return const SizedBox.shrink();
+    }
     return Container(
       key: WorkbenchArtifactStrip.stripKey,
       height: AppDesignSystem.artifactStripHeight,
@@ -322,7 +334,7 @@ class _WorkbenchArtifactStripState extends State<WorkbenchArtifactStrip> {
   }
 
   /// pinned 子集投影（时间序 = 舞台 tab 序，新项追加在右）；空态常驻一行。
-  /// 横向滚动不换行（条高恒 32）；非懒构建——roving 键盘要把焦点移到视口外
+  /// 横向滚动不换行（条高恒 36）；非懒构建——roving 键盘要把焦点移到视口外
   /// 项（焦点节点/定位键必须在树上），pinned 数量上界 = 用户钉入量级。
   Widget _buildItems(BuildContext context) {
     final pinned = widget.controller.pinnedTabs;
@@ -386,7 +398,7 @@ class _WorkbenchArtifactStripState extends State<WorkbenchArtifactStrip> {
       focusNode: node,
       pinnedIndex: pinnedIndex,
       pinnedCount: widget.controller.pinnedTabs.length,
-      displayLabel: tab.title ?? tab.kind.label(l10n),
+      displayLabel: tab.title ?? tab.container.label(l10n),
       onActivate: () {
         node.requestFocus();
         _activateFromStrip(tab);
@@ -469,8 +481,21 @@ class _ArtifactItem extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // 批3 E3.2（P3-2 步骤 3）：#idx mono 9 前缀（产物序号，
+                    // 技术数值不入 l10n）。
+                    Text(
+                      '#${pinnedIndex + 1}',
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontFamily: AppDesignSystem.monoFontFamily,
+                        fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
+                        color: colors.textMuted,
+                      ),
+                    ),
+                    const SizedBox(width: AppDesignSystem.space1),
                     Icon(
-                      tab.kind.icon,
+                      tab.container.icon,
                       size: 12,
                       color: colors.textMuted,
                     ),

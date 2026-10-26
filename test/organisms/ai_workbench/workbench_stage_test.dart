@@ -31,9 +31,6 @@ import 'package:dbmaster/models/query_optimizer/execution_plan.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_focus_zones.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_mongo_schema_view.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_observe_content.dart';
-import 'package:dbmaster/organisms/ai_workbench/workbench_query_history_view.dart';
-import 'package:dbmaster/organisms/ai_workbench/workbench_saved_query_list_view.dart';
-import 'package:dbmaster/organisms/ai_workbench/workbench_session_list_view.dart';
 import 'package:dbmaster/organisms/ai_workbench/workbench_stage.dart';
 import 'package:dbmaster/organisms/editor/re_sql_editor.dart';
 import 'package:dbmaster/organisms/mongodb/schema_view/schema_nested_expander.dart';
@@ -41,11 +38,6 @@ import 'package:dbmaster/organisms/query_optimizer/query_plan_visualizer.dart';
 import 'package:dbmaster/organisms/results/chart_view.dart';
 import 'package:dbmaster/organisms/results/virtualized_data_table.dart';
 import 'package:dbmaster/providers/app_provider.dart';
-// tab_provider.QueryTab（保存查询的真身）与 database_models.QueryTab 同名，
-// 本文件已 import 后者——以库前缀取前者（SavedQueryTab 别名见用例内注释）。
-import 'package:dbmaster/providers/tab_provider.dart'
-    as saved_query_tab
-    show QueryTab;
 import 'package:dbmaster/services/ai/agent/agent_ui_port.dart';
 import 'package:dbmaster/theme/app_colors.dart';
 
@@ -299,6 +291,8 @@ void main() {
     testWidgets(
       '激活 tab 底 primaryContainer + 标签 textPrimary；非激活 textSecondary',
       (tester) async {
+        // 批3：tab 条标签恒为容器标签（同容器多 tab 标签同文——用 itemKey
+        // descendant 定位各自标签，不以文本全局定位）。
         final t1 = controller.openGrid(_ref('res_1', rows: _numericRows), 'R1');
         controller.openGrid(_ref('res_2', rows: _numericRows), 'R2');
         controller.activateTab(0);
@@ -317,29 +311,42 @@ void main() {
         final label = tester.widget<Text>(
           find.descendant(
             of: find.byKey(WorkbenchStage.tabItemKey(t1.id)),
-            matching: find.text('R1'),
+            matching: find.byType(Text),
           ),
         );
         expect(label.style?.color, colors.textPrimary);
+        expect(label.data, 'Data & Viz', reason: '容器标签（注册表单源）');
 
-        final inactiveLabel = tester.widget<Text>(find.text('R2'));
+        final inactive = tester.widget<AnimatedContainer>(
+          find.byKey(
+            WorkbenchStage.tabItemKey(controller.tabs[1].id),
+          ),
+        );
+        expect(
+          (inactive.decoration as BoxDecoration).color,
+          Colors.transparent,
+        );
+        final inactiveLabel = tester.widget<Text>(
+          find.descendant(
+            of: find.byKey(WorkbenchStage.tabItemKey(controller.tabs[1].id)),
+            matching: find.byType(Text),
+          ),
+        );
         expect(inactiveLabel.style?.color, colors.textSecondary);
       },
     );
 
-    testWidgets('标签超 200 → ellipsis 且 tooltip 为全 label', (tester) async {
-      final longLabel = 'A very long stage tab label that must be truncated';
+    testWidgets('tab 上限宽 200 + tooltip 承载容器标签（批3：标签恒容器级）', (tester) async {
       final tab = controller.openGrid(
         _ref('res_1', rows: _numericRows),
-        longLabel,
+        'A very long artifact label that must be truncated somewhere',
       );
       await _pump(tester, controller);
 
-      final label = tester.widget<Text>(find.text(longLabel));
-      expect(label.overflow, TextOverflow.ellipsis);
+      // tab 条显示容器标签（title 不再上 tab 条——产物芯片与重开菜单消费）。
+      final label = tester.widget<Text>(find.text('Data & Viz'));
       expect(label.maxLines, 1);
-      // tooltip 承载被截断的全文（§0.4）。
-      expect(find.byTooltip(longLabel), findsOneWidget);
+      expect(find.byTooltip('Data & Viz'), findsOneWidget);
       final itemRect = tester.getRect(
         find.byKey(WorkbenchStage.tabItemKey(tab.id)),
       );
@@ -347,13 +354,21 @@ void main() {
         itemRect.width,
         lessThanOrEqualTo(AppDesignSystem.workbenchStageTabMaxWidth + 1),
       );
+      // 长 title 不上 tab 条（容器收敛后条内零重名歧义）。
+      expect(
+        find.text('A very long artifact label that must be truncated somewhere'),
+        findsNothing,
+      );
     });
   });
 
   group('§5.4-5 溢出滚动与键盘', () {
     testWidgets('20 tab 横向滚动可用；新开 tab 自动滚入视口', (tester) async {
+      final ids = <String>[];
       for (var i = 0; i < 20; i++) {
-        controller.openGrid(_ref('res_$i', rows: _numericRows), 'Tab $i');
+        ids.add(
+          controller.openGrid(_ref('res_$i', rows: _numericRows), 'Tab $i').id,
+        );
       }
       await _pump(tester, controller);
 
@@ -390,8 +405,8 @@ void main() {
       await _pump(tester, controller);
 
       // 激活 tab（19）已被自动滚入视口：点它进入 tab 焦点组（onActivate 内
-      // requestFocus）。
-      await tester.tap(find.text('Tab 19'));
+      // requestFocus）。批3：标签恒容器级——以 itemKey 定位点击。
+      await tester.tap(find.byKey(WorkbenchStage.tabItemKey(ids[19])));
       await tester.pumpAndSettle();
       expect(_focusedTabId(), ids[19]);
 
@@ -561,38 +576,44 @@ void main() {
     });
   });
 
-  group('§5.3 打开时机与 §6.3 pin 语义（controller）', () {
-    test('openXxx 自动开舞台 + 激活新 tab；同 refId 网格/图表去重', () {
+  group('§5.3 打开时机与 §6.3 pin 语义（controller；批3 容器口径）', () {
+    test('openXxx 自动开舞台 + 激活；同 refId grid/chart 收敛单容器 tab'
+        '（B-01 UI35-306a）', () {
       expect(controller.stageVisible, isFalse);
       controller.openGrid(_ref('res_1'), null);
       expect(controller.stageVisible, isTrue);
       expect(controller.activeTabIndex, 0);
 
+      // 批3：同 refId chart → 复用同一 dataViz 容器 tab（切 chart 子态）。
       controller.openChart(_ref('res_1'), null);
-      expect(controller.tabs.length, 2);
-      expect(controller.activeTabIndex, 1);
-
-      // 同 refId 网格重开 → 复用激活。
-      controller.openGrid(_ref('res_1'), '标题');
-      expect(controller.tabs.length, 2);
+      expect(controller.tabs.length, 1);
       expect(controller.activeTabIndex, 0);
+      expect(controller.activeTab?.subKind, DataVizSubKind.chart);
+
+      // 同 refId 网格重开 → 复用并切回 grid 子态。
+      controller.openGrid(_ref('res_1'), '标题');
+      expect(controller.tabs.length, 1);
+      expect(controller.activeTab?.subKind, DataVizSubKind.grid);
       expect(controller.tabs.first.title, '标题');
 
       // 同表结构重开 → 复用。
       controller.openStructure(_structure());
       controller.openStructure(_structure());
       expect(
-        controller.tabs.where((t) => t.kind == WorkbenchStageTabKind.structure),
+        controller.tabs.where(
+          (t) => t.container == WorkbenchStageContainerKind.schema,
+        ),
         hasLength(1),
       );
     });
 
-    test('pinArtifact 不改舞台可见性；建 pinned 网格 tab；幂等', () {
+    test('pinArtifact 不改舞台可见性；建 pinned dataViz tab；幂等', () {
       expect(controller.stageVisible, isFalse);
       final tab = controller.pinArtifact(_ref('res_1'), '产物 A');
       expect(controller.stageVisible, isFalse); // §6.3：钉入不开舞台
       expect(tab.pinned, isTrue);
-      expect(tab.kind, WorkbenchStageTabKind.grid);
+      expect(tab.container, WorkbenchStageContainerKind.dataViz);
+      expect(tab.subKind, DataVizSubKind.grid);
       expect(controller.pinnedTabs.map((t) => t.id), [tab.id]);
 
       // 同 ref 再钉 → 幂等（不建第二个）。
@@ -666,23 +687,39 @@ void main() {
       expect(find.text('No Data'), findsOneWidget);
     });
 
-    testWidgets('结构卡：describe 四件分组 + PK/NN 徽标 + 表名标签', (tester) async {
+    testWidgets('Schema 容器：columns/indexes/ddl 三子段分段切换 + 徽标'
+        '（批3：分段标签即子段标题，外键归并 indexes 子段）', (tester) async {
       controller.openStructure(_structure());
       await _pump(tester, controller);
+      // 默认 columns 子段：分段三标签 + 列行 + PK/NN 徽标。
       expect(find.text('Columns'), findsOneWidget);
       expect(find.text('Indexes'), findsOneWidget);
-      expect(find.text('Foreign Keys'), findsOneWidget);
       expect(find.text('DDL'), findsOneWidget);
       expect(find.text('PK'), findsOneWidget);
       expect(find.text('NN'), findsOneWidget);
+      expect(
+        find.text('idx_status'),
+        findsNothing,
+        reason: '默认 columns 子段不渲染索引行',
+      );
+
+      // 切 indexes 子段：索引行 + 外键行（键族归并呈现）。
+      await tester.tap(find.text('Indexes'));
+      await tester.pumpAndSettle();
       expect(find.text('idx_status'), findsOneWidget);
       expect(find.text('customer_id → customers.id'), findsOneWidget);
+
+      // 切 ddl 子段：CREATE TABLE 块。
+      await tester.tap(find.text('DDL'));
+      await tester.pumpAndSettle();
       expect(
         find.text('CREATE TABLE orders (id bigint NOT NULL PRIMARY KEY);'),
         findsOneWidget,
       );
-      // 表名即 tab 标签。
-      expect(find.text('orders'), findsOneWidget);
+      // 表名进 title（产物芯片/重开菜单消费），不上 tab 条（容器标签）。
+      expect(find.text('orders'), findsNothing);
+      expect(find.text('Schema'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('编辑器槽：载入 SQL 可见（ReSqlEditor），无自动执行入口', (tester) async {
@@ -727,225 +764,11 @@ void main() {
     });
   });
 
-  group('v2 A2 sessionList kind（单例 / 激活 / 槽渲染）', () {
-    test('openSessions 单例：不可见 → 自动可见 + 激活；重复打开复用（tab 恒 1）', () {
-      expect(controller.stageVisible, isFalse);
-      final first = controller.openSessions();
-      expect(
-        controller.stageVisible,
-        isTrue,
-        reason: '§8-2：舞台不可见时点击 → 自动可见（沿 _openTab 既有语义）',
-      );
-      expect(controller.activeTabIndex, 0);
+  // 批3 B-01：sessionList/history/savedQueries 三组用例随舞台枚举退役删除
+  // （三抽屉改由 rail 196 内容页唯一承载——组件面覆盖见
+  // workbench_session_rail_test.dart；载入编辑器槽动线随 rail 既有用例）。
 
-      // 重复打开（收窄态活动条重复点击）→ 复用激活，不重复建。
-      final again = controller.openSessions();
-      expect(again.id, first.id, reason: 'match = kind 即命中：复用同一 tab');
-      expect(controller.tabs, hasLength(1));
-
-      // 与其它 kind 混合时仍单例，且重开即激活（sessionList 建于首位）。
-      controller.openGrid(_ref('res_1'), null);
-      expect(controller.tabs, hasLength(2));
-      controller.openSessions();
-      expect(
-        controller.tabs.where(
-          (t) => t.kind == WorkbenchStageTabKind.sessionList,
-        ),
-        hasLength(1),
-        reason: 'sessionList tab 恒 1',
-      );
-      expect(controller.activeTab?.kind, WorkbenchStageTabKind.sessionList);
-      expect(controller.activeTabIndex, 0, reason: '激活切回复用的 sessionList tab');
-    });
-
-    testWidgets('slot 渲染 SessionListView 全宽形态（v2 §8-5 byType 同源）', (
-      tester,
-    ) async {
-      controller.openSessions();
-      final app = AppProvider();
-      await tester.pumpWidget(
-        ChangeNotifierProvider<AppProvider>.value(
-          value: app,
-          child: _wrap(WorkbenchStage(controller: controller)),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.byType(SessionListView), findsOneWidget);
-      // 头栏（含新建入口）随 tab 形态保留——补收窄态新建下线缺口（§6.1 步骤 4）。
-      expect(
-        find.byKey(const ValueKey('workbench_new_session_button')),
-        findsOneWidget,
-      );
-      expect(tester.takeException(), isNull);
-    });
-  });
-
-  group('v2 A3 history kind（单例 / 激活 / 槽渲染 / 载入动线）', () {
-    test('openHistory 单例：不可见 → 自动可见 + 激活；重复打开复用（tab 恒 1）', () {
-      expect(controller.stageVisible, isFalse);
-      final first = controller.openHistory();
-      expect(
-        controller.stageVisible,
-        isTrue,
-        reason: '§8-2：舞台不可见时点击 → 自动可见（沿 _openTab 既有语义）',
-      );
-      expect(controller.activeTabIndex, 0);
-
-      // 重复打开（收窄态活动条重复点击历史图标）→ 复用激活，不重复建。
-      final again = controller.openHistory();
-      expect(again.id, first.id, reason: 'match = kind 即命中：复用同一 tab');
-      expect(controller.tabs, hasLength(1));
-
-      // 与其它 kind 混合时仍单例，且重开即激活（history 建于首位）。
-      controller.openGrid(_ref('res_1'), null);
-      expect(controller.tabs, hasLength(2));
-      controller.openHistory();
-      expect(
-        controller.tabs.where((t) => t.kind == WorkbenchStageTabKind.history),
-        hasLength(1),
-        reason: 'history tab 恒 1',
-      );
-      expect(controller.activeTab?.kind, WorkbenchStageTabKind.history);
-      expect(controller.activeTabIndex, 0, reason: '激活切回复用的 history tab');
-    });
-
-    testWidgets('slot 渲染 QueryHistoryListView 全宽形态（§8-5 byType 同源）'
-        '+ Enter 载入 openEditorSlot（rail 与 tab 同回调）', (tester) async {
-      controller.openHistory();
-      final app = AppProvider();
-      // 播种一条历史（真实 provider 公有 API；§8-3 载入动线在舞台 tab 内走通）。
-      await app.queryHistory.addQueryHistory(
-        sql: 'SELECT 7 AS seven',
-        connectionId: 'conn_history',
-        connectionName: 'Local MySQL',
-      );
-      await tester.pumpWidget(
-        ChangeNotifierProvider<AppProvider>.value(
-          value: app,
-          child: _wrap(WorkbenchStage(controller: controller)),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.byType(QueryHistoryListView), findsOneWidget);
-
-      // 载入动线：单击行（聚焦 + 展开）→ Enter → 编辑器槽落地且 SQL 一致。
-      // 单击回调被 onTap+onDoubleTap 双击判别窗延迟（≈300ms），pump 一步
-      // 越窗让 onTap（聚焦）落地后再发 Enter。
-      await tester.tap(find.text('SELECT 7 AS seven'));
-      await tester.pump(const Duration(milliseconds: 350));
-      await tester.pumpAndSettle();
-      await _press(tester, LogicalKeyboardKey.enter);
-      await tester.pumpAndSettle();
-
-      expect(
-        controller.activeTab?.kind,
-        WorkbenchStageTabKind.editor,
-        reason: '载入 = openEditorSlot（AC5.2 载入不执行）',
-      );
-      expect(controller.activeTab?.initialSql, 'SELECT 7 AS seven');
-      expect(
-        controller.tabs.map((t) => t.kind),
-        containsAll([
-          WorkbenchStageTabKind.history,
-          WorkbenchStageTabKind.editor,
-        ]),
-      );
-      // 载入不执行：槽内无执行入口（沿 queryExecute 文案检索）。
-      expect(find.text('Execute'), findsNothing);
-      expect(tester.takeException(), isNull);
-    });
-  });
-
-  group('v2 A4 savedQueries kind（单例 / 激活 / 槽渲染 / 载入动线）', () {
-    test('openSavedQueries 单例：不可见 → 自动可见 + 激活；重复打开复用（tab 恒 1）', () {
-      expect(controller.stageVisible, isFalse);
-      final first = controller.openSavedQueries();
-      expect(
-        controller.stageVisible,
-        isTrue,
-        reason: '§8-2：舞台不可见时点击 → 自动可见（沿 _openTab 既有语义）',
-      );
-      expect(controller.activeTabIndex, 0);
-
-      // 重复打开（收窄态活动条重复点击保存的查询图标）→ 复用激活，不重复建。
-      final again = controller.openSavedQueries();
-      expect(again.id, first.id, reason: 'match = kind 即命中：复用同一 tab');
-      expect(controller.tabs, hasLength(1));
-
-      // 与其它 kind 混合时仍单例，且重开即激活（savedQueries 建于首位）。
-      controller.openGrid(_ref('res_1'), null);
-      expect(controller.tabs, hasLength(2));
-      controller.openSavedQueries();
-      expect(
-        controller.tabs.where(
-          (t) => t.kind == WorkbenchStageTabKind.savedQueries,
-        ),
-        hasLength(1),
-        reason: 'savedQueries tab 恒 1（A4 要点 ⑤）',
-      );
-      expect(controller.activeTab?.kind, WorkbenchStageTabKind.savedQueries);
-      expect(controller.activeTabIndex, 0, reason: '激活切回复用的 savedQueries tab');
-    });
-
-    testWidgets('slot 渲染 SavedQueryListView 全宽形态（§8-5 byType 同源）'
-        '+ Enter 载入 openEditorSlot（rail 与 tab 同回调，零执行）', (tester) async {
-      controller.openSavedQueries();
-      final app = AppProvider();
-      // 播种一条保存查询（真实 provider 公有 API saveQuery，与经典侧同源）。
-      await app.tab.saveQuery(
-        // tab_provider.QueryTab（保存查询的真身）与 database_models.QueryTab
-        // 同名，此处经库前缀取前者（import 处别名注释）。
-        saved_query_tab.QueryTab(
-          id: 'q_stage',
-          title: 'Stage users',
-          sql: 'SELECT 9 AS nine',
-          connectionId: 'conn_stage',
-          databaseName: 'db_stage',
-        ),
-      );
-      await tester.pumpWidget(
-        ChangeNotifierProvider<AppProvider>.value(
-          value: app,
-          child: _wrap(WorkbenchStage(controller: controller)),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.byType(SavedQueryListView), findsOneWidget);
-      expect(find.text('Stage users'), findsOneWidget);
-      expect(find.text('db_stage'), findsOneWidget, reason: '全量态注记 = 连接名/库名分段');
-
-      // 载入动线：单击行（聚焦）→ Enter → 编辑器槽落地且 SQL 一致。
-      // 单击回调被 onTap+onDoubleTap 双击判别窗延迟（≈300ms），pump 一步
-      // 越窗让 onTap（聚焦）落地后再发 Enter。
-      await tester.tap(find.text('Stage users'));
-      await tester.pump(const Duration(milliseconds: 350));
-      await tester.pumpAndSettle();
-      await _press(tester, LogicalKeyboardKey.enter);
-      await tester.pumpAndSettle();
-
-      expect(
-        controller.activeTab?.kind,
-        WorkbenchStageTabKind.editor,
-        reason: '载入 = openEditorSlot（AC5.2 载入不执行）',
-      );
-      expect(controller.activeTab?.initialSql, 'SELECT 9 AS nine');
-      expect(
-        controller.tabs.map((t) => t.kind),
-        containsAll([
-          WorkbenchStageTabKind.savedQueries,
-          WorkbenchStageTabKind.editor,
-        ]),
-      );
-      // 载入不执行：槽内无执行入口（沿 queryExecute 文案检索）。
-      expect(find.text('Execute'), findsNothing);
-      expect(tester.takeException(), isNull);
-    });
-  });
-
-  group('v2 B1 execution kind（写入/DDL 执行结果摘要 tab）', () {
+  group('diagnostics 容器 explainPlan 子态（execution 投影，批3 容器口径）', () {
     /// 混合批投影样例：done（写，行数缺失降级）/ failed（错误全文）/
     /// skipped（无指标）/ done（只读有行数）——覆盖三态与降级两形态。
     StageExecutionData batch({String tabKey = 'manual', String? title}) =>
@@ -983,7 +806,8 @@ void main() {
       final first = controller.openExecution(batch());
       expect(controller.stageVisible, isTrue);
       expect(controller.activeTabIndex, 0);
-      expect(first.kind, WorkbenchStageTabKind.execution);
+      expect(first.container, WorkbenchStageContainerKind.diagnostics);
+      expect(first.subKind, DiagnosticsSubKind.explainPlan);
 
       // R4 复用刷新：同 tabKey → 同 tab，标题与数据载荷以新值为准。
       final second = controller.openExecution(
@@ -1120,8 +944,8 @@ void main() {
     });
   });
 
-  group('2b.1 observe kind（单例 / 槽渲染 / 未锁空态）', () {
-    test('openObserve 单例：不可见 → 自动可见 + 激活；重复打开复用（tab 恒 1）', () {
+  group('diagnostics 容器 liveMonitor 子态（observe 语义，批3 容器口径）', () {
+    test('openObserve：不可见 → 自动可见 + 激活；重复打开复用（容器 tab 恒 1）', () {
       expect(controller.stageVisible, isFalse);
       final first = controller.openObserve();
       expect(
@@ -1141,11 +965,16 @@ void main() {
       expect(controller.tabs, hasLength(2));
       controller.openObserve();
       expect(
-        controller.tabs.where((t) => t.kind == WorkbenchStageTabKind.observe),
+        controller.tabs.where(
+          (t) => t.container == WorkbenchStageContainerKind.diagnostics,
+        ),
         hasLength(1),
-        reason: 'observe tab 恒 1',
+        reason: 'diagnostics 容器 tab 恒 1（observe 复用）',
       );
-      expect(controller.activeTab?.kind, WorkbenchStageTabKind.observe);
+      expect(
+        controller.activeTab?.subKind,
+        DiagnosticsSubKind.liveMonitor,
+      );
       expect(controller.activeTabIndex, 0, reason: '激活切回复用的 observe tab');
     });
 
@@ -1170,7 +999,7 @@ void main() {
     });
   });
 
-  group('2b.2b structure×Mongo（openMongoStructure / 去重 / slot）', () {
+  group('schema 容器 Mongo 分支（openMongoStructure / 去重 / slot，批3 容器口径）', () {
     StageMongoStructureData mongo(
       String collection, {
       String connectionId = 'conn_mongo',
@@ -1181,13 +1010,14 @@ void main() {
       collectionName: collection,
     );
 
-    test('openMongoStructure 建 structure kind tab：载荷完整 + title 默认 ='
+    test('openMongoStructure 建 schema 容器 tab：载荷完整 + title 默认 ='
         ' collectionName + 自动可见激活', () {
       expect(controller.stageVisible, isFalse);
       final tab = controller.openMongoStructure(mongo('users'));
       expect(controller.stageVisible, isTrue);
       expect(controller.activeTabIndex, 0);
-      expect(tab.kind, WorkbenchStageTabKind.structure);
+      expect(tab.container, WorkbenchStageContainerKind.schema);
+      expect(tab.subKind, SchemaSubKind.columns);
       expect(tab.structure, isNull, reason: 'mongo tab 的 structure 恒 null');
       expect(tab.mongoStructure?.connectionId, 'conn_mongo');
       expect(tab.mongoStructure?.databaseName, 'mydb');
@@ -1284,7 +1114,7 @@ void main() {
   });
 
   group(
-    '2b.3 optimization kind（建 tab / 同 SQL 复用刷新 / 异 SQL 各开各的 / SQL 头块 / onApplyDdl 零执行）',
+    'sqlStudio 容器 diff 子态（optimization 投影，批3 容器口径）',
     () {
       StageOptimizationData opt(
         String sql, {
@@ -1300,7 +1130,8 @@ void main() {
         final tab = controller.openOptimization(opt('SELECT * FROM big_table'));
         expect(controller.stageVisible, isTrue);
         expect(controller.activeTabIndex, 0);
-        expect(tab.kind, WorkbenchStageTabKind.optimization);
+        expect(tab.container, WorkbenchStageContainerKind.sqlStudio);
+        expect(tab.subKind, SqlStudioSubKind.diff);
         expect(tab.optimization?.sql, 'SELECT * FROM big_table');
         expect(tab.optimization?.report, isNotNull);
         expect(tab.optimization?.report.executionPlan.steps, hasLength(1));
@@ -1360,8 +1191,10 @@ void main() {
           ),
           findsOneWidget,
         );
-        // tab 条标签 = 类型标签回退（§8-7 注册表单源：agentStageTabOptimization）。
-        expect(find.text('Optimization'), findsOneWidget);
+        // 批3：tab 条标签 = 容器标签（SQL Studio）；分段 Editor/Diff 可见。
+        expect(find.text('SQL Studio'), findsOneWidget);
+        expect(find.text('Diff'), findsOneWidget);
+        expect(find.text('Editor'), findsOneWidget);
         // 报告含带 DDL 的索引推荐 → 「应用此索引」按钮在树（fill 不 execute）。
         expect(
           find.descendant(
@@ -1385,20 +1218,19 @@ void main() {
         await tester.tap(find.text('Apply This Index'));
         await tester.pumpAndSettle();
 
-        // 编辑器槽收到 DDL 精确串（tab 形态 = editor，载入不自动执行 AC5.2）。
-        final editorTab = controller.tabs.firstWhere(
-          (t) => t.kind == WorkbenchStageTabKind.editor,
-        );
+        // 批3 容器收敛：DDL 落入同一 sqlStudio 容器 tab（edit 子态装载，
+        // 载入不自动执行 AC5.2）——optimization 载荷与编辑槽同容器共存。
+        final studioTab = controller.tabs.single;
         expect(
-          editorTab.initialSql,
+          studioTab.container,
+          WorkbenchStageContainerKind.sqlStudio,
+        );
+        expect(studioTab.subKind, SqlStudioSubKind.edit);
+        expect(
+          studioTab.initialSql,
           'CREATE INDEX idx_big_table_val ON big_table (val)',
         );
-        expect(controller.activeTabIndex, controller.tabs.indexOf(editorTab));
-        expect(
-          controller.tabs,
-          hasLength(2),
-          reason: 'optimization tab 仍在 + 新开编辑器槽（不覆盖）',
-        );
+        expect(controller.activeTabIndex, 0);
         // 零执行调用：编辑器槽内容组件无任何执行入口，widget 测试环境亦无
         // dbService 接入——「应用此索引」的唯一效果就是编辑器槽文本装载。
         expect(tester.takeException(), isNull);
@@ -1407,15 +1239,15 @@ void main() {
   );
 
   group('走查修复批件②：最近关闭栈（controller，AI-WF-001~008）', () {
-    /// 10 kind 全集逐一 open（A2-1 前置；kind 枚举全集断言保证无遗漏）。
-    void openAllKinds() {
-      controller.openGrid(_ref('k_grid', rows: _numericRows), 'G');
-      controller.openStructure(_structure());
-      controller.openEditorSlot('SELECT 1');
-      controller.openChart(_ref('k_chart'), null);
-      controller.openSessions();
-      controller.openHistory();
-      controller.openSavedQueries();
+    /// 批3 B-01：4 容器全覆盖逐一 open（openSessions 等三 API 随枚举退役
+    /// 删除；grid/chart 同 refId 收敛单 dataViz tab；observe 复用 execution
+    /// 的 diagnostics tab；optimization 落地 editor 的 sqlStudio tab——
+    /// 覆盖矩阵 = 每容器 ≥1 tab + 收敛/复用两语义）。
+    void openAllContainers() {
+      controller.openGrid(_ref('k_grid', rows: _numericRows), 'G'); // dataViz
+      controller.openStructure(_structure()); // schema
+      controller.openEditorSlot('SELECT 1'); // sqlStudio
+      controller.openChart(_ref('k_chart'), null); // dataViz（异 refId 各开）
       controller.openExecution(
         const StageExecutionData(
           tabKey: 'manual',
@@ -1424,35 +1256,37 @@ void main() {
             StageExecutionRow(sql: 'INSERT 1', status: StageExecutionStatus.done),
           ],
         ),
-      );
-      controller.openObserve();
+      ); // diagnostics
+      controller.openObserve(); // 复用 diagnostics tab（liveMonitor）
       controller.openOptimization(
         StageOptimizationData(
           sql: 'SELECT * FROM big_table WHERE val = 1',
           report: _optimizationReport(),
         ),
-      );
+      ); // 落地 sqlStudio tab（diff）
     }
 
-    test('closeTab 压栈：被移除对象在栈顶；全 kind（10 种）逐一入栈无例外（A2-1）', () {
-      openAllKinds();
-      expect(controller.tabs, hasLength(10));
+    test('closeTab 压栈：被移除对象在栈顶；四容器全覆盖逐 tab 入栈无例外（A2-1 批3 口径）', () {
+      openAllContainers();
+      // 5 tab：dataViz ×2（grid + chart 异 refId）+ schema + sqlStudio（editor
+      // 与 optimization 同容器）+ diagnostics（execution 与 observe 同容器）。
+      expect(controller.tabs, hasLength(5));
       expect(
-        controller.tabs.map((t) => t.kind).toSet(),
-        WorkbenchStageTabKind.values.toSet(),
-        reason: '10 kind 全集各一 tab',
+        controller.tabs.map((t) => t.container).toSet(),
+        WorkbenchStageContainerKind.values.toSet(),
+        reason: '4 容器全覆盖',
       );
       // 从末尾逐个关闭（下标稳定）。
-      for (var i = 9; i >= 0; i--) {
+      for (var i = 4; i >= 0; i--) {
         final victim = controller.tabs[i];
         controller.closeTab(i);
         expect(
           controller.recentlyClosedTabs.first.id,
           victim.id,
-          reason: '被移除对象在栈顶（${victim.kind.name}）',
+          reason: '被移除对象在栈顶（${victim.container.name}/${victim.subKind.runtimeType}）',
         );
       }
-      expect(controller.recentlyClosedTabs, hasLength(10));
+      expect(controller.recentlyClosedTabs, hasLength(5));
     });
 
     test('封顶 10：连关 11 tab → 栈长 10，最先关闭者被逐出栈底（A2-2）', () {
@@ -1617,7 +1451,7 @@ void main() {
       expect(reopenOpacity().opacity, 1.0);
     });
 
-    testWidgets('尾部两钮几何：命中区 ≥28 宽 × 条内区全高（A1-7）；收起钮 tap → stageVisible false（A1-2 组件面）', (tester) async {
+    testWidgets('尾部两钮几何：重开 ≥28 / 收起 24 宽 × 条内区全高（批3 B-02，架构追认 2026-10-26：与条内 _StageBarAction 同形态）（A1-7）；收起钮 tap → stageVisible false（A1-2 组件面）', (tester) async {
       controller.openGrid(_ref('r1'), 'R1');
       await _pump(tester, controller);
       expect(controller.stageVisible, isTrue);
@@ -1632,7 +1466,10 @@ void main() {
       // 被 border 内缩，tab 项同款钳制）——两钮贴满条内区全高。
       expect(reopenRect.width, greaterThanOrEqualTo(28));
       expect(reopenRect.height, greaterThanOrEqualTo(31));
-      expect(collapseRect.width, greaterThanOrEqualTo(28));
+      // 批3 B-02（架构追认 2026-10-26）：收起钮迁容器 tab 条右端，
+      // 24 宽 × 条全高条形动作钮（原 28 宽收窄；「24×24」判定为冻结尺寸
+      // 简写不精确，追认条形读法——与条内 _StageBarAction 先例同形态）。
+      expect(collapseRect.width, closeTo(24, 0.5));
       expect(collapseRect.height, greaterThanOrEqualTo(31));
       // 收起钮贴最右缘、重开在左（S2 布局）。
       expect(collapseRect.right, greaterThan(reopenRect.right));
@@ -1672,13 +1509,19 @@ void main() {
         lessThan(tester.getCenter(itemObs).dy),
       );
 
-      // 图标 = 注册表 kind.icon；标题 = title ?? kind.label。
+      // 批3：图标 = 注册表 container.icon；标题 = title ?? container.label
+      //（observe tab → Diagnostics 容器 + squareTerminal 图标）。
       expect(
-        find.descendant(of: itemObs, matching: find.byIcon(LucideIcons.activity)),
+        find.descendant(
+          of: itemObs,
+          matching: find.byIcon(LucideIcons.squareTerminal),
+        ),
         findsOneWidget,
       );
-      expect(find.descendant(of: itemObs, matching: find.text('Observe')),
-          findsOneWidget);
+      expect(
+        find.descendant(of: itemObs, matching: find.text('Diagnostics')),
+        findsOneWidget,
+      );
       expect(
         find.descendant(of: itemStruct, matching: find.byIcon(LucideIcons.listTree)),
         findsOneWidget,
@@ -1858,18 +1701,11 @@ void main() {
 
   group('A5 焦点区注册（F6：舞台 tab 条 + 内容区）', () {
     testWidgets('挂载注册两区；tab 条入口 = 聚焦激活 tab；内容区入口 = 激活槽首个可聚焦元素', (tester) async {
+      // 批3：sessionList 退役——改用 sqlStudio 容器（edit 子态）承载内容区
+      // 入口断言。
       final registry = WorkbenchFocusZoneRegistry();
-      controller.openSessions();
-      final app = AppProvider();
-      await tester.pumpWidget(
-        ChangeNotifierProvider<AppProvider>.value(
-          value: app,
-          child: _wrap(
-            WorkbenchStage(controller: controller, zoneRegistry: registry),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
+      controller.openEditorSlot('SELECT 1');
+      await _pump(tester, controller, zoneRegistry: registry);
 
       expect(registry.isRegistered(WorkbenchFocusZone.stageTabBar), isTrue);
       expect(registry.isRegistered(WorkbenchFocusZone.stageContent), isTrue);
@@ -1881,13 +1717,13 @@ void main() {
       expect(activeTabId, isNotNull);
       expect(_focusedTabId(), activeTabId);
 
-      // 内容区入口：激活槽（sessionList）首个可聚焦元素 = 头栏新建钮。
+      // 内容区入口：sqlStudio 容器首个可聚焦元素（分段 Editor，顶部左首）。
       expect(registry.focus(WorkbenchFocusZone.stageContent), isTrue);
       await tester.pump();
       expect(
-        _focusWithinKey(const ValueKey('workbench_new_session_button')),
+        _focusWithinKey(WorkbenchStage.contentAreaKey),
         isTrue,
-        reason: 'sessionList 槽首可聚焦元素 = SessionListView 头栏新建钮',
+        reason: '容器内容首可聚焦元素（分段控件）落在内容区内',
       );
     });
 
@@ -1913,6 +1749,135 @@ void main() {
 
       expect(registry.isRegistered(WorkbenchFocusZone.stageTabBar), isFalse);
       expect(registry.isRegistered(WorkbenchFocusZone.stageContent), isFalse);
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 批3 T7 实现期补断言（红测文件申报的「实现期补」三项）：
+  // AI 推测字段虚线框（UI35-307/308）/ 取数不重复（UI35-306 spy 等价）/
+  // 编译级类型完备性（UI35-302~304——旧枚举删除只能编译期验证，此处补
+  // 新枚举值集完备断言）。
+  // ──────────────────────────────────────────────────────────────────────────
+
+  group('批3 UI35-302~304 编译级类型完备性（新枚举值集）', () {
+    test('四容器枚举值集 = 冻结契约（sqlStudio/dataViz/schema/diagnostics）', () {
+      expect(
+        WorkbenchStageContainerKind.values.map((v) => v.name).toList(),
+        ['sqlStudio', 'dataViz', 'schema', 'diagnostics'],
+        reason: 'B-01 冻结枚举逐字',
+      );
+    });
+
+    test('四容器子态枚举值集逐字（edit/diff、grid/chart、columns/indexes/ddl、'
+        'explainPlan/liveMonitor）', () {
+      expect(
+        SqlStudioSubKind.values.map((v) => v.name).toList(),
+        ['edit', 'diff'],
+      );
+      expect(
+        DataVizSubKind.values.map((v) => v.name).toList(),
+        ['grid', 'chart'],
+      );
+      expect(
+        SchemaSubKind.values.map((v) => v.name).toList(),
+        ['columns', 'indexes', 'ddl'],
+      );
+      expect(
+        DiagnosticsSubKind.values.map((v) => v.name).toList(),
+        ['explainPlan', 'liveMonitor'],
+      );
+    });
+
+    test('四容器子枚举统一实现 WorkbenchStageSubKind 标记接口（分段路由类型面）',
+        () {
+      for (final v in SqlStudioSubKind.values) {
+        expect(v, isA<WorkbenchStageSubKind>());
+      }
+      for (final v in DataVizSubKind.values) {
+        expect(v, isA<WorkbenchStageSubKind>());
+      }
+      for (final v in SchemaSubKind.values) {
+        expect(v, isA<WorkbenchStageSubKind>());
+      }
+      for (final v in DiagnosticsSubKind.values) {
+        expect(v, isA<WorkbenchStageSubKind>());
+      }
+    });
+  });
+
+  group('批3 UI35-306 取数不重复（chart 子态共享结果集 spy 等价）', () {
+    testWidgets('grid→chart→grid 切换：resultRef 同一实例（同一数据源，不重新取数）', (
+      tester,
+    ) async {
+      final shared = _ref(
+        'res_shared_spy',
+        columns: const ['id', 'amount'],
+        rows: _numericRows,
+      );
+      controller.openGrid(shared, null);
+      await _pump(tester, controller);
+      final tab = controller.tabs.single;
+      expect(identical(tab.resultRef, shared), isTrue, reason: '前置：同实例');
+
+      // 切 chart 子态：分段回写 selectSubKind——载荷引用不变（不重新取数）。
+      controller.selectSubKind(tab.id, DataVizSubKind.chart);
+      await tester.pumpAndSettle();
+      expect(find.byType(ChartView), findsOneWidget, reason: 'chart 子态渲染');
+      expect(
+        identical(controller.tabs.single.resultRef, shared),
+        isTrue,
+        reason: 'chart 切换不换数据源实例',
+      );
+
+      // 切回 grid：网格回归同一引用。
+      controller.selectSubKind(tab.id, DataVizSubKind.grid);
+      await tester.pumpAndSettle();
+      expect(find.byType(VirtualizedDataTable), findsOneWidget);
+      expect(identical(controller.tabs.single.resultRef, shared), isTrue);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('批3 UI35-307/308 AI 推测字段虚线框（不写回）', () {
+    testWidgets('aiInferredColumns 非空 → columns 子段虚线框 + 注记文案；'
+        '零按钮零回调（不写回 schema）', (tester) async {
+      controller.openStructure(
+        StageStructureData(
+          tableName: 'orders',
+          columns: [
+            DbColumn(
+              name: 'id',
+              type: 'bigint',
+              isPrimaryKey: true,
+              isNullable: false,
+            ),
+          ],
+          indexes: const [],
+          foreignKeys: const [],
+          ddl: null,
+          aiInferredColumns: [
+            StageAiInferredColumn(
+              column: DbColumn(name: 'tenant_id', type: 'bigint'),
+              note: 'sampled 9/10 rows non-null',
+            ),
+          ],
+        ),
+      );
+      await _pump(tester, controller);
+
+      // 默认 columns 子段：实查列 + 虚线框推测列 + 注记文案。
+      expect(find.text('id'), findsOneWidget);
+      expect(find.text('tenant_id'), findsOneWidget, reason: '推测列在 columns 子段');
+      expect(
+        find.text('AI inferred: sampled 9/10 rows non-null'),
+        findsOneWidget,
+        reason: 'agentStageAiInferred 注记',
+      );
+      // 不写回：无任何动作按钮（虚线框纯展示，构造性零写路径）。
+      expect(find.byType(ElevatedButton), findsNothing);
+      expect(find.byType(TextButton), findsNothing);
+      expect(find.byType(OutlinedButton), findsNothing);
+      expect(tester.takeException(), isNull);
     });
   });
 }

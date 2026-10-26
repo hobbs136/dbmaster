@@ -41,6 +41,10 @@ import 'ai_table_mention_menu.dart';
 import 'ai_skill_catalog_panel.dart';
 import 'ai_context_panel.dart';
 import 'ai_dock_context_card.dart';
+import '../ai_workbench/workbench_stage.dart'
+    show workbenchPinnedArtifactMemory, WorkbenchStageTab;
+import '../ai_workbench/workbench_stage_tab_visuals.dart'
+    show WorkbenchStageContainerKindVisuals;
 import '../../plugins/ai_skill_plugin.dart';
 import '../../plugins/bootstrap.dart';
 import '../task_panel/export_task_create_dialog.dart';
@@ -1152,6 +1156,9 @@ class AiPanelWidgetState extends State<AiPanelWidget>
                         isOverlay: widget.isOverlay,
                       ),
                     ),
+                    // 批3 E3.2 / B-02：Exit 后 pinned 保留的经典 dock 回流行
+                    //（矮档 <420 不渲染，状态仍保留在内存槽——G 条款）。
+                    if (!compactHeader) _buildPinnedArtifactsRow(context),
                   ],
                 ),
               ),
@@ -1716,6 +1723,113 @@ class AiPanelWidgetState extends State<AiPanelWidget>
           );
         });
       },
+    );
+  }
+
+  /// 批3 E3.2 / B-02：经典 dock 底部「Pinned artifacts」回流行——Exit
+  /// 工作台后 pinned 产物的经典侧呈现（数据源 = [workbenchPinnedArtifactMemory]
+  /// 进程内存槽，不持久化）。行高 ≈28、芯片 22（icon 10 + 标签 10 ellipsis，
+  /// title 回退容器标签）；点芯片 = 重进工作台（`setAiPanelFullscreen(true)`）
+  /// + 经内存槽请求路由（壳挂载态即时消费 / 未挂载态还原时消费）。
+  /// 矮档（<420）不渲染本行（G 条款：状态仍保留）。
+  Widget _buildPinnedArtifactsRow(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = context.themeColors;
+    return ListenableBuilder(
+      listenable: workbenchPinnedArtifactMemory,
+      builder: (context, _) {
+        final entries = workbenchPinnedArtifactMemory.entries;
+        if (entries.isEmpty) return const SizedBox.shrink();
+        return Container(
+          height: 28,
+          decoration: BoxDecoration(
+            color: colors.bgSecondary,
+            border: Border(
+              top: BorderSide(color: colors.dividerColor),
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            children: [
+              Text(
+                l10n.workbenchPinnedArtifacts,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: colors.textMuted,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (var i = 0; i < entries.length; i++) ...[
+                        if (i > 0) const SizedBox(width: 4),
+                        _buildPinnedArtifactChip(
+                          context,
+                          l10n,
+                          entries[i],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// 回流行单芯片（h 22）：容器图标 10 + 标签 10 ellipsis（title 回退容器
+  /// 标签）；tooltip = workbenchReopenArtifact；点击 = 重进工作台 + 路由。
+  Widget _buildPinnedArtifactChip(
+    BuildContext context,
+    AppLocalizations l10n,
+    WorkbenchStageTab entry,
+  ) {
+    final colors = context.themeColors;
+    final label = entry.title ?? entry.container.label(l10n);
+    return Tooltip(
+      message: l10n.workbenchReopenArtifact,
+      child: InkWell(
+        onTap: () {
+          workbenchPinnedArtifactMemory.requestReopen(entry.id);
+          context.read<AppProvider>().aiPanel.setAiPanelFullscreen(true);
+        },
+        borderRadius: BorderRadius.circular(4),
+        child: Container(
+          height: 22,
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          decoration: BoxDecoration(
+            color: colors.bgTertiary,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(entry.container.icon, size: 10, color: colors.textSecondary),
+              const SizedBox(width: 4),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 160),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

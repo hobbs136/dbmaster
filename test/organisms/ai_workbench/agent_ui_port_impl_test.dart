@@ -98,7 +98,7 @@ void main() {
 
       expect(outcome, const AgentUiOutcome.ok());
       expect(controller.tabs, hasLength(1));
-      expect(controller.tabs.single.kind, WorkbenchStageTabKind.grid);
+      expect(controller.tabs.single.container, WorkbenchStageContainerKind.dataViz);
       expect(controller.tabs.single.title, '查询结果');
       expect(controller.activeTab?.resultRef?.refId, 'res_1');
       expect(controller.stageVisible, isTrue, reason: '§5.3 openXxx 自动开舞台');
@@ -116,7 +116,7 @@ void main() {
 
       expect(outcome.ok, isTrue);
       expect(fetched, equals(<String>['orders']));
-      expect(controller.tabs.single.kind, WorkbenchStageTabKind.structure);
+      expect(controller.tabs.single.container, WorkbenchStageContainerKind.schema);
       expect(controller.tabs.single.structure?.tableName, 'orders');
     });
 
@@ -137,7 +137,7 @@ void main() {
       final outcome = await port.openSqlEditor('SELECT 1');
 
       expect(outcome.ok, isTrue);
-      expect(controller.tabs.single.kind, WorkbenchStageTabKind.editor);
+      expect(controller.tabs.single.container, WorkbenchStageContainerKind.sqlStudio);
       expect(controller.tabs.single.initialSql, 'SELECT 1');
       // AC5.2 载入不自动执行：编辑器槽无执行语义（T24 组件面已测，这里只断
       // 装载形态）。
@@ -151,7 +151,7 @@ void main() {
       );
 
       expect(outcome.ok, isTrue);
-      expect(controller.tabs.single.kind, WorkbenchStageTabKind.chart);
+      expect(controller.tabs.single.container, WorkbenchStageContainerKind.dataViz);
       expect(controller.tabs.single.chartKind, 'bar');
     });
 
@@ -214,7 +214,7 @@ void main() {
 
       expect(outcome, const AgentUiOutcome.ok());
       expect(controller.tabs, hasLength(1));
-      expect(controller.tabs.single.kind, WorkbenchStageTabKind.optimization);
+      expect(controller.tabs.single.container, WorkbenchStageContainerKind.sqlStudio);
       expect(
         controller.tabs.single.optimization?.sql,
         'SELECT * FROM big_table',

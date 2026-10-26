@@ -11400,6 +11400,64 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get connectionTestSettingsChanged => '连接设置已变更 · 之前的测试结果已失效';
+
+  @override
+  String get agentStageContainerSqlStudio => 'SQL 工作台';
+
+  @override
+  String get agentStageContainerDataViz => '数据与图表';
+
+  @override
+  String get agentStageContainerSchema => '结构';
+
+  @override
+  String get agentStageContainerDiagnostics => '诊断';
+
+  @override
+  String get agentStageSegDiff => '差异';
+
+  @override
+  String get agentStageExplainPlan => '执行计划';
+
+  @override
+  String get agentStageLiveMonitor => '实时监控';
+
+  @override
+  String get agentStageOptimizationSummary => '优化摘要';
+
+  @override
+  String get agentStageRecommendedIndex => '推荐索引';
+
+  @override
+  String get agentStageAxisConfig => '坐标轴';
+
+  @override
+  String get agentStageSchemaColumns => '列';
+
+  @override
+  String get agentStageSchemaIndexes => '索引';
+
+  @override
+  String get agentStageSchemaDdl => 'DDL';
+
+  @override
+  String get workbenchCollapseStage => '收起舞台';
+
+  @override
+  String get workbenchPinnedArtifacts => '已固定产物';
+
+  @override
+  String get workbenchReopenArtifact => '在工作台重新打开';
+
+  @override
+  String agentStageRowsScanned(int before, int after) {
+    return '扫描行数：$before → $after';
+  }
+
+  @override
+  String agentStageAiInferred(String note) {
+    return 'AI 推测：$note';
+  }
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -20247,4 +20305,62 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get connectionTestSettingsChanged => '連線設定已變更 · 先前的測試結果已失效';
+
+  @override
+  String get agentStageContainerSqlStudio => 'SQL 工作台';
+
+  @override
+  String get agentStageContainerDataViz => '資料與圖表';
+
+  @override
+  String get agentStageContainerSchema => '結構';
+
+  @override
+  String get agentStageContainerDiagnostics => '診斷';
+
+  @override
+  String get agentStageSegDiff => '差異';
+
+  @override
+  String get agentStageExplainPlan => '執行計畫';
+
+  @override
+  String get agentStageLiveMonitor => '即時監控';
+
+  @override
+  String get agentStageOptimizationSummary => '最佳化摘要';
+
+  @override
+  String get agentStageRecommendedIndex => '建議索引';
+
+  @override
+  String get agentStageAxisConfig => '座標軸';
+
+  @override
+  String get agentStageSchemaColumns => '欄位';
+
+  @override
+  String get agentStageSchemaIndexes => '索引';
+
+  @override
+  String get agentStageSchemaDdl => 'DDL';
+
+  @override
+  String get workbenchCollapseStage => '收合舞台';
+
+  @override
+  String get workbenchPinnedArtifacts => '已釘選產物';
+
+  @override
+  String get workbenchReopenArtifact => '在工作台重新開啟';
+
+  @override
+  String agentStageRowsScanned(int before, int after) {
+    return '掃描行數：$before → $after';
+  }
+
+  @override
+  String agentStageAiInferred(String note) {
+    return 'AI 推測：$note';
+  }
 }

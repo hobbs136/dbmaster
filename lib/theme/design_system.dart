@@ -539,8 +539,9 @@ class AppDesignSystem {
   /// agent 工作台舞台列最小宽度（agent 工作台批次，ui 规格 §7-2）
   static const double workbenchStageMinWidth = 480.0;
 
-  /// 产物条高度（agent 工作台批次，ui 规格 §7-3）
-  static const double artifactStripHeight = 32.0;
+  /// 产物条高度（agent 工作台批次，ui 规格 §7-3；批3 E3.2 覆盖式改值
+  /// 32 → 36——.specs/tasks-v3.5-ui.md §3-B02 唯一高度 token）
+  static const double artifactStripHeight = 36.0;
 
   /// 舞台 tab 标签上限宽（agent 工作台批次，ui 规格 §7-4；
   /// 不反向作为经典 tab 既有硬编码的宿主——ui 规格 §9-C-15 排除）

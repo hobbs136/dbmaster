@@ -1,8 +1,9 @@
-//! AI 工作台会话栏（design-ai-workbench §2.2 / §7.4 会话同源 / §8【二】布局）。
+//! AI 工作台会话栏（design-ai-workbench §2.2 / §7.4 会话同源 / §8【二】布局；
+//! 批3 T7 UI35-310 收窄态路由改版，.specs/tasks-v3.5-ui.md §3-B01）。
 //!
 //! 会话列表本体已抽取为共享 [SessionListView]（v2 A2，任务书 §6.2）：rail
-//! 内容页 196 窄列与舞台 sessionList 单例 tab 全宽同一组件双形态渲染（v2
-//! §8-5 同源）；会话管理语义（新建/切换/删除/改名/撤销）在共享组件内保留。
+//! 内容页 196 窄列形态渲染（sessionList/history/savedQueries 退出舞台枚举
+//! 后，三抽屉**只**在此承载，v2 §8-5 同源）。
 //!
 //! 宽度（design §8【二】 + v2 结果面板第一批 A1）：展开 =
 //! `Row[活动条 44 | 内容页 196]`（总宽 `workbenchSessionListWidth` 240 不变，
@@ -11,11 +12,11 @@
 //! [AppDesignSystem.workbenchRailActivityBarWidth] 44（断点由
 //! `AiWorkbenchShell` 的 LayoutBuilder 判定后经 [collapsed] 传入）。
 //!
-//! 收窄态路由（R6 接缝，v2 A2）：shell 把舞台控制器经 [stageController]
-//! 传入，收窄态活动条点击 → 对应舞台单例 tab 直开（重复点击激活不重复建）：
-//! 会话图标 → `openSessions()`（A2）/ 保存的查询图标 → `openSavedQueries()`
-//! （A4）/ 历史图标 → `openHistory()`（A3）。展开态活动条点击 = 内容页切换
-//! （终态三页：会话 / 保存的查询 / 历史，v2 §7-7）。
+//! 页选择与收窄态路由（批3 UI35-310，行为变更）：当前抽屉页状态**上提**
+//! shell（[currentPage] / [onPageSelected]）——活动条点击两态统一上报
+//! shell：收窄态点击 = **展开 rail 至 196 并切对应抽屉**（不再开舞台单例
+//! tab——openSessionList 类 API 随枚举退役删除）；rail 已展开时点击 = 切
+//! 换抽屉页。展开/收窄决策在 shell 侧（`_railForceExpanded` 手势展开覆写）。
 //!
 //! A5（v2 先行批）：rail 内容页注册为 F6 第二区
 //! [WorkbenchFocusZone.railContentPage]——入口 = 页内首个可聚焦元素（经
@@ -33,11 +34,13 @@ import 'workbench_saved_query_list_view.dart';
 import 'workbench_session_list_view.dart';
 import 'workbench_stage.dart' show WorkbenchStageController;
 
-/// AI 工作台会话栏（会话页承载；页面切换 + 收窄态路由）。
+/// AI 工作台会话栏（会话页承载；页面切换上报）。
 class WorkbenchSessionRail extends StatefulWidget {
   const WorkbenchSessionRail({
     super.key,
     required this.collapsed,
+    required this.currentPage,
+    required this.onPageSelected,
     required this.stageController,
     this.zoneRegistry,
   });
@@ -48,12 +51,19 @@ class WorkbenchSessionRail extends StatefulWidget {
 
   /// true = 收成纯活动条 [AppDesignSystem.workbenchRailActivityBarWidth] 44
   /// （窄工作区）；false = 展开 `Row[活动条 44 | 内容页 196]` 总宽 240。
+  /// 批3 UI35-310：收窄态点击的展开由 shell 覆写本值后重传（rail 自身
+  /// 不持展开覆写态）。
   final bool collapsed;
 
-  /// 舞台状态宿主（R6 接缝，v2 A2：shell 注入既有 `_stageController`）——
-  /// 收窄态活动条点击经 [WorkbenchStageController.openSessions]（A2）/
-  /// [WorkbenchStageController.openSavedQueries]（A4）/
-  /// [WorkbenchStageController.openHistory]（A3）开舞台对应单例 tab。
+  /// 当前抽屉页（批3 上提 shell：三抽屉只在此承载，页态归 shell）。
+  final WorkbenchRailPage currentPage;
+
+  /// 抽屉页选择回调（收窄/展开两态统一上报；收窄态点击的展开决策在
+  /// shell 侧）。
+  final ValueChanged<WorkbenchRailPage> onPageSelected;
+
+  /// 舞台状态宿主（抽屉载入回调绑 `openEditorSlot` 用——AC5.5 脏槽保护
+  /// 既有；收窄态单例 open* 路由已随枚举退役删除）。
   final WorkbenchStageController stageController;
 
   /// F6 六区注册表（A5；null = 不注册，既有组件面测试零改动）。本栏登记
@@ -65,16 +75,6 @@ class WorkbenchSessionRail extends StatefulWidget {
 }
 
 class _WorkbenchSessionRailState extends State<WorkbenchSessionRail> {
-  /// 当前活动条页（v2 A1：仅 sessions 一页；A3/A4 追加页后此处承载切换）。
-  WorkbenchRailPage _currentPage = WorkbenchRailPage.sessions;
-
-  /// 活动条页序（v2 §7-7 终态 = 会话/保存的查询/历史；A4 落地后即终态）。
-  static const List<WorkbenchRailPage> _pages = [
-    WorkbenchRailPage.sessions,
-    WorkbenchRailPage.savedQueries,
-    WorkbenchRailPage.history,
-  ];
-
   /// 内容页定位锚（A5 内容页区入口的遍历根；GlobalKey 跨页切换稳定寻址）。
   final GlobalKey _contentPageKey = GlobalKey(
     debugLabel: 'workbench_rail_content_page',
@@ -198,8 +198,8 @@ class _WorkbenchSessionRailState extends State<WorkbenchSessionRail> {
         children: [
           WorkbenchActivityBar(
             pages: _pages,
-            currentPage: _currentPage,
-            onPageSelected: _selectPage,
+            currentPage: widget.currentPage,
+            onPageSelected: widget.onPageSelected,
             zoneRegistry: widget.zoneRegistry,
           ),
           SizedBox(
@@ -207,12 +207,12 @@ class _WorkbenchSessionRailState extends State<WorkbenchSessionRail> {
             // 内容页宽 = 总宽 − 活动条宽（派生算式，不设独立 token；196）。
             width: AppDesignSystem.workbenchSessionListWidth -
                 AppDesignSystem.workbenchRailActivityBarWidth,
-            // 内容页（v2 A3/A4 起多页切换，终态三页）：会话列表 = 共享
+            // 内容页（三抽屉：批3 起唯一承载面）：会话列表 = 共享
             // SessionListView（A2 抽取，头栏含新建钮）；保存的查询 = 共享
             // SavedQueryListView 196 窄列形态（A4，本地段）；查询历史 = 共享
             // QueryHistoryListView 196 窄列形态（A3）。两类抽屉载入回调绑
-            // 舞台 openEditorSlot（R6 接缝）。
-            child: switch (_currentPage) {
+            // 舞台 openEditorSlot（AC5.5 脏槽保护既有）。
+            child: switch (widget.currentPage) {
               WorkbenchRailPage.sessions => SessionListView(showHeader: true),
               WorkbenchRailPage.savedQueries => SavedQueryListView(
                 narrow: true,
@@ -229,43 +229,31 @@ class _WorkbenchSessionRailState extends State<WorkbenchSessionRail> {
     );
   }
 
-  /// 展开态页切换（v2 A1 单页选中态；A3 起承载多页）。
-  void _selectPage(WorkbenchRailPage page) {
-    if (page == _currentPage) return;
-    setState(() => _currentPage = page);
-  }
-
   // ──────────────────────────────────────────────────────────────────────────
-  // 收窄态（纯活动条 44；旧逐会话图标列随 v2 A1 整体下线）
+  // 收窄态（纯活动条 44；批3 UI35-310：点击 = 上报 shell 展开 rail 切抽屉）
   // ──────────────────────────────────────────────────────────────────────────
 
   Widget _buildCollapsedRail(BuildContext context) {
-    // v2 A2（R6 接缝）：收窄态活动条点击 → 舞台对应单例 tab 直开（重复
-    // 点击激活不重复建，§8-2）。已知中间态消除：旧收窄图标列的「新建会话」
-    // 按钮随列下线后，收窄态新建入口 = 舞台会话列表 tab 头栏
+    // 批3 UI35-310（行为变更）：收窄态活动条点击 → 上报 shell（shell 覆写
+    // 展开态 + 切抽屉页），**不再**开舞台单例 tab（openSessions 等 API 随
+    // 枚举退役删除）。收窄态新建会话入口 = rail 展开后的会话页头栏
     // （SessionListView showHeader: true）。
     return Container(
       width: AppDesignSystem.workbenchRailActivityBarWidth,
       color: context.themeColors.bgSecondary,
       child: WorkbenchActivityBar(
         pages: _pages,
-        currentPage: _currentPage,
-        onPageSelected: _openStagePage,
+        currentPage: widget.currentPage,
+        onPageSelected: widget.onPageSelected,
         zoneRegistry: widget.zoneRegistry,
       ),
     );
   }
-
-  /// 收窄态路由（R6 接缝）：活动条图标点击 → 舞台对应单例 tab（A2 会话 /
-  /// A3 历史 / A4 保存的查询，同一既有模式）。
-  void _openStagePage(WorkbenchRailPage page) {
-    switch (page) {
-      case WorkbenchRailPage.sessions:
-        widget.stageController.openSessions();
-      case WorkbenchRailPage.savedQueries:
-        widget.stageController.openSavedQueries();
-      case WorkbenchRailPage.history:
-        widget.stageController.openHistory();
-    }
-  }
 }
+
+/// 活动条页序（v2 §7-7 终态 = 会话/保存的查询/历史）。
+const List<WorkbenchRailPage> _pages = [
+  WorkbenchRailPage.sessions,
+  WorkbenchRailPage.savedQueries,
+  WorkbenchRailPage.history,
+];

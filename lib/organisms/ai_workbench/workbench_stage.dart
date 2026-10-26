@@ -1,9 +1,22 @@
-//! AI 工作台舞台（T24，ui 规格 design-ai-agent-ui.md §5 面五）。
+//! AI 工作台舞台（T24，ui 规格 design-ai-agent-ui.md §5 面五；
+//! 批3 T7 容器收敛重构，.specs/tasks-v3.5-ui.md §3-B01 + §4-P3）。
 //!
 //! A2 净新增结构：tab 体系（增删切 / 关闭 / pin 标记 / dirty 标记 /
-//! tab 条 32 / tab 标签上限 200）+ 内容槽（网格 / 结构卡 / 编辑器槽 /
-//! 图表 / 会话列表）+ 空态三元素 + 常驻开合控制语义（[WorkbenchStageController.stageVisible]，
-//! 由 T27 shell 消费布局，本组件自身不因可见性消失——是否入树由宿主决定）。
+//! tab 条 32 / tab 标签上限 200）+ 内容槽 + 空态三元素 + 常驻开合控制语义
+//! （[WorkbenchStageController.stageVisible]，由 T27 shell 消费布局，本组件
+//! 自身不因可见性消失——是否入树由宿主决定）。
+//!
+//! **容器模型（B-01，10 kind → 4 容器）**：tab 类型 =
+//! [WorkbenchStageContainerKind]（sqlStudio / dataViz / schema / diagnostics
+//! 四容器），每容器内再分 [WorkbenchStageSubKind] 子态（分段控件切换，
+//! 子视图 IndexedStack 保活）。旧 10 kind 的归属映射（冻结）：
+//! editor→sqlStudio/edit；optimization→sqlStudio/diff；grid→dataViz/grid；
+//! chart→dataViz/chart；structure→schema（默认 columns）；execution→
+//! diagnostics/explainPlan；observe→diagnostics/liveMonitor；
+//! sessionList/history/savedQueries **退出舞台枚举**（左侧 196 内容栏承载，
+//! 收窄态活动条点击 = 展开 rail 抽屉，见 workbench_session_rail.dart）。
+//! 无持久化（内存态），不保留旧枚举、不写运行时映射表——Dart 枚举编译期
+//! 完备，消费方经编译错误驱动全仓迁移。
 //!
 //! 单一事实源（ui 规格 §6.3 判定）：[WorkbenchStageController] 持有 tab 集合 /
 //! pinned 标记 / 激活态 / 舞台可见性；舞台 tab 条与产物条（T25）是同一集合的
@@ -14,19 +27,18 @@
 //! tab 项 [图标 14 + 6 + 标签 12 ellipsis + 6 + 关闭 12]、内边距 h 10、上限宽
 //! 200（不设最小宽）/ 激活底 primaryContainer + 200ms 过渡 / 非激活 textSecondary
 //! + hover bgTertiary / 未保存 6px accentBlue 点（标签前）/ 内容区 bgPrimary +
-//! padding space3 + 无卡框。四类 tab：网格只读消费 result_renderer_plugin 注册表
-//! （零契约改动）；结构卡 describe 四件（列/索引/外键/DDL）；编辑器槽载入
-//! ReSqlEditor 不自动执行（AC5.2）+ 未保存点 + 关闭确认（AC5.5）；图表复用
-//! ChartView 语义，列型不适配 → 内联错误 + [在经典中打开] 出口不弹窗（AC5.3）。
-//! v2 先行批扩展 kind：sessionList / history / savedQueries（抽屉单例 tab，
-//! A2–A4）+ execution（B1 写入/DDL 执行结果摘要，纯只读投影）——图标/标签
-//! 映射在 `workbench_stage_tab_visuals.dart` 单源注册表。
-//! 2b 批：observe（2b.1 实例观察）+ structure×Mongo（2b.2b——structure kind
-//! 增加 Mongo 集合分支：数据载体 [StageMongoStructureData] → 内容件
-//! [WorkbenchMongoSchemaView]，SQL 表分支（[StageStructureData]）原样）+
-//! optimization（2b.3 查询优化三层内容：数据载体 [StageOptimizationData] →
-//! [_StageOptimizationContent]（SQL 上下文头 + [QueryPlanVisualizer] 零改动
-//! 复用），推送源 = agent explain_plan L0 通道旁挂推送，R6）。
+//! padding space3 + 无卡框。tab 条标签恒为**容器级标签**（注册表单源）；
+//! payload title 只进产物芯片与重开菜单。容器内容（design-v3.5-ui §2.3
+//! Task 3.1）：分段控件 h22 / 条 32，选中 primaryContainer + accent 边。
+//! dataViz：grid/chart 共享同一结果集（chart 仅换渲染**不重新取数**，子视图
+//! IndexedStack 保活，chart 子态浮现 32px 轴条）；sqlStudio：edit=编辑器槽 /
+//! diff=优化对比 + 可折叠 Optimization Summary（默认展开当有变更）；schema：
+//! columns/indexes/ddl 三子段 + AI 推测字段虚线框（不写回）+ Mongo 集合分支
+//! （2b.2b，单视图无分段）；diagnostics：explainPlan（execution 静态投影）/
+//! liveMonitor（observe 实时语义，2b.1）。
+//! 图表列型不适配 → 内联错误 + [在经典中打开] 出口不弹窗（AC5.3）。
+
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -54,48 +66,62 @@ import '../results/chart_view.dart';
 import 'workbench_focus_zones.dart';
 import 'workbench_mongo_schema_view.dart';
 import 'workbench_observe_content.dart';
-import 'workbench_query_history_view.dart';
-import 'workbench_saved_query_list_view.dart';
-import 'workbench_session_list_view.dart';
 import 'workbench_stage_tab_visuals.dart';
 
-/// 舞台 tab 类型（§5.2）。
+/// 舞台容器类型（§5.2；批3 B-01：10 kind → 4 容器收敛）。
 ///
-/// 类型 → 图标/标签映射的唯一事实源 = [WorkbenchStageTabKindVisuals]
+/// 类型 → 图标/标签映射的唯一事实源 = [WorkbenchStageContainerKindVisuals]
 /// （workbench_stage_tab_visuals.dart，C1 注册化）；本枚举只定义类型集合。
-/// `sessionList`（v2 A2，R5 补录）：会话列表单例 tab（收窄态活动条点击
-/// 开启），内容 = 共享 SessionListView 全宽形态。
-/// `history`（v2 A3）：查询历史单例 tab（收窄态活动条历史图标点击开启），
-/// 内容 = 共享 QueryHistoryListView 全宽形态（载入绑 openEditorSlot）。
-/// `savedQueries`（v2 A4）：保存的查询单例 tab（收窄态活动条保存的查询
-/// 图标点击开启），内容 = 共享 SavedQueryListView 全宽形态（本地段，
-/// 载入绑 openEditorSlot）。
-/// `execution`（v2 B1）：写入/DDL 批次执行结果摘要 tab（手动卡执行批
-/// 与 agent 计划链两通道推送），内容 = [_StageExecutionContent] 逐语句
-/// 状态投影（纯只读，零动作按钮）。
-/// `observe`（2b.1）：实例观察 tab——单例跟随锁定连接（R1：连接快照不进
-/// tab 数据，内容每次 build 从 effectiveWorkbenchContext 派生）；内容 =
-/// [WorkbenchObserveContent]（左段导航按引擎出段 + 右只读内容 + 手动刷新
-/// + 时间戳恒显，零写手势）。
-/// `optimization`（2b.3）：查询优化三层内容 tab（计划树 + 瓶颈 + 索引推荐
-/// + 重写建议，[QueryPlanVisualizer] 零改动复用承载）+ SQL 上下文头。
-/// 去重键 = 原 SQL 精确串（R6：同 SQL 重解释复用刷新；不同连接同 SQL 复用
-/// 同 tab 属 MVP 已知语义）。推送源 = agent `explain_plan` 只读通道旁挂
-/// 推送；「应用此索引」= 填编辑器槽不执行（零自动写）。
-enum WorkbenchStageTabKind {
-  grid,
-  structure,
-  editor,
-  chart,
-  sessionList,
-  history,
-  savedQueries,
-  execution,
-  observe,
-  optimization,
+/// 容器内子态见各容器专属枚举（[SqlStudioSubKind] / [DataVizSubKind] /
+/// [SchemaSubKind] / [DiagnosticsSubKind]，统一实现 [WorkbenchStageSubKind]
+/// 标记接口——分段路由的公共类型面）。
+///
+/// 旧 kind 归属（冻结映射）：editor→sqlStudio/edit；
+/// optimization→sqlStudio/diff；grid→dataViz/grid；chart→dataViz/chart；
+/// structure→schema（默认 columns）；execution→diagnostics/explainPlan；
+/// observe→diagnostics/liveMonitor；sessionList/history/savedQueries 退出
+/// 舞台枚举（左侧 196 内容栏承载）。
+enum WorkbenchStageContainerKind { sqlStudio, dataViz, schema, diagnostics }
+
+/// 容器子态标记接口（B-01）：四容器子枚举共同实现，作为
+/// [WorkbenchStageTab.subKind] 与分段路由的公共类型面。禁止枚举外的实现
+/// （舞台路由按四容器子枚举完备 switch）。
+abstract interface class WorkbenchStageSubKind {}
+
+/// SQL Studio 容器子态：edit = 编辑器槽（ReSqlEditor，载入不自动执行）；
+/// diff = 优化对比（Optimization Summary + 计划可视化，2b.3 语义）。
+enum SqlStudioSubKind implements WorkbenchStageSubKind { edit, diff }
+
+/// Data & Viz 容器子态：grid = 结果网格；chart = 图表（共享同一结果集，
+/// chart 仅换渲染不重新取数）。
+enum DataVizSubKind implements WorkbenchStageSubKind { grid, chart }
+
+/// Schema 容器子态：columns = 列（含 AI 推测字段虚线框）；indexes = 索引
+/// （含外键）；ddl = CREATE TABLE 语句。
+enum SchemaSubKind implements WorkbenchStageSubKind { columns, indexes, ddl }
+
+/// Diagnostics 容器子态：explainPlan = execution 静态投影（写入/DDL 批次
+/// 执行结果摘要）；liveMonitor = observe 实时观察（现 2b.1 observe 语义）。
+enum DiagnosticsSubKind implements WorkbenchStageSubKind {
+  explainPlan,
+  liveMonitor,
 }
 
-/// 结构卡内容（describe_table 四件：列 / 索引 / 外键 / DDL）。
+/// AI 推测字段值对象（批3 P3-1 步骤 3）：schema/columns 子段的虚线框行——
+/// AI 从数据/文档推测出的列（区别于 describe 四件实查列），**不写回
+/// schema**（纯展示，无任何写路径）。
+class StageAiInferredColumn {
+  /// 常量构造；字段不可变。
+  const StageAiInferredColumn({required this.column, required this.note});
+
+  /// 推测列的形态描述（复用 [DbColumn] 值对象：名称/类型/可空性）。
+  final DbColumn column;
+
+  /// 推测依据注记（经 [AppLocalizations.agentStageAiInferred] 上屏）。
+  final String note;
+}
+
+/// 结构卡内容（describe_table 四件：列 / 索引 / 外键 / DDL + AI 推测字段）。
 ///
 /// 值对象由 T27 port 实现（`showTableStructure`）从 adapter 取数后组装；
 /// 舞台只读消费，不触发任何数据库访问。
@@ -107,6 +133,7 @@ class StageStructureData {
     required this.indexes,
     required this.foreignKeys,
     this.ddl,
+    this.aiInferredColumns = const [],
   });
 
   /// 表名（tab 标签默认值）。
@@ -118,11 +145,14 @@ class StageStructureData {
   /// 索引定义（describe 四件之二）。
   final List<DbIndex> indexes;
 
-  /// 外键定义（describe 四件之三）。
+  /// 外键定义（describe 四件之三；schema 容器归入 indexes 子段呈现）。
   final List<ForeignKey> foreignKeys;
 
   /// CREATE TABLE 语句（describe 四件之四；null = 无 DDL 段）。
   final String? ddl;
+
+  /// AI 推测字段（批3 P3：默认空 = 无推测；虚线框呈现，不写回 schema）。
+  final List<StageAiInferredColumn> aiInferredColumns;
 }
 
 /// 结构卡 Mongo 集合分支数据载体（2b.2b）：{ connectionId, databaseName,
@@ -254,6 +284,11 @@ class StageOptimizationData {
 /// 舞台 tab 项（不可变值对象；状态变更经 controller copyWith 替换实例，
 /// 保证内容槽 didUpdateWidget 的装载/重建判定可靠）。
 ///
+/// 批3 B-01：tab 身份 = [container]（容器级），[subKind] 为容器内当前选中
+/// 子态（分段控件切换经 [WorkbenchStageController.selectSubKind] 回写）。
+/// 同容器多 tab 允许并存（各持各的载荷：多结果集 / 多编辑器槽 / 多表结构
+/// ——去重键沿用旧 open 语义，见各 openXxx 注释）。
+///
 /// 构造私有：tab 只能由 [WorkbenchStageController] 创建（单一事实源）；
 /// T25 产物条只读消费字段。编辑器槽的 [dirty] 由内容组件经
 /// `markEditorDirty` 回写（文本 ≠ 载入 SQL 即脏）。
@@ -261,7 +296,8 @@ class StageOptimizationData {
 class WorkbenchStageTab {
   const WorkbenchStageTab._({
     required this.id,
-    required this.kind,
+    required this.container,
+    required this.subKind,
     required this.initialSql,
     this.title,
     this.resultRef,
@@ -277,33 +313,39 @@ class WorkbenchStageTab {
   /// run 内唯一 tab 标识（`stage_tab_<seq>`，controller 单调生成）。
   final String id;
 
-  /// tab 类型。
-  final WorkbenchStageTabKind kind;
+  /// 容器类型（tab 条身份与图标/标签的唯一依据）。
+  final WorkbenchStageContainerKind container;
 
-  /// 标签；null = 渲染层回退类型标签（agentStageTabGrid/Structure/Editor/Chart）。
+  /// 容器内当前选中子态（分段控件状态；产物芯片路由恢复位）。
+  final WorkbenchStageSubKind subKind;
+
+  /// 标签；null = 产物芯片/重开菜单回退容器标签（注册表单源）。tab 条恒
+  /// 显示容器标签（B-01：容器收敛后同容器 tab 以容器身份呈现）。
   final String? title;
 
-  /// 网格 / 图表 tab 的结果引用（内存引用，不复制）。
+  /// dataViz 容器 tab 的结果引用（内存引用，不复制；grid/chart 子态共享）。
   final AgentResultRef? resultRef;
 
-  /// 结构卡 tab 的 describe 数据。
+  /// schema 容器 tab 的 describe 数据（SQL 表分支）。
   final StageStructureData? structure;
 
-  /// 结构卡 tab 的 Mongo 集合 schema 数据（2b.2b；与 [structure] 互斥——
+  /// schema 容器 tab 的 Mongo 集合 schema 数据（2b.2b；与 [structure] 互斥——
   /// SQL 表走 [structure]，Mongo 集合走本字段；mongo tab 的 structure 恒
   /// null，SQL 分支 match `structure?.tableName` 与 mongo tab 天然互斥）。
   final StageMongoStructureData? mongoStructure;
 
-  /// execution tab 的执行结果投影（B1；复用刷新时整载荷替换）。
+  /// diagnostics 容器 tab 的执行结果投影（B1 explainPlan 子态；复用刷新时
+  /// 整载荷替换）。
   final StageExecutionData? execution;
 
-  /// optimization tab 的性能分析报告（2b.3；同 SQL 复用刷新时整载荷替换）。
+  /// sqlStudio 容器 tab 的性能分析报告（2b.3 diff 子态；同 SQL 复用刷新时
+  /// 整载荷替换）。
   final StageOptimizationData? optimization;
 
-  /// 图表 tab 的请求类型（line/bar/pie/scatter；null = 推荐模式）。
+  /// chart 子态的请求类型（line/bar/pie/scatter；null = 推荐模式）。
   final String? chartKind;
 
-  /// 编辑器槽的载入 SQL（非编辑器 tab 为空串）。
+  /// 编辑器槽（edit 子态）的载入 SQL（非 sqlStudio tab 为空串）。
   final String initialSql;
 
   /// 钉入产物条标记（§6.3：产物条 = pinned 子集投影）。
@@ -315,19 +357,22 @@ class WorkbenchStageTab {
   /// 字段替换（controller 内部状态迁移专用）。
   WorkbenchStageTab copyWith({
     String? title,
+    WorkbenchStageSubKind? subKind,
     String? chartKind,
     String? initialSql,
-    StageExecutionData? execution,
+    StageStructureData? structure,
     StageMongoStructureData? mongoStructure,
+    StageExecutionData? execution,
     StageOptimizationData? optimization,
     bool? pinned,
     bool? dirty,
   }) => WorkbenchStageTab._(
     id: id,
-    kind: kind,
+    container: container,
+    subKind: subKind ?? this.subKind,
     title: title ?? this.title,
     resultRef: resultRef,
-    structure: structure,
+    structure: structure ?? this.structure,
     mongoStructure: mongoStructure ?? this.mongoStructure,
     execution: execution ?? this.execution,
     optimization: optimization ?? this.optimization,
@@ -405,58 +450,83 @@ class WorkbenchStageController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── 打开（自动开舞台 + 激活；§5.3 打开时机）──────────────────────────
+  // ── 打开（自动开舞台 + 激活；§5.3 打开时机；B-01 容器路由）──────────
 
-  /// 网格 tab：呈现结果引用全量行（行限内）。同 refId 网格 tab 已存在 →
-  /// 复用并激活（tab 标题以新值为准），不重复建 tab。
+  /// dataViz 容器 tab（grid 子态）：呈现结果引用全量行（行限内）。同 refId
+  /// 的 dataViz tab 已存在 → 复用并激活（切回 grid 子态；tab 标题以新值为
+  /// 准），不重复建 tab。
   WorkbenchStageTab openGrid(AgentResultRef ref, String? title) {
     return _openTab(
-      kind: WorkbenchStageTabKind.grid,
+      container: WorkbenchStageContainerKind.dataViz,
+      subKind: DataVizSubKind.grid,
       title: title,
       resultRef: ref,
       match: (t) =>
-          t.kind == WorkbenchStageTabKind.grid &&
+          t.container == WorkbenchStageContainerKind.dataViz &&
           t.resultRef?.refId == ref.refId,
     );
   }
 
-  /// 结构卡 tab：按表名去重（同表重开 = 复用激活）。
+  /// dataViz 容器 tab（chart 子态）：同 refId 的 dataViz tab（无论当前子态）
+  /// → 复用并切到 chart 子态（**收敛为单容器 tab**，B-01 UI35-306a：grid
+  /// 与 chart 共享同一结果集，chart 仅换渲染不重新取数）；未命中 → 新建。
+  /// chartKind 以新请求为准。
+  WorkbenchStageTab openChart(AgentResultRef ref, String? kind) {
+    return _openTab(
+      container: WorkbenchStageContainerKind.dataViz,
+      subKind: DataVizSubKind.chart,
+      title: null,
+      resultRef: ref,
+      chartKind: kind,
+      match: (t) =>
+          t.container == WorkbenchStageContainerKind.dataViz &&
+          t.resultRef?.refId == ref.refId,
+    );
+  }
+
+  /// schema 容器 tab（columns 子态）：按表名去重（同表重开 = 复用刷新载荷
+  /// + 回 columns 子态）；表名即默认标签（比容器标签信息量高——产物芯片与
+  /// 重开菜单消费）。
   WorkbenchStageTab openStructure(StageStructureData data) {
     return _openTab(
-      kind: WorkbenchStageTabKind.structure,
-      // 表名即默认标签（比类型标签「结构」信息量高）。
+      container: WorkbenchStageContainerKind.schema,
+      subKind: SchemaSubKind.columns,
+      // 表名即默认标签（芯片/重开菜单回退值）。
       title: data.tableName,
       structure: data,
       match: (t) =>
-          t.kind == WorkbenchStageTabKind.structure &&
+          t.container == WorkbenchStageContainerKind.schema &&
           t.structure?.tableName == data.tableName,
     );
   }
 
-  /// 结构卡 tab（Mongo 集合分支，2b.2b）：match = kind == structure 且
+  /// schema 容器 tab（Mongo 集合分支，2b.2b）：match = 容器 schema 且
   /// mongoStructure 非空且 connectionId + collectionName 双等——同集合同
-  /// 连接重开 = 复用刷新（tab 恒 1，载荷替换，title 以新值为准）；不同
-  /// 连接或不同集合各开各的。title 默认 = collectionName。
+  /// 连接重开 = 复用刷新（载荷替换，title 以新值为准）；不同连接或不同集合
+  /// 各开各的。title 默认 = collectionName。
   ///
   /// 与 SQL 表分支零串味：SQL match 走 `structure?.tableName`，mongo tab
   /// 的 structure 恒 null、SQL tab 的 mongoStructure 恒 null，同表/集合名
   /// 也各自独立成 tab（零改动）。
   ///
-  /// 复用分支自写（沿 [openExecution] B1 先例，任务书 §6.3 允许自决项）：
+  /// 复用分支自写（沿 [openExecution] 先例，任务书 §6.3 允许自决项）：
   /// 复用需替换 [StageMongoStructureData] 载荷，[_openTab] 既有复用语义
-  /// （只换 title/chartKind）保持不变——grid/structure/chart 零变化。
+  /// （只换 title/chartKind）保持不变——grid/structure 零变化。
   WorkbenchStageTab openMongoStructure(StageMongoStructureData data) {
     for (var i = 0; i < _tabs.length; i++) {
       final t = _tabs[i];
       final StageMongoStructureData? existing = t.mongoStructure;
-      if (t.kind != WorkbenchStageTabKind.structure || existing == null) {
+      if (t.container != WorkbenchStageContainerKind.schema ||
+          existing == null) {
         continue;
       }
       if (existing.connectionId == data.connectionId &&
           existing.collectionName == data.collectionName) {
         final reused = t.copyWith(
           title: data.collectionName,
+          structure: null,
           mongoStructure: data,
+          subKind: SchemaSubKind.columns,
         );
         _tabs[i] = reused;
         _activeIndex = i;
@@ -467,7 +537,8 @@ class WorkbenchStageController extends ChangeNotifier {
     }
     final tab = WorkbenchStageTab._(
       id: _nextId(),
-      kind: WorkbenchStageTabKind.structure,
+      container: WorkbenchStageContainerKind.schema,
+      subKind: SchemaSubKind.columns,
       title: data.collectionName,
       mongoStructure: data,
       initialSql: '',
@@ -479,14 +550,20 @@ class WorkbenchStageController extends ChangeNotifier {
     return tab;
   }
 
-  /// 编辑器槽：载入 SQL 不自动执行（AC5.2；执行语义不在本组件）。
-  /// AC5.5 槽策略：目标槽（最近一个编辑器槽）有未保存修改 → 新开槽，
-  /// 绝不覆盖用户未保存内容；干净则复用装载。
+  /// sqlStudio 容器 tab（edit 子态）：载入 SQL 不自动执行（AC5.2；执行语义
+  /// 不在本组件）。AC5.5 槽策略：目标槽（最近一个 sqlStudio tab）有未保存
+  /// 修改 → 新开槽，绝不覆盖用户未保存内容；干净则复用装载（optimization
+  /// 落地的容器 tab 同样持有空编辑槽，可被复用——容器语义：一个 SQL Studio
+  /// 工作面同时承载编辑与 Diff）。
   WorkbenchStageTab openEditorSlot(String sql) {
     for (final tab in _tabs.reversed) {
-      if (tab.kind != WorkbenchStageTabKind.editor) continue;
+      if (tab.container != WorkbenchStageContainerKind.sqlStudio) continue;
       if (tab.dirty) break; // 目标槽脏 → 走新开槽（AC5.5）
-      final reloaded = tab.copyWith(initialSql: sql, dirty: false);
+      final reloaded = tab.copyWith(
+        initialSql: sql,
+        dirty: false,
+        subKind: SqlStudioSubKind.edit,
+      );
       _tabs[_tabs.indexOf(tab)] = reloaded;
       _activeIndex = _tabs.indexOf(reloaded);
       _stageVisible = true;
@@ -494,124 +571,29 @@ class WorkbenchStageController extends ChangeNotifier {
       return reloaded;
     }
     return _openTab(
-      kind: WorkbenchStageTabKind.editor,
+      container: WorkbenchStageContainerKind.sqlStudio,
+      subKind: SqlStudioSubKind.edit,
       title: null,
       initialSql: sql,
     );
   }
 
-  /// 图表 tab：同 refId 图表 tab 已存在 → 复用激活（kind 以新请求为准）。
-  WorkbenchStageTab openChart(AgentResultRef ref, String? kind) {
-    return _openTab(
-      kind: WorkbenchStageTabKind.chart,
-      title: null,
-      resultRef: ref,
-      chartKind: kind,
-      match: (t) =>
-          t.kind == WorkbenchStageTabKind.chart &&
-          t.resultRef?.refId == ref.refId,
-    );
-  }
-
-  /// 会话列表 tab（v2 A2，R5 补录 kind）：单例——match = kind 即命中，
-  /// 重复打开（收窄态活动条重复点击会话图标）复用激活既有 tab 不重复建
-  /// （§8-2）；舞台不可见时自动可见（沿 [_openTab] 既有语义）。
-  WorkbenchStageTab openSessions() {
-    return _openTab(
-      kind: WorkbenchStageTabKind.sessionList,
-      title: null,
-      match: (t) => t.kind == WorkbenchStageTabKind.sessionList,
-    );
-  }
-
-  /// 查询历史 tab（v2 A3）：单例——match = kind 即命中，重复打开（收窄态
-  /// 活动条重复点击历史图标）复用激活既有 tab 不重复建（§8-2，沿
-  /// [openSessions] 既有单例模式）；舞台不可见时自动可见。
-  WorkbenchStageTab openHistory() {
-    return _openTab(
-      kind: WorkbenchStageTabKind.history,
-      title: null,
-      match: (t) => t.kind == WorkbenchStageTabKind.history,
-    );
-  }
-
-  /// 保存的查询 tab（v2 A4）：单例——match = kind 即命中，重复打开（收窄态
-  /// 活动条重复点击保存的查询图标）复用激活既有 tab 不重复建（§8-2，沿
-  /// [openSessions] 既有单例模式）；舞台不可见时自动可见。
-  WorkbenchStageTab openSavedQueries() {
-    return _openTab(
-      kind: WorkbenchStageTabKind.savedQueries,
-      title: null,
-      match: (t) => t.kind == WorkbenchStageTabKind.savedQueries,
-    );
-  }
-
-  /// execution tab（v2 B1，R4 去重键语义）：match = kind + `tabKey` 命中 →
-  /// 复用并**替换数据载荷刷新**（标题以新值为准——时间戳随批次更新）；
-  /// 未命中 → 新建追加激活。均置舞台可见。
-  ///
-  /// 复用分支自写（不走 [_openTab]）：既有复用语义只换 title/chartKind，
-  /// execution 需替换数据载荷——自写分支保持 grid/structure/chart 既有
-  /// 复用语义零变化（任务书 §6.8 允许自决项）。
-  WorkbenchStageTab openExecution(StageExecutionData data) {
-    for (var i = 0; i < _tabs.length; i++) {
-      final t = _tabs[i];
-      final StageExecutionData? existing = t.execution;
-      if (t.kind == WorkbenchStageTabKind.execution &&
-          existing != null &&
-          existing.tabKey == data.tabKey) {
-        final reused = t.copyWith(title: data.title, execution: data);
-        _tabs[i] = reused;
-        _activeIndex = i;
-        _stageVisible = true;
-        notifyListeners();
-        return reused;
-      }
-    }
-    final tab = WorkbenchStageTab._(
-      id: _nextId(),
-      kind: WorkbenchStageTabKind.execution,
-      title: data.title,
-      execution: data,
-      initialSql: '',
-    );
-    _tabs.add(tab);
-    _activeIndex = _tabs.length - 1;
-    _stageVisible = true;
-    notifyListeners();
-    return tab;
-  }
-
-  /// observe tab（2b.1，R1）：单例跟随锁定连接——match = kind 即命中，
-  /// 重复打开（命令面板/活动条重复触发）复用激活既有 tab 不重复建
-  /// （§8-2，沿 [openSessions] 既有单例模式）；舞台不可见时自动可见。
-  /// 内容每次 build 从 effectiveWorkbenchContext 派生（连接快照不进 tab
-  /// 数据），锁切换语义由 [WorkbenchObserveContent] 承担。
-  WorkbenchStageTab openObserve() {
-    return _openTab(
-      kind: WorkbenchStageTabKind.observe,
-      title: null,
-      match: (t) => t.kind == WorkbenchStageTabKind.observe,
-    );
-  }
-
-  /// optimization tab（2b.3，R6 去重键语义）：match = kind == optimization
-  /// 且 `optimization.sql == data.sql`（原 SQL 精确串）→ 复用并**替换数据
-  /// 载荷刷新**（同 SQL 重解释 = 同 tab 刷新不累积）；未命中 → 新建追加
-  /// 激活。均置舞台可见。title 缺省 null = 渲染层回退类型标签
-  /// （agentStageTabOptimization）。
-  ///
-  /// 复用分支自写（沿 [openExecution] B1 先例，任务书 §6.4 允许自决项）：
-  /// 复用需替换 [StageOptimizationData] 载荷，[_openTab] 既有复用语义
-  /// （只换 title/chartKind）保持不变——grid/structure/chart 零变化。
+  /// sqlStudio 容器 tab（diff 子态，2b.3 R6 去重键语义）：match = 容器
+  /// sqlStudio 且 `optimization.sql == data.sql`（原 SQL 精确串）→ 复用并
+  /// **替换数据载荷刷新**（同 SQL 重解释 = 同 tab 刷新不累积）；未命中且
+  /// 存在**无 optimization 载荷**的 sqlStudio tab → 落地该 tab（容器收敛：
+  /// 编辑与 Diff 同容器）；否则新建追加激活。均置舞台可见。
   WorkbenchStageTab openOptimization(StageOptimizationData data) {
     for (var i = 0; i < _tabs.length; i++) {
       final t = _tabs[i];
       final StageOptimizationData? existing = t.optimization;
-      if (t.kind == WorkbenchStageTabKind.optimization &&
+      if (t.container == WorkbenchStageContainerKind.sqlStudio &&
           existing != null &&
           existing.sql == data.sql) {
-        final reused = t.copyWith(optimization: data);
+        final reused = t.copyWith(
+          optimization: data,
+          subKind: SqlStudioSubKind.diff,
+        );
         _tabs[i] = reused;
         _activeIndex = i;
         _stageVisible = true;
@@ -619,9 +601,26 @@ class WorkbenchStageController extends ChangeNotifier {
         return reused;
       }
     }
+    // 容器收敛落地：最后一个无 optimization 载荷的 sqlStudio tab。
+    for (var i = _tabs.length - 1; i >= 0; i--) {
+      final t = _tabs[i];
+      if (t.container == WorkbenchStageContainerKind.sqlStudio &&
+          t.optimization == null) {
+        final landed = t.copyWith(
+          optimization: data,
+          subKind: SqlStudioSubKind.diff,
+        );
+        _tabs[i] = landed;
+        _activeIndex = i;
+        _stageVisible = true;
+        notifyListeners();
+        return landed;
+      }
+    }
     final tab = WorkbenchStageTab._(
       id: _nextId(),
-      kind: WorkbenchStageTabKind.optimization,
+      container: WorkbenchStageContainerKind.sqlStudio,
+      subKind: SqlStudioSubKind.diff,
       title: null,
       optimization: data,
       initialSql: '',
@@ -633,12 +632,85 @@ class WorkbenchStageController extends ChangeNotifier {
     return tab;
   }
 
-  /// 产物条钉住（§6.3）：该 ref 无网格 tab → 建一个 pinned 网格 tab；
-  /// 已有 → 置 pinned。**不改舞台可见性**（T27 `pinArtifact` 的操作目标）。
+  /// diagnostics 容器 tab（explainPlan 子态，v2 B1 R4 去重键语义）：match =
+  /// 容器 diagnostics 且 `execution.tabKey` 命中 → 复用并**替换数据载荷
+  /// 刷新**（标题以新值为准——时间戳随批次更新）；未命中且存在**无
+  /// execution 载荷**的 diagnostics tab（openObserve 建的 liveMonitor 面）
+  /// → 落地该 tab（容器收敛：Explain Plan 与 Live Monitor 同容器双态）；
+  /// 否则新建追加激活。均置舞台可见。
+  WorkbenchStageTab openExecution(StageExecutionData data) {
+    for (var i = 0; i < _tabs.length; i++) {
+      final t = _tabs[i];
+      final StageExecutionData? existing = t.execution;
+      if (t.container == WorkbenchStageContainerKind.diagnostics &&
+          existing != null &&
+          existing.tabKey == data.tabKey) {
+        final reused = t.copyWith(
+          title: data.title,
+          execution: data,
+          subKind: DiagnosticsSubKind.explainPlan,
+        );
+        _tabs[i] = reused;
+        _activeIndex = i;
+        _stageVisible = true;
+        notifyListeners();
+        return reused;
+      }
+    }
+    // 容器收敛落地：最后一个无 execution 载荷的 diagnostics tab。
+    for (var i = _tabs.length - 1; i >= 0; i--) {
+      final t = _tabs[i];
+      if (t.container == WorkbenchStageContainerKind.diagnostics &&
+          t.execution == null) {
+        final landed = t.copyWith(
+          title: data.title,
+          execution: data,
+          subKind: DiagnosticsSubKind.explainPlan,
+        );
+        _tabs[i] = landed;
+        _activeIndex = i;
+        _stageVisible = true;
+        notifyListeners();
+        return landed;
+      }
+    }
+    final tab = WorkbenchStageTab._(
+      id: _nextId(),
+      container: WorkbenchStageContainerKind.diagnostics,
+      subKind: DiagnosticsSubKind.explainPlan,
+      title: data.title,
+      execution: data,
+      initialSql: '',
+    );
+    _tabs.add(tab);
+    _activeIndex = _tabs.length - 1;
+    _stageVisible = true;
+    notifyListeners();
+    return tab;
+  }
+
+  /// diagnostics 容器 tab（liveMonitor 子态，2b.1 R1）：已有 diagnostics
+  /// tab → 复用切到 liveMonitor 子态（execution 载荷保留——双态共存）；
+  /// 无 → 新建。重复打开（命令面板重复触发）复用激活不重复建（§8-2）；
+  /// 舞台不可见时自动可见。内容每次 build 从 effectiveWorkbenchContext
+  /// 派生（连接快照不进 tab 数据），锁切换语义由 [WorkbenchObserveContent]
+  /// 承担。
+  WorkbenchStageTab openObserve() {
+    return _openTab(
+      container: WorkbenchStageContainerKind.diagnostics,
+      subKind: DiagnosticsSubKind.liveMonitor,
+      title: null,
+      match: (t) => t.container == WorkbenchStageContainerKind.diagnostics,
+    );
+  }
+
+  /// 产物条钉住（§6.3）：该 ref 无 dataViz tab → 建一个 pinned dataViz tab
+  /// （grid 子态）；已有 → 置 pinned（子态保留当前值）。**不改舞台可见性**
+  /// （T27 `pinArtifact` 的操作目标）。
   WorkbenchStageTab pinArtifact(AgentResultRef ref, String? label) {
     for (var i = 0; i < _tabs.length; i++) {
       final t = _tabs[i];
-      if (t.kind == WorkbenchStageTabKind.grid &&
+      if (t.container == WorkbenchStageContainerKind.dataViz &&
           t.resultRef?.refId == ref.refId) {
         if (t.pinned && t.title == (label ?? t.title)) return t; // 已钉住：幂等
         final pinnedTab = t.copyWith(title: label ?? t.title, pinned: true);
@@ -649,7 +721,8 @@ class WorkbenchStageController extends ChangeNotifier {
     }
     final tab = WorkbenchStageTab._(
       id: _nextId(),
-      kind: WorkbenchStageTabKind.grid,
+      container: WorkbenchStageContainerKind.dataViz,
+      subKind: DataVizSubKind.grid,
       title: label,
       resultRef: ref,
       pinned: true,
@@ -682,8 +755,8 @@ class WorkbenchStageController extends ChangeNotifier {
   /// 关闭 tab（原始移除；**不含未保存确认**——确认是 UI 语义，由舞台/
   /// shell 层在调用前执行）。关闭后激活态自动补位。
   ///
-  /// 被移除对象**全 kind 统一压入最近关闭栈**（含 sessionList 等单例类；
-  /// [recentlyClosedTabsMax] 封顶逐出栈底）。编辑器 tab 压栈前丢弃脏标记
+  /// 被移除对象**全容器统一压入最近关闭栈**；[recentlyClosedTabsMax] 封顶
+  /// 逐出栈底。sqlStudio tab（编辑器槽所在容器）压栈前丢弃脏标记
   /// （copyWith(dirty: false)）——关闭确认已放弃未保存编辑，复活对象不得
   /// 带脏点；其余字段原样。重开 = 对象原样重新入列（[reopenClosedTab]，
   /// 不走 openXxx 去重路径）。
@@ -692,7 +765,8 @@ class WorkbenchStageController extends ChangeNotifier {
     final removed = _tabs.removeAt(tabIndex);
     _recentlyClosed.insert(
       0,
-      removed.kind == WorkbenchStageTabKind.editor && removed.dirty
+      removed.container == WorkbenchStageContainerKind.sqlStudio &&
+              removed.dirty
           ? removed.copyWith(dirty: false)
           : removed,
     );
@@ -722,6 +796,39 @@ class WorkbenchStageController extends ChangeNotifier {
     }
   }
 
+  /// 容器内子态切换（分段控件回写；B-01）：按 id 定位 tab，subKind 变化才
+  /// 通知。子视图 IndexedStack 保活——切换只影响展示层，不重建载荷。
+  void selectSubKind(String tabId, WorkbenchStageSubKind subKind) {
+    for (var i = 0; i < _tabs.length; i++) {
+      final t = _tabs[i];
+      if (t.id == tabId && t.subKind != subKind) {
+        _tabs[i] = t.copyWith(subKind: subKind);
+        notifyListeners();
+        return;
+      }
+    }
+  }
+
+  /// B-02：还原 pinned 产物（Exit 保留内存槽 → 新 controller）——对象
+  /// 原样追加（不走 openXxx 去重路径，沿 [reopenClosedTab] 先例）；无 tab
+  /// 时激活补位，**不改舞台可见性**（还原不打断经典界面）。
+  void restorePinnedTab(WorkbenchStageTab tab) {
+    if (_tabs.any((t) => t.id == tab.id)) return;
+    _tabs.add(tab);
+    if (_activeIndex < 0) _activeIndex = 0;
+    notifyListeners();
+  }
+
+  /// B-02：按 id 激活 + 置舞台可见（经典 dock「Pinned artifacts」芯片的
+  /// 重进路由；容器 + subKind 随 tab 对象原样恢复）。miss 静默。
+  void activateTabById(String tabId) {
+    final index = _tabs.indexWhere((t) => t.id == tabId);
+    if (index < 0) return;
+    _activeIndex = index;
+    _stageVisible = true;
+    notifyListeners();
+  }
+
   // ── 图表适配判定（AC5.3；与 T27 port renderChart 的 outcome 失败同源）──
 
   /// 列型是否适配图表渲染：至少一列可检出数值列（图表语义的最小公共
@@ -742,9 +849,12 @@ class WorkbenchStageController extends ChangeNotifier {
 
   String _nextId() => 'stage_tab_${_seq++}';
 
-  /// 打开通用路径：命中 [match] → 复用激活；否则新建追加激活。均置舞台可见。
+  /// 打开通用路径（B-01 容器版）：命中 [match] → 复用激活 + 切子态
+  /// （title/chartKind 以新值为准，载荷字段沿用旧值——载荷替换语义由各自
+  /// openXxx 的自写复用分支承担）；否则新建追加激活。均置舞台可见。
   WorkbenchStageTab _openTab({
-    required WorkbenchStageTabKind kind,
+    required WorkbenchStageContainerKind container,
+    required WorkbenchStageSubKind subKind,
     required String? title,
     String? chartKind,
     String? initialSql,
@@ -757,6 +867,7 @@ class WorkbenchStageController extends ChangeNotifier {
         if (!match(_tabs[i])) continue;
         final reused = _tabs[i].copyWith(
           title: title ?? _tabs[i].title,
+          subKind: subKind,
           chartKind: chartKind ?? _tabs[i].chartKind,
         );
         _tabs[i] = reused;
@@ -768,7 +879,8 @@ class WorkbenchStageController extends ChangeNotifier {
     }
     final tab = WorkbenchStageTab._(
       id: _nextId(),
-      kind: kind,
+      container: container,
+      subKind: subKind,
       title: title,
       resultRef: resultRef,
       structure: structure,
@@ -782,6 +894,67 @@ class WorkbenchStageController extends ChangeNotifier {
     return tab;
   }
 }
+
+/// Exit 跨形态 pinned 产物内存槽（批3 E3.2 / B-02：Exit Workbench 后
+/// pinned 状态保留 + 经典 dock「Pinned artifacts」行的数据源）。
+///
+/// 生命周期：进程级**内存态**（不持久化、应用重启即清）；工作台壳
+/// （`ai_workbench_shell.dart`）dispose 时把 controller.pinnedTabs 全量
+/// 写回（replaceWith），（重）挂载时还原进新 controller；经典 dock 行
+/// 只读消费 [entries]。重进请求（dock 芯片点击）经 [requestReopen] 挂起
+/// id——壳挂载态即时消费（激活对应 tab + 置舞台可见），未挂载态由挂载后
+/// 的还原流程消费（consumeReopenRequest）。
+class WorkbenchPinnedArtifactMemory extends ChangeNotifier {
+  List<WorkbenchStageTab> _entries = const <WorkbenchStageTab>[];
+  String? _reopenRequestId;
+
+  /// 当前的 pinned 产物快照（时间序；不可变视图）。
+  List<WorkbenchStageTab> get entries => List.unmodifiable(_entries);
+
+  /// 是否有待重进请求。
+  bool get hasReopenRequest => _reopenRequestId != null;
+
+  /// 全量替换（壳持续同步 / 兜底写回）。元素序列**恒等**（对象身份逐一
+  /// 相同）时跳过通知——非 pin 变更（开 tab / 切激活）不打扰 dock 行重建。
+  void replaceWith(List<WorkbenchStageTab> tabs) {
+    var same = _entries.length == tabs.length;
+    if (same) {
+      for (var i = 0; i < tabs.length; i++) {
+        if (!identical(_entries[i], tabs[i])) {
+          same = false;
+          break;
+        }
+      }
+    }
+    if (same) return;
+    _entries = List<WorkbenchStageTab>.unmodifiable(tabs);
+    notifyListeners();
+  }
+
+  /// 挂起重进请求（dock 芯片点击）。
+  void requestReopen(String tabId) {
+    _reopenRequestId = tabId;
+    notifyListeners();
+  }
+
+  /// 取走挂起的重进请求（无则 null）。
+  String? consumeReopenRequest() {
+    final id = _reopenRequestId;
+    _reopenRequestId = null;
+    return id;
+  }
+
+  /// 清空（测试复位用）。
+  void clear() {
+    _entries = const <WorkbenchStageTab>[];
+    _reopenRequestId = null;
+    notifyListeners();
+  }
+}
+
+/// 进程级单例（不持久化；经典 dock 与工作台壳共用的唯一实例）。
+final WorkbenchPinnedArtifactMemory workbenchPinnedArtifactMemory =
+    WorkbenchPinnedArtifactMemory();
 
 /// 舞台组件：tab 条 32 + 内容区（bgPrimary / padding space3 / 无卡框）。
 ///
@@ -1129,8 +1302,10 @@ class _WorkbenchStageState extends State<WorkbenchStage> {
     );
   }
 
-  /// 收起钮（S3）：panelRightClose 14 textSecondary（功能性控件不用
-  /// textMuted——FU-11 对比度坑）；tooltip = agentStageCollapse；收起舞台。
+  /// 收起钮（批3 E3.2 / B-02：迁容器 tab 条右端 24×24——原走查修复批 S3
+  /// 28 宽收窄）：panelRightClose 14 textSecondary（功能性控件不用
+  /// textMuted——FU-11 对比度坑）；tooltip = workbenchCollapseStage
+  /// （小写 s，新键；旧 agentStageCollapse 随迁退役）；收起舞台。
   Widget _buildCollapseButton(BuildContext context, int tabCount) {
     final l10n = AppLocalizations.of(context)!;
     return _StageBarAction(
@@ -1139,9 +1314,10 @@ class _WorkbenchStageState extends State<WorkbenchStage> {
       itemIndex: tabCount + 1,
       barItemCount: tabCount + 2,
       icon: LucideIcons.panelRightClose,
-      tooltip: l10n.agentStageCollapse,
+      tooltip: l10n.workbenchCollapseStage,
       onActivate: () => widget.controller.setStageVisible(false),
       onMoveFocus: _focusTab,
+      size: 24,
     );
   }
 
@@ -1152,9 +1328,9 @@ class _WorkbenchStageState extends State<WorkbenchStage> {
   }
 
   /// 重开菜单（S8，沿 [_showTabMenu] 的 showMenu + CompactPopupMenuItem
-  /// value-then 先例）：显示序 = 栈序（最近关闭在最上）；项 = [kind 图标 14
+  /// value-then 先例）：显示序 = 栈序（最近关闭在最上）；项 = [容器图标 14
   /// （workbench_stage_tab_visuals 注册表单源消费）] + [标题 12px 上限
-  /// 240px ellipsis（title 回退 kind.label）]；不加时间戳。项 tap/Enter →
+  /// 240px ellipsis（title 回退 container.label）]；不加时间戳。项 tap/Enter →
   /// [WorkbenchStageController.reopenClosedTab]（按 id 查栈，菜单快照过期
   /// miss → null 静默）；Esc/遮罩关闭零副作用。
   Future<void> _showReopenMenu() async {
@@ -1175,12 +1351,16 @@ class _WorkbenchStageState extends State<WorkbenchStage> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(tab.kind.icon, size: 14, color: colors.textSecondary),
+                Icon(
+                  tab.container.icon,
+                  size: 14,
+                  color: colors.textSecondary,
+                ),
                 const SizedBox(width: AppDesignSystem.space1_5),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 240),
                   child: Text(
-                    tab.title ?? tab.kind.label(l10n),
+                    tab.title ?? tab.container.label(l10n),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -1247,7 +1427,9 @@ class _WorkbenchStageState extends State<WorkbenchStage> {
       tabIndex: index,
       // 条内项总数 = tab 数 + 尾部两钮（重开/收起）——End 落收起钮（S9）。
       barItemCount: widget.controller.tabs.length + 2,
-      displayLabel: tab.title ?? tab.kind.label(l10n),
+      // B-01：tab 条标签恒为容器级标签（注册表单源）；payload title 只进
+      // 产物芯片与重开菜单（同容器多 tab 以容器身份呈现）。
+      displayLabel: tab.container.label(l10n),
       onActivate: () {
         node.requestFocus();
         widget.controller.activateTab(index);
@@ -1280,10 +1462,11 @@ class _WorkbenchStageState extends State<WorkbenchStage> {
     // 越界：钳制（焦点留在原位）。
   }
 
-  /// 关闭请求：编辑器槽未保存 → 先确认（AC5.5：确认前 tab 不消失），
-  /// 其余类型直接关。
+  /// 关闭请求：sqlStudio tab（编辑器槽所在容器）未保存 → 先确认（AC5.5：
+  /// 确认前 tab 不消失），其余类型直接关。
   Future<void> _requestCloseTab(WorkbenchStageTab tab, int index) async {
-    if (tab.kind == WorkbenchStageTabKind.editor && tab.dirty) {
+    if (tab.container == WorkbenchStageContainerKind.sqlStudio &&
+        tab.dirty) {
       final l10n = AppLocalizations.of(context)!;
       final label = tab.title ?? l10n.agentStageTabEditor;
       final discard = await _confirmDiscardEditorClose(context, label);
@@ -1445,67 +1628,701 @@ class _WorkbenchStageState extends State<WorkbenchStage> {
     );
   }
 
+  /// 内容槽路由（B-01：container×subKind 两级——外层按容器分发，子态由
+  /// 容器内容件内的分段控件管理；C1 纪律：新增 kind 只改枚举 + 注册表 +
+  /// 本 switch 三触点）。
   Widget _buildSlot(BuildContext context, WorkbenchStageTab tab) {
-    switch (tab.kind) {
-      case WorkbenchStageTabKind.grid:
-        return _StageGridContent(tab: tab, registry: widget.registry);
-      case WorkbenchStageTabKind.structure:
-        final mongo = tab.mongoStructure;
-        if (mongo != null) {
-          // Mongo 集合 schema（2b.2b，R5）：内容件消费 AppProvider
-          // per-connection facade，本件只透传三参；零写路径。
-          return WorkbenchMongoSchemaView(
-            connectionId: mongo.connectionId,
-            databaseName: mongo.databaseName,
-            collectionName: mongo.collectionName,
-          );
-        }
-        return _StageStructureContent(tab: tab);
-      case WorkbenchStageTabKind.editor:
-        return _StageEditorContent(
+    switch (tab.container) {
+      case WorkbenchStageContainerKind.sqlStudio:
+        // SQL Studio：edit=编辑器槽 / diff=优化对比 + Optimization Summary；
+        // 两子态 IndexedStack 保活（编辑未保存内容跨分段切换不丢）。
+        return _StageSqlStudioContent(
           tab: tab,
           stageController: widget.controller,
         );
-      case WorkbenchStageTabKind.chart:
-        return _StageChartContent(
+      case WorkbenchStageContainerKind.dataViz:
+        // Data & Viz：grid/chart 共享同一结果集（chart 仅换渲染不重新取数，
+        // UI35-306）；chart 子态浮现 32px 轴配置条。
+        return _StageDataVizContent(
           tab: tab,
+          stageController: widget.controller,
+          registry: widget.registry,
           onOpenInClassic: widget.onOpenInClassic,
         );
-      case WorkbenchStageTabKind.sessionList:
-        // 会话列表全宽形态（v2 §8-5 同源）：与 rail 内容页同一组件，
-        // 头栏（含新建钮）随 tab 形态保留。
-        return SessionListView(showHeader: true);
-      case WorkbenchStageTabKind.history:
-        // 查询历史全宽形态（v2 A3 / §8-5 同源）：与 rail 历史页同一组件，
-        // 宽空间增强 = 元信息列更全（narrow=false 分支），不加 rail 没有的
-        // 能力；载入回调绑本 controller 的 openEditorSlot（AC5.5 脏槽保护
-        // 既有；载入不执行）。
-        return QueryHistoryListView(
-          onLoadIntoEditor: widget.controller.openEditorSlot,
-        );
-      case WorkbenchStageTabKind.savedQueries:
-        // 保存的查询全宽形态（v2 A4 / §8-5 同源，本地段 only）：与 rail
-        // 保存的查询页同一组件；载入回调绑本 controller 的 openEditorSlot
-        // （AC5.5 脏槽保护既有；载入不执行，无任何执行入口）。
-        return SavedQueryListView(
-          onLoadIntoEditor: widget.controller.openEditorSlot,
-        );
-      case WorkbenchStageTabKind.execution:
-        // 执行结果摘要（v2 B1）：纯只读投影——零动作按钮（无重跑/编辑/
-        // 导出，v1 §4 守卫 + §5 纪律 6）。
-        return _StageExecutionContent(tab: tab);
-      case WorkbenchStageTabKind.observe:
-        // 实例观察（2b.1，R1）：零数据载荷——内容每次 build 从
-        // effectiveWorkbenchContext 派生锁定连接（单例跟随锁定连接）。
-        return const WorkbenchObserveContent();
-      case WorkbenchStageTabKind.optimization:
-        // 查询优化（2b.3，R6）：SQL 上下文头 + QueryPlanVisualizer 零改动
-        // 复用；「应用此索引」= openEditorSlot 填槽不执行（零自动写）。
-        return _StageOptimizationContent(
-          tab: tab,
-          stageController: widget.controller,
-        );
+      case WorkbenchStageContainerKind.schema:
+        // Schema：Mongo 集合分支 = 单视图（2b.2b，无分段）；SQL 表分支 =
+        // columns/indexes/ddl 三子段 + AI 推测字段虚线框（不写回）。
+        return _StageSchemaContent(tab: tab);
+      case WorkbenchStageContainerKind.diagnostics:
+        // Diagnostics：explainPlan = execution 静态投影（纯只读）；
+        // liveMonitor = observe 实时（2b.1 语义，零写手势）。
+        return _StageDiagnosticsContent(tab: tab);
     }
+  }
+}
+
+/// 容器子态分段控件（design-v3.5-ui §2.3：分段 h 22 / 条 32；选中
+/// primaryContainer + accent 边；先例 results_widget.dart:357 视图切换分段
+/// ——自决实现为轻量 InkWell 分段，不用 SegmentedButton（Material 默认高
+/// 度压不进 22，且需避开 IconButton 类型面以保「纯只读投影零动作按钮」
+/// 断言）。
+class _StageSubKindSegments<T extends WorkbenchStageSubKind>
+    extends StatelessWidget {
+  const _StageSubKindSegments({
+    required this.values,
+    required this.selected,
+    required this.labelOf,
+    required this.onSelect,
+  });
+
+  /// 分段全集（渲染序）。
+  final List<T> values;
+
+  /// 当前选中子态。
+  final T selected;
+
+  /// 分段标签（注册表单源消费）。
+  final String Function(T value) labelOf;
+
+  /// 选中回调（回写 [WorkbenchStageController.selectSubKind]）。
+  final ValueChanged<T> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.themeColors;
+    return SizedBox(
+      height: 32,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < values.length; i++) ...[
+            if (i > 0) const SizedBox(width: AppDesignSystem.space1),
+            _buildSegment(context, colors, values[i]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSegment(
+    BuildContext context,
+    ThemeColors colors,
+    T value,
+  ) {
+    final isActive = value == selected;
+    return InkWell(
+      onTap: () => onSelect(value),
+      borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
+      child: AnimatedContainer(
+        duration: AppDesignSystem.durationNormal,
+        curve: AppDesignSystem.curveDefault,
+        height: 22,
+        padding: const EdgeInsets.symmetric(horizontal: AppDesignSystem.space2),
+        decoration: BoxDecoration(
+          color: isActive ? colors.primaryContainer : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
+          border: Border.all(
+            color: isActive ? colors.accentBlue : colors.dividerColor,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            labelOf(value),
+            maxLines: 1,
+            style: TextStyle(
+              fontSize: AppDesignSystem.fontSizeXs,
+              color: isActive ? colors.textPrimary : colors.textSecondary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// SQL Studio 容器内容：分段 [Editor | Diff] + 子视图访问保活
+/// （[_SubKindKeepAlive] 模式：子视图仅在首次被选中时构建，此后 IndexedStack
+/// 常驻保活——避免隐藏构建 [QueryPlanVisualizer] 的无谓成本）。
+///
+/// edit 子态 = 编辑器槽（[_StageEditorContent]，载入不自动执行 AC5.2 +
+/// 脏标记回写 AC5.5）；diff 子态 = 优化对比（[_StageDiffContent]：可折叠
+/// Optimization Summary + SQL 上下文头 + [QueryPlanVisualizer] 零改动复用）。
+class _StageSqlStudioContent extends StatefulWidget {
+  const _StageSqlStudioContent({
+    required this.tab,
+    required this.stageController,
+  });
+
+  final WorkbenchStageTab tab;
+  final WorkbenchStageController stageController;
+
+  @override
+  State<_StageSqlStudioContent> createState() => _StageSqlStudioContentState();
+}
+
+class _StageSqlStudioContentState extends State<_StageSqlStudioContent> {
+  final _SubKindKeepAlive<SqlStudioSubKind> _keepAlive =
+      _SubKindKeepAlive<SqlStudioSubKind>();
+
+  @override
+  void dispose() {
+    _keepAlive.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final selected =
+        widget.tab.subKind is SqlStudioSubKind
+            ? widget.tab.subKind as SqlStudioSubKind
+            : SqlStudioSubKind.edit;
+    _keepAlive.visit(selected);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _StageSubKindSegments<SqlStudioSubKind>(
+          values: SqlStudioSubKind.values,
+          selected: selected,
+          labelOf: (v) => v.label(l10n),
+          onSelect: (v) =>
+              widget.stageController.selectSubKind(widget.tab.id, v),
+        ),
+        const SizedBox(height: AppDesignSystem.space2),
+        Expanded(
+          child: IndexedStack(
+            index: selected.index,
+            children: [
+              _keepAlive.guard(
+                SqlStudioSubKind.edit,
+                _StageEditorContent(
+                  tab: widget.tab,
+                  stageController: widget.stageController,
+                ),
+              ),
+              _keepAlive.guard(
+                SqlStudioSubKind.diff,
+                _StageDiffContent(
+                  tab: widget.tab,
+                  stageController: widget.stageController,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 子视图访问保活（容器内容件共用模式，批3）：子视图仅在所属子态**首次
+/// 选中**时构建（未访问子态以 SizedBox 占位），此后常驻 IndexedStack 保活
+/// ——隐藏子视图不再无谓构建（chart 的 fl_chart / diff 的 visualizer /
+/// liveMonitor 的 provider 依赖面），保活语义（编辑未保存内容跨分段切换
+/// 不丢）不受影响。
+class _SubKindKeepAlive<T> {
+  final Set<T> _visited = <T>{};
+
+  /// 标记 [kind] 已访问（build 期调用，零通知）。
+  void visit(T kind) => _visited.add(kind);
+
+  /// [kind] 已访问 → 返回 [child]；未访问 → SizedBox 占位（下次选中时
+  /// 首建）。
+  Widget guard(T kind, Widget child) =>
+      _visited.contains(kind) ? child : const SizedBox.shrink();
+
+  /// 释放（宿主 State.dispose）。
+  void dispose() => _visited.clear();
+}
+
+/// Data & Viz 容器内容：分段 [Grid | Chart] + 子视图访问保活
+/// （[_SubKindKeepAlive]：chart 首次选中才构建）——两子态消费**同一**
+/// [WorkbenchStageTab.resultRef]（共享结果集：chart 仅换渲染不重新取数，
+/// UI35-306）；chart 子态在图表上方浮现 32px 轴配置条（X/Y 列型检测投影，
+/// 只读）。
+class _StageDataVizContent extends StatefulWidget {
+  const _StageDataVizContent({
+    required this.tab,
+    required this.stageController,
+    this.registry,
+    this.onOpenInClassic,
+  });
+
+  final WorkbenchStageTab tab;
+  final WorkbenchStageController stageController;
+  final PluginRegistry? registry;
+  final void Function(String sql)? onOpenInClassic;
+
+  @override
+  State<_StageDataVizContent> createState() => _StageDataVizContentState();
+}
+
+class _StageDataVizContentState extends State<_StageDataVizContent> {
+  final _SubKindKeepAlive<DataVizSubKind> _keepAlive =
+      _SubKindKeepAlive<DataVizSubKind>();
+
+  @override
+  void dispose() {
+    _keepAlive.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final selected =
+        widget.tab.subKind is DataVizSubKind
+            ? widget.tab.subKind as DataVizSubKind
+            : DataVizSubKind.grid;
+    _keepAlive.visit(selected);
+    final isChart = selected == DataVizSubKind.chart;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _StageSubKindSegments<DataVizSubKind>(
+          values: DataVizSubKind.values,
+          selected: selected,
+          labelOf: (v) => v.label(l10n),
+          onSelect: (v) =>
+              widget.stageController.selectSubKind(widget.tab.id, v),
+        ),
+        const SizedBox(height: AppDesignSystem.space2),
+        Expanded(
+          child: IndexedStack(
+            index: isChart ? 1 : 0,
+            children: [
+              _keepAlive.guard(
+                DataVizSubKind.grid,
+                _StageGridContent(tab: widget.tab, registry: widget.registry),
+              ),
+              _keepAlive.guard(
+                DataVizSubKind.chart,
+                _StageChartPane(
+                  tab: widget.tab,
+                  onOpenInClassic: widget.onOpenInClassic,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// chart 子态窗格（dataViz 容器内）：32px 轴配置条（X/Y 列型检测投影，
+/// 只读）+ 图表内容（列型不适配 → 内联错误 + [在经典中打开] 出口不弹窗，
+/// AC5.3）。
+class _StageChartPane extends StatelessWidget {
+  const _StageChartPane({required this.tab, this.onOpenInClassic});
+
+  final WorkbenchStageTab tab;
+  final void Function(String sql)? onOpenInClassic;
+
+  @override
+  Widget build(BuildContext context) {
+    final ref = tab.resultRef;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildAxisBar(context, ref),
+        const SizedBox(height: AppDesignSystem.space2),
+        Expanded(
+          child: _StageChartContent(tab: tab, onOpenInClassic: onOpenInClassic),
+        ),
+      ],
+    );
+  }
+
+  /// 轴配置条（design-v3.5-ui §2.3：仅 chart 子态出现，高 32；X/Y/Series
+  /// 三 chip——X = 首个非数值列，Y = 首个数值列，Series = 数值列全集；
+  /// 列型检测投影只读，交互式轴选择不入本批）。
+  Widget _buildAxisBar(BuildContext context, AgentResultRef? ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = context.themeColors;
+    String? xAxis;
+    String? yAxis;
+    final seriesColumns = <String>[];
+    if (ref != null && ref.columns.isNotEmpty) {
+      final types = _detectColumnTypes(ref);
+      for (final column in ref.columns) {
+        if (types[column] == ColumnDataType.numeric) {
+          seriesColumns.add(column);
+          yAxis ??= column;
+        } else {
+          xAxis ??= column;
+        }
+      }
+    }
+    Widget chip(String label) {
+      return Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDesignSystem.space1_5,
+          vertical: 2,
+        ),
+        decoration: BoxDecoration(
+          color: colors.bgTertiary,
+          borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: AppDesignSystem.fontSizeXs,
+            fontFamily: AppDesignSystem.monoFontFamily,
+            fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
+            color: colors.textSecondary,
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 32,
+      child: Row(
+        children: [
+          Text(
+            l10n.agentStageAxisConfig,
+            style: TextStyle(
+              fontSize: AppDesignSystem.fontSizeXs,
+              fontWeight: FontWeight.w600,
+              color: colors.textMuted,
+            ),
+          ),
+          const SizedBox(width: AppDesignSystem.space2),
+          Flexible(child: chip('X: ${xAxis ?? '—'}')),
+          const SizedBox(width: AppDesignSystem.space1),
+          Flexible(child: chip('Y: ${yAxis ?? '—'}')),
+          if (seriesColumns.length > 1) ...[
+            const SizedBox(width: AppDesignSystem.space1),
+            Flexible(child: chip('Series: ${seriesColumns.length}')),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Schema 容器内容：Mongo 集合分支 = [WorkbenchMongoSchemaView] 单视图
+/// （2b.2b，无分段——mongo schema 无列/索引/DDL 三段语义）；SQL 表分支 =
+/// 分段 [Columns | Indexes | DDL] + 三子段 IndexedStack 保活。分段标签即
+/// 子段标题（内容不重复渲染节标题，B-01）。AI 推测字段虚线框落在 columns
+/// 子段实查列之后（不写回 schema）。
+class _StageSchemaContent extends StatelessWidget {
+  const _StageSchemaContent({required this.tab});
+
+  final WorkbenchStageTab tab;
+
+  @override
+  Widget build(BuildContext context) {
+    final mongo = tab.mongoStructure;
+    if (mongo != null) {
+      // Mongo 集合 schema（2b.2b，R5）：内容件消费 AppProvider
+      // per-connection facade，本件只透传三参；零写路径。
+      return WorkbenchMongoSchemaView(
+        connectionId: mongo.connectionId,
+        databaseName: mongo.databaseName,
+        collectionName: mongo.collectionName,
+      );
+    }
+    final l10n = AppLocalizations.of(context)!;
+    final selected =
+        tab.subKind is SchemaSubKind
+            ? tab.subKind as SchemaSubKind
+            : SchemaSubKind.columns;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _StageSubKindSegments<SchemaSubKind>(
+          values: SchemaSubKind.values,
+          selected: selected,
+          labelOf: (v) => v.label(l10n),
+          // Schema 容器分段切换是纯展示态切换——无 controller 注入面时
+          // （本件由舞台构建，controller 经 [WorkbenchStage.widget] 不可直
+          // 达），子态保存在本内容件 State 之外的最小方案 = 由舞台侧统一
+          // 回写。此处经 InheritedWidget 之外的直接途径：舞台把 selectSubKind
+          // 绑定在 tab 上不可行（tab 不可变），故分段回调走
+          // [_StageSchemaSlotHost]（舞台壳提供的回写桥）。
+          onSelect: (v) => _onSelect(context, v),
+        ),
+        const SizedBox(height: AppDesignSystem.space2),
+        Expanded(child: _buildSelectedSection(context, selected)),
+      ],
+    );
+  }
+
+  /// 分段回写：经祖先 [_WorkbenchStageState] 取 controller（内容件由舞台
+  /// 唯一装配，祖先恒在树内）。
+  void _onSelect(BuildContext context, SchemaSubKind value) {
+    final state = context.findAncestorStateOfType<_WorkbenchStageState>();
+    state?.widget.controller.selectSubKind(tab.id, value);
+  }
+
+  Widget _buildSelectedSection(BuildContext context, SchemaSubKind selected) {
+    final data = tab.structure;
+    if (data == null) return const SizedBox.shrink();
+    return IndexedStack(
+      index: selected.index,
+      children: [
+        _buildColumnsSection(context, data),
+        _buildIndexesSection(context, data),
+        _buildDdlSection(context, data),
+      ],
+    );
+  }
+
+  /// columns 子段：实查列行 + AI 推测字段虚线框（不写回）。
+  Widget _buildColumnsSection(
+    BuildContext context,
+    StageStructureData data,
+  ) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final column in data.columns)
+            _StructureColumnRow(column: column),
+          for (final inferred in data.aiInferredColumns)
+            _AiInferredColumnRow(entry: inferred),
+        ],
+      ),
+    );
+  }
+
+  /// indexes 子段：索引行 + 外键行（键族归并呈现——外键无独立子段，
+  /// B-01 三子段语义）。
+  Widget _buildIndexesSection(
+    BuildContext context,
+    StageStructureData data,
+  ) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final index in data.indexes) _StructureIndexRow(index: index),
+          for (final foreignKey in data.foreignKeys)
+            _StructureFkRow(foreignKey: foreignKey),
+        ],
+      ),
+    );
+  }
+
+  /// ddl 子段：CREATE TABLE 语句块（mono / codeBlockBg / 上限高内滚）。
+  Widget _buildDdlSection(BuildContext context, StageStructureData data) {
+    final ddl = data.ddl;
+    if (ddl == null || ddl.isEmpty) return const SizedBox.shrink();
+    return Align(
+      alignment: Alignment.topLeft,
+      child: _StructureDdlBlock(ddl: ddl),
+    );
+  }
+}
+
+/// AI 推测字段行（虚线框，批3 P3）：列形态行 + 推测依据注记——**不写回
+/// schema**（纯展示，无任何写路径；「不写回」由构造性保证：本行无按钮无
+/// 回调）。虚线边框 = 自绘 painter（Flutter 无原生 dashed border，不引依赖）。
+class _AiInferredColumnRow extends StatelessWidget {
+  const _AiInferredColumnRow({required this.entry});
+
+  final StageAiInferredColumn entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = context.themeColors;
+    final mono = TextStyle(
+      fontFamily: AppDesignSystem.monoFontFamily,
+      fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
+    );
+    final column = entry.column;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppDesignSystem.space0_5),
+      child: CustomPaint(
+        foregroundPainter: _DashedBorderPainter(
+          color: colors.accentBlue.withValues(alpha: 0.55),
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDesignSystem.space1_5,
+            vertical: AppDesignSystem.space1,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      column.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: mono.copyWith(
+                        fontSize: AppDesignSystem.fontSizeSm,
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppDesignSystem.space1_5),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 160),
+                    child: Text(
+                      column.type,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: mono.copyWith(
+                        fontSize: AppDesignSystem.fontSizeXs,
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                l10n.agentStageAiInferred(entry.note),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: AppDesignSystem.fontSizeXs,
+                  color: colors.accentBlue,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 虚线边框 painter（AI 推测字段虚线框专用；四边等距短划）。
+class _DashedBorderPainter extends CustomPainter {
+  _DashedBorderPainter({required this.color});
+
+  final Color color;
+
+  static const double _dash = 4;
+  static const double _gap = 3;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint =
+        Paint()
+          ..color = color
+          ..strokeWidth = 1
+          ..style = PaintingStyle.stroke;
+    void dashedLine(Offset from, Offset to) {
+      var dx = 0.0;
+      final length = (to - from).distance;
+      final direction = (to - from) / (length == 0 ? 1 : length);
+      while (dx < length) {
+        final start = from + direction * dx;
+        final end = from + direction * math.min(dx + _dash, length);
+        canvas.drawLine(start, end, paint);
+        dx += _dash + _gap;
+      }
+    }
+
+    final tl = Offset.zero;
+    final tr = Offset(size.width, 0);
+    final br = Offset(size.width, size.height);
+    final bl = Offset(0, size.height);
+    dashedLine(tl, tr);
+    dashedLine(tr, br);
+    dashedLine(br, bl);
+    dashedLine(bl, tl);
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorderPainter oldDelegate) =>
+      oldDelegate.color != color;
+}
+
+/// Diagnostics 容器内容：分段 [Explain Plan | Live Monitor] + 双子视图
+/// 访问保活（[_SubKindKeepAlive]：liveMonitor 首次选中才构建——observe
+/// 内容件消费 AppProvider，隐藏构建会在无 Provider 测试环境抛
+/// ProviderNotFoundException）。explainPlan = [_StageExecutionContent] 静态
+/// 投影（无载荷时空占位）；liveMonitor = [WorkbenchObserveContent]（2b.1
+/// 实时观察语义，单例跟随锁定连接，零写手势）。
+class _StageDiagnosticsContent extends StatefulWidget {
+  const _StageDiagnosticsContent({required this.tab});
+
+  final WorkbenchStageTab tab;
+
+  @override
+  State<_StageDiagnosticsContent> createState() =>
+      _StageDiagnosticsContentState();
+}
+
+class _StageDiagnosticsContentState extends State<_StageDiagnosticsContent> {
+  final _SubKindKeepAlive<DiagnosticsSubKind> _keepAlive =
+      _SubKindKeepAlive<DiagnosticsSubKind>();
+
+  @override
+  void dispose() {
+    _keepAlive.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final selected =
+        widget.tab.subKind is DiagnosticsSubKind
+            ? widget.tab.subKind as DiagnosticsSubKind
+            : DiagnosticsSubKind.explainPlan;
+    _keepAlive.visit(selected);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _StageSubKindSegments<DiagnosticsSubKind>(
+          values: DiagnosticsSubKind.values,
+          selected: selected,
+          labelOf: (v) => v.label(l10n),
+          onSelect: (v) => _onSelect(context, v),
+        ),
+        const SizedBox(height: AppDesignSystem.space2),
+        Expanded(
+          child: IndexedStack(
+            index: selected.index,
+            children: [
+              _keepAlive.guard(
+                DiagnosticsSubKind.explainPlan,
+                _buildExplainPlan(context),
+              ),
+              _keepAlive.guard(
+                DiagnosticsSubKind.liveMonitor,
+                const WorkbenchObserveContent(),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 分段回写：经祖先 [_WorkbenchStageState] 取 controller（内容件由舞台
+  /// 唯一装配，祖先恒在树内）。
+  void _onSelect(BuildContext context, DiagnosticsSubKind value) {
+    final state = context.findAncestorStateOfType<_WorkbenchStageState>();
+    state?.widget.controller.selectSubKind(widget.tab.id, value);
+  }
+
+  Widget _buildExplainPlan(BuildContext context) {
+    final data = widget.tab.execution;
+    if (data == null || data.rows.isEmpty) {
+      final l10n = AppLocalizations.of(context)!;
+      final colors = context.themeColors;
+      return Center(
+        child: Text(
+          l10n.commonNoData,
+          style: TextStyle(color: colors.textMuted),
+        ),
+      );
+    }
+    return _StageExecutionContent(tab: widget.tab);
   }
 }
 
@@ -1592,7 +2409,7 @@ class _StageTabItemState extends State<_StageTabItem> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    tab.kind.icon,
+                    tab.container.icon,
                     size: 14,
                     color: colors.textSecondary, // §5.2：恒 textSecondary
                   ),
@@ -1691,8 +2508,9 @@ class _StageTabItemState extends State<_StageTabItem> {
   }
 }
 
-/// tab 条尾部动作钮（重开 / 收起，走查修复批 S3/S7/S9）：14px 图标 +
-/// textSecondary；hover bgTertiary；命中区 = tab 条全高 32 × 宽 28；roving
+/// tab 条尾部动作钮（重开 / 收起，走查修复批 S3/S7/S9；批3 E3.2）：图标 +
+/// textSecondary；hover bgTertiary；命中高 = tab 条全高 32，宽默认 28
+///（[size] 覆写——批3 舞台开合钮迁容器 tab 条右端 24×24，B-02）；roving
 /// 焦点序列尾部两项（←/→/Home/End 经 [onMoveFocus] 由宿主 [_focusTab]
 /// 钳制解析）。
 ///
@@ -1711,6 +2529,7 @@ class _StageBarAction extends StatefulWidget {
     required this.onMoveFocus,
     this.openMenuOnArrowDown = false,
     this.enabled = true,
+    this.size = 28,
   });
 
   final Key actionKey;
@@ -1728,6 +2547,9 @@ class _StageBarAction extends StatefulWidget {
   final void Function(int targetIndex) onMoveFocus;
   final bool openMenuOnArrowDown;
   final bool enabled;
+
+  /// 命中区宽（默认 28；批3 收起钮 = 24——B-02「容器 tab 条右端 24×24」）。
+  final double size;
 
   @override
   State<_StageBarAction> createState() => _StageBarActionState();
@@ -1794,7 +2616,7 @@ class _StageBarActionState extends State<_StageBarAction> {
                 key: widget.actionKey,
                 duration: AppDesignSystem.durationNormal,
                 curve: AppDesignSystem.curveDefault,
-                width: 28,
+                width: widget.size,
                 height: AppDesignSystem.tabBarHeight,
                 color: enabled && _hovered ? colors.bgTertiary : Colors.transparent,
                 child: Center(
@@ -1886,132 +2708,30 @@ class _StageGridContentState extends State<_StageGridContent> {
   }
 }
 
-/// 结构卡内容槽（§5.3）：分组标题 11 w600 textMuted（列/索引/外键/DDL）；
-/// 数据行 24（workbenchDenseRowHeight）：列名 mono 12 textPrimary + 类型
-/// mono 11 textSecondary + 徽标（PK / NN / 默认值，bgTertiary + 11
-/// textSecondary）；DDL 块 codeBlockBg / mono 11 / 上限 360 内滚。
-/// 单滚动区（结构分组共享一个 SingleChildScrollView，不嵌套外层滚动）。
-class _StageStructureContent extends StatelessWidget {
-  const _StageStructureContent({required this.tab});
-
-  final WorkbenchStageTab tab;
-
-  @override
-  Widget build(BuildContext context) {
-    final data = tab.structure;
-    if (data == null) return const SizedBox.shrink();
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSection(
-            context,
-            tableColumnsLabel(context),
-            data.columns.map((c) => _StructureColumnRow(column: c)),
-          ),
-          if (data.indexes.isNotEmpty)
-            _buildSection(
-              context,
-              tableIndexesLabel(context),
-              data.indexes.map((i) => _StructureIndexRow(index: i)),
-            ),
-          if (data.foreignKeys.isNotEmpty)
-            _buildSection(
-              context,
-              foreignKeysLabel(context),
-              data.foreignKeys.map((f) => _StructureFkRow(foreignKey: f)),
-            ),
-          if (data.ddl != null && data.ddl!.isNotEmpty)
-            _buildDdlSection(context, data.ddl!),
-        ],
+/// 结构行徽标（schema 容器列/索引行共用）：bgTertiary + 11 textSecondary +
+/// radiusSm（沿类型徽标语法；原 _StageStructureContent.badge 随容器重构
+/// 提为顶层函数）。
+Widget _structureBadge(BuildContext context, String text) {
+  final colors = context.themeColors;
+  return Container(
+    padding: const EdgeInsets.symmetric(
+      horizontal: AppDesignSystem.space1_5,
+      vertical: 2,
+    ),
+    decoration: BoxDecoration(
+      color: colors.bgTertiary,
+      borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(
+        fontSize: AppDesignSystem.fontSizeXs,
+        color: colors.textSecondary,
+        fontFamily: AppDesignSystem.monoFontFamily,
+        fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
       ),
-    );
-  }
-
-  // 分组标签复用既有 l10n key（本任务禁改 ARB）：
-  String tableColumnsLabel(BuildContext context) =>
-      AppLocalizations.of(context)!.tableColumns;
-  String tableIndexesLabel(BuildContext context) =>
-      AppLocalizations.of(context)!.tableIndexes;
-  String foreignKeysLabel(BuildContext context) =>
-      AppLocalizations.of(context)!.sidebarForeignKeys;
-
-  Widget _buildSection(
-    BuildContext context,
-    String title,
-    Iterable<Widget> rows,
-  ) {
-    final colors = context.themeColors;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppDesignSystem.space2_5),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppDesignSystem.space1),
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: AppDesignSystem.fontSizeXs,
-                fontWeight: FontWeight.w600,
-                color: colors.textMuted,
-              ),
-            ),
-          ),
-          ...rows,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDdlSection(BuildContext context, String ddl) {
-    final l10n = AppLocalizations.of(context)!;
-    final colors = context.themeColors;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppDesignSystem.space2_5),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppDesignSystem.space1),
-            child: Text(
-              l10n.snippetCategoryDDL,
-              style: TextStyle(
-                fontSize: AppDesignSystem.fontSizeXs,
-                fontWeight: FontWeight.w600,
-                color: colors.textMuted,
-              ),
-            ),
-          ),
-          _StructureDdlBlock(ddl: ddl),
-        ],
-      ),
-    );
-  }
-
-  /// 结构行徽标：bgTertiary + 11 textSecondary + radiusSm（沿类型徽标语法）。
-  static Widget badge(BuildContext context, String text) {
-    final colors = context.themeColors;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDesignSystem.space1_5,
-        vertical: 2,
-      ),
-      decoration: BoxDecoration(
-        color: colors.bgTertiary,
-        borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: AppDesignSystem.fontSizeXs,
-          color: colors.textSecondary,
-          fontFamily: AppDesignSystem.monoFontFamily,
-          fontFamilyFallback: AppDesignSystem.monoFontFamilyFallback,
-        ),
-      ),
-    );
-  }
+    ),
+  );
 }
 
 /// DDL 块（_buildDdlSection 的正文部分）。
@@ -2095,16 +2815,16 @@ class _StructureColumnRow extends StatelessWidget {
           ),
           if (column.isPrimaryKey) ...[
             const SizedBox(width: AppDesignSystem.space1),
-            _StageStructureContent.badge(context, 'PK'),
+            _structureBadge(context, 'PK'),
           ],
           if (!column.isNullable) ...[
             const SizedBox(width: AppDesignSystem.space1),
-            _StageStructureContent.badge(context, 'NN'),
+            _structureBadge(context, 'NN'),
           ],
           if (column.defaultValue != null &&
               column.defaultValue!.isNotEmpty) ...[
             const SizedBox(width: AppDesignSystem.space1),
-            _StageStructureContent.badge(context, column.defaultValue!),
+            _structureBadge(context, column.defaultValue!),
           ],
         ],
       ),
@@ -2154,7 +2874,7 @@ class _StructureIndexRow extends StatelessWidget {
           ),
           if (index.isUnique) ...[
             const SizedBox(width: AppDesignSystem.space1),
-            _StageStructureContent.badge(context, 'UNIQUE'),
+            _structureBadge(context, 'UNIQUE'),
           ],
         ],
       ),
@@ -2275,12 +2995,23 @@ class _StageChartContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final ref = tab.resultRef;
-    if (ref == null || !WorkbenchStageController.isChartable(ref)) {
-      return _buildMismatch(context, l10n, ref?.sql ?? '');
+    if (ref == null || !WorkbenchStageController.isChartable(ref) ||
+        !_columnsMatchRows(ref)) {
+      return _buildMismatch(context, AppLocalizations.of(context)!, ref?.sql ?? '');
     }
     return ChartView(data: ref.rows, columnTypes: _detectColumnTypes(ref));
+  }
+
+  /// 列集一致性守卫（批3 容器收敛新增防御）：dataViz 容器下 chart 子视图
+  /// 随 IndexedStack 隐藏构建（子态保活）——[ChartView] 的轴下拉项取自
+  /// `data.first.keys`，而列类型检测按 [AgentResultRef.columns]——两者
+  /// 不一致（卡快照列集 ≠ 行键集）时 DropdownButton 值不在项集内触发
+  /// 断言。不一致 → 按不适配处理（内联错误 + 经典出口），不建 ChartView。
+  static bool _columnsMatchRows(AgentResultRef ref) {
+    if (ref.rows.isEmpty) return true;
+    final rowKeys = ref.rows.first.keys.toSet();
+    return ref.columns.every(rowKeys.contains);
   }
 
   Widget _buildMismatch(
@@ -2656,17 +3387,19 @@ class _StageExecutionRowTileState extends State<_StageExecutionRowTile> {
   }
 }
 
-/// optimization 内容槽（2b.3，R6）：查询优化三层内容 tab——顶部 SQL 上下文
-/// 块（mono SelectableText，沿 [_StructureDdlBlock] 形态自写不抽取）+ 下方
-/// [QueryPlanVisualizer] 零改动复用承载（计划树 + 瓶颈 + 索引推荐 + 重写
-/// 建议四层，R6 双头维护禁令）。
+/// sqlStudio/diff 子态内容（2b.3 R6 + 批3 P3）：可折叠 Optimization
+/// Summary 卡（默认展开当有变更——索引推荐或瓶颈非空；头 26 + 体内容）+
+/// SQL 上下文块（mono SelectableText，沿 [_StructureDdlBlock] 形态自写不
+/// 抽取）+ 下方 [QueryPlanVisualizer] 零改动复用承载（计划树 + 瓶颈 + 索引
+/// 推荐 + 重写建议四层，R6 双头维护禁令）。载荷为空（Diff 分段无产物）→
+/// 「No data」空占位。
 ///
 /// 零写手势（任务书 §6.4 一票否决项）：「应用此索引」= 回调填
 /// [WorkbenchStageController.openEditorSlot]（编辑器槽载入不自动执行，
 /// AC5.5 脏槽保护既有）——填槽不执行，无任何 SQL 执行入口。visualizer
 /// 内部英文硬编码属既有经典组件面，l10n 改造登记跟进项不并入本批。
-class _StageOptimizationContent extends StatelessWidget {
-  const _StageOptimizationContent({
+class _StageDiffContent extends StatefulWidget {
+  const _StageDiffContent({
     required this.tab,
     required this.stageController,
   });
@@ -2675,26 +3408,164 @@ class _StageOptimizationContent extends StatelessWidget {
   final WorkbenchStageController stageController;
 
   @override
+  State<_StageDiffContent> createState() => _StageDiffContentState();
+}
+
+class _StageDiffContentState extends State<_StageDiffContent> {
+  /// Summary 折叠态（默认 = 有变更展开：索引推荐或瓶颈非空）。
+  late bool _summaryExpanded = _hasChanges(widget.tab.optimization);
+
+  @override
+  void didUpdateWidget(covariant _StageDiffContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 复用刷新（载荷对象替换）→ 折叠态按新载荷重定默认（新报告有变更
+    // → 展开，让用户看到新建议）。
+    if (oldWidget.tab.optimization != widget.tab.optimization) {
+      _summaryExpanded = _hasChanges(widget.tab.optimization);
+    }
+  }
+
+  static bool _hasChanges(StageOptimizationData? data) {
+    if (data == null) return false;
+    return data.report.indexRecommendations.isNotEmpty ||
+        data.report.bottlenecks.isNotEmpty;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final data = tab.optimization;
-    if (data == null) return const SizedBox.shrink();
+    final data = widget.tab.optimization;
+    if (data == null) {
+      final l10n = AppLocalizations.of(context)!;
+      final colors = context.themeColors;
+      return Center(
+        child: Text(
+          l10n.commonNoData,
+          style: TextStyle(color: colors.textMuted),
+        ),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildSqlContextBlock(context, data.sql),
-        const SizedBox(height: AppDesignSystem.space2_5),
+        _buildSummaryCard(context, data),
+        const SizedBox(height: AppDesignSystem.space2),
         Expanded(
           // 单滚动区（沿 query_editor_widget.dart:2002-2009 经典计划 dialog
           // 同款包裹）：visualizer 自身无内滚，大载荷需外层滚动。
           child: SingleChildScrollView(
-            child: QueryPlanVisualizer(
-              report: data.report,
-              // 填编辑器槽不执行（R6：「应用此索引」的唯一合法落点）。
-              onApplyDdl: stageController.openEditorSlot,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildSqlContextBlock(context, data.sql),
+                const SizedBox(height: AppDesignSystem.space2_5),
+                QueryPlanVisualizer(
+                  report: data.report,
+                  // 填编辑器槽不执行（R6：「应用此索引」的唯一合法落点）。
+                  onApplyDdl: widget.stageController.openEditorSlot,
+                ),
+              ],
             ),
           ),
         ),
       ],
+    );
+  }
+
+  /// Optimization Summary 卡（批3 P3：头 26 = 折叠开关 + 标题；体 = 报告
+  /// 摘要文本 + 推荐索引 DDL 块）。行扫描对比行（agentStageRowsScanned）
+  /// 需要「优化后估算行数」数据位——当前 [PerformanceReport] 无该字段
+  /// （索引推荐仅 estimatedImprovement 百分比），不虚构数值，暂不渲染
+  /// （自决申报：键位保留待模型扩位后启用）。
+  Widget _buildSummaryCard(BuildContext context, StageOptimizationData data) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = context.themeColors;
+    final recommendation = data.report.indexRecommendations.isNotEmpty
+        ? data.report.indexRecommendations.first
+        : null;
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.bgSecondary,
+        borderRadius: BorderRadius.circular(AppDesignSystem.radiusSm),
+        border: Border.all(color: colors.dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 头 26：折叠开关（chevron）+ 标题。
+          InkWell(
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(AppDesignSystem.radiusSm),
+              topRight: Radius.circular(AppDesignSystem.radiusSm),
+            ),
+            onTap: () => setState(() => _summaryExpanded = !_summaryExpanded),
+            child: SizedBox(
+              height: 26,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDesignSystem.space2,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _summaryExpanded
+                          ? LucideIcons.chevronDown
+                          : LucideIcons.chevronRight,
+                      size: 12,
+                      color: colors.textMuted,
+                    ),
+                    const SizedBox(width: AppDesignSystem.space1),
+                    Text(
+                      l10n.agentStageOptimizationSummary,
+                      style: TextStyle(
+                        fontSize: AppDesignSystem.fontSizeXs,
+                        fontWeight: FontWeight.w600,
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          if (_summaryExpanded)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppDesignSystem.space2,
+                0,
+                AppDesignSystem.space2,
+                AppDesignSystem.space2,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    data.report.summary,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: AppDesignSystem.fontSizeXs,
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                  if (recommendation != null &&
+                      recommendation.ddlStatement != null) ...[
+                    const SizedBox(height: AppDesignSystem.space1_5),
+                    Text(
+                      l10n.agentStageRecommendedIndex,
+                      style: TextStyle(
+                        fontSize: AppDesignSystem.fontSizeXs,
+                        fontWeight: FontWeight.w600,
+                        color: colors.textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: AppDesignSystem.space1),
+                    _StructureDdlBlock(ddl: recommendation.ddlStatement!),
+                  ],
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 

@@ -11733,4 +11733,62 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get connectionTestSettingsChanged =>
       'Настройки подключения изменены · предыдущий результат проверки больше не актуален';
+
+  @override
+  String get agentStageContainerSqlStudio => 'SQL-студия';
+
+  @override
+  String get agentStageContainerDataViz => 'Данные и графики';
+
+  @override
+  String get agentStageContainerSchema => 'Схема';
+
+  @override
+  String get agentStageContainerDiagnostics => 'Диагностика';
+
+  @override
+  String get agentStageSegDiff => 'Различия';
+
+  @override
+  String get agentStageExplainPlan => 'План выполнения';
+
+  @override
+  String get agentStageLiveMonitor => 'Монитор в реальном времени';
+
+  @override
+  String get agentStageOptimizationSummary => 'Сводка оптимизации';
+
+  @override
+  String get agentStageRecommendedIndex => 'Рекомендуемый индекс';
+
+  @override
+  String get agentStageAxisConfig => 'Оси';
+
+  @override
+  String get agentStageSchemaColumns => 'Столбцы';
+
+  @override
+  String get agentStageSchemaIndexes => 'Индексы';
+
+  @override
+  String get agentStageSchemaDdl => 'DDL';
+
+  @override
+  String get workbenchCollapseStage => 'Свернуть сцену';
+
+  @override
+  String get workbenchPinnedArtifacts => 'Закреплённые артефакты';
+
+  @override
+  String get workbenchReopenArtifact => 'Открыть заново в Workbench';
+
+  @override
+  String agentStageRowsScanned(int before, int after) {
+    return 'Просмотрено строк: $before → $after';
+  }
+
+  @override
+  String agentStageAiInferred(String note) {
+    return 'Вывод ИИ: $note';
+  }
 }

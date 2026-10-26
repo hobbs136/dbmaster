@@ -11682,4 +11682,62 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get connectionTestSettingsChanged =>
       'Connection settings changed · the previous test no longer applies';
+
+  @override
+  String get agentStageContainerSqlStudio => 'SQL Studio';
+
+  @override
+  String get agentStageContainerDataViz => 'Data & Viz';
+
+  @override
+  String get agentStageContainerSchema => 'Schema';
+
+  @override
+  String get agentStageContainerDiagnostics => 'Diagnostics';
+
+  @override
+  String get agentStageSegDiff => 'Diff';
+
+  @override
+  String get agentStageExplainPlan => 'Explain Plan';
+
+  @override
+  String get agentStageLiveMonitor => 'Live Monitor';
+
+  @override
+  String get agentStageOptimizationSummary => 'Optimization Summary';
+
+  @override
+  String get agentStageRecommendedIndex => 'Recommended index';
+
+  @override
+  String get agentStageAxisConfig => 'Axis';
+
+  @override
+  String get agentStageSchemaColumns => 'Columns';
+
+  @override
+  String get agentStageSchemaIndexes => 'Indexes';
+
+  @override
+  String get agentStageSchemaDdl => 'DDL';
+
+  @override
+  String get workbenchCollapseStage => 'Collapse stage';
+
+  @override
+  String get workbenchPinnedArtifacts => 'Pinned artifacts';
+
+  @override
+  String get workbenchReopenArtifact => 'Reopen in workbench';
+
+  @override
+  String agentStageRowsScanned(int before, int after) {
+    return 'Rows scanned: $before → $after';
+  }
+
+  @override
+  String agentStageAiInferred(String note) {
+    return 'AI inferred: $note';
+  }
 }

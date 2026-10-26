@@ -56,7 +56,12 @@ void main() {
       // workbenchContextChangeWhileRunning，基线 72 → 74。
       // 会话导出批（2026-09-28）：+6 会话导出 key（workbenchSessionExport*
       // Menu/Title/Hint/IncludeData/Success/Failed），基线 74 → 80。
-      expect(enKeys.length, 80);
+      // workbench 舞台批（2026-10-26）：+3 workbenchCollapseStage +
+      // workbenchPinnedArtifacts + workbenchReopenArtifact，基线 80 → 83。
+      expect(enKeys.length, 83);
+      expect(enKeys, contains('workbenchCollapseStage'));
+      expect(enKeys, contains('workbenchPinnedArtifacts'));
+      expect(enKeys, contains('workbenchReopenArtifact'));
       expect(enKeys, contains('workbenchErrorEmptySql'));
       expect(enKeys, contains('workbenchContextPickerTitle'));
       expect(enKeys, contains('workbenchActionSaveAsQuery'));
