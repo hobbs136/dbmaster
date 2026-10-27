@@ -25,6 +25,8 @@ import '../models/sql_statement.dart';
 import '../models/tdengine_models.dart';
 import '../services/database_service.dart';
 import '../services/pro_module.dart';
+import '../services/query_execution_interceptor.dart'
+    show ProductionGuardRequiredException;
 import '../services/tab_session_store.dart';
 import '../services/ai/mysql_ai_context_collector.dart';
 import '../services/pii_masker.dart';
@@ -1554,6 +1556,10 @@ class AppProvider extends ChangeNotifier {
       rethrow;
     } on DmlConfirmationRequiredException {
       // 控制流信号：关键风险 DML 需模态确认，非查询错误。
+      rethrow;
+    } on ProductionGuardRequiredException {
+      // 控制流信号：production 连接阻断级 DML 需生产守卫（B-07 分流），
+      // 非查询错误——不在此记错误子标签/失败历史，交由 UI 消费方弹守卫。
       rethrow;
     } on DdlConfirmationRequiredException {
       // 控制流信号：DDL 影响分析需确认，非查询错误。

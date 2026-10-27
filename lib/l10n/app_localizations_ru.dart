@@ -11791,4 +11791,116 @@ class AppLocalizationsRu extends AppLocalizations {
   String agentStageAiInferred(String note) {
     return 'Вывод ИИ: $note';
   }
+
+  @override
+  String get connectFailureNetworkTimeout =>
+      'Сервер не ответил до истечения тайм-аута.';
+
+  @override
+  String get connectFailureSslHandshake =>
+      'TLS-рукопожатие завершилось ошибкой до начала аутентификации.';
+
+  @override
+  String get connectFailureRecoveryTitle => 'Сначала попробуйте это';
+
+  @override
+  String get connectFailureSuggestionAuthCredentials =>
+      'Проверьте имя пользователя и пароль (регистр важен; без лишних пробелов).';
+
+  @override
+  String get connectFailureSuggestionAuthHostRule =>
+      'Убедитесь, что этой учётной записи разрешён вход с текущего хоста (GRANT / правило хоста).';
+
+  @override
+  String get connectFailureSuggestionAuthSshTunnel =>
+      'Если используется SSH-туннель, проверьте jump-хост и проброс портов.';
+
+  @override
+  String get connectFailureSuggestionTimeoutHostPort =>
+      'Проверьте имя хоста, порт и разрешение DNS.';
+
+  @override
+  String get connectFailureSuggestionTimeoutProxy =>
+      'Проверьте прокси, VPN, файрвол и правила группы безопасности.';
+
+  @override
+  String get connectFailureSuggestionTimeoutRemote =>
+      'Убедитесь, что сервер принимает удалённые подключения (bind-address / pg_hba).';
+
+  @override
+  String get connectFailureSuggestionSslMode =>
+      'Переключите режим SSL (require / prefer / disable) и повторите попытку.';
+
+  @override
+  String get connectFailureSuggestionSslCa =>
+      'Проверьте сертификат CA и проверку имени хоста (verify-full → verify-ca).';
+
+  @override
+  String get connectFailureSuggestionSslServer =>
+      'Проверьте версию TLS сервера и срок действия сертификата.';
+
+  @override
+  String get connectFailureSuggestionRetry =>
+      'Запустите тест повторно, чтобы убедиться, что ошибка воспроизводится.';
+
+  @override
+  String get connectFailureSuggestionRaw =>
+      'Разверните Raw Driver Message, чтобы прочитать ошибку уровня драйвера.';
+
+  @override
+  String get connectFailureSuggestionCopy =>
+      'Скопируйте маскированную диагностику для вашего DBA или провайдера.';
+
+  @override
+  String get connectFailureCopyRedacted =>
+      'Копировать маскированную диагностику';
+
+  @override
+  String get connectFailureReenterPassword => 'Введите пароль заново';
+
+  @override
+  String get connectFailureCheckHostProxy => 'Проверить хост и прокси';
+
+  @override
+  String get connectFailureSwitchSslRetry => 'Переключить SSL и повторить';
+
+  @override
+  String get prodGuardTitleL1 =>
+      'Производственная среда · деструктивная операция';
+
+  @override
+  String get prodGuardTitleL2 =>
+      'Производственная среда · неограниченная запись';
+
+  @override
+  String get prodGuardConfirmDrop => 'Удалить безвозвратно';
+
+  @override
+  String prodGuardNoWhereWarning(int count) {
+    return 'Нет условия WHERE. Предполагаемое число затронутых строк: $count.';
+  }
+
+  @override
+  String get prodGuardUnknownRows => 'Предполагаемое число строк: неизвестно';
+
+  @override
+  String get prodGuardFocusCancelHint =>
+      'Фокус изначально на кнопке «Отмена». Enter отменяет; нажмите Tab, чтобы перейти к опасной кнопке.';
+
+  @override
+  String get prodGuardAiBackup =>
+      'Сгенерировать скрипт резервного копирования с помощью ИИ';
+
+  @override
+  String prodGuardAiBackupPrompt(String object) {
+    return 'Создайте резервную копию CREATE TABLE ... AS SELECT и план отката для $object.';
+  }
+
+  @override
+  String get prodGuardLockedHint =>
+      'Кнопка подтверждения заблокирована, пока имя не совпадёт точно.';
+
+  @override
+  String get prodGuardUnlockedHint =>
+      'Имя совпало. Кнопка подтверждения теперь доступна.';
 }

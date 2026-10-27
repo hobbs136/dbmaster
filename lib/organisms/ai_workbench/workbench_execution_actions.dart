@@ -26,7 +26,10 @@
 //!    门槛）；`DmlConfirmationRequiredException` → [DmlConfirmDialog] + 确认后
 //!    `dbService.executeQueryBypassDml`（编辑器侧先例
 //!    `lib/core/commands/query_execution_helper.dart`；经典 AI 面板不处理
-//!    后者导致裸异常文案——工作台两类都接住，不裸奔）。取消走审计
+//!    后者导致裸异常文案——工作台两类都接住，不裸奔）；B-07 起第三类
+//!    `ProductionGuardRequiredException`（production 连接阻断级 DML）经
+//!    共享 [confirmProductionGuard] 弹生产守卫（L1/L2 分级 + AI 备份胶水），
+//!    确认后 bypass 通道由 runner 按语句类型选择；取消走审计
 //!    （logDmlBlocked）+ 「已取消」消息。
 //! 7. **落卡 + 统计**：成功 → `WorkbenchResultCardPayload` 落卡（toolName
 //!    'workbench'，无同名 toolCall 不被 `_mergeToolMessages` 吞并）+
@@ -72,6 +75,8 @@ import '../../providers/app_provider.dart';
 import '../../services/ai/ai_tool_classifier.dart';
 import '../../services/ai/workbench_context_resolver.dart';
 import '../../services/database_service.dart';
+import '../../services/query_execution_interceptor.dart'
+    show ProductionGuardRequiredException;
 import '../../services/query_history/query_history_service.dart';
 import '../../services/readonly_guard.dart' show ReadOnlyBlockedException;
 import '../../services/sql_statement_gate_runner.dart';
@@ -80,6 +85,8 @@ import '../../utils/app_logger.dart';
 import '../../utils/secret_redactor.dart';
 import '../connection/connection_dialog.dart';
 import '../dialogs/dml_confirm_dialog.dart';
+import '../dialogs/production_guard_dialog.dart'
+    show ProductionGuardLevel, showProductionGuardDialog;
 import '../ai_panel/confirm_execute_dialog.dart';
 import '../ai_panel/ddl_confirm_dialog.dart';
 import 'cards/result_table_card.dart';
@@ -164,6 +171,14 @@ class WorkbenchExecutionActions {
         ddlConfirm: (e) => _confirmDdl(context, e),
         dmlConfirm: (e) =>
             _confirmDml(context, provider: provider, ctx: ctx, e: e),
+        // B-07 production 分流：守卫确认经共享静态回调（弹窗 + AI 胶水）；
+        // 取消审计由下方终局映射（productionGuardCancelled）落地。
+        productionGuardConfirm: (e) => confirmProductionGuard(
+          context,
+          provider: provider,
+          e: e,
+          connectionId: connectionId,
+        ),
         executeBypassDdl: (statement) async {
           final QueryExecutionResult outcome =
               await provider.dbService.executeQueryBypassDdlDetailed(
@@ -260,6 +275,19 @@ class WorkbenchExecutionActions {
         final e = result.dmlException;
         if (e != null) {
           // 记录拦截决策（审计，编辑器侧同款）+ 消息流「已取消」。
+          provider.dbService.interceptor.logDmlBlocked(
+            sql: e.sql,
+            connectionId: connectionId,
+            riskLevel: e.analysis.riskLevel,
+            decision: AuditDecision.cancelled,
+          );
+        }
+        _landCancelledMessage(provider, l10n.operationCancelled);
+      case SqlBatchStatus.productionGuardCancelled:
+        // B-07 生产守卫人拒（含回调缺位 fail-closed）：与 dmlCancelled 同构
+        // ——logDmlBlocked 审计（不旁路）+ 消息流「已取消」；语句未执行。
+        final e = result.productionGuardException;
+        if (e != null) {
           provider.dbService.interceptor.logDmlBlocked(
             sql: e.sql,
             connectionId: connectionId,
@@ -436,6 +464,49 @@ class WorkbenchExecutionActions {
     if (confirmResult != DmlConfirmResult.confirm) {
       return SqlGateConfirmDecision.cancelled;
     }
+    if (!context.mounted) return SqlGateConfirmDecision.aborted;
+    return SqlGateConfirmDecision.confirmed;
+  }
+
+  /// gate #2 生产守卫确认回调（B-07 production 分流；绑
+  /// `showProductionGuardDialog`——L1/L2 分级 + AI 备份胶水）。M1 手动链
+  /// （[run] 装配）与 shell 计划链（`AgentPlanExecutionDeps` 装配）两消费
+  /// 方共用：guard true → confirmed（bypass 通道由 runner 按语句类型
+  /// 选择）；false/Esc/AI 分流 → cancelled（审计由消费方终局映射落地：
+  /// M1 logDmlBlocked / 计划链 rejectedByUser）；context 失效 → aborted
+  /// 静默中止。
+  static Future<SqlGateConfirmDecision> confirmProductionGuard(
+    BuildContext context, {
+    required AppProvider provider,
+    required ProductionGuardRequiredException e,
+    required String connectionId,
+  }) async {
+    if (!context.mounted) return SqlGateConfirmDecision.aborted;
+    final l10n = AppLocalizations.of(context)!;
+    // estimatedRows 锁面考量（自决记录，helper 同款）：守卫 seam 为同步
+    // 检查，此层无 DatabaseAdapter 句柄；不在 production 目标表上先放大
+    // 读锁面（getEstimatedRowCount 的 SQLite 回落是 COUNT(*)）。按 seam
+    // 契约传 null（未知行数，禁 0 冒充）。
+    final bool confirmed = await showProductionGuardDialog(
+      context,
+      connectionId: connectionId,
+      level: e.isL1Destructive
+          ? ProductionGuardLevel.l1Destructive
+          : ProductionGuardLevel.l2UnboundedWrite,
+      sqlPreview: e.sql,
+      targetObjectName: e.targetObjectName,
+      estimatedRows: null,
+      onAiBackup: () {
+        // AI 备份胶水（helper / sidebar T9-C 同款）：弹窗自理关闭后开经典
+        // dock + 预填 prodGuardAiBackupPrompt({object})；不自动发送、不
+        // 校验 API key、不 recordAiUsage。
+        provider.aiPanel.openAiPanel();
+        provider.aiPanel.requestComposerPrefill(
+          l10n.prodGuardAiBackupPrompt(e.targetObjectName),
+        );
+      },
+    );
+    if (!confirmed) return SqlGateConfirmDecision.cancelled;
     if (!context.mounted) return SqlGateConfirmDecision.aborted;
     return SqlGateConfirmDecision.confirmed;
   }
@@ -631,6 +702,9 @@ class WorkbenchExecutionActions {
   ///   由 bypass 包装记录；取消 = skipped 天然不记；
   /// - DML 警告门（WarningRequired）：未执行；M6 high 步经 bypassDml 重
   ///   执行时由 bypass 包装记录；
+  /// - 生产守卫分流（B-07 ProductionGuardRequired）：未执行——gate-runner
+  ///   生产守卫臂接（确认后经 bypass 通道执行由 bypass 包装记录；取消 =
+  ///   skipped 天然不记，终局映射落 logDmlBlocked）；
   /// - 只读拦截（ReadOnlyBlocked）：永不执行。
   ///
   /// 耗时由本包装自测（stopwatch；runner 的 bypass 段计时口径在计划链无
@@ -688,6 +762,10 @@ class WorkbenchExecutionActions {
       } on DmlWarningRequiredException {
         rethrow;
       } on ReadOnlyBlockedException {
+        rethrow;
+      } on ProductionGuardRequiredException {
+        // B-07 分流信号（production 连接阻断级 DML）：控制流信号非语句错误，
+        // 不记失败历史——上抛由 gate-runner 生产守卫臂接（与上方四类同构）。
         rethrow;
       } catch (e) {
         stopwatch.stop();

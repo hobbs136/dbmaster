@@ -11740,4 +11740,112 @@ class AppLocalizationsEn extends AppLocalizations {
   String agentStageAiInferred(String note) {
     return 'AI inferred: $note';
   }
+
+  @override
+  String get connectFailureNetworkTimeout =>
+      'Connection timed out before the server answered.';
+
+  @override
+  String get connectFailureSslHandshake =>
+      'TLS handshake failed before authentication started.';
+
+  @override
+  String get connectFailureRecoveryTitle => 'Try this first';
+
+  @override
+  String get connectFailureSuggestionAuthCredentials =>
+      'Re-check the username and password (case-sensitive; no trailing spaces).';
+
+  @override
+  String get connectFailureSuggestionAuthHostRule =>
+      'Confirm this account may log in from the current host (GRANT / host rule).';
+
+  @override
+  String get connectFailureSuggestionAuthSshTunnel =>
+      'If an SSH tunnel is used, verify the jump host and port forwarding.';
+
+  @override
+  String get connectFailureSuggestionTimeoutHostPort =>
+      'Check the host name, port and DNS resolution.';
+
+  @override
+  String get connectFailureSuggestionTimeoutProxy =>
+      'Check proxy, VPN, firewall and security group rules.';
+
+  @override
+  String get connectFailureSuggestionTimeoutRemote =>
+      'Confirm the server accepts remote connections (bind-address / pg_hba).';
+
+  @override
+  String get connectFailureSuggestionSslMode =>
+      'Switch SSL mode (require / prefer / disable) and retry.';
+
+  @override
+  String get connectFailureSuggestionSslCa =>
+      'Verify the CA certificate and host-name check (verify-full → verify-ca).';
+
+  @override
+  String get connectFailureSuggestionSslServer =>
+      'Confirm the server TLS version and certificate expiry.';
+
+  @override
+  String get connectFailureSuggestionRetry =>
+      'Run the test again to confirm the failure is reproducible.';
+
+  @override
+  String get connectFailureSuggestionRaw =>
+      'Expand Raw Driver Message to read the driver-level error.';
+
+  @override
+  String get connectFailureSuggestionCopy =>
+      'Copy the redacted diagnostics for your DBA or provider.';
+
+  @override
+  String get connectFailureCopyRedacted => 'Copy redacted diagnostics';
+
+  @override
+  String get connectFailureReenterPassword => 'Re-enter password';
+
+  @override
+  String get connectFailureCheckHostProxy => 'Check host & proxy';
+
+  @override
+  String get connectFailureSwitchSslRetry => 'Switch SSL & retry';
+
+  @override
+  String get prodGuardTitleL1 => 'Production · destructive operation';
+
+  @override
+  String get prodGuardTitleL2 => 'Production · unbounded write';
+
+  @override
+  String get prodGuardConfirmDrop => 'Delete permanently';
+
+  @override
+  String prodGuardNoWhereWarning(int count) {
+    return 'No WHERE clause. Estimated $count rows affected.';
+  }
+
+  @override
+  String get prodGuardUnknownRows => 'Estimated rows: unknown';
+
+  @override
+  String get prodGuardFocusCancelHint =>
+      'Focus starts on Cancel. Enter cancels; press Tab to reach the destructive button.';
+
+  @override
+  String get prodGuardAiBackup => 'Generate backup script with AI';
+
+  @override
+  String prodGuardAiBackupPrompt(String object) {
+    return 'Generate a CREATE TABLE ... AS SELECT backup and a rollback plan for $object.';
+  }
+
+  @override
+  String get prodGuardLockedHint =>
+      'Confirm button is locked until the name matches exactly.';
+
+  @override
+  String get prodGuardUnlockedHint =>
+      'Name matched. The confirm button is now enabled.';
 }

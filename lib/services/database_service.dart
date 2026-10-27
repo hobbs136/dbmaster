@@ -3457,17 +3457,25 @@ class DatabaseService {
       '[DatabaseService] executeQuery: currentDatabase=$currentDatabase, server.database=${server.database}',
     );
 
-    // DML 安全检查（拦截）— 在 DDL 分析之前执行
+    // DML 安全检查（拦截）— 在 DDL 分析之前执行。
+    // environment 下行（B-07/UI35-441 production 分流 seam 消费端接线）：
+    // production 连接的阻断级 DML 改抛 ProductionGuardRequiredException
+    // （UI 消费方弹生产守卫）；testing/development/null 行为零变化。
     if (_interceptor.enableDmlCheck) {
       try {
         _interceptor.checkDmlSafety(
           sql: sql,
           dbType: server.type,
           connectionId: targetConnectionId,
+          environment: server.environment,
         );
       } on DmlConfirmationRequiredException {
         rethrow;
       } on DmlWarningRequiredException {
+        rethrow;
+      } on ProductionGuardRequiredException {
+        // B-07 分流信号：production 连接阻断级 DML → 由 UI 消费方弹守卫，
+        // 不吞不静默（与上方两个确认门信号同一放行待遇）。
         rethrow;
       } catch (_) {
         // Non-DML exceptions from checkDmlSafety pass through silently;

@@ -15,6 +15,11 @@ import '../../models/ai_message_type.dart';
 import '../../models/ai_conversation_session.dart';
 import '../../services/ai_service.dart';
 import '../../services/database_service.dart';
+import '../../models/dml_risk_models.dart' show AuditDecision;
+import '../../services/query_execution_interceptor.dart'
+    show ProductionGuardRequiredException, QueryExecutionInterceptor;
+import '../../services/sql_statement_gate_runner.dart'
+    show SqlGateConfirmDecision;
 import 'ddl_confirm_dialog.dart';
 import '../connection/error_boundary.dart';
 import '../connection/password_prompt_dialog.dart';
@@ -43,6 +48,8 @@ import 'ai_context_panel.dart';
 import 'ai_dock_context_card.dart';
 import '../ai_workbench/workbench_stage.dart'
     show workbenchPinnedArtifactMemory, WorkbenchStageTab;
+import '../ai_workbench/workbench_execution_actions.dart'
+    show WorkbenchExecutionActions;
 import '../ai_workbench/workbench_stage_tab_visuals.dart'
     show WorkbenchStageContainerKindVisuals;
 import '../../plugins/ai_skill_plugin.dart';
@@ -133,11 +140,35 @@ class _AiInputAreaState extends State<AiInputArea> {
   int _mentionHighlightIndex = 0;
   int _mentionQueryGeneration = 0;
 
+  // B-07 / UI35-444：composer 预填通道观测面（沿工作台壳 R7 消费同款形态
+  // ——显式监听 AppProvider 转发的 aiPanel 通知，不用 build watch 免重复
+  // rebuild）。_composerPrefillScheduled 防同帧重复调度。
+  AppProvider? _observedAppProvider;
+  bool _composerPrefillScheduled = false;
+
   @override
   void initState() {
     super.initState();
     _inputController.addListener(_onInputChange);
     _inputFocusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final AppProvider appProvider = context.read<AppProvider>();
+    if (!identical(appProvider, _observedAppProvider)) {
+      _observedAppProvider?.removeListener(_onAppProviderChanged);
+      _observedAppProvider = appProvider;
+      appProvider.addListener(_onAppProviderChanged);
+      // 装配面首检（沿壳 R7 同款）：预填可能早于输入区装配挂起。
+      _checkComposerPrefill();
+    }
+  }
+
+  void _onAppProviderChanged() {
+    // B-07：AppProvider 转发 aiPanel 通知 → 预填检测（运行时请求主路径）。
+    _checkComposerPrefill();
   }
 
   @override
@@ -151,9 +182,40 @@ class _AiInputAreaState extends State<AiInputArea> {
   @override
   void dispose() {
     _mentionDebounce?.cancel();
+    _observedAppProvider?.removeListener(_onAppProviderChanged);
+    _observedAppProvider = null;
     _inputController.dispose();
     _inputFocusNode.dispose();
     super.dispose();
+  }
+
+  /// 检测挂起的 composer 预填（B-07）：非空且未在调度中 → 调度 post-frame
+  /// 消费（沿壳 R7 同款——AppProvider 转发 aiPanel 通知，运行时与装配面
+  /// 两条路径覆盖「挂载前请求」与「挂载后请求」全部时序）。
+  void _checkComposerPrefill() {
+    if (!mounted || _composerPrefillScheduled) return;
+    if (_observedAppProvider?.aiPanel.pendingComposerPrefill == null) return;
+    _composerPrefillScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _consumeComposerPrefill());
+  }
+
+  /// post-frame 消费：写入 composer 输入框即消费（B-07：写入后 provider 侧
+  /// 挂起值清空）。pending 单槽——执行时重读当前值（调度后若被新请求覆盖则
+  /// 写最新值；若已被外部直接消费则跳过，不重复写）。纪律：只写入输入框，
+  /// 不自动发送、不校验 API key、不 recordAiUsage；不聚焦（预填语义 = 待
+  /// 用户审阅确认后发送，自决申报）。
+  void _consumeComposerPrefill() {
+    _composerPrefillScheduled = false;
+    if (!mounted) return;
+    final String? pending = _observedAppProvider?.aiPanel.pendingComposerPrefill;
+    if (pending == null) return;
+    // 覆盖写入（自决申报：预填语义 = 覆盖而非追加），光标置末尾——与工作台
+    // 壳 _writeEditableText 同款写值形态。
+    _inputController.value = TextEditingValue(
+      text: pending,
+      selection: TextSelection.collapsed(offset: pending.length),
+    );
+    _observedAppProvider?.aiPanel.consumeComposerPrefill();
   }
 
   void _onFocusChange() {
@@ -3109,6 +3171,103 @@ class AiPanelWidgetState extends State<AiPanelWidget>
           SnackBar(
             content: Text(l10n.aiPanelSqlExecutionSuccess(results.length)),
             backgroundColor: context.themeColors.success,
+          ),
+        );
+      }
+    } on ProductionGuardRequiredException catch (e) {
+      // B-07 production 分流（批4 修复轮 P2-①）：production 连接阻断级
+      // DML 改弹生产守卫（共享 WorkbenchExecutionActions.confirmProductionGuard
+      // ——L1/L2 分级 + AI 备份胶水在共享回调内承接），不再落兜底臂把守卫
+      // 信号当错误消息原文渲染。
+      provider.removeLastAiMessage();
+      if (!mounted) return;
+      final connectionId =
+          provider.aiPanel.selectedConnectionId ??
+          provider.connection.currentServer?.id ??
+          '';
+      final decision = await WorkbenchExecutionActions.confirmProductionGuard(
+        context,
+        provider: provider,
+        e: e,
+        connectionId: connectionId,
+      );
+      if (decision != SqlGateConfirmDecision.confirmed) {
+        // 人拒/中止：审计（logDmlBlocked，不旁路）+ 消息流用户可读取消
+        // 提示（沿 _stopAI 消息惯例，不写异常原文）。
+        provider.dbService.interceptor.logDmlBlocked(
+          sql: e.sql,
+          connectionId: connectionId,
+          riskLevel: e.analysis.riskLevel,
+          decision: AuditDecision.cancelled,
+        );
+        provider.addAiMessage(
+          AiMessage(
+            id: _generateMessageId(),
+            isUser: false,
+            content: l10n.operationCancelled,
+            timestamp: DateTime.now(),
+            status: AiMessageStatus.cancelled,
+          ),
+        );
+        return;
+      }
+      if (!mounted) return;
+      // 确认后重执（沿 DdlConfirm 臂确认后形态）：bypass 通道按语句类型
+      // 选择（与 gate-runner 生产守卫臂一致——DDL 语句走 BypassDdl，其余
+      // 走 BypassDml）。
+      provider.addAiMessage(
+        AiMessage(
+          id: _generateMessageId(),
+          isUser: false,
+          content: l10n.executingSql,
+          timestamp: DateTime.now(),
+          isLoading: true,
+          status: AiMessageStatus.streaming,
+        ),
+      );
+
+      try {
+        final aiConnectionId = provider.aiPanel.selectedConnectionId;
+        final databaseName = provider.aiPanel.selectedDatabaseName;
+
+        final results = QueryExecutionInterceptor.isDdlStatement(sql)
+            ? await provider.dbService.executeQueryBypassDdl(
+                sql,
+                connectionId: aiConnectionId,
+                database: databaseName,
+              )
+            : await provider.dbService.executeQueryBypassDml(
+                sql,
+                connectionId: aiConnectionId,
+                database: databaseName,
+              );
+        provider.removeLastAiMessage();
+
+        provider.addAiMessage(
+          AiMessage(
+            id: _generateMessageId(),
+            isUser: false,
+            content: _formatExecutionResults(sql, results, l10n),
+            timestamp: DateTime.now(),
+          ),
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.aiPanelSqlExecutionSuccess(results.length)),
+              backgroundColor: context.themeColors.success,
+            ),
+          );
+        }
+      } catch (executeError) {
+        provider.removeLastAiMessage();
+        provider.addAiMessage(
+          AiMessage(
+            id: _generateMessageId(),
+            isUser: false,
+            content: '❌ ${l10n.aiPanelExecuteFailed}: $executeError',
+            timestamp: DateTime.now(),
           ),
         );
       }

@@ -27,6 +27,12 @@
 //!    说不，不再继续）；回调 abort（如 UI context 失效）→ 静默中止；
 //!    回调缺位 → fail-closed 视同取消（零执行）。bypass 执行失败按
 //!    普通语句失败处理（M1 语义：落错误面后继续余下语句）。
+//!    `ProductionGuardRequiredException`（B-07 production 分流信号，
+//!    自 checkDmlSafety seam 下行）→ `productionGuardConfirm` 回调
+//!    （showProductionGuardDialog）→ 确认后 bypass 通道按语句类型选择
+//!    （DDL 语句走 executeBypassDdl、其余走 executeBypassDml——与既有
+//!    两分支「异常类型 → 通道」选择逻辑一致），取消 →
+//!    `productionGuardCancelled` 中止（异常负载随终局透出供审计）。
 //! 5. **汇总**：逐语句结局（done/failed/skipped）+ 中止边界索引，经
 //!    `onStatementResult` 逐语句回调（保持调用方落卡/统计的交错时序）
 //!    与 [SqlStatementBatchResult] 终局双通道返回；中止面异常负载
@@ -41,6 +47,8 @@ import 'package:dbmaster/services/ai/ai_tool_classifier.dart'
     show AiToolClassifier;
 import 'package:dbmaster/services/database_service.dart'
     show DdlConfirmationRequiredException, QueryExecutionResult;
+import 'package:dbmaster/services/query_execution_interceptor.dart'
+    show ProductionGuardRequiredException, QueryExecutionInterceptor;
 import 'package:dbmaster/services/sql_parser_service.dart'
     show ParseException, SQLParserService;
 
@@ -139,6 +147,11 @@ typedef SqlDdlConfirmCallback =
 typedef SqlDmlConfirmCallback =
     Future<SqlGateConfirmDecision> Function(DmlConfirmationRequiredException e);
 
+/// gate #2 生产守卫确认回调（B-07 production 分流；M1/A2 由 organisms 绑
+/// `showProductionGuardDialog`——L1/L2 分级 + AI 备份胶水在回调内承接）。
+typedef SqlProductionGuardConfirmCallback =
+    Future<SqlGateConfirmDecision> Function(ProductionGuardRequiredException e);
+
 /// 逐语句结局回调（落卡/统计等调用方副作用在此保持逐语句交错时序；
 /// 仅 done / failed 触发，skipped 不回调）。
 typedef SqlStatementResultCallback = void Function(SqlStatementResult result);
@@ -211,6 +224,11 @@ enum SqlBatchStatus {
   /// gate #2 DML 取消 → 边界中止（余下 skipped）。
   dmlCancelled,
 
+  /// gate #2 生产守卫取消（B-07；含回调缺位 fail-closed）→ 边界中止
+  /// （余下 skipped）。异常负载随 [SqlStatementBatchResult.productionGuardException]
+  /// 透出供审计。
+  productionGuardCancelled,
+
   /// 第 k 句失败即停（haltOnStatementFailure = true 的 A2 计划语义）。
   failureHalt,
 
@@ -227,6 +245,7 @@ class SqlStatementBatchResult {
     this.splitError,
     this.ddlException,
     this.dmlException,
+    this.productionGuardException,
   });
 
   /// 批次终局状态。
@@ -247,6 +266,10 @@ class SqlStatementBatchResult {
   /// DML 相关中止（dmlCancelled / aborted）时的异常负载（审计字段：
   /// sql / analysis.riskLevel）。
   final DmlConfirmationRequiredException? dmlException;
+
+  /// 生产守卫相关中止（productionGuardCancelled / aborted）时的异常负载
+  /// （B-07 审计字段：sql / analysis；M1 终局映射据此落 logDmlBlocked）。
+  final ProductionGuardRequiredException? productionGuardException;
 }
 
 /// 执行依赖：全部环境面（执行通道、确认 UI、放行策略）经注入。
@@ -256,6 +279,7 @@ class SqlGateRunDeps {
     this.writeConfirm = const SqlWriteConfirmStrategy.none(),
     this.ddlConfirm,
     this.dmlConfirm,
+    this.productionGuardConfirm,
     this.executeBypassDdl,
     this.executeBypassDml,
     this.haltOnStatementFailure = false,
@@ -275,6 +299,10 @@ class SqlGateRunDeps {
 
   /// gate #2 DML 门确认回调；缺位时 fail-closed 视同取消。
   final SqlDmlConfirmCallback? dmlConfirm;
+
+  /// gate #2 生产守卫确认回调（B-07）；缺位时 fail-closed 视同取消
+  /// （零执行——production 高危语句不因消费方未接 guard 而静默放行）。
+  final SqlProductionGuardConfirmCallback? productionGuardConfirm;
 
   /// DDL 确认后的 bypass 执行（M1 = `dbService.executeQueryBypassDdlDetailed`
   /// 投影；确认但未提供通道时 fail-closed 中止，不静默回落裸执行）。
@@ -480,6 +508,66 @@ class SqlStatementGateRunner {
           }
           continue;
         }
+      } on ProductionGuardRequiredException catch (e) {
+        // B-07 production 分流：阻断级 DML 在 production 连接改走生产守卫
+        // （非既有 DML 确认门异常——两类同层兄弟类型，互不捕获）。回调缺位
+        // fail-closed：视同取消（零执行，production 高危不静默放行）。
+        final confirm = deps.productionGuardConfirm;
+        final decision =
+            confirm == null
+                ? SqlGateConfirmDecision.cancelled
+                : await confirm(e);
+        if (decision != SqlGateConfirmDecision.confirmed) {
+          return _halted(
+            decision == SqlGateConfirmDecision.cancelled
+                ? SqlBatchStatus.productionGuardCancelled
+                : SqlBatchStatus.aborted,
+            statements,
+            outcomes,
+            i,
+            productionGuardException: e,
+          );
+        }
+        // bypass 通道按语句类型选择（与既有两分支「异常类型 → 通道」一致）：
+        // DDL 语句（DROP/TRUNCATE 族，L1）走 executeBypassDdl；其余
+        // （无 WHERE DELETE/UPDATE 族等 L2 形态）走 executeBypassDml。
+        final bool guardBypassIsDdl = QueryExecutionInterceptor.isDdlStatement(
+          statement,
+        );
+        final bypass =
+            guardBypassIsDdl ? deps.executeBypassDdl : deps.executeBypassDml;
+        if (bypass == null) {
+          // 确认了但无 bypass 通道：fail-closed 中止，不静默回落裸执行。
+          return _halted(
+            SqlBatchStatus.aborted,
+            statements,
+            outcomes,
+            i,
+            productionGuardException: e,
+          );
+        }
+        try {
+          // reset() 停表后紧接 start() 重启（bypass 执行段计时，M1 口径）。
+          stopwatch
+            ..reset()
+            ..start();
+          final SqlStatementOutcome outcome = await bypass(statement);
+          rows = outcome.rows;
+          affectedRows = outcome.affectedRows;
+        } catch (execError) {
+          _emitResult(
+            deps,
+            outcomes,
+            statement,
+            i,
+            SqlStatementStatus.failed,
+            error: execError,
+          );
+          if (deps.haltOnStatementFailure) {
+            return _halted(SqlBatchStatus.failureHalt, statements, outcomes, i + 1);
+          }
+          continue;
+        }
       } catch (e) {
         _emitResult(
           deps,
@@ -521,6 +609,7 @@ class SqlStatementGateRunner {
     int firstSkippedIndex, {
     DdlConfirmationRequiredException? ddlException,
     DmlConfirmationRequiredException? dmlException,
+    ProductionGuardRequiredException? productionGuardException,
   }) {
     final all = List<SqlStatementResult>.of(outcomes);
     for (var i = firstSkippedIndex; i < statements.length; i++) {
@@ -538,6 +627,7 @@ class SqlStatementGateRunner {
       haltIndex: firstSkippedIndex,
       ddlException: ddlException,
       dmlException: dmlException,
+      productionGuardException: productionGuardException,
     );
   }
 

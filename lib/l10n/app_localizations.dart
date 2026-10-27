@@ -20656,6 +20656,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AI inferred: {note}'**
   String agentStageAiInferred(String note);
+
+  /// Failure explanation: connection timed out before the server answered
+  ///
+  /// In en, this message translates to:
+  /// **'Connection timed out before the server answered.'**
+  String get connectFailureNetworkTimeout;
+
+  /// Failure explanation: TLS handshake failed before authentication started
+  ///
+  /// In en, this message translates to:
+  /// **'TLS handshake failed before authentication started.'**
+  String get connectFailureSslHandshake;
+
+  /// Title of the first-step recovery checklist on the connection failure panel
+  ///
+  /// In en, this message translates to:
+  /// **'Try this first'**
+  String get connectFailureRecoveryTitle;
+
+  /// Recovery suggestion for authentication failures: re-check the username and password
+  ///
+  /// In en, this message translates to:
+  /// **'Re-check the username and password (case-sensitive; no trailing spaces).'**
+  String get connectFailureSuggestionAuthCredentials;
+
+  /// Recovery suggestion for authentication failures: confirm host-level login rules
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm this account may log in from the current host (GRANT / host rule).'**
+  String get connectFailureSuggestionAuthHostRule;
+
+  /// Recovery suggestion for authentication failures: verify the SSH tunnel jump host and port forwarding
+  ///
+  /// In en, this message translates to:
+  /// **'If an SSH tunnel is used, verify the jump host and port forwarding.'**
+  String get connectFailureSuggestionAuthSshTunnel;
+
+  /// Recovery suggestion for timeout failures: check host name, port and DNS resolution
+  ///
+  /// In en, this message translates to:
+  /// **'Check the host name, port and DNS resolution.'**
+  String get connectFailureSuggestionTimeoutHostPort;
+
+  /// Recovery suggestion for timeout failures: check proxy, VPN, firewall and security group rules
+  ///
+  /// In en, this message translates to:
+  /// **'Check proxy, VPN, firewall and security group rules.'**
+  String get connectFailureSuggestionTimeoutProxy;
+
+  /// Recovery suggestion for timeout failures: confirm the server accepts remote connections
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm the server accepts remote connections (bind-address / pg_hba).'**
+  String get connectFailureSuggestionTimeoutRemote;
+
+  /// Recovery suggestion for SSL failures: switch the SSL mode and retry
+  ///
+  /// In en, this message translates to:
+  /// **'Switch SSL mode (require / prefer / disable) and retry.'**
+  String get connectFailureSuggestionSslMode;
+
+  /// Recovery suggestion for SSL failures: verify the CA certificate and host-name check
+  ///
+  /// In en, this message translates to:
+  /// **'Verify the CA certificate and host-name check (verify-full → verify-ca).'**
+  String get connectFailureSuggestionSslCa;
+
+  /// Recovery suggestion for SSL failures: confirm server TLS version and certificate expiry
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm the server TLS version and certificate expiry.'**
+  String get connectFailureSuggestionSslServer;
+
+  /// Recovery suggestion: run the test again to confirm the failure is reproducible
+  ///
+  /// In en, this message translates to:
+  /// **'Run the test again to confirm the failure is reproducible.'**
+  String get connectFailureSuggestionRetry;
+
+  /// Recovery suggestion: expand the raw driver message to read the driver-level error
+  ///
+  /// In en, this message translates to:
+  /// **'Expand Raw Driver Message to read the driver-level error.'**
+  String get connectFailureSuggestionRaw;
+
+  /// Recovery suggestion: copy the redacted diagnostics for your DBA or provider
+  ///
+  /// In en, this message translates to:
+  /// **'Copy the redacted diagnostics for your DBA or provider.'**
+  String get connectFailureSuggestionCopy;
+
+  /// Action to copy the redacted connection diagnostics to the clipboard
+  ///
+  /// In en, this message translates to:
+  /// **'Copy redacted diagnostics'**
+  String get connectFailureCopyRedacted;
+
+  /// Action to re-enter the connection password after a failure
+  ///
+  /// In en, this message translates to:
+  /// **'Re-enter password'**
+  String get connectFailureReenterPassword;
+
+  /// Action button: check host and proxy settings
+  ///
+  /// In en, this message translates to:
+  /// **'Check host & proxy'**
+  String get connectFailureCheckHostProxy;
+
+  /// Action button: switch the SSL mode and retry the connection
+  ///
+  /// In en, this message translates to:
+  /// **'Switch SSL & retry'**
+  String get connectFailureSwitchSslRetry;
+
+  /// Title of the production guard for destructive operations (level 1)
+  ///
+  /// In en, this message translates to:
+  /// **'Production · destructive operation'**
+  String get prodGuardTitleL1;
+
+  /// Title of the production guard for unbounded writes (level 2)
+  ///
+  /// In en, this message translates to:
+  /// **'Production · unbounded write'**
+  String get prodGuardTitleL2;
+
+  /// Destructive confirm button label on the production guard dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Delete permanently'**
+  String get prodGuardConfirmDrop;
+
+  /// Warning shown when a write has no WHERE clause, with the estimated affected row count
+  ///
+  /// In en, this message translates to:
+  /// **'No WHERE clause. Estimated {count} rows affected.'**
+  String prodGuardNoWhereWarning(int count);
+
+  /// Line shown when the estimated affected row count is unknown
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated rows: unknown'**
+  String get prodGuardUnknownRows;
+
+  /// Hint about the initial keyboard focus on the Cancel button of the guard dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Focus starts on Cancel. Enter cancels; press Tab to reach the destructive button.'**
+  String get prodGuardFocusCancelHint;
+
+  /// Action to generate a backup script with AI before a destructive operation
+  ///
+  /// In en, this message translates to:
+  /// **'Generate backup script with AI'**
+  String get prodGuardAiBackup;
+
+  /// AI prompt asking for a CREATE TABLE ... AS SELECT backup and a rollback plan for the target object
+  ///
+  /// In en, this message translates to:
+  /// **'Generate a CREATE TABLE ... AS SELECT backup and a rollback plan for {object}.'**
+  String prodGuardAiBackupPrompt(String object);
+
+  /// Hint shown while the confirm button is locked until the name matches exactly
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm button is locked until the name matches exactly.'**
+  String get prodGuardLockedHint;
+
+  /// Hint shown after the name matched and the confirm button became enabled
+  ///
+  /// In en, this message translates to:
+  /// **'Name matched. The confirm button is now enabled.'**
+  String get prodGuardUnlockedHint;
 }
 
 class _AppLocalizationsDelegate

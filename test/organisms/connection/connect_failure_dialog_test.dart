@@ -64,6 +64,7 @@ void main() {
     required Future<bool> Function() onRetry,
     VoidCallback? onChooseFile,
     ConnectionFailure? Function()? latestFailure,
+    String? environmentLabel,
   }) async {
     final themeProvider = ThemeProvider();
     await themeProvider.load();
@@ -82,6 +83,7 @@ void main() {
                 onRetry: onRetry,
                 onChooseFile: onChooseFile,
                 latestFailure: latestFailure,
+                environmentLabel: environmentLabel,
               ),
               child: const Text('Open'),
             ),
@@ -352,6 +354,45 @@ void main() {
       expect(selectableContaining('secret123'), findsNothing);
     });
 
+    testWidgets(
+        'redacted diagnostics report uses frozen environment label literal (D-2)',
+        (tester) async {
+      // B-06-R 冻结：「环境标签: production | testing | development」（跨
+      // 语言稳定可 grep）。调用方现行为传本地化显示名（home_screen 等
+      // `_connectFailureEnvironmentLabel` 产物）——报告行须解析回冻结
+      // 字面值，不得随 UI 语言变。
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+
+      await openDialog(
+        tester,
+        failure: failureFixture(),
+        onRetry: () async => true,
+        environmentLabel: l10n.environmentProduction,
+      );
+      await tester.tap(find.text('Copy redacted diagnostics'));
+      await tester.pump();
+      final payload = clipboardPayload ?? '';
+      expect(payload, contains('- 环境标签: production'));
+      expect(
+        payload.contains(l10n.environmentProduction),
+        isFalse,
+        reason: '本地化显示名不得进报告（随 UI 语言变为冻结违约）',
+      );
+
+      // 枚举 name 直传同样落冻结字面值（参数语义=枚举值或本地化名皆可）。
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+      await openDialog(
+        tester,
+        failure: failureFixture(),
+        onRetry: () async => true,
+        environmentLabel: 'testing',
+      );
+      await tester.tap(find.text('Copy redacted diagnostics'));
+      await tester.pump();
+      expect(clipboardPayload ?? '', contains('- 环境标签: testing'));
+    });
+
     testWidgets('authFailed: gateway-specific plain message, not fallback',
         (tester) async {
       // T12c：网关稳定码 AUTH_DENIED 分型 → 专属文案（非 unknown 兜底）。
@@ -400,6 +441,237 @@ void main() {
         selectableContaining('Could not connect to the database'),
         findsNothing,
       );
+    });
+  });
+
+  // ── UI35-411~416（批4 T8 红测）：主按钮映射 + 建议组 + Raw 折叠限高 ──
+  //
+  // 断言依据：任务书「目标契约」逐字冻结（B-05 / P5-1.2 / P5-1.3 / UI35-416），
+  // 文本 = lib/l10n/app_en.arb 已就绪键值（T0d 交付）。红态来源：
+  // networkTimeout/sslHandshake 枚举值与对话框新分支尚未实现。
+  group('UI35-41x（批4 T8 红测）：主按钮映射与建议组', () {
+    // 建议条目可能以 Text 或 SelectableText 渲染（实现自由度），断言器同时
+    // 匹配两种组件的 data 精确相等——文本值仍逐字精确，不做 contains 弱断言。
+    Finder exactTextAnywhere(String text) => find.byWidgetPredicate(
+          (widget) =>
+              (widget is Text && widget.data == text) ||
+              (widget is SelectableText && widget.data == text),
+        );
+
+    testWidgets('UI35-411: authFailed 主按钮 = Re-enter password',
+        (tester) async {
+      await openDialog(
+        tester,
+        failure: failureFixture(
+          kind: ConnectionFailureKind.authFailed,
+          errorCode: 'AUTH_DENIED',
+          offendingStatement: null,
+          target: '192.168.3.128:3306',
+          rawMessage: 'Access denied for user',
+        ),
+        onRetry: () async => true,
+      );
+
+      expect(find.text('Re-enter password'), findsOneWidget);
+      expect(find.text('Retry'), findsNothing);
+    });
+
+    testWidgets('UI35-412: 稳定码 TIMEOUT 主按钮 = Check host & proxy',
+        (tester) async {
+      // 经网关稳定码构造（B-05 映射 + P5-1.3 按钮映射复合断言）：
+      // 实现前 kind 落 unknown → 主按钮 Retry，红；实现后转绿。
+      final failure = gatewayEnvelopeFailure(
+        code: 'TIMEOUT',
+        message: 'pool timed out',
+        target: '192.168.3.128:5432',
+      );
+      await openDialog(tester, failure: failure, onRetry: () async => true);
+
+      expect(find.text('Check host & proxy'), findsOneWidget);
+      expect(find.text('Retry'), findsNothing);
+    });
+
+    testWidgets('UI35-413: 稳定码 SSL_HANDSHAKE 主按钮 = Switch SSL & retry',
+        (tester) async {
+      final failure = gatewayEnvelopeFailure(
+        code: 'SSL_HANDSHAKE',
+        message: 'invalid peer certificate',
+        target: '192.168.3.128:5432',
+      );
+      await openDialog(tester, failure: failure, onRetry: () async => true);
+
+      expect(find.text('Switch SSL & retry'), findsOneWidget);
+      expect(find.text('Retry'), findsNothing);
+    });
+
+    testWidgets('UI35-414: unreachable 主按钮保持既有 Retry（回归）',
+        (tester) async {
+      await openDialog(
+        tester,
+        failure: failureFixture(
+          kind: ConnectionFailureKind.unreachable,
+          errorCode: 'UNREACHABLE',
+          offendingStatement: null,
+          target: '192.168.3.128:6379',
+          rawMessage: 'connection refused',
+        ),
+        onRetry: () async => true,
+      );
+
+      expect(find.text('Retry'), findsOneWidget);
+    });
+
+    testWidgets(
+        'UI35-415: networkTimeout 呈现恢复标题 + 专属 3 条建议 + 通用尾 3 条',
+        (tester) async {
+      final failure = gatewayEnvelopeFailure(
+        code: 'TIMEOUT',
+        message: 'pool timed out',
+        target: '192.168.3.128:5432',
+      );
+      await openDialog(tester, failure: failure, onRetry: () async => true);
+
+      expect(find.text('Try this first'), findsOneWidget);
+      expect(
+        exactTextAnywhere('Check the host name, port and DNS resolution.'),
+        findsOneWidget,
+      );
+      expect(
+        exactTextAnywhere('Check proxy, VPN, firewall and security group rules.'),
+        findsOneWidget,
+      );
+      expect(
+        exactTextAnywhere(
+          'Confirm the server accepts remote connections (bind-address / pg_hba).',
+        ),
+        findsOneWidget,
+      );
+      // 通用尾建议（每 kind 面板固定 3 条）。
+      expect(
+        exactTextAnywhere(
+          'Run the test again to confirm the failure is reproducible.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        exactTextAnywhere(
+          'Expand Raw Driver Message to read the driver-level error.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        exactTextAnywhere(
+          'Copy the redacted diagnostics for your DBA or provider.',
+        ),
+        findsOneWidget,
+      );
+      // 每 kind 恰 3 条：他组专属建议不出现。
+      expect(
+        exactTextAnywhere('Switch SSL mode (require / prefer / disable) and retry.'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('UI35-415: authFailed 建议组 3 条', (tester) async {
+      await openDialog(
+        tester,
+        failure: failureFixture(
+          kind: ConnectionFailureKind.authFailed,
+          errorCode: 'AUTH_DENIED',
+          offendingStatement: null,
+          target: '192.168.3.128:3306',
+          rawMessage: 'Access denied for user',
+        ),
+        onRetry: () async => true,
+      );
+
+      expect(find.text('Try this first'), findsOneWidget);
+      expect(
+        exactTextAnywhere(
+          'Re-check the username and password (case-sensitive; no trailing spaces).',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        exactTextAnywhere(
+          'Confirm this account may log in from the current host (GRANT / host rule).',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        exactTextAnywhere(
+          'If an SSH tunnel is used, verify the jump host and port forwarding.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('UI35-415: sslHandshake 建议组 3 条', (tester) async {
+      final failure = gatewayEnvelopeFailure(
+        code: 'SSL_HANDSHAKE',
+        message: 'invalid peer certificate',
+        target: '192.168.3.128:5432',
+      );
+      await openDialog(tester, failure: failure, onRetry: () async => true);
+
+      expect(find.text('Try this first'), findsOneWidget);
+      expect(
+        exactTextAnywhere(
+          'Switch SSL mode (require / prefer / disable) and retry.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        exactTextAnywhere(
+          'Verify the CA certificate and host-name check (verify-full → verify-ca).',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        exactTextAnywhere(
+          'Confirm the server TLS version and certificate expiry.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('UI35-416: Raw 默认折叠；展开后承载区限高恰 160', (tester) async {
+      // UI35-416 探针记录（2026-10-27，临时探针测试实测）：现实现 Raw 经
+      // 'Technical Details' 折叠头 + ActionableError 详情区承载——默认折叠
+      // 成立（回归护栏），展开后 Raw 文本本征高 2224px、祖先唯一限高容器
+      // 为 ActionableError._buildDetails 的 maxHeight=120。红点 = 承载区
+      // 限高 120 ≠ 目标契约 160。
+      final longRaw = 'raw-line ${'x' * 4000}';
+      await openDialog(
+        tester,
+        failure: failureFixture(
+          errorCode: '5',
+          offendingStatement: null,
+          target: null,
+          rawMessage: longRaw,
+        ),
+        onRetry: () async => true,
+      );
+
+      // Raw 驱动消息默认折叠：全文不可见。
+      expect(selectableContaining(longRaw), findsNothing);
+
+      // 展开触发沿用现实现 'Technical Details' 折叠头（既有用例回归护栏
+      // 保证其存续；若实现批为 Raw 引入独立折叠节头，本触发行需同步调整，
+      // 已在汇报标注）。
+      await tester.tap(find.text('Technical Details'));
+      await tester.pumpAndSettle();
+      expect(selectableContaining(longRaw), findsOneWidget);
+
+      // 展开后限高 160（ConstrainedBox/maxHeight 形态，任务书目标契约）。
+      final cappedAncestor = find.ancestor(
+        of: selectableContaining(longRaw),
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is ConstrainedBox && widget.constraints.maxHeight == 160,
+        ),
+      );
+      expect(cappedAncestor, findsWidgets);
     });
   });
 }

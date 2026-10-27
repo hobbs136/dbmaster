@@ -8,6 +8,8 @@ import '../services/multi_execution_service.dart';
 import '../services/sql_parser_service.dart';
 import '../services/pii_masker.dart';
 import '../services/audit_log_service.dart';
+import '../services/query_execution_interceptor.dart'
+    show ProductionGuardRequiredException;
 import '../utils/app_logger.dart';
 import '../models/database_models.dart' show DatabaseType;
 // spec 041: per-tab 面板可见性 / FilterBar 状态值模型（不进 toJson、不持久化）
@@ -826,6 +828,11 @@ class TabProvider extends ChangeNotifier {
       } on DmlWarningRequiredException {
         rethrow;
       } on ReadOnlyBlockedException {
+        rethrow;
+      } on ProductionGuardRequiredException {
+        // B-07 分流信号（production 连接阻断级 DML）：控制流信号非查询错误，
+        // 交由 UI 消费方弹生产守卫——不在此吞成失败 ExecutionResult
+        //（否则守卫弹窗永不出现）。
         rethrow;
       } catch (e) {
         final executionTime = DateTime.now().difference(startTime);

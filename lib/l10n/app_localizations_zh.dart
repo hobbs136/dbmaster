@@ -11458,6 +11458,102 @@ class AppLocalizationsZh extends AppLocalizations {
   String agentStageAiInferred(String note) {
     return 'AI 推测：$note';
   }
+
+  @override
+  String get connectFailureNetworkTimeout => '服务器未在超时时间内响应。';
+
+  @override
+  String get connectFailureSslHandshake => '认证开始前 TLS 握手失败。';
+
+  @override
+  String get connectFailureRecoveryTitle => '先试这几步';
+
+  @override
+  String get connectFailureSuggestionAuthCredentials =>
+      '核对用户名与密码（区分大小写；不要有多余空格）。';
+
+  @override
+  String get connectFailureSuggestionAuthHostRule =>
+      '确认该账号允许从当前主机登录（GRANT / 主机规则）。';
+
+  @override
+  String get connectFailureSuggestionAuthSshTunnel => '若使用 SSH 隧道，检查跳板机与端口转发。';
+
+  @override
+  String get connectFailureSuggestionTimeoutHostPort => '检查主机名、端口与 DNS 解析。';
+
+  @override
+  String get connectFailureSuggestionTimeoutProxy => '检查代理、VPN、防火墙与安全组规则。';
+
+  @override
+  String get connectFailureSuggestionTimeoutRemote =>
+      '确认服务端允许远程连接（bind-address / pg_hba）。';
+
+  @override
+  String get connectFailureSuggestionSslMode =>
+      '切换 SSL 模式（require / prefer / disable）后重试。';
+
+  @override
+  String get connectFailureSuggestionSslCa =>
+      '核对 CA 证书与主机名校验（verify-full → verify-ca）。';
+
+  @override
+  String get connectFailureSuggestionSslServer => '确认服务端 TLS 版本与证书有效期。';
+
+  @override
+  String get connectFailureSuggestionRetry => '重新测试连接，确认问题可复现。';
+
+  @override
+  String get connectFailureSuggestionRaw => '展开 Raw Driver Message 查看驱动原始错误。';
+
+  @override
+  String get connectFailureSuggestionCopy => '复制脱敏诊断给 DBA 或服务提供方。';
+
+  @override
+  String get connectFailureCopyRedacted => '复制脱敏诊断信息';
+
+  @override
+  String get connectFailureReenterPassword => '重新输入密码';
+
+  @override
+  String get connectFailureCheckHostProxy => '检查主机与代理';
+
+  @override
+  String get connectFailureSwitchSslRetry => '切换 SSL 模式并重试';
+
+  @override
+  String get prodGuardTitleL1 => '生产环境 · 毁灭性操作';
+
+  @override
+  String get prodGuardTitleL2 => '生产环境 · 无范围写入';
+
+  @override
+  String get prodGuardConfirmDrop => '确认删除';
+
+  @override
+  String prodGuardNoWhereWarning(int count) {
+    return '没有 WHERE 条件。预估影响 $count 行。';
+  }
+
+  @override
+  String get prodGuardUnknownRows => '预估行数：未知';
+
+  @override
+  String get prodGuardFocusCancelHint => '焦点默认在取消。Enter 取消；按 Tab 到危险按钮。';
+
+  @override
+  String get prodGuardAiBackup => '让 AI 生成备份脚本';
+
+  @override
+  String prodGuardAiBackupPrompt(String object) {
+    return '为 $object 生成 CREATE TABLE … AS SELECT 备份与回滚方案。';
+  }
+
+  @override
+  String get prodGuardLockedHint => '名称完全匹配前，确认按钮不可用。';
+
+  @override
+  String get prodGuardUnlockedHint => '名称已匹配，确认按钮已启用。';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -20363,4 +20459,100 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String agentStageAiInferred(String note) {
     return 'AI 推測：$note';
   }
+
+  @override
+  String get connectFailureNetworkTimeout => '伺服器未在逾時時間內回應。';
+
+  @override
+  String get connectFailureSslHandshake => '認證開始前 TLS 交握失敗。';
+
+  @override
+  String get connectFailureRecoveryTitle => '先試這幾步';
+
+  @override
+  String get connectFailureSuggestionAuthCredentials =>
+      '核對使用者名稱與密碼（區分大小寫；不要有多餘空格）。';
+
+  @override
+  String get connectFailureSuggestionAuthHostRule =>
+      '確認該帳號允許從目前主機登入（GRANT / 主機規則）。';
+
+  @override
+  String get connectFailureSuggestionAuthSshTunnel => '若使用 SSH 通道，檢查跳板機與連接埠轉發。';
+
+  @override
+  String get connectFailureSuggestionTimeoutHostPort => '檢查主機名稱、連接埠與 DNS 解析。';
+
+  @override
+  String get connectFailureSuggestionTimeoutProxy => '檢查代理、VPN、防火牆與安全群組規則。';
+
+  @override
+  String get connectFailureSuggestionTimeoutRemote =>
+      '確認伺服器端允許遠端連線（bind-address / pg_hba）。';
+
+  @override
+  String get connectFailureSuggestionSslMode =>
+      '切換 SSL 模式（require / prefer / disable）後重試。';
+
+  @override
+  String get connectFailureSuggestionSslCa =>
+      '核對 CA 憑證與主機名校驗（verify-full → verify-ca）。';
+
+  @override
+  String get connectFailureSuggestionSslServer => '確認伺服器端 TLS 版本與憑證有效期。';
+
+  @override
+  String get connectFailureSuggestionRetry => '重新測試連線，確認問題可重現。';
+
+  @override
+  String get connectFailureSuggestionRaw => '展開 Raw Driver Message 查看驅動原始錯誤。';
+
+  @override
+  String get connectFailureSuggestionCopy => '複製已遮罩診斷給 DBA 或服務提供方。';
+
+  @override
+  String get connectFailureCopyRedacted => '複製已遮罩診斷資訊';
+
+  @override
+  String get connectFailureReenterPassword => '重新輸入密碼';
+
+  @override
+  String get connectFailureCheckHostProxy => '檢查主機與代理';
+
+  @override
+  String get connectFailureSwitchSslRetry => '切換 SSL 模式並重試';
+
+  @override
+  String get prodGuardTitleL1 => '生產環境 · 毀滅性操作';
+
+  @override
+  String get prodGuardTitleL2 => '生產環境 · 無範圍寫入';
+
+  @override
+  String get prodGuardConfirmDrop => '確認刪除';
+
+  @override
+  String prodGuardNoWhereWarning(int count) {
+    return '沒有 WHERE 條件。預估影響 $count 行。';
+  }
+
+  @override
+  String get prodGuardUnknownRows => '預估行數：未知';
+
+  @override
+  String get prodGuardFocusCancelHint => '焦點預設在取消。Enter 取消；按 Tab 到危險按鈕。';
+
+  @override
+  String get prodGuardAiBackup => '讓 AI 產生備份腳本';
+
+  @override
+  String prodGuardAiBackupPrompt(String object) {
+    return '為 $object 產生 CREATE TABLE … AS SELECT 備份與復原方案。';
+  }
+
+  @override
+  String get prodGuardLockedHint => '名稱完全符合前，確認按鈕無法使用。';
+
+  @override
+  String get prodGuardUnlockedHint => '名稱已符合，確認按鈕已啟用。';
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 import '../models/sql_statement.dart';
 import '../models/execution_result.dart';
 import '../models/dml_risk_models.dart';
+import 'query_execution_interceptor.dart' show ProductionGuardRequiredException;
 import 'readonly_guard.dart';
 import 'database_service.dart';
 
@@ -243,6 +244,10 @@ class MultiExecutionService {
     } on DmlWarningRequiredException {
       rethrow;
     } on ReadOnlyBlockedException {
+      rethrow;
+    } on ProductionGuardRequiredException {
+      // B-07 分流信号（production 连接阻断级 DML）：控制流信号非语句错误，
+      // 上抛由调用方链路/UI 消费——不在此吞成失败 ExecutionResult。
       rethrow;
     } catch (e) {
       final executionTime = DateTime.now().difference(startTime);

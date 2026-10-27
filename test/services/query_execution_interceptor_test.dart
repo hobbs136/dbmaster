@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dbmaster/services/query_execution_interceptor.dart';
 import 'package:dbmaster/models/database_models.dart';
+import 'package:dbmaster/models/dml_risk_models.dart';
 import 'package:dbmaster/models/schema_analyzer/ddl_algorithm.dart';
 import 'package:dbmaster/models/schema_analyzer/impact_report.dart';
 
@@ -270,6 +271,61 @@ void main() {
 
       // Test passes if no exception is thrown
       expect(true, isTrue);
+    });
+  });
+
+  // ==================== UI35-442 绿护栏：checkDmlSafety 既有门行为零变化 ====================
+  // 当前 checkDmlSafety 签名无 environment 入参 = 既有行为本身。非 production
+  // 连接（testing/development/null）+ 同触发器（无 WHERE DELETE / DROP /
+  // TRUNCATE）→ 既有确认门（DmlConfirmationRequiredException）行为锁定。
+  // 批4 T9 production 分流落地后本组必须保持全绿（只加不改纪律）。
+  group('checkDmlSafety 既有门绿护栏（UI35-442）', () {
+    late QueryExecutionInterceptor interceptor;
+
+    setUp(() {
+      interceptor = QueryExecutionInterceptor();
+    });
+
+    test('无 WHERE DELETE → 抛 DmlConfirmationRequiredException（既有 critical 门）', () {
+      expect(
+        () => interceptor.checkDmlSafety(
+          sql: 'DELETE FROM orders',
+          dbType: DatabaseType.mysql,
+          connectionId: 'g-green',
+        ),
+        throwsA(isA<DmlConfirmationRequiredException>()),
+      );
+    });
+
+    test('DROP TABLE → 抛 DmlConfirmationRequiredException（既有 critical 门）', () {
+      expect(
+        () => interceptor.checkDmlSafety(
+          sql: 'DROP TABLE orders',
+          dbType: DatabaseType.mysql,
+          connectionId: 'g-green',
+        ),
+        throwsA(isA<DmlConfirmationRequiredException>()),
+      );
+    });
+
+    test('TRUNCATE TABLE → 抛 DmlConfirmationRequiredException（既有 critical 门）', () {
+      expect(
+        () => interceptor.checkDmlSafety(
+          sql: 'TRUNCATE TABLE orders',
+          dbType: DatabaseType.mysql,
+          connectionId: 'g-green',
+        ),
+        throwsA(isA<DmlConfirmationRequiredException>()),
+      );
+    });
+
+    test('SELECT → null 放行（既有门不触发）', () {
+      final result = interceptor.checkDmlSafety(
+        sql: 'SELECT * FROM orders',
+        dbType: DatabaseType.mysql,
+        connectionId: 'g-green',
+      );
+      expect(result, isNull);
     });
   });
 }

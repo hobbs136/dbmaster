@@ -11836,4 +11836,112 @@ class AppLocalizationsFr extends AppLocalizations {
   String agentStageAiInferred(String note) {
     return 'Déduit par l\'IA : $note';
   }
+
+  @override
+  String get connectFailureNetworkTimeout =>
+      'Le serveur n\'a pas répondu avant l\'expiration du délai.';
+
+  @override
+  String get connectFailureSslHandshake =>
+      'La négociation TLS a échoué avant le début de l\'authentification.';
+
+  @override
+  String get connectFailureRecoveryTitle => 'À essayer en premier';
+
+  @override
+  String get connectFailureSuggestionAuthCredentials =>
+      'Vérifiez le nom d\'utilisateur et le mot de passe (sensible à la casse ; sans espaces superflus).';
+
+  @override
+  String get connectFailureSuggestionAuthHostRule =>
+      'Confirmez que ce compte peut se connecter depuis l\'hôte actuel (GRANT / règle d\'hôte).';
+
+  @override
+  String get connectFailureSuggestionAuthSshTunnel =>
+      'Si un tunnel SSH est utilisé, vérifiez le serveur de rebond et la redirection de port.';
+
+  @override
+  String get connectFailureSuggestionTimeoutHostPort =>
+      'Vérifiez le nom d\'hôte, le port et la résolution DNS.';
+
+  @override
+  String get connectFailureSuggestionTimeoutProxy =>
+      'Vérifiez le proxy, le VPN, le pare-feu et les règles du groupe de sécurité.';
+
+  @override
+  String get connectFailureSuggestionTimeoutRemote =>
+      'Confirmez que le serveur accepte les connexions distantes (bind-address / pg_hba).';
+
+  @override
+  String get connectFailureSuggestionSslMode =>
+      'Changez de mode SSL (require / prefer / disable) puis réessayez.';
+
+  @override
+  String get connectFailureSuggestionSslCa =>
+      'Vérifiez le certificat CA et la vérification du nom d\'hôte (verify-full → verify-ca).';
+
+  @override
+  String get connectFailureSuggestionSslServer =>
+      'Confirmez la version TLS du serveur et l\'expiration du certificat.';
+
+  @override
+  String get connectFailureSuggestionRetry =>
+      'Relancez le test pour confirmer que l\'échec est reproductible.';
+
+  @override
+  String get connectFailureSuggestionRaw =>
+      'Dépliez Raw Driver Message pour lire l\'erreur au niveau du pilote.';
+
+  @override
+  String get connectFailureSuggestionCopy =>
+      'Copiez les diagnostics masqués pour votre DBA ou votre fournisseur.';
+
+  @override
+  String get connectFailureCopyRedacted => 'Copier les diagnostics masqués';
+
+  @override
+  String get connectFailureReenterPassword => 'Ressaisir le mot de passe';
+
+  @override
+  String get connectFailureCheckHostProxy => 'Vérifier l\'hôte et le proxy';
+
+  @override
+  String get connectFailureSwitchSslRetry => 'Changer le mode SSL et réessayer';
+
+  @override
+  String get prodGuardTitleL1 => 'Production · opération destructrice';
+
+  @override
+  String get prodGuardTitleL2 => 'Production · écriture sans périmètre';
+
+  @override
+  String get prodGuardConfirmDrop => 'Supprimer définitivement';
+
+  @override
+  String prodGuardNoWhereWarning(int count) {
+    return 'Aucune clause WHERE. Environ $count lignes affectées.';
+  }
+
+  @override
+  String get prodGuardUnknownRows => 'Lignes estimées : inconnues';
+
+  @override
+  String get prodGuardFocusCancelHint =>
+      'Le focus démarre sur Annuler. Entrée annule ; appuyez sur Tab pour atteindre le bouton destructeur.';
+
+  @override
+  String get prodGuardAiBackup => 'Générer un script de sauvegarde avec l\'IA';
+
+  @override
+  String prodGuardAiBackupPrompt(String object) {
+    return 'Générez une sauvegarde CREATE TABLE ... AS SELECT et un plan de restauration pour $object.';
+  }
+
+  @override
+  String get prodGuardLockedHint =>
+      'Le bouton de confirmation reste verrouillé jusqu\'à ce que le nom corresponde exactement.';
+
+  @override
+  String get prodGuardUnlockedHint =>
+      'Le nom correspond. Le bouton de confirmation est désormais activé.';
 }

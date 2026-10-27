@@ -15,6 +15,7 @@ import '../../providers/tab_provider.dart'
 import '../../models/database_models.dart' hide QueryTab;
 import '../../models/connection_failure.dart';
 import '../../models/ai_tree_node_context.dart';
+import '../../models/dml_risk_models.dart';
 import '../../models/table_maintenance_command.dart';
 import '../sidebar/mysql_engine_status_dialog.dart';
 import '../../services/ports/capability_table.dart';
@@ -35,6 +36,7 @@ import '../connection/schema_diff_dialog.dart';
 import '../../services/schema_diff/schema_diff_service.dart';
 import '../../services/schema_diff/schema_snapshot_service.dart';
 import '../dialogs/confirm_maintenance_dialog.dart';
+import '../dialogs/production_guard_dialog.dart';
 import '../dialogs/table_maintenance_result_dialog.dart';
 import '../pro/pro_sync_ui.dart';
 import '../../l10n/app_localizations.dart';
@@ -67,6 +69,8 @@ String _failurePlainMessage(
   ConnectionFailureKind.corrupt => l10n.connectFailureCorrupt,
   ConnectionFailureKind.authFailed => l10n.connectFailureAuthFailed,
   ConnectionFailureKind.unreachable => l10n.connectFailureUnreachable,
+  ConnectionFailureKind.networkTimeout => l10n.connectFailureNetworkTimeout,
+  ConnectionFailureKind.sslHandshake => l10n.connectFailureSslHandshake,
   ConnectionFailureKind.unknown => l10n.connectFailureUnknown,
 };
 
@@ -2154,6 +2158,39 @@ class SidebarTree extends StatelessWidget {
     String table,
   ) async {
     if (!context.mounted) return;
+    // B-07/UI35-441 production 分流：production 连接的 truncate 改走生产守卫
+    // L1（type-to-confirm + AI 备份入口 + 审计）；非 production（testing/
+    // development/null）走下方既有确认门，逐字节不变。
+    if (_isProductionConnection(provider, cid)) {
+      final serverType = _serverTypeFor(provider, cid);
+      final sql = _productionActionSqlPreview(serverType, db, table, 'TRUNCATE');
+      final confirmed = await _guardProductionTableAction(
+        context: context,
+        provider: provider,
+        connectionId: cid,
+        sql: sql,
+        targetObjectName: table,
+        // 行数只读复用侧栏已加载的 tableRowCounts（information_schema 统计，
+        // 控制器按需拉取）；未加载 → null（未知，禁 0 冒充），不在右键路径
+        // 主动发 COUNT/EXPLAIN（避免 production 上放大锁面）。
+        estimatedRows: tableRowCounts['$cid:$db:$table'],
+      );
+      if (!confirmed) return;
+      try {
+        // 与既有确认门通过后同一执行链路（guard 确认 true 不得绕过执行/
+        // 审计链）：_anchorActionsTo 锚定 + truncateTable 默认路由。
+        await _anchorActionsTo(provider, cid);
+        await provider.truncateTable(table, databaseName: db);
+      } catch (e) {
+        if (context.mounted) {
+          AppErrorHandler.showErrorSnackBar(
+            context,
+            AppLocalizations.of(context)!.truncateFailed(e.toString()),
+          );
+        }
+      }
+      return;
+    }
     final result = await showDialog<TruncateDialogResult>(
       context: context,
       builder: (_) => TruncateTableConfirmDialog(tableName: table),
@@ -2183,6 +2220,36 @@ class SidebarTree extends StatelessWidget {
     String db,
     String table,
   ) async {
+    // B-07/UI35-441 production 分流：production 连接的 drop 改走生产守卫 L1
+    // （type-to-confirm + AI 备份入口 + 审计）；非 production 走下方既有
+    // type-to-confirm 门（T018），逐字节不变。
+    if (_isProductionConnection(provider, cid)) {
+      final serverType = _serverTypeFor(provider, cid);
+      final sql = _productionActionSqlPreview(serverType, db, table, 'DROP');
+      final confirmed = await _guardProductionTableAction(
+        context: context,
+        provider: provider,
+        connectionId: cid,
+        sql: sql,
+        targetObjectName: table,
+        estimatedRows: tableRowCounts['$cid:$db:$table'],
+      );
+      if (!confirmed) return;
+      try {
+        // 与既有确认门通过后同一执行链路（guard 确认 true 不得绕过执行/
+        // 审计链）：_anchorActionsTo 锚定 + dropTable 默认路由。
+        await _anchorActionsTo(provider, cid);
+        await provider.dropTable(db, table);
+      } catch (e) {
+        if (context.mounted) {
+          AppErrorHandler.showErrorSnackBar(
+            context,
+            AppLocalizations.of(context)!.dropTableFailed(e.toString()),
+          );
+        }
+      }
+      return;
+    }
     // T018 — use type-to-confirm dialog
     final ok = await showDialog<bool>(
       context: context,
@@ -2203,6 +2270,90 @@ class SidebarTree extends StatelessWidget {
           );
       }
     }
+  }
+
+  /// B-07/UI35-441 production 分流判定：目标连接 environment ==
+  /// production 时破坏性表操作改走生产守卫；testing/development/null（含
+  /// id 未命中 savedConnections 的防御兜底）一律走既有确认门。
+  bool _isProductionConnection(AppProvider provider, String connectionId) {
+    return _environmentFor(provider, connectionId) ==
+        ConnectionEnvironment.production;
+  }
+
+  /// 按连接 id 解析已保存连接的 environment（守卫弹窗环境 chip 同源的
+  /// savedConnections 权威）；未命中返回 null。
+  ConnectionEnvironment? _environmentFor(
+    AppProvider provider,
+    String connectionId,
+  ) {
+    for (final server in provider.savedConnections) {
+      if (server.id == connectionId) return server.environment;
+    }
+    return null;
+  }
+
+  /// 按连接 id 解析库类型（守卫 SQL 预览的方言引号风格用）；未命中按 MySQL
+  /// 反引号兜底（与 SqlEscapeUtils.escapeIdentifierForType 的 default 同口径）。
+  DatabaseType _serverTypeFor(AppProvider provider, String connectionId) {
+    for (final server in provider.savedConnections) {
+      if (server.id == connectionId) return server.type;
+    }
+    return DatabaseType.mysql;
+  }
+
+  /// 生产守卫 SQL 预览（B-07）：按方言转义的 `KEYWORD TABLE db.table` 规范
+  /// 形态（沿 TableMaintenanceCommand.buildSql 的组装惯例；实际下发 SQL 由
+  /// adapter 方言构造，预览只承担「让用户看清将要执行什么」）。
+  String _productionActionSqlPreview(
+    DatabaseType type,
+    String db,
+    String table,
+    String keyword,
+  ) {
+    final quotedDb = SqlEscapeUtils.escapeIdentifierForType(db, type);
+    final quotedTable = SqlEscapeUtils.escapeIdentifierForType(table, type);
+    return '$keyword TABLE $quotedDb.$quotedTable';
+  }
+
+  /// 生产守卫挂接（B-07）：L1 弹窗 + AI 备份胶水 + 审计。返回 true = 用户
+  /// 确认执行（调用方走既有确认后执行链路）；false（取消/Esc/AI 分流）=
+  /// 不执行，且落既有 logDmlBlocked 审计——分流不是绕过审计（AI 分流同样
+  /// 未执行操作，按 cancelled 记，与编辑器 DML 取消路径同一审计出口）。
+  Future<bool> _guardProductionTableAction({
+    required BuildContext context,
+    required AppProvider provider,
+    required String connectionId,
+    required String sql,
+    required String targetObjectName,
+    int? estimatedRows,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showProductionGuardDialog(
+      context,
+      connectionId: connectionId,
+      level: ProductionGuardLevel.l1Destructive,
+      sqlPreview: sql,
+      targetObjectName: targetObjectName,
+      estimatedRows: estimatedRows,
+      onAiBackup: () {
+        // AI 备份胶水（B-07/UI35-443）：弹窗自理关闭后开经典 dock + 预填
+        // prodGuardAiBackupPrompt({object})；不自动发送、不校验 API key、
+        // 不 recordAiUsage（通道侧已保证，此处只调用）。
+        provider.aiPanel.openAiPanel();
+        provider.aiPanel.requestComposerPrefill(
+          l10n.prodGuardAiBackupPrompt(targetObjectName),
+        );
+      },
+    );
+    if (!confirmed) {
+      provider.dbService.interceptor.logDmlBlocked(
+        sql: sql,
+        connectionId: connectionId,
+        riskLevel: DmlRiskLevel.critical,
+        decision: AuditDecision.cancelled,
+      );
+    }
+    return confirmed;
   }
   // ========== TDengine 特有节点 ==========
   // C18 插件化：_buildTDengineNodes/_browseTDengineSuperTableData 与顶层
@@ -2268,6 +2419,14 @@ class SidebarTree extends StatelessWidget {
       ConnectFailureDialog.show(
         context,
         failure: failure,
+        // T8 报告字段接线：库型显示名（沿 DatabaseType.displayName 惯例）+
+        // 环境标签（沿 status_bar 环境三态 l10n 映射惯例；无 environment 时
+        // null，报告省略该行）。
+        driverName: server.type.displayName,
+        environmentLabel: _connectFailureEnvironmentLabel(
+          AppLocalizations.of(context),
+          server.environment,
+        ),
         onRetry: () async {
           // 重入守卫与入口一致：连接在途时不重发。
           if (provider.connection.isConnectionConnecting(server.id)) {
@@ -2278,6 +2437,25 @@ class SidebarTree extends StatelessWidget {
         latestFailure: () => provider.connection.lastFailureFor(server.id),
       ),
     );
+  }
+
+  /// 连接失败报告的环境标签（T8 接线）：沿 status_bar_widget /
+  /// production_guard_dialog「消费面各持副本、不建共享文件」惯例的本地
+  /// 三态映射；environment 为 null 时返回 null（报告省略「环境标签」行）。
+  String? _connectFailureEnvironmentLabel(
+    AppLocalizations? l10n,
+    ConnectionEnvironment? environment,
+  ) {
+    switch (environment) {
+      case null:
+        return null;
+      case ConnectionEnvironment.production:
+        return l10n?.environmentProduction ?? 'Production environment';
+      case ConnectionEnvironment.testing:
+        return l10n?.environmentTesting ?? 'Testing environment';
+      case ConnectionEnvironment.development:
+        return l10n?.environmentDevelopment ?? 'Development environment';
+    }
   }
 
   /// J3 导航与动作分离（plan §10.1⑤）：动作类右键链（新建库/建表/改表/

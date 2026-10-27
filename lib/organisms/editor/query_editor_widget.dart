@@ -24,10 +24,13 @@ import '../../services/mongo_autocomplete_service.dart'; // 020-mongo US1
 import '../../services/sql_formatter_service.dart';
 import '../../services/sql_parser_service.dart';
 import '../../services/database_service.dart';
+import '../../services/query_execution_interceptor.dart'
+    show ProductionGuardRequiredException, QueryExecutionInterceptor;
 import '../../services/saved_query_api_service.dart';
 import '../server/approval/submit_approval_dialog.dart';
 import '../ai_panel/ddl_confirm_dialog.dart';
 import '../dialogs/dml_confirm_dialog.dart';
+import '../dialogs/production_guard_dialog.dart';
 import '../results/safety_warning_banner.dart';
 import '../../models/dml_risk_models.dart';
 import '../../services/sql_validator_service.dart';
@@ -931,6 +934,130 @@ class QueryEditorWidgetState extends State<QueryEditorWidget> {
         });
         // Re-execute with bypass will be triggered by the banner's onConfirm callback
         return;
+      } on ProductionGuardRequiredException catch (e) {
+        // B-07/UI35-441 production 分流：production 连接的阻断级 DML → 生产
+        // 守卫弹窗（L1/L2 分级），非既有 DML 确认门。镜像 helper 分支：
+        // guard true → bypass 重执（按语句类型选通道——DDL 语句沿本方法
+        // DdlConfirm 臂既有形态，其余沿 DmlConfirm 臂既有形态）；false
+        //（取消/Esc/AI 分流）→ logDmlBlocked 审计（不旁路）。
+        if (!mounted) return;
+        final guardConfirmed = await showProductionGuardDialog(
+          context,
+          connectionId: provider.connection.currentServer?.id ?? '',
+          level: e.isL1Destructive
+              ? ProductionGuardLevel.l1Destructive
+              : ProductionGuardLevel.l2UnboundedWrite,
+          sqlPreview: e.sql,
+          targetObjectName: e.targetObjectName,
+          // estimatedRows 锁面考量（自决记录，helper 同款）：同步 seam 无
+          // adapter 句柄；不在 production 目标表上先放大读锁面（SQLite
+          // 回落是 COUNT(*)）。null = 未知行数（禁 0 冒充）。
+          estimatedRows: null,
+          onAiBackup: () {
+            // AI 备份胶水（helper / sidebar T9-C 同款）：弹窗自理关闭后开
+            // 经典 dock + 预填；不自动发送、不校验 key、不 recordAiUsage。
+            provider.aiPanel.openAiPanel();
+            provider.aiPanel.requestComposerPrefill(
+              l10n.prodGuardAiBackupPrompt(e.targetObjectName),
+            );
+          },
+        );
+        if (!guardConfirmed) {
+          // 取消/Esc/AI 分流（操作未执行）：记录拦截决策（审计）。
+          provider.dbService.interceptor.logDmlBlocked(
+            sql: e.sql,
+            connectionId: provider.connection.currentServer?.id ?? '',
+            riskLevel: DmlRiskLevel.critical,
+            decision: AuditDecision.cancelled,
+          );
+          return;
+        }
+        // guard true → bypass 重执（bypass 只在 guard 确认之后）。
+        final currentTab = provider.activeTab;
+        if (QueryExecutionInterceptor.isDdlStatement(sql)) {
+          // DDL 族（DROP/TRUNCATE，L1）：沿 DdlConfirm 臂既有 bypass 形态。
+          final statements = SQLParserService.split(sql);
+          if (statements.length == 1) {
+            final data = await provider.dbService.executeQueryBypassDdl(
+              sql,
+              connectionId: currentTab?.connectionId,
+              database: currentTab?.databaseName,
+              sessionId: currentTab?.sessionId,
+            );
+            results = [
+              ExecutionResult(
+                statement: SQLStatement(
+                  index: 0,
+                  sql: sql,
+                  type: SQLType.ddl,
+                  lineStart: 1,
+                  lineEnd: 1,
+                ),
+                success: true,
+                data: data,
+                executionTime: DateTime.now().difference(startTime),
+              ),
+            ];
+          } else {
+            final success = await provider.dbService
+                .executeSqlScriptBypassDdl(
+                  sql,
+                  connectionId: currentTab?.connectionId,
+                );
+            results = [
+              ExecutionResult(
+                statement: SQLStatement(
+                  index: 0,
+                  sql: sql,
+                  type: SQLType.ddl,
+                  lineStart: 1,
+                  lineEnd: 1,
+                ),
+                success: success,
+                data: const [],
+                executionTime: DateTime.now().difference(startTime),
+              ),
+            ];
+          }
+          provider.updateTabExecutionResults(provider.activeTabIndex, results);
+          final bypassTotalTime = DateTime.now()
+              .difference(startTime)
+              .inMilliseconds;
+          await provider.addQueryHistory(
+            sql: sql,
+            executionTime: bypassTotalTime,
+            affectedRows: results.fold<int>(
+              0,
+              (sum, r) => sum + (r.affectedRows ?? 0),
+            ),
+            databaseType: _getTabDatabaseType(),
+            connectionId: provider.connection.currentServer?.id,
+            connectionName: provider.connection.currentServer?.name,
+          );
+        } else {
+          // 其余（无 WHERE DELETE/UPDATE 族，L2）：沿 DmlConfirm 臂既有
+          // bypass 形态（bypass 后走本方法标准收尾流）。
+          final bypassResults = await provider.dbService.executeQueryBypassDml(
+            e.sql,
+            connectionId: currentTab?.connectionId,
+            database: currentTab?.databaseName,
+            sessionId: currentTab?.sessionId,
+          );
+          results = [
+            ExecutionResult(
+              statement: SQLStatement(
+                index: 0,
+                sql: e.sql,
+                type: SQLType.other,
+                lineStart: 1,
+                lineEnd: 1,
+              ),
+              success: true,
+              data: bypassResults,
+              executionTime: DateTime.now().difference(startTime),
+            ),
+          ];
+        }
       } on DdlConfirmationRequiredException catch (e) {
         if (!mounted) return;
         // D1 合并：用户已在执行门（ExecutionGateDialog）确认过风险，

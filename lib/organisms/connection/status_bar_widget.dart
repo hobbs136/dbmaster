@@ -489,6 +489,8 @@ String _failurePlainMessage(AppLocalizations l10n, ConnectionFailureKind kind) =
       ConnectionFailureKind.corrupt => l10n.connectFailureCorrupt,
       ConnectionFailureKind.authFailed => l10n.connectFailureAuthFailed,
       ConnectionFailureKind.unreachable => l10n.connectFailureUnreachable,
+      ConnectionFailureKind.networkTimeout => l10n.connectFailureNetworkTimeout,
+      ConnectionFailureKind.sslHandshake => l10n.connectFailureSslHandshake,
       ConnectionFailureKind.unknown => l10n.connectFailureUnknown,
     };
 

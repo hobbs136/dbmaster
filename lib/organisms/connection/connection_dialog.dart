@@ -59,6 +59,10 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
   // UIRV-B2（软门）：测试状态机与最近一次测试的草稿快照/结构化失败。
   _ConnectionTestState _testState = _ConnectionTestState.dirty;
   DbServer? _lastTestedServer;
+  // 最近一次「实际送测」的 server（含失败路径；_lastTestedServer 只在成功
+  // 落值）——T8 报告字段接线用：失败对话框的库型/环境标签取自送测对象，
+  // 不受送测后表单继续编辑影响。
+  DbServer? _lastTestAttemptServer;
   ConnectionFailure? _lastFailure;
   // 测试代际守卫：取消（或新测试开启）即递增；迟到的 provider 结果按代际
   // 丢弃（provider.testConnection 不可取消，取消只在 UI 层生效）。
@@ -943,6 +947,8 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
     if (!_formKey.currentState!.validate()) return false;
     final server = _session?.collect(forSave: false);
     if (server == null) return false;
+    // 记录送测对象（T8 报告字段：失败对话框库型/环境标签取自送测 server）。
+    _lastTestAttemptServer = server;
 
     _lastFailure = null;
     final epoch = ++_testEpoch;
@@ -987,13 +993,41 @@ class _ConnectionDialogState extends State<ConnectionDialog> {
     final ok = await _runTest();
     if (ok || !mounted || _lastFailure == null) return;
     final failure = _lastFailure!;
+    final testServer = _lastTestAttemptServer;
     await ConnectFailureDialog.show(
       context,
       failure: failure,
+      // T8 报告字段接线：库型显示名（DatabaseType.displayName）+ 环境标签
+      //（status_bar 三态 l10n 映射口径）；送测对象缺省/无 environment 传
+      // null，报告省略对应行。
+      driverName: testServer?.type.displayName,
+      environmentLabel: _connectFailureEnvironmentLabel(
+        AppLocalizations.of(context),
+        testServer?.environment,
+      ),
       // 重试闭包 = 同一连接调用（对话框内原地更新，不叠窗）
       onRetry: _runTest,
       latestFailure: () => _lastFailure,
     );
+  }
+
+  /// 连接失败报告的环境标签（T8 接线）：沿 status_bar_widget /
+  /// production_guard_dialog「消费面各持副本、不建共享文件」惯例的本地
+  /// 三态映射；environment 为 null 时返回 null（报告省略「环境标签」行）。
+  String? _connectFailureEnvironmentLabel(
+    AppLocalizations? l10n,
+    ConnectionEnvironment? environment,
+  ) {
+    switch (environment) {
+      case null:
+        return null;
+      case ConnectionEnvironment.production:
+        return l10n?.environmentProduction ?? 'Production environment';
+      case ConnectionEnvironment.testing:
+        return l10n?.environmentTesting ?? 'Testing environment';
+      case ConnectionEnvironment.development:
+        return l10n?.environmentDevelopment ?? 'Development environment';
+    }
   }
 }
 

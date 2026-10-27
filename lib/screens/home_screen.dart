@@ -40,6 +40,7 @@ import '../providers/theme_provider.dart';
 import '../providers/layout_preferences_provider.dart';
 import '../layout/effective_layout.dart';
 import '../l10n/app_localizations.dart';
+import '../models/database_models.dart';
 import '../organisms/connection/connection_dialog.dart';
 import '../organisms/connection/connect_failure_dialog.dart';
 import '../organisms/connection/error_boundary.dart';
@@ -583,6 +584,13 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showSqliteConnectFailure(AppProvider provider, String path) {
     final l10n = AppLocalizations.of(context)!;
     final failure = provider.connection.lastConnectFailure;
+    // T8 报告字段接线：SQLite 打开路径的库型恒为 SQLite（displayName）；
+    // 环境标签取已保存的 SQLite 连接（openSqliteFile 保存后可命中）——
+    // 文件型连接默认无 environment，未命中/无值传 null（报告省略该行）。
+    final sqliteConn = ConnectionProvider.findExistingSqlite(
+      provider.connection.savedConnections,
+      ConnectionProvider.normalizeSqlitePath(path),
+    );
     // T3 契约：lastConnectFailure 与失败结果同生共死；null 仅防御性兜底。
     unawaited(
       ConnectFailureDialog.show(
@@ -595,6 +603,11 @@ class _HomeScreenState extends State<HomeScreen> {
               rawMessage: l10n.sqliteOpenError,
               occurredAt: DateTime.now(),
             ),
+        driverName: DatabaseType.sqlite.displayName,
+        environmentLabel: _connectFailureEnvironmentLabel(
+          l10n,
+          sqliteConn?.environment,
+        ),
         onRetry: () async {
           final ok = await provider.connection.openSqliteFile(path);
           if (ok) {
@@ -606,6 +619,25 @@ class _HomeScreenState extends State<HomeScreen> {
         latestFailure: () => provider.connection.lastConnectFailure,
       ),
     );
+  }
+
+  /// 连接失败报告的环境标签（T8 接线）：沿 status_bar_widget /
+  /// production_guard_dialog「消费面各持副本、不建共享文件」惯例的本地
+  /// 三态映射；environment 为 null 时返回 null（报告省略「环境标签」行）。
+  String? _connectFailureEnvironmentLabel(
+    AppLocalizations? l10n,
+    ConnectionEnvironment? environment,
+  ) {
+    switch (environment) {
+      case null:
+        return null;
+      case ConnectionEnvironment.production:
+        return l10n?.environmentProduction ?? 'Production environment';
+      case ConnectionEnvironment.testing:
+        return l10n?.environmentTesting ?? 'Testing environment';
+      case ConnectionEnvironment.development:
+        return l10n?.environmentDevelopment ?? 'Development environment';
+    }
   }
 
   // 拖拽打开 SQLite 文件 —— 取首个 SQLite 路径后连接

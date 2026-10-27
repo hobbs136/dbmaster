@@ -391,6 +391,13 @@ class _WorkbenchContextPickerState extends State<WorkbenchContextPicker> {
             rawMessage: '',
             occurredAt: DateTime.now(),
           ),
+      // T8 报告字段接线：库型显示名（DatabaseType.displayName）+ 环境标签
+      //（status_bar 三态 l10n 映射口径；无 environment 传 null，报告省略行）。
+      driverName: attempt.type.displayName,
+      environmentLabel: _connectFailureEnvironmentLabel(
+        AppLocalizations.of(context),
+        attempt.environment,
+      ),
       onRetry: () => context
           .read<AppProvider>()
           .connection
@@ -398,6 +405,25 @@ class _WorkbenchContextPickerState extends State<WorkbenchContextPicker> {
       latestFailure: () =>
           context.read<AppProvider>().connection.lastConnectFailure,
     );
+  }
+
+  /// 连接失败报告的环境标签（T8 接线）：沿 status_bar_widget /
+  /// production_guard_dialog「消费面各持副本、不建共享文件」惯例的本地
+  /// 三态映射；environment 为 null 时返回 null（报告省略「环境标签」行）。
+  String? _connectFailureEnvironmentLabel(
+    AppLocalizations? l10n,
+    ConnectionEnvironment? environment,
+  ) {
+    switch (environment) {
+      case null:
+        return null;
+      case ConnectionEnvironment.production:
+        return l10n?.environmentProduction ?? 'Production environment';
+      case ConnectionEnvironment.testing:
+        return l10n?.environmentTesting ?? 'Testing environment';
+      case ConnectionEnvironment.development:
+        return l10n?.environmentDevelopment ?? 'Development environment';
+    }
   }
 
   Future<void> _loadDatabases(DbServer server) async {

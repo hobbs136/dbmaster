@@ -531,7 +531,8 @@ class _AiWorkbenchShellState extends State<AiWorkbenchShell> {
 
   /// 批准后的执行装配（T28）：approve（幂等）→ 逐语句执行（deps 绑 shell
   /// 既有确认流 + dbService；DDL 双门不豁免 AC10.4——ddlConfirm 绑
-  /// DdlConfirmDialog、dmlConfirm 绑 DmlConfirmDialog；回退推导的 PK 取数
+  /// DdlConfirmDialog、dmlConfirm 绑 DmlConfirmDialog；B-07 production
+  /// 分流 productionGuardConfirm 绑 showProductionGuardDialog；回退推导的 PK 取数
   /// 绑 dbService.getTableColumns）。执行结果不在此回喂——executor 的
   /// submit 链按 plan 终态组装（共享同一计划对象）。
   ///
@@ -736,6 +737,17 @@ class _AiWorkbenchShellState extends State<AiWorkbenchShell> {
       ),
       ddlConfirm: _confirmPlanDdl,
       dmlConfirm: _confirmPlanDml,
+      // B-07 production 分流：守卫确认复用共享静态回调（弹窗 + AI 胶水）；
+      // 连接锚取 plan.ctx 快照（D15——守卫环境标签随执行目标连接解析，
+      // 不随侧栏/tab 漂移）。
+      productionGuardConfirm: (e) =>
+          WorkbenchExecutionActions.confirmProductionGuard(
+            context,
+            provider: provider,
+            e: e,
+            connectionId:
+                connectionId ?? provider.connection.currentServer?.id ?? '',
+          ),
       shouldContinue: () => agentPlanExecutionMayContinue(
         mounted: mounted,
         bindRunnerStop: bindRunnerStop,

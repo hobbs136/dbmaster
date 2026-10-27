@@ -1192,9 +1192,20 @@ void main() {
       await tester.tap(find.text('Technical Details'));
       await tester.pumpAndSettle();
 
-      expect(find.text('DB_ERROR'), findsOneWidget);
+      // T8 双承载事实：错误码/连接目标在实例信息条（Text chip）与技术
+      // 详情行（SelectableText）各承载一次。断言语义「错误码进技术详情」
+      // 不弱化——收窄到详情区载体 SelectableText 精确命中一次。
+      expect(
+        find.widgetWithText(SelectableText, 'DB_ERROR'),
+        findsOneWidget,
+        reason: '错误码进技术详情（详情行 SelectableText 承载）',
+      );
       expect(find.textContaining('Access denied for user'), findsWidgets);
-      expect(find.text('192.168.3.128:3306'), findsOneWidget);
+      expect(
+        find.widgetWithText(SelectableText, '192.168.3.128:3306'),
+        findsOneWidget,
+        reason: '连接目标进技术详情（详情行 SelectableText 承载）',
+      );
     });
   });
 

@@ -38,7 +38,16 @@ enum ConnectionFailureKind {
   /// SSH 隧道建立失败）。
   unreachable,
 
-  /// 未归类失败（网关 envelope 无码/未列码（含 TIMEOUT、DB_ERROR）时此型；
+  /// 网络超时（网关稳定码 TIMEOUT：TCP/连接池等待超时）。沿既有口径：
+  /// 超时不唯一指「端口没开」，可能为网络、代理、服务端负载等多因，
+  /// 展示层文案与建议不得断言单一成因（UI35-401 / B-05）。
+  networkTimeout,
+
+  /// TLS/SSL 握手失败（网关稳定码 SSL_HANDSHAKE：证书校验/握手阶段失败，
+  /// 未进入认证阶段）。
+  sslHandshake,
+
+  /// 未归类失败（网关 envelope 无码/未列码（含 DB_ERROR）时此型；
   /// 无码或未列码的 SQLite 失败同）。
   unknown,
 }
@@ -106,9 +115,10 @@ ConnectionFailureKind sqliteKindFromResultCode(int? code) => switch (code) {
 /// 网关 envelope → [ConnectionFailure]。
 ///
 /// 设计锁定：errorCode = code ?? engineCode ?? ''；kind 按 [code] 稳定码
-/// 映射（T12c：AUTH_DENIED→authFailed、UNREACHABLE→unreachable，TIMEOUT/
-/// DB_ERROR 及其余未列码→unknown；TIMEOUT 不唯一指"端口没开"，文案不断言
-/// 单一成因）；rawMessage = message（envelope 含 engineCode 时追加
+/// 映射（T12c：AUTH_DENIED→authFailed、UNREACHABLE→unreachable；UI35-401
+/// 加性扩两码：TIMEOUT→networkTimeout、SSL_HANDSHAKE→sslHandshake；DB_ERROR
+/// 及其余未列码→unknown；TIMEOUT 不唯一指"端口没开"，文案不断言单一
+/// 成因）；rawMessage = message（envelope 含 engineCode 时追加
 /// engineCode 后缀，后缀格式为 ` (engine code: <engineCode>)`，属实现自决
 /// 项）。[occurredAt] 缺省取当前时间。
 ConnectionFailure gatewayEnvelopeFailure({
@@ -122,6 +132,8 @@ ConnectionFailure gatewayEnvelopeFailure({
   final kind = switch (code) {
     'AUTH_DENIED' => ConnectionFailureKind.authFailed,
     'UNREACHABLE' => ConnectionFailureKind.unreachable,
+    'TIMEOUT' => ConnectionFailureKind.networkTimeout,
+    'SSL_HANDSHAKE' => ConnectionFailureKind.sslHandshake,
     _ => ConnectionFailureKind.unknown,
   };
   final rawMessage = engineCode == null

@@ -468,6 +468,36 @@ class AiPanelProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ==================== 经典 dock composer 预填通道（B-07 / UI35-443）====================
+
+  /// 经典 dock composer 预填挂起值（B-07，沿 [_workbenchEntryIntent] 的 R7
+  /// pending 单槽先例）：pending 单槽——新请求覆盖旧值；经典面板输入区
+  /// post-frame 写入 composer 后调用 [consumeComposerPrefill] 清除（写入即
+  /// 消费）。app 会话内存、不落盘；AI 会话切换不清除（生命周期同
+  /// WorkbenchEntryIntent，纯引流信号通道）。调用方填充
+  /// prodGuardAiBackupPrompt({object}) 后传入。
+  String? _pendingComposerPrefill;
+
+  /// 当前挂起的 composer 预填值；null = 无待办（输入区消费后清空）。
+  String? get pendingComposerPrefill => _pendingComposerPrefill;
+
+  /// 挂起一个 composer 预填（设值 + notify；pending 单槽——新请求覆盖旧值，
+  /// 通知语义镜像 [requestWorkbenchEntry]）。纪律：预填不自动发送、不校验
+  /// API key、不 recordAiUsage（沿 analyzeTreeNodeInWorkbench 先例——发送账
+  /// 归用户）。
+  void requestComposerPrefill(String text) {
+    _pendingComposerPrefill = text;
+    notifyListeners();
+  }
+
+  /// 清空挂起的 composer 预填（输入区写入完成后调用；无待办时不 notify，
+  /// 通知语义镜像 [consumeWorkbenchEntryIntent]）。
+  void consumeComposerPrefill() {
+    if (_pendingComposerPrefill == null) return;
+    _pendingComposerPrefill = null;
+    notifyListeners();
+  }
+
   void toggleBookmark(String messageId) {
     sessionManager.toggleBookmark(messageId);
   }

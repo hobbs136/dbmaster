@@ -65,6 +65,7 @@ import '../../sql_statement_gate_runner.dart'
         SqlDmlConfirmCallback,
         SqlExecuteCallback,
         SqlGateRunDeps,
+        SqlProductionGuardConfirmCallback,
         SqlStatementBatchResult,
         SqlStatementGateRunner,
         SqlStatementResult,
@@ -612,6 +613,7 @@ class AgentPlanExecutionDeps {
     this.executeBypassDml,
     this.ddlConfirm,
     this.dmlConfirm,
+    this.productionGuardConfirm,
     this.shouldContinue,
     this.onStepStateChange,
   });
@@ -634,6 +636,11 @@ class AgentPlanExecutionDeps {
 
   /// DML 门确认回调（shell 绑 DmlConfirmDialog）。
   final SqlDmlConfirmCallback? dmlConfirm;
+
+  /// 生产守卫确认回调（B-07 production 分流；shell 绑
+  /// showProductionGuardDialog——L1/L2 分级 + AI 备份胶水）。缺位时 runner
+  /// 侧 fail-closed 视同取消（production 高危语句零执行）。
+  final SqlProductionGuardConfirmCallback? productionGuardConfirm;
 
   /// 每语句执行前探针（false → 中止边界：本步起余下全 skipped；绑
   /// context.mounted / 停止态）。
@@ -828,6 +835,7 @@ class AgentPlanExecutor {
           writeConfirm: const SqlWriteConfirmStrategy.none(),
           ddlConfirm: deps.ddlConfirm,
           dmlConfirm: deps.dmlConfirm,
+          productionGuardConfirm: deps.productionGuardConfirm,
           executeBypassDdl: deps.executeBypassDdl,
           executeBypassDml: deps.executeBypassDml,
           haltOnStatementFailure: false,
@@ -912,6 +920,11 @@ class AgentPlanExecutor {
               decision = AgentGateDecision.rejectedByUser;
             case SqlBatchStatus.dmlCancelled:
               reason = 'DML confirmation was cancelled by the user';
+              decision = AgentGateDecision.rejectedByUser;
+            case SqlBatchStatus.productionGuardCancelled:
+              // B-07 生产守卫人拒（含回调缺位 fail-closed）：语句未执行，
+              // 与 DML 取消同一「用户拒绝」审计语义（agent 审计链出口）。
+              reason = 'production guard was cancelled by the user';
               decision = AgentGateDecision.rejectedByUser;
             case SqlBatchStatus.aborted:
               reason =

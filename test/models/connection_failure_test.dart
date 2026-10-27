@@ -141,12 +141,13 @@ void main() {
       expect(failure.errorCode, 'UNREACHABLE');
     });
 
-    test('TIMEOUT → unknown（不唯一指"端口没开"，文案由展示层兜底）', () {
+    // 2026-10-27 契约演进改写：UI35-401（原断言 TIMEOUT → unknown）。
+    test('TIMEOUT → networkTimeout（不唯一指"端口没开"，文案由展示层兜底）', () {
       final failure = gatewayEnvelopeFailure(
         code: 'TIMEOUT',
         message: 'pool timed out',
       );
-      expect(failure.kind, ConnectionFailureKind.unknown);
+      expect(failure.kind, ConnectionFailureKind.networkTimeout);
       expect(failure.errorCode, 'TIMEOUT');
     });
 
@@ -225,6 +226,53 @@ void main() {
         'AdapterConnectException('
         '${ConnectionFailureKind.permissionDenied}, code=14): '
         'unable to open database file',
+      );
+    });
+  });
+
+  // ── UI35-401（批4 T8 红测，B-05 冻结）：枚举 8→10 新分型映射 ──
+  //
+  // 红态策略：新枚举值 networkTimeout/sslHandshake 尚未实现，本组用
+  // kind.toString().split('.').last 做可编译、行为红断言（实现批落地后
+  // 自动转绿）。映射来源唯一 = gatewayEnvelopeFailure 稳定码表
+  // （'TIMEOUT' => networkTimeout、'SSL_HANDSHAKE' => sslHandshake，
+  // 其余不变落 unknown；不做 rawMessage 嗅探）。
+  group('gatewayEnvelopeFailure code→kind（UI35-401 B-05 新分型）', () {
+    String kindName(ConnectionFailureKind kind) =>
+        kind.toString().split('.').last;
+
+    test("envelope 稳定码 'TIMEOUT' → kind 名 'networkTimeout'", () {
+      final failure = gatewayEnvelopeFailure(
+        code: 'TIMEOUT',
+        message: 'pool timed out',
+      );
+      expect(kindName(failure.kind), 'networkTimeout');
+    });
+
+    test("envelope 稳定码 'SSL_HANDSHAKE' → kind 名 'sslHandshake'", () {
+      final failure = gatewayEnvelopeFailure(
+        code: 'SSL_HANDSHAKE',
+        message: 'invalid peer certificate',
+      );
+      expect(kindName(failure.kind), 'sslHandshake');
+    });
+
+    test('既有稳定码映射回归：AUTH_DENIED / UNREACHABLE / 未列码', () {
+      expect(
+        kindName(
+          gatewayEnvelopeFailure(code: 'AUTH_DENIED', message: 'm').kind,
+        ),
+        'authFailed',
+      );
+      expect(
+        kindName(
+          gatewayEnvelopeFailure(code: 'UNREACHABLE', message: 'm').kind,
+        ),
+        'unreachable',
+      );
+      expect(
+        kindName(gatewayEnvelopeFailure(code: 'NOT_A_CODE', message: 'm').kind),
+        'unknown',
       );
     });
   });
